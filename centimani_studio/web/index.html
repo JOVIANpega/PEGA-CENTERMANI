@@ -1,0 +1,2709 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
+<style>
+  :root {
+    --slate-900: #0F172A;
+    --slate-800: #1E293B;
+    --slate-700: #334155;
+    --slate-500: #64748B;
+    --slate-200: #E2E8F0;
+    --slate-100: #F1F5F9;
+    --blue-600: #2563EB;
+    --blue-50: #EFF6FF;
+    --blue-hover: #BAE6FD;
+    --green-600: #16A34A;
+    --green-50: #F0FDF4;
+    --green-hover: #BBF7D0;
+    --amber-100: #FEF08A;
+    --red-700: #7F1D1D;
+    --red-600: #DC2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #F1F5F9;
+    color: var(--slate-700);
+    font-family: "Calibri", "Microsoft JhengHei UI Light", "Microsoft JhengHei UI", sans-serif;
+    font-size: 14.5px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  h1, h2, h3, h4, strong, th, .bold-title {
+    font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
+    font-weight: 700;
+  }
+  code, .mono {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13.5px;
+  }
+
+  /* Top Navigation Bar */
+  .top-header {
+    background: var(--slate-900);
+    color: #FFFFFF;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--blue-600);
+    flex-shrink: 0;
+  }
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+  }
+  .sub-tag {
+    background: #1E3A8A;
+    color: #DBEAFE;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    border: 1px solid #3B82F6;
+  }
+
+  /* App Layout: Left Sidebar + Right Main Workspace */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Left Sidebar Navigation */
+  .left-sidebar {
+    width: 170px;
+    background: #1E293B;
+    border-right: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 10px 14px 10px;
+    gap: 10px;
+    flex-shrink: 0;
+    transition: width 0.18s ease, padding 0.18s ease;
+  }
+  .left-sidebar.collapsed {
+    width: 56px;
+    padding: 10px 6px 14px 6px;
+  }
+  .left-sidebar.collapsed .tab-label,
+  .left-sidebar.collapsed .collapse-label {
+    display: none;
+  }
+  .left-sidebar.collapsed .sidebar-tab-item {
+    justify-content: center;
+    padding: 12px 6px;
+  }
+  .sidebar-collapse-btn {
+    background: #0F172A;
+    color: #CBD5E1;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .sidebar-collapse-btn:hover {
+    background: #334155;
+    color: #FFFFFF;
+  }
+  .sidebar-tab-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #1E293B;
+    color: #94A3B8;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    border: 1px solid transparent;
+    transition: all 0.16s ease;
+    user-select: none;
+  }
+  .sidebar-tab-item:hover {
+    background: #334155;
+    color: #F8FAFC;
+    border-color: #475569;
+  }
+  .sidebar-tab-item.active {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-color: #3B82F6;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  }
+
+  /* Hover Popup Window (Tooltip Window) */
+  .sidebar-tab-item .popup-card {
+    display: none;
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 0;
+    width: 320px;
+    background: #0F172A;
+    border: 1.5px solid #38BDF8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #F8FAFC;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    pointer-events: none;
+    line-height: 1.5;
+    font-size: 13px;
+    font-weight: 400;
+    animation: fadeIn 0.14s ease-out;
+  }
+  .sidebar-tab-item:hover .popup-card {
+    display: block;
+  }
+  .popup-card h4 {
+    margin: 0 0 6px 0;
+    color: #38BDF8;
+    font-size: 14.5px;
+    font-weight: 700;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 4px;
+  }
+  .popup-card ul {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+    color: #E2E8F0;
+  }
+  .popup-card li {
+    margin-bottom: 4px;
+  }
+
+  /* Inline Action Popup Window */
+  .has-popup {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .has-popup .popup-card {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 310px;
+    background: #0F172A;
+    border: 1.5px solid #38BDF8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #F8FAFC;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    pointer-events: none;
+    line-height: 1.5;
+    font-size: 12.5px;
+    font-weight: 400;
+    text-align: left;
+    white-space: normal;
+    animation: fadeInDown 0.14s ease-out;
+  }
+  .has-popup.popup-right .popup-card {
+    left: auto;
+    right: 0;
+  }
+  .has-popup:hover .popup-card {
+    display: block;
+  }
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Main View Container */
+  .main-content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+    background: #FFFFFF;
+    margin: 0;
+  }
+
+  /* Action Bar on top of panel */
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+
+  /* Interactive Buttons with Universal Hover & Handover Rule */
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #CBD5E1;
+    background: #F8FAFC;
+    color: var(--slate-900);
+    font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: #E2E8F0;
+    border-color: #94A3B8;
+  }
+  .btn-primary-blue {
+    background: #DBEAFE;
+    color: #1E3A8A;
+    border-color: #3B82F6;
+  }
+  .btn-primary-blue:hover {
+    background: #BAE6FD;
+    border-color: #1D4ED8;
+  }
+  .btn-primary-green {
+    background: #DCFCE7;
+    color: #14532D;
+    border-color: #22C55E;
+  }
+  .btn-primary-green:hover {
+    background: #BBF7D0;
+    border-color: #15803D;
+  }
+  .btn-dry {
+    background: #E0E7FF;
+    color: #1E1B4B;
+    border-color: #818CF8;
+  }
+  .btn-dry:hover {
+    background: #C7D2FE;
+    border-color: #4F46E5;
+  }
+
+  /* Path & Alert Box (符合全域深黃色 #FEF08A 不透明規範) */
+  .alert-banner {
+    background: #FEF08A;
+    border: 1.6px solid #DC2626;
+    color: #7F1D1D;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
+  /* Cards for Choice / Fixing */
+  .fix-card {
+    background: #FFFBEB;
+    border: 1.6px solid #F59E0B;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .option-pill {
+    padding: 7px 12px;
+    margin-bottom: 5px;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    background: #FFFFFF;
+    cursor: pointer;
+    transition: background-color 0.14s ease, border-color 0.14s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .option-pill:hover {
+    background: #E0F2FE;
+    border-color: #0284C7;
+  }
+  .option-pill.selected {
+    background: #DCFCE7;
+    border-color: #16A34A;
+    color: #14532D;
+    font-weight: 700;
+  }
+
+  /* Block Grid for Generator */
+  .block-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .blk-card {
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: #F8FAFC;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    transition: background-color 0.14s ease, border-color 0.14s ease;
+  }
+  .blk-card:hover {
+    background: #E0F2FE;
+    border-color: #38BDF8;
+  }
+  .blk-card.checked {
+    background: #F0FDF4;
+    border-color: #22C55E;
+  }
+  input[type="text"], select {
+    padding: 7px 10px;
+    border: 1px solid #CBD5E1;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  /* Loading Spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    border-top-color: currentColor;
+    animation: spin 0.65s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Metric KPI Dashboard Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .kpi-card {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .kpi-label {
+    font-size: 11.5px;
+    color: #64748B;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .kpi-value {
+    font-size: 15.5px;
+    color: #0F172A;
+    font-weight: 700;
+    font-family: "Consolas", monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Progress Bar for Phases */
+  .bar-track {
+    background: #E2E8F0;
+    border-radius: 6px;
+    height: 10px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .bar-fill {
+    background: #2563EB;
+    height: 100%;
+    border-radius: 6px;
+  }
+
+  /* Ranking Badges */
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: "Consolas", monospace;
+  }
+  .rank-1 { background: #FEF08A; color: #854D0E; border: 1px solid #EAB308; }
+  .rank-2 { background: #E2E8F0; color: #334155; border: 1px solid #94A3B8; }
+  .rank-3 { background: #FFEDD5; color: #9A3412; border: 1px solid #FB923C; }
+  .rank-def { background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; }
+
+  /* Interactive Filter Pills for Measurements */
+  .filter-pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #CBD5E1;
+    background: #FFFFFF;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-pill:hover {
+    background: #F1F5F9;
+    border-color: #94A3B8;
+  }
+  .filter-pill.active {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-color: #1D4ED8;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+  }
+  .filter-pill.active-fail {
+    background: #DC2626;
+    color: #FFFFFF;
+    border-color: #B91C1C;
+    box-shadow: 0 1px 3px rgba(220,38,38,0.3);
+  }
+  .filter-pill.active-retry {
+    background: #D97706;
+    color: #FFFFFF;
+    border-color: #B45309;
+    box-shadow: 0 1px 3px rgba(217,119,6,0.3);
+  }
+  .filter-pill.active-pass {
+    background: #16A34A;
+    color: #FFFFFF;
+    border-color: #15803D;
+    box-shadow: 0 1px 3px rgba(22,163,74,0.3);
+  }
+
+  /* Segmented Source Mode Toggle */
+  .source-mode-bar {
+    display: flex;
+    gap: 4px;
+    background: #E2E8F0;
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 12px;
+    width: fit-content;
+  }
+  .source-mode-tab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .source-mode-tab:hover {
+    color: #0F172A;
+    background: #CBD5E1;
+  }
+  .source-mode-tab.active {
+    background: #FFFFFF;
+    color: #2563EB;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* Collapsible Drawer */
+  .drawer-bar {
+    background: #F8FAFC;
+    border: 1px dashed #CBD5E1;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    user-select: none;
+    margin-top: 6px;
+  }
+  .drawer-bar:hover {
+    background: #E0F2FE;
+    color: #0369A1;
+    border-color: #38BDF8;
+  }
+
+  /* Split KPI Panels (Left: Info, Right: Metrics) */
+  .kpi-split-container {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .kpi-panel {
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .kpi-panel-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #64748B;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .kpi-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<div class="top-header">
+  <div class="brand-group">
+    <span class="brand-title">Centimani Studio V2.4</span>
+  </div>
+  <div style="font-size:13px; color:#E2E8F0;">
+    全螢幕瀏覽器模式  |  產線相容：Centimani 1.5.3 ~ 2.0
+  </div>
+</div>
+
+<!-- 全螢幕主畫面容器 (左側直向導航 + 右側主工作區) -->
+<div class="app-body">
+
+  <!-- ======================== 左側直向書籤導航欄 ======================== -->
+  <div id="leftSidebar" class="left-sidebar collapsed">
+    <button id="btnCollapseSidebar" class="sidebar-collapse-btn" onclick="toggleLeftSidebar()" title="摺疊 / 展開左側選單">
+      <span id="collapseSidebarIcon">▶</span>
+      <span class="collapse-label">收合選單</span>
+    </button>
+
+    <!-- 書籤一：腳本健檢 -->
+    <div id="sideTabAudit" class="sidebar-tab-item active" onclick="switchTab('audit')">
+      <span style="font-size:16px;">🔍</span>
+      <span class="tab-label">腳本健檢</span>
+      <!-- 懸停彈出視窗 Popup Window -->
+      <div class="popup-card">
+        <h4>🔍 現有 Excel 腳本健檢與原路徑修復</h4>
+        <ul>
+          <li><strong>邏輯自檢</strong>：自動檢查 10 大項目（Phase 連號、Index 編排、TestID 缺漏、ExecMode 跳轉）。</li>
+          <li><strong>硬體核對</strong>：自動比對 <code>Device\*.dll</code> 實體 PE 版本，杜絕 Version mismatch。</li>
+          <li><strong>同目錄保存</strong>：自動輸出回原資料夾，檔名加上 <code>_FIXED.xlsx</code>。</li>
+          <li><strong>自動官方簽章</strong>：調用 <code>LoadScript.dll</code> 計算 64 碼 Checksum 並寫入 <code>System.ini</code>。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 書籤二：檢查LOG -->
+    <div id="sideTabDiagnose" class="sidebar-tab-item" onclick="switchTab('diagnose')">
+      <span style="font-size:16px;">🩺</span>
+      <span class="tab-label">檢查LOG</span>
+      <!-- 懸停彈出視窗 Popup Window -->
+      <div class="popup-card">
+        <h4>🩺 Centimani 運行日誌與檢查LOG</h4>
+        <ul>
+          <li><strong>雙模輸入</strong>：支援幾百 KB 大檔 Log / CSV 直接選檔，或短文字直接貼上。</li>
+          <li><strong>FAIL 事故定位</strong>：秒抓通訊埠不存在、Dictionary 重複鍵、超時或數值超標。</li>
+          <li><strong>PASS 節拍分析</strong>：自動解析各 Phase 耗時、Top 5 瓶頸排行與 CT 縮短建議。</li>
+          <li><strong>解法導引</strong>：提供真實機台排查步驟與一鍵「無硬體試跑 (Dry-Run)」對策。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 書籤三：母體產生 -->
+    <div id="sideTabGen" class="sidebar-tab-item" onclick="switchTab('gen')">
+      <span style="font-size:16px;">🟢</span>
+      <span class="tab-label">母體產生</span>
+      <!-- 懸停彈出視窗 Popup Window -->
+      <div class="popup-card">
+        <h4>🟢 空白標準母體與測試積木產生器</h4>
+        <ul>
+          <li><strong>標準 16 欄</strong>：自動建立合規的 Properties、DUTs、Switch、Instrument 分頁。</li>
+          <li><strong>積木庫勾選</strong>：自由勾選開機、NI6008 量測、MAC 燒錄與 Phase 97 安全收尾。</li>
+          <li><strong>完整獨立包</strong>：自動生成 <code>System.ini</code>、<code>Global.ini</code> 並複製 Test Item Code 檔案。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 書籤四：TestID / Error Code 代碼速查與套用 -->
+    <div id="sideTabTic" class="sidebar-tab-item" onclick="switchTab('tic')">
+      <span style="font-size:16px;">🏷️</span>
+      <span class="tab-label">代碼速查</span>
+      <div class="popup-card">
+        <h4>🏷️ TestID / Error Code 速查與精準套用</h4>
+        <ul>
+          <li><strong>官方字典檢索</strong>：依中英文關鍵字搜尋 Test Item Code V2.04，支援僅顯示通用碼。</li>
+          <li><strong>方案一（母體積木）</strong>：直接替換「母體產生」已勾選積木的指定步驟 TestID。</li>
+          <li><strong>方案二（現有 Excel）</strong>：列出載入腳本的測試列，一鍵填入 TestID 並簽章存檔。</li>
+          <li><strong>方案三（複製與暫存）</strong>：支援單欄/雙欄複製（<code>Description + Tab + TestID</code>）與暫存籃。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 右側主工作區域 ======================== -->
+  <div class="main-content">
+
+  <!-- ======================== 書籤一：現有 Excel 腳本健檢與原路徑修復 ======================== -->
+  <div id="panelAudit">
+    <!-- 頂部操作列（排版最佳化：按鈕放上方，檔案路徑完整獨立呈現於下一行） -->
+    <div class="action-bar" style="flex-direction:column; align-items:flex-start; gap:8px;">
+      <div style="display:flex; align-items:center; gap:10px; width:100%; flex-wrap:wrap;">
+        <span class="has-popup">
+          <button class="btn btn-primary-blue" onclick="pickExcelNative()">
+            📂 點此選擇要檢查的 Excel 檔案
+          </button>
+          <div class="popup-card">
+            <h4>📂 腳本健檢說明</h4>
+            <ul>
+              <li>掃描 <code>TestFlow</code> 與 <code>Phase</code> 工作表結構。</li>
+              <li>檢查必填欄位（如 <code>TestID</code>、<code>ExecMode</code>）、重複索引與格式錯誤。</li>
+              <li>同步比對同目錄 <code>System.ini</code> 的 Checksum 一致性。</li>
+            </ul>
+          </div>
+        </span>
+
+        <span class="has-popup">
+          <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)">
+            💾 一鍵修好並存回原資料夾 (*_FIXED.xlsx + 自動簽章)
+          </button>
+          <div class="popup-card">
+            <h4>💾 產線修復匯出</h4>
+            <ul>
+              <li>依下方勾選的修復方案自動修補異常項目。</li>
+              <li>輸出 <code>*_FIXED.xlsx</code> 至原測試包資料夾。</li>
+              <li>自動更新 <code>System.ini</code> 的 <code>[Checksum]</code> 供實機載入。</li>
+            </ul>
+          </div>
+        </span>
+
+        <span class="has-popup">
+          <button id="btnExportDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)">
+            🧪 匯出『無硬體試跑版』(Skip硬體列)
+          </button>
+          <div class="popup-card">
+            <h4>🧪 無硬體試跑轉換</h4>
+            <ul>
+              <li>清空 <code>Instrument</code> / <code>Switch</code> 的 <code>Mount</code> 掛載設定。</li>
+              <li>硬體控制與量測列轉為 <code>ExecMode = 6</code>（Skip）。</li>
+              <li><code>:Sf*</code> 指令維持 <code>8/9</code> 並清空 <code>Validation</code>，供無儀器 PC 驗證流程。</li>
+            </ul>
+          </div>
+        </span>
+      </div>
+
+      <!-- 完整路徑顯示於下一行，不被按鈕擠壓截斷 -->
+      <div style="display:flex; align-items:center; gap:8px; width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
+        <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前選取檔案完整路徑：</span>
+        <span id="pickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
+          尚未選擇檔案（點擊上方「📂 點此選擇要檢查的 Excel 檔案」按鈕，將自動開啟視窗並記憶上次目錄）
+        </span>
+      </div>
+    </div>
+
+    <!-- 狀態與路徑提示氣泡 -->
+    <div id="auditAlertBox" class="alert-banner" style="display:none;"></div>
+
+    <!-- 錯誤明細展開勾選框 (平常不顯示，打勾才展開修復對策) -->
+    <div id="toggleDetailBar" style="display:none; align-items:center; gap:8px; margin: 0 0 10px 4px;">
+      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#334155; font-size:14px; user-select:none;">
+        <input type="checkbox" id="chkShowDetails" onchange="toggleDetailVisibility()" style="cursor:pointer; width:17px; height:17px;">
+        顯示錯誤細節與修正說明（打勾查看各項修補明細；平時預設收合以保持畫面清爽）
+      </label>
+    </div>
+
+    <!-- 點選題區塊（若有步號越界，列出推薦答案） -->
+    <div id="choiceContainer" style="display:none;">
+      <h3 style="margin:4px 0 8px 0; color:#92400E;">🎯 步號跳轉 / 鎖定確認題（已幫您預設選好【智慧推薦答案】，直接點上方綠色按鈕即可套用）：</h3>
+      <div id="choiceCardList"></div>
+    </div>
+
+    <!-- 問題明細與自動修復預覽清單 (平常預設隱藏，勾選才顯示) -->
+    <div id="issueDetailBox" style="display:none; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px; background:#F8FAFC; margin-top:8px;">
+      <h3 style="margin:0 0 8px 0; color:var(--slate-900);">🛠️ 系統抓到的問題與自動修補對策（存檔時自動套用）：</h3>
+      <div id="issueItems" style="font-size:13.5px; line-height:1.6;"></div>
+    </div>
+  </div>
+
+  <!-- ======================== 書籤二：測試錯誤 Log 診斷與解法分析 ======================== -->
+  <div id="panelDiagnose" style="display:none;">
+    <!-- 頂部雙模式切換標籤 (Segmented Source Mode) -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      <div class="source-mode-bar">
+        <span class="has-popup">
+          <button id="tabModeFile" class="source-mode-tab active" onclick="switchSourceMode('file')">
+            📁 模式一：分析 Log 檔案 (.log / .csv)
+          </button>
+          <div class="popup-card">
+            <h4>📁 完整 Log 檔案解析</h4>
+            <ul>
+              <li>讀取 Centimani 產出之 <code>.log</code> 或 <code>.csv</code> 紀錄檔。</li>
+              <li>自動統計各測項 PASS / FAIL / Retry 次數與耗時分佈。</li>
+              <li>可篩選異常測項並展開原始日誌全文比對。</li>
+            </ul>
+          </div>
+        </span>
+        <span class="has-popup">
+          <button id="tabModeText" class="source-mode-tab" onclick="switchSourceMode('text')">
+            📋 模式二：貼上錯誤文字 / 診斷片段
+          </button>
+          <div class="popup-card">
+            <h4>📋 錯誤片段快速診斷</h4>
+            <ul>
+              <li>適合直接貼上黑色主控台視窗或 System Error 彈窗文字。</li>
+              <li>自動比對 Checksum 失敗、SFIS 斷線、儀器鎖定與格式錯誤。</li>
+            </ul>
+          </div>
+        </span>
+      </div>
+
+      <!-- 右上角快捷小功能：一鍵複製摘要 -->
+      <div id="diagQuickActions" style="display:flex; gap:8px;">
+        <span class="has-popup popup-right">
+          <button class="btn" style="padding:4px 12px; font-size:12.5px;" onclick="copyTestSummary()">
+            📋 複製測試結論摘要
+          </button>
+          <div class="popup-card">
+            <h4>📋 複製結論摘要</h4>
+            <ul>
+              <li>將目前解析出的站別結果、異常測項與數據摘要複製至剪貼簿。</li>
+              <li>可直接貼入交接紀錄、工單或問題回報內容。</li>
+            </ul>
+          </div>
+        </span>
+      </div>
+    </div>
+
+    <!-- 模式一：檔案分析專屬區塊 (預設顯示) -->
+    <div id="subModeFile" style="margin-bottom:12px;">
+      <div class="action-bar" style="margin-bottom:6px;">
+        <button id="btnPickLog" class="btn btn-primary-blue" onclick="pickLogFileNative()">
+          📂 點此選擇要分析的 Log / CSV 檔案（支援幾百K大檔秒速解析）
+        </button>
+        <span style="flex:1;"></span>
+        <span class="has-popup popup-right">
+          <button class="btn btn-primary-green" onclick="reAnalyzePickedFile()">
+            🔄 重新解析本檔
+          </button>
+          <div class="popup-card">
+            <h4>🔄 重新載入解析</h4>
+            <ul>
+              <li>當機台持續寫入新測試結果至同一個 Log 檔時，點擊即可重新讀取最新內容。</li>
+            </ul>
+          </div>
+        </span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
+        <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前載入檔案：</span>
+        <span id="pickedLogPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
+          尚未選擇檔案（點擊上方藍色按鈕選擇 Log\*.log 即刻完成全量分析）
+        </span>
+      </div>
+
+      <!-- 抽屜：原始日誌內容預覽（平常自動收合，零佔用垂直空間） -->
+      <div class="drawer-bar" onclick="toggleRawDrawer()">
+        <span id="rawDrawerArrow">▶</span>
+        <span id="rawDrawerLabel" style="font-weight:700;">點此展開原始日誌全文預覽（已收合，平常零佔位）</span>
+      </div>
+      <div id="rawLogDrawer" style="display:none; margin-top:6px;">
+        <textarea id="txtRawPreview" readonly class="mono" style="width:100%; height:140px; font-size:12.5px; padding:8px 10px; border:1px solid #CBD5E1; border-radius:6px; background:#F8FAFC; color:#0F172A;"></textarea>
+      </div>
+    </div>
+
+    <!-- 模式二：文字貼上專屬區塊 (在模式一時完全隱藏，需要時一鍵切換) -->
+    <div id="subModeText" style="display:none; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label class="bold-title" style="font-size:14px; color:var(--slate-900);">
+          📋 請在此貼上 Centimani 錯誤 LOG / 彈窗訊息：
+        </label>
+        <button class="btn" style="padding:2px 8px; font-size:12px;" onclick="document.getElementById('txtLogInput').value=''; document.getElementById('diagResultContainer').style.display='none';">
+          ✕ 清空文字
+        </button>
+      </div>
+      <textarea id="txtLogInput" rows="12" placeholder="請在此貼上錯誤 LOG 或彈窗訊息..."
+        style="width:100%; height:240px; min-height:220px; font-family:'Consolas',monospace; font-size:13px; line-height:1.45; padding:10px 12px; border:1px solid #CBD5E1; border-radius:6px; resize:vertical; background:#FFFFFF; color:#0F172A;"></textarea>
+      <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+        <button id="btnAnalyzeLog" class="btn btn-primary-green" onclick="analyzeLogInput()">
+          🔍 立即診斷貼上文字
+        </button>
+      </div>
+    </div>
+
+    <!-- 分析結果呈現區 -->
+    <div id="diagResultContainer" style="display:none;">
+      <!-- 頂部狀態 Banner -->
+      <div id="diagBanner" style="margin-bottom:12px; border-radius:8px; padding:12px 16px;"></div>
+
+      <!-- 關鍵數據 KPI 雙面板（左：機台與生產身分，右：品質與良率指標） -->
+      <div class="kpi-split-container">
+        <!-- 左面板：機台與待測物資訊 -->
+        <div class="kpi-panel">
+          <div class="kpi-panel-title">
+            <span>📋 機台與待測物資訊 (Production Info)</span>
+          </div>
+          <div id="kpiInfoGrid" class="kpi-panel-grid"></div>
+        </div>
+
+        <!-- 右面板：品質與良率指標 -->
+        <div class="kpi-panel">
+          <div class="kpi-panel-title">
+            <span>📊 品質與良率監控指標 (Yield & Quality)</span>
+          </div>
+          <div id="kpiYieldGrid" class="kpi-panel-grid"></div>
+        </div>
+      </div>
+
+      <!-- 數值量測明細與項目狀態 (PASS / FAIL / RETRY 統計與篩選表) -->
+      <div id="diagMeasurementSection" style="margin-bottom:14px; display:none;">
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <div style="font-weight:700; color:var(--slate-900); font-size:14.5px; display:flex; align-items:center; gap:8px;">
+              <span>📊 測試項目數值量測明細 (Measurement Data & Spec Validation)：</span>
+            </div>
+            <!-- 篩選器按鈕群組 + 快速搜尋框 -->
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <input type="text" id="measSearchInput" placeholder="🔍 搜尋參數/步驟 (如: Shading)..."
+                oninput="onMeasSearchChange()"
+                style="padding:4px 10px; font-size:12.5px; width:190px; border:1px solid #CBD5E1; border-radius:16px;">
+              <div id="measFilterGroup" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+          </div>
+          <!-- 量測資料表 -->
+          <div style="max-height:280px; overflow-y:auto; border:1px solid #E2E8F0; border-radius:6px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left;">
+              <thead style="position:sticky; top:0; background:#F8FAFC; border-bottom:1.5px solid #CBD5E1; z-index:2;">
+                <tr style="color:#475569; font-weight:700;">
+                  <th style="padding:7px 10px;">測試步驟 (Step Name)</th>
+                  <th style="padding:7px 10px;">代碼 (Test ID)</th>
+                  <th style="padding:7px 10px;">參數 (Parameter)</th>
+                  <th style="padding:7px 10px; text-align:right;">實測數值 (Value)</th>
+                  <th style="padding:7px 10px; text-align:center;">規格限制 (Spec Limits)</th>
+                  <th style="padding:7px 10px; text-align:right;">差值/邊界 (Delta)</th>
+                  <th style="padding:7px 10px; text-align:center;">狀態 (Status)</th>
+                  <th style="padding:7px 10px; text-align:center;">重試歷程 (Retries)</th>
+                </tr>
+              </thead>
+              <tbody id="measTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASS / 耗時數據區塊：Phase 階段分析 + Top 5 瓶頸排行 -->
+      <div id="diagTimingSection" style="margin-bottom:14px;"></div>
+
+      <!-- 節拍優化建議卡片 (CT Optimization) -->
+      <div id="diagSuggestionsSection" style="margin-bottom:14px;"></div>
+
+      <!-- 錯誤/異常定位與對策卡片清單 -->
+      <div id="diagCardsList"></div>
+    </div>
+  </div>
+
+  <!-- ======================== 書籤三：4 步驟精靈式母體產生器 ======================== -->
+  <div id="panelGen" style="display:none;">
+    <!-- 頂部步驟導覽列 -->
+    <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+        <button id="wizNav1" class="source-mode-tab active" onclick="goWizardStep(1)">① 基本與 ISN 設定</button>
+        <span style="color:#94A3B8;">➔</span>
+        <button id="wizNav2" class="source-mode-tab" onclick="goWizardStep(2)">② 勾選測試項目</button>
+        <span style="color:#94A3B8;">➔</span>
+        <button id="wizNav3" class="source-mode-tab" onclick="goWizardStep(3)">③ 填寫細部參數</button>
+        <span style="color:#94A3B8;">➔</span>
+        <button id="wizNav4" class="source-mode-tab" onclick="goWizardStep(4)">④ 總覽與 Finish</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btnWizPrev" class="btn" style="padding:5px 12px; display:none;" onclick="goWizardStep(WIZ_STEP - 1)">◀ 上一步</button>
+        <button id="btnWizNext" class="btn btn-primary-blue" style="padding:5px 14px;" onclick="goWizardStep(WIZ_STEP + 1)">下一步 ▶</button>
+      </div>
+    </div>
+
+    <!-- Step 1: 基本設定與 ISN -->
+    <div id="wizStep1" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:18px;">
+      <h3 style="margin:0 0 12px 0; color:var(--slate-900);">Step 1：設定專案基本資訊與 ISN 條碼規格</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">專案名稱 (Project)</label>
+          <input type="text" id="genProj" value="PEGA_NEW" style="width:100%; padding:7px 10px; border:1px solid #94A3B8; border-radius:6px;">
+        </div>
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">站別 (Station)</label>
+          <input type="text" id="genStation" value="MB" style="width:100%; padding:7px 10px; border:1px solid #94A3B8; border-radius:6px;">
+        </div>
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">多工槽位模式 (DUTs)</label>
+          <select id="genDutCount" style="width:100%; padding:7px 10px; border:1px solid #94A3B8; border-radius:6px;">
+            <option value="1" selected>1 (單板測試 LOAD_1=true)</option>
+            <option value="2">2 (雙板同步多工 LOAD_1~2=true)</option>
+            <option value="4">4 (四板同步多工 LOAD_1~4=true)</option>
+          </select>
+        </div>
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">ISN 輸入位數 (Byte / 碼數)</label>
+          <input type="number" id="genIsnLen" value="3" min="1" max="32" oninput="updateIsnRulePreview()" style="width:100%; padding:7px 10px; border:1px solid #94A3B8; border-radius:6px;">
+        </div>
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">ISN 字元規則 (Pattern)</label>
+          <select id="genIsnPattern" onchange="updateIsnRulePreview()" style="width:100%; padding:7px 10px; border:1px solid #94A3B8; border-radius:6px;">
+            <option value="[0-9A-Z]" selected>[0-9A-Z]（大寫英數字）</option>
+            <option value="[0-9]">[0-9]（純數字）</option>
+            <option value="[0-9A-Za-z]">[0-9A-Za-z]（大小寫英數字）</option>
+          </select>
+        </div>
+        <div>
+          <label class="bold-title" style="display:block; margin-bottom:4px;">ScanBarcode 規則預覽</label>
+          <div id="wizIsnPreview" class="mono" style="background:#EFF6FF; border:1px solid #3B82F6; color:#1E3A8A; font-weight:700; padding:7px 10px; border-radius:6px;">{ISN,3,[0-9A-Z]}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: 勾選要測的項目模組 -->
+    <div id="wizStep2" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:6px 0 8px 0;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <h3 style="margin:0; color:var(--slate-900);">Step 2：請勾選要納入測試流程的積木模組</h3>
+          <span id="genCustomTicBadge" class="badge badge-pass" style="display:none; cursor:pointer;" onclick="switchTab('tic')"></span>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn" style="padding:4px 10px; font-size:12.5px;" onclick="applyBlockPreset('minimal')">🧩 最小骨架</button>
+          <button class="btn" style="padding:4px 10px; font-size:12.5px;" onclick="applyBlockPreset('basic')">⚡ 基礎上電量測</button>
+          <button class="btn" style="padding:4px 10px; font-size:12.5px;" onclick="applyBlockPreset('none')">☐ 全部取消</button>
+        </div>
+      </div>
+      <div id="blockCheckGrid" class="block-grid"></div>
+    </div>
+
+    <!-- Step 3: 細部參數填寫 (依 Step 2 勾選項目動態展開) -->
+    <div id="wizStep3" style="display:none;">
+      <h3 style="margin:0 0 10px 0; color:var(--slate-900);">Step 3：依勾選項目填寫細部測試參數</h3>
+      <div id="wizStep3Body" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </div>
+
+    <!-- Step 4: 總覽確認與 Finish 產出 -->
+    <div id="wizStep4" style="display:none;">
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:16px; margin-bottom:12px;">
+        <h3 style="margin:0 0 10px 0; color:var(--slate-900);">Step 4：總覽確認與產出測試包 (Finish)</h3>
+        <div id="wizSummaryBox" style="font-size:13.5px; line-height:1.7; color:#1E293B; margin-bottom:14px;"></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button class="btn btn-dry" style="padding:10px 18px; font-size:14.5px;" onclick="generateNewMother(true)">
+            🧪 Finish：產生『無硬體試跑版』
+          </button>
+          <button class="btn btn-primary-green" style="padding:10px 18px; font-size:14.5px;" onclick="generateNewMother(false)">
+            🚀 Finish：產生『產線實機測試包』(含簽章 + 彈出資料夾)
+          </button>
+        </div>
+      </div>
+      <div id="genAlertBox" class="alert-banner" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ======================== 書籤四：TestID / Error Code 速查與精準套用 ======================== -->
+  <div id="panelTic" style="display:none;">
+    <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-weight:700; color:var(--slate-900); font-size:14.5px; white-space:nowrap;">🏷️ TestID / Error Code 查詢：</span>
+        <input type="text" id="ticSearchInput" placeholder="輸入中英文關鍵字、TestID 或 Error Code（例如：電壓、LED、UART、Ping、BRPW053）..."
+          oninput="searchTicLive()" style="flex:1; min-width:240px; padding:7px 12px; border:1px solid #94A3B8; border-radius:6px; font-size:13.5px;">
+        <label style="display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; color:var(--slate-700); cursor:pointer; white-space:nowrap;">
+          <input type="checkbox" id="chkTicGenericOnly" onchange="searchTicLive()"> 僅顯示通用碼
+        </label>
+        <button class="btn btn-primary-blue" style="padding:6px 12px; font-size:13px;" onclick="pickTicFileNative()">
+          📂 更換 Test Item Code 檔案
+        </button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#475569; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:4px 10px;">
+        <span style="font-weight:700; white-space:nowrap;">📄 目前代碼庫檔案：</span>
+        <span id="ticActiveFileText" class="mono" style="color:#0F172A; font-weight:700; word-break:break-all;">載入中...</span>
+      </div>
+    </div>
+
+    <!-- 方案 3：已暫存常用代碼列 (Pinned Tray) -->
+    <div id="ticPinnedTray" style="display:none; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 12px; margin-bottom:12px; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="font-size:12.5px; font-weight:700; color:#475569;">📌 已暫存代碼（點擊選取使用）：</span>
+      <div id="ticPinnedList" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- 左右雙欄工作區：左欄搜尋結果、右欄精準套用目標 (方案 1 + 方案 2) -->
+    <div style="display:grid; grid-template-columns:minmax(420px, 1.15fr) minmax(380px, 1fr); gap:14px; align-items:start;">
+
+      <!-- 左欄：搜尋結果表 -->
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+          <span style="font-weight:700; color:var(--slate-900); font-size:14px; white-space:nowrap;">🔍 搜尋結果（點擊選定代碼）</span>
+          <span style="font-size:12px; color:#64748B; white-space:nowrap;">「雙欄複製」可直接貼入 Excel</span>
+        </div>
+        <div id="ticResultBox" style="font-size:12.5px; color:#475569; max-height:560px; overflow-y:auto;">
+          請於上方輸入關鍵字開始搜尋官方 TestID 與 Error Code...
+        </div>
+      </div>
+
+      <!-- 右欄：已選定代碼 + 方案 1 / 方案 2 目標清單 -->
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
+        <div id="ticSelectedBanner" style="background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px; padding:10px 12px; margin-bottom:10px; font-size:13px; color:#334155;">
+          尚未選定代碼：請先在左側搜尋並點擊任一筆 <b>TestID</b>。
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <div class="source-mode-bar">
+            <button id="btnTicModeMother" class="source-mode-tab active" onclick="switchTicTargetMode('mother')">
+              🧩 方案一：套用至母體積木
+            </button>
+            <button id="btnTicModeExcel" class="source-mode-tab" onclick="switchTicTargetMode('excel')">
+              📄 方案二：寫入現有 Excel
+            </button>
+          </div>
+          <label style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#334155; cursor:pointer;">
+            <input type="checkbox" id="chkTicApplyDesc" checked> 套用時同步帶入英文 Description
+          </label>
+        </div>
+
+        <!-- 方案二專用操作列：選檔 / 篩選 / 存檔簽章 -->
+        <div id="ticExcelToolbar" style="display:none; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 10px; margin-bottom:8px; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary-blue" style="padding:4px 10px; font-size:12.5px;" onclick="pickExcelFromTic()">📂 選擇 Excel 檔案</button>
+          <button id="btnTicFilterMissing" class="filter-pill active" onclick="setTicExcelFilter('missing')">僅看缺 TestID 列</button>
+          <button id="btnTicFilterAll" class="filter-pill" onclick="setTicExcelFilter('all')">全部測試步驟</button>
+          <span style="flex:1;"></span>
+          <button id="btnTicSaveExcel" class="btn btn-primary-green" style="padding:4px 10px; font-size:12.5px; display:none;" onclick="saveTicExcelFixed()">💾 儲存 *_FIXED.xlsx + 簽章</button>
+        </div>
+
+        <div id="ticTargetAlert" class="alert-banner" style="display:none; font-size:12.5px; padding:8px 10px;"></div>
+        <div id="ticTargetList" style="max-height:470px; overflow-y:auto; font-size:12.5px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div> <!-- 關閉 app-body 容器 -->
+
+<script>
+let CURRENT_TAB = 'audit';
+let STATE = {
+  selectedPath: '',
+  lastPickedLogPath: '',
+  workspace: null,
+  report: null,
+  userChoices: {},
+  blocks: [],
+  selectedBlockIds: [
+    "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION", "BLK_VOLT_NI6008_BATCH",
+    "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"
+  ]
+};
+
+function toggleLeftSidebar() {
+  const sb = document.getElementById('leftSidebar');
+  const icon = document.getElementById('collapseSidebarIcon');
+  const collapsed = sb.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '▶' : '◀';
+}
+
+function switchTab(tab) {
+  CURRENT_TAB = tab;
+  document.getElementById('panelAudit').style.display = (tab === 'audit') ? 'block' : 'none';
+  document.getElementById('panelDiagnose').style.display = (tab === 'diagnose') ? 'block' : 'none';
+  document.getElementById('panelGen').style.display = (tab === 'gen') ? 'block' : 'none';
+  document.getElementById('panelTic').style.display = (tab === 'tic') ? 'block' : 'none';
+
+  document.getElementById('sideTabAudit').className = 'sidebar-tab-item' + (tab === 'audit' ? ' active' : '');
+  document.getElementById('sideTabDiagnose').className = 'sidebar-tab-item' + (tab === 'diagnose' ? ' active' : '');
+  document.getElementById('sideTabGen').className = 'sidebar-tab-item' + (tab === 'gen' ? ' active' : '');
+  document.getElementById('sideTabTic').className = 'sidebar-tab-item' + (tab === 'tic' ? ' active' : '');
+
+  if (tab === 'tic') {
+    renderTicTargetList();
+    setTimeout(() => document.getElementById('ticSearchInput').focus(), 50);
+  }
+}
+
+let CURRENT_SOURCE_MODE = 'file';
+let LATEST_DIAG_RESULT = null;
+let CURRENT_MEASUREMENTS = [];
+let CURRENT_MEAS_FILTER = 'all';
+let CURRENT_MEAS_SEARCH = '';
+
+function switchSourceMode(mode) {
+  CURRENT_SOURCE_MODE = mode;
+  const tabFile = document.getElementById('tabModeFile');
+  const tabText = document.getElementById('tabModeText');
+  const subFile = document.getElementById('subModeFile');
+  const subText = document.getElementById('subModeText');
+
+  if (mode === 'file') {
+    tabFile.classList.add('active');
+    tabText.classList.remove('active');
+    subFile.style.display = 'block';
+    subText.style.display = 'none';
+    if (!STATE.lastPickedLogPath) {
+      document.getElementById('diagResultContainer').style.display = 'none';
+    }
+  } else {
+    tabText.classList.add('active');
+    tabFile.classList.remove('active');
+    subText.style.display = 'block';
+    subFile.style.display = 'none';
+    if (!document.getElementById('txtLogInput').value.trim()) {
+      document.getElementById('diagResultContainer').style.display = 'none';
+    }
+  }
+}
+
+function toggleRawDrawer() {
+  const drawer = document.getElementById('rawLogDrawer');
+  const arrow = document.getElementById('rawDrawerArrow');
+  const label = document.getElementById('rawDrawerLabel');
+  const isHidden = (drawer.style.display === 'none');
+  drawer.style.display = isHidden ? 'block' : 'none';
+  arrow.textContent = isHidden ? '▼' : '▶';
+  label.textContent = isHidden ? '點此收合原始日誌預覽 ▲' : '點此展開原始日誌全文預覽（已收合，平常零佔位）';
+}
+
+async function reAnalyzePickedFile() {
+  if (!STATE.lastPickedLogPath) {
+    alert('尚未選取任何 Log 檔案，請先點選「📂 點此選擇要分析的 Log / CSV 檔案」！');
+    return;
+  }
+  const res = await fetch('/api/analyze_log', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({file_path: STATE.lastPickedLogPath})
+  });
+  const data = await res.json();
+  if (data.status === 'ok') {
+    renderDiagResult(data.result);
+  }
+}
+
+async function pickLogFileNative() {
+  const btn = document.getElementById('btnPickLog');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 正在讀取並全量分析 Log...';
+
+  try {
+    const res = await fetch('/api/pick_log_file');
+    const data = await res.json();
+    if (data.status === 'cancel') return;
+    if (data.status !== 'ok') {
+      alert(data.message || 'Log 檔案讀取失敗');
+      return;
+    }
+
+    STATE.lastPickedLogPath = data.file_path;
+    document.getElementById('pickedLogPathText').textContent = `${data.file_path} (${data.file_size_kb} KB)`;
+    if (data.log_snippet) {
+      document.getElementById('txtRawPreview').value = data.log_snippet + (data.file_size_kb > 2 ? '\n... (其餘內容已由後端引擎完成全量分析) ...' : '');
+    }
+    renderDiagResult(data.result);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+}
+
+async function analyzeLogInput() {
+  const txt = document.getElementById('txtLogInput').value;
+  if (!txt.trim()) {
+    alert('請先貼上 Centimani 錯誤訊息或切換至「📁 模式一」選擇 Log / CSV 檔案！');
+    return;
+  }
+
+  const btn = document.getElementById('btnAnalyzeLog');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 正在全量分析日誌與節拍數據...';
+
+  try {
+    const isSnippetPlaceholder = txt.includes('... (其餘內容已由後端引擎完成全量分析) ...');
+    const payload = {
+      log_text: txt,
+      file_path: isSnippetPlaceholder ? STATE.lastPickedLogPath : ''
+    };
+
+    const res = await fetch('/api/analyze_log', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      alert('分析失敗：' + (data.message || ''));
+      return;
+    }
+
+    renderDiagResult(data.result);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+}
+
+function renderDiagResult(result) {
+  LATEST_DIAG_RESULT = result;
+  const container = document.getElementById('diagResultContainer');
+  const banner = document.getElementById('diagBanner');
+  const timingSection = document.getElementById('diagTimingSection');
+  const suggSection = document.getElementById('diagSuggestionsSection');
+  const cardsList = document.getElementById('diagCardsList');
+
+  container.style.display = 'block';
+
+  // 1. 頂部狀態 Banner
+  const isPass = result.is_pass;
+  const isFail = result.is_fail;
+
+  if (isPass) {
+    banner.style.background = '#DCFCE7';
+    banner.style.border = '1.6px solid #22C55E';
+    banner.style.color = '#14532D';
+    banner.innerHTML = `
+      <div style="font-size:16px; font-weight:700; margin-bottom:4px;">
+        🟢 測試判定結果：PASS（全數測試項目通過）
+      </div>
+      <div style="font-size:13.5px; opacity:0.9;">
+        ${result.summary}
+      </div>
+    `;
+  } else if (isFail) {
+    banner.style.background = '#FEF2F2';
+    banner.style.border = '1.6px solid #DC2626';
+    banner.style.color = '#991B1B';
+    banner.innerHTML = `
+      <div style="font-size:16px; font-weight:700; margin-bottom:4px;">
+        🔴 測試判定結果：FAIL（測試中斷 / 規格超標）
+      </div>
+      <div style="font-size:13.5px; opacity:0.9;">
+        ${result.summary}
+      </div>
+    `;
+  } else {
+    banner.style.background = '#EFF6FF';
+    banner.style.border = '1.6px solid #3B82F6';
+    banner.style.color = '#1E3A8A';
+    banner.innerHTML = `
+      <div style="font-size:16px; font-weight:700; margin-bottom:4px;">
+        📋 運行紀錄解析完成
+      </div>
+      <div style="font-size:13.5px; opacity:0.9;">
+        ${result.summary}
+      </div>
+    `;
+  }
+
+  // 2. 雙面板 KPI 儀表板（左：生產身分資訊，右：品質與良率指標）
+  const meta = result.metadata || {};
+  const mSum = result.measurement_summary || {total: 0, pass_count: 0, fail_count: 0, retry_count: 0};
+
+  // 左面板：機台與待測物資訊 (完整顯示不截斷)
+  const infoKpis = [
+    { label: '測試站別 (Station)', value: meta.Station || '-' },
+    { label: '待測序號 (ISN / SN)', value: meta.ISN || '-' },
+    { label: '軟體版本 (SW Ver)', value: meta.SW_Version || '-' },
+    { label: '機台治具 (DeviceID)', value: meta.DeviceID || meta.Model || '-' }
+  ];
+  let infoHtml = '';
+  infoKpis.forEach(k => {
+    infoHtml += `
+      <div class="kpi-card">
+        <span class="kpi-label">${k.label}</span>
+        <span class="kpi-value" style="font-size:14.5px;" title="${k.value}">${k.value}</span>
+      </div>
+    `;
+  });
+  document.getElementById('kpiInfoGrid').innerHTML = infoHtml;
+
+  // 右面板：品質與良率監控指標
+  const yieldKpis = [
+    { label: '總測試耗時 (CT)', value: `${result.total_seconds || 0} 秒` },
+    { label: '量測總項目 (Total)', value: `${mSum.total} 項` },
+    { label: '🟢 一次合格 (PASS)', value: `${mSum.pass_count} 項`, isPass: true },
+    { label: '🟡 重試合格 (RETRY)', value: `${mSum.retry_count} 項`, isRetry: mSum.retry_count > 0 },
+    { label: '🔴 規格超標 (FAIL)', value: `${mSum.fail_count} 項`, isError: mSum.fail_count > 0 }
+  ];
+  if (meta.ErrorCode) {
+    yieldKpis.push({ label: '錯誤代碼 (ErrorCode)', value: meta.ErrorCode, isError: true });
+  }
+
+  let yieldHtml = '';
+  yieldKpis.forEach(k => {
+    let border = '#CBD5E1', bg = '#FFFFFF', col = '#0F172A', labelCol = '#64748B';
+    if (k.isError) {
+      border = '#DC2626'; bg = '#FEF2F2'; col = '#DC2626'; labelCol = '#991B1B';
+    } else if (k.isRetry) {
+      border = '#F59E0B'; bg = '#FFFBEB'; col = '#D97706'; labelCol = '#92400E';
+    } else if (k.isPass) {
+      border = '#86EFAC'; bg = '#F0FDF4'; col = '#16A34A'; labelCol = '#14532D';
+    }
+
+    yieldHtml += `
+      <div class="kpi-card" style="border-color:${border}; background:${bg};">
+        <span class="kpi-label" style="color:${labelCol};">${k.label}</span>
+        <span class="kpi-value" style="color:${col};" title="${k.value}">${k.value}</span>
+      </div>
+    `;
+  });
+  document.getElementById('kpiYieldGrid').innerHTML = yieldHtml;
+
+  // 3. 數值量測明細與項目狀態 (PASS / FAIL / RETRY 統計與篩選表)
+  CURRENT_MEASUREMENTS = result.measurements || [];
+  const measSec = document.getElementById('diagMeasurementSection');
+  if (CURRENT_MEASUREMENTS.length > 0) {
+    measSec.style.display = 'block';
+    CURRENT_MEAS_FILTER = (mSum.fail_count > 0) ? 'fail' : ((mSum.retry_count > 0) ? 'retry' : 'all');
+    renderMeasurementSection(mSum);
+  } else {
+    measSec.style.display = 'none';
+  }
+
+  // 4. 節拍數據區塊：Phase 階段分析 + Top 5 瓶頸排行
+  let timingHtml = '';
+  const phases = result.phase_breakdown || [];
+  const bottlenecks = result.top_bottlenecks || [];
+
+  if (phases.length > 0 || bottlenecks.length > 0) {
+    timingHtml += `
+      <div style="display:grid; grid-template-columns: ${phases.length > 0 ? '1fr 1.15fr' : '1fr'}; gap:14px; margin-top:10px;">
+    `;
+
+    // Phase Breakdown
+    if (phases.length > 0) {
+      timingHtml += `
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+          <div style="font-weight:700; color:var(--slate-900); font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <span>⏱️ 各階段 Phase 耗時分佈（Cycle Time 佔比）：</span>
+          </div>
+          <div style="max-height:220px; overflow-y:auto; padding-right:4px;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead>
+                <tr style="border-bottom:1px solid #E2E8F0; color:#64748B; text-align:left;">
+                  <th style="padding:4px 6px;">階段</th>
+                  <th style="padding:4px 6px; text-align:right;">秒數</th>
+                  <th style="padding:4px 6px; text-align:right;">佔比</th>
+                  <th style="padding:4px 6px; width:45%;">分佈長條圖</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      phases.forEach(p => {
+        timingHtml += `
+          <tr style="border-bottom:1px solid #F1F5F9;">
+            <td style="padding:5px 6px; font-weight:700; color:#1E293B;">${p.phase}</td>
+            <td class="mono" style="padding:5px 6px; text-align:right;">${p.seconds}s</td>
+            <td class="mono" style="padding:5px 6px; text-align:right; color:#2563EB; font-weight:700;">${p.percent}%</td>
+            <td style="padding:5px 6px;">
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${Math.min(100, Math.max(4, p.percent))}%;"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      timingHtml += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // Top 5 Bottlenecks
+    if (bottlenecks.length > 0) {
+      timingHtml += `
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+          <div style="font-weight:700; color:var(--slate-900); font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <span>🐢 前五大最耗時瓶頸步驟 (Top 5 Slowest Steps)：</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+      `;
+      bottlenecks.forEach((b, idx) => {
+        const badgeClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : 'rank-def'));
+        timingHtml += `
+          <div style="display:flex; align-items:center; justify-content:space-between; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:6px 10px;">
+            <div style="display:flex; align-items:center; gap:8px; overflow:hidden; flex:1; margin-right:8px;">
+              <span class="rank-badge ${badgeClass}">${idx+1}</span>
+              <span class="mono" style="font-size:12.5px; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${b.name}">
+                ${b.name}
+              </span>
+            </div>
+            <div style="font-family:'Consolas',monospace; font-size:13px; font-weight:700; color:#334155; white-space:nowrap;">
+              ${b.seconds}s <span style="font-size:11.5px; color:#64748B; font-weight:400;">(${b.percent}%)</span>
+            </div>
+          </div>
+        `;
+      });
+      timingHtml += `
+          </div>
+        </div>
+      `;
+    }
+
+    timingHtml += `</div>`;
+  }
+  timingSection.innerHTML = timingHtml;
+
+  // 5. 節拍優化建議卡片 (CT Optimization)
+  let suggHtml = '';
+  const suggestions = result.suggestions || [];
+  if (suggestions.length > 0) {
+    suggHtml += `
+      <div style="background:#F0FDF4; border:1.6px solid #86EFAC; border-radius:8px; padding:12px 14px;">
+        <div style="font-weight:700; color:#14532D; font-size:14px; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+          <span>💡 產線節拍 (Cycle Time) 縮減優化建議：</span>
+        </div>
+        <ul style="margin:0; padding-left:20px; color:#166534; font-size:13px; line-height:1.6;">
+    `;
+    suggestions.forEach(s => {
+      suggHtml += `<li>${s}</li>`;
+    });
+    suggHtml += `
+        </ul>
+      </div>
+    `;
+  }
+  suggSection.innerHTML = suggHtml;
+
+  // 6. 異常/問題診斷卡片
+  const issues = result.issues || [];
+  if (issues.length === 0) {
+    if (isPass) {
+      cardsList.innerHTML = '';
+    } else {
+      cardsList.innerHTML = '<div style="color:#166534; font-weight:700; padding:12px; background:#F0FDF4; border-radius:6px; border:1px solid #BBF7D0;">🎉 未偵測到典型語法或硬體中斷錯誤。若程式停止，請確認是否為儀器通訊逾時 (Timeout)。</div>';
+    }
+    return;
+  }
+
+  let html = '';
+  issues.forEach((iss, idx) => {
+    const isErr = (iss.severity === 'ERROR');
+    const borderCol = isErr ? '#DC2626' : '#D97706';
+    const bgCol = isErr ? '#FEF2F2' : '#FFFBEB';
+    const titleCol = isErr ? '#991B1B' : '#92400E';
+
+    html += `
+      <div style="background:${bgCol}; border:1.6px solid ${borderCol}; border-radius:8px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-weight:700; color:${titleCol}; font-size:15px;">問題 ${idx+1}：${iss.title}</span>
+          <span style="font-size:12px; background:${isErr ? '#FEE2E2' : '#FEF3C7'}; color:${titleCol}; border:1px solid ${borderCol}; padding:2px 8px; border-radius:4px; font-weight:700;">
+            ${iss.category}
+          </span>
+        </div>
+
+        <div class="mono" style="background:#FFFFFF; border-left:4px solid ${borderCol}; padding:6px 10px; margin-bottom:8px; font-size:13px; color:#0F172A; white-space:pre-wrap; word-break:break-all;">
+          ${iss.raw_match}
+        </div>
+
+        <div style="margin-bottom:8px; line-height:1.5;">
+          <strong style="color:#334155;">🔍 根本原因分析：</strong><br>
+          <span style="color:#475569;">${iss.cause}</span>
+        </div>
+
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:10px 12px; line-height:1.6;">
+          <strong style="color:#14532D;">💡 建議解決對策：</strong><br>
+          <span style="color:#1E293B; white-space:pre-line;">${iss.solution}</span>
+        </div>
+      </div>
+    `;
+  });
+  cardsList.innerHTML = html;
+}
+
+function renderMeasurementSection(mSum) {
+  const filterGroup = document.getElementById('measFilterGroup');
+  filterGroup.innerHTML = `
+    <button class="filter-pill ${CURRENT_MEAS_FILTER === 'all' ? 'active' : ''}" onclick="setMeasFilter('all')">
+      📋 全部 (${mSum.total})
+    </button>
+    <button class="filter-pill ${CURRENT_MEAS_FILTER === 'fail' ? 'active-fail' : ''}" onclick="setMeasFilter('fail')" style="${mSum.fail_count > 0 ? 'color:#DC2626; border-color:#DC2626;' : ''}">
+      🔴 僅看 FAIL (${mSum.fail_count})
+    </button>
+    <button class="filter-pill ${CURRENT_MEAS_FILTER === 'retry' ? 'active-retry' : ''}" onclick="setMeasFilter('retry')" style="${mSum.retry_count > 0 ? 'color:#D97706; border-color:#F59E0B;' : ''}">
+      🟡 僅看 RETRY (${mSum.retry_count})
+    </button>
+    <button class="filter-pill ${CURRENT_MEAS_FILTER === 'pass' ? 'active-pass' : ''}" onclick="setMeasFilter('pass')" style="color:#16A34A; border-color:#86EFAC;">
+      🟢 僅看 PASS (${mSum.pass_count})
+    </button>
+  `;
+  renderMeasurementTable(CURRENT_MEAS_FILTER);
+}
+
+function onMeasSearchChange() {
+  CURRENT_MEAS_SEARCH = document.getElementById('measSearchInput').value.trim().toLowerCase();
+  renderMeasurementTable(CURRENT_MEAS_FILTER);
+}
+
+function setMeasFilter(filter) {
+  CURRENT_MEAS_FILTER = filter;
+  const btns = document.querySelectorAll('#measFilterGroup .filter-pill');
+  btns.forEach(b => {
+    b.classList.remove('active', 'active-fail', 'active-retry', 'active-pass');
+  });
+  if (filter === 'all' && btns[0]) btns[0].classList.add('active');
+  if (filter === 'fail' && btns[1]) btns[1].classList.add('active-fail');
+  if (filter === 'retry' && btns[2]) btns[2].classList.add('active-retry');
+  if (filter === 'pass' && btns[3]) btns[3].classList.add('active-pass');
+
+  renderMeasurementTable(filter);
+}
+
+function renderMeasurementTable(filter) {
+  const tbody = document.getElementById('measTableBody');
+  let filtered = CURRENT_MEASUREMENTS;
+  if (filter === 'fail') {
+    filtered = CURRENT_MEASUREMENTS.filter(m => m.status === 'FAIL');
+  } else if (filter === 'retry') {
+    filtered = CURRENT_MEASUREMENTS.filter(m => (m.retries || 0) > 0);
+  } else if (filter === 'pass') {
+    filtered = CURRENT_MEASUREMENTS.filter(m => m.status === 'PASS');
+  }
+
+  // Apply search keyword filter if any
+  if (CURRENT_MEAS_SEARCH) {
+    filtered = filtered.filter(m =>
+      (m.step || '').toLowerCase().includes(CURRENT_MEAS_SEARCH) ||
+      (m.param || '').toLowerCase().includes(CURRENT_MEAS_SEARCH) ||
+      (m.test_id || '').toLowerCase().includes(CURRENT_MEAS_SEARCH)
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:16px; text-align:center; color:#64748B;">無符合篩選條件之量測項目。</td></tr>`;
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(m => {
+    const isFail = (m.status === 'FAIL');
+    const isRetry = ((m.retries || 0) > 0);
+    const rowBg = isFail ? '#FEF2F2' : (isRetry ? '#FFFBEB' : '#FFFFFF');
+
+    // Format spec limits (handle 9999 or -9999)
+    let specDisplay = `[${m.low} ~ ${m.high}]`;
+    if (m.high >= 9000) {
+      specDisplay = `≥ ${m.low}`;
+    } else if (m.low <= -9000) {
+      specDisplay = `≤ ${m.high}`;
+    }
+
+    // Calculate Delta / Margin
+    let deltaText = '-';
+    let deltaCol = '#64748B';
+    if (m.value > m.high) {
+      const diff = (m.value - m.high).toFixed(3);
+      deltaText = `+${diff} (超標)`;
+      deltaCol = '#DC2626';
+    } else if (m.value < m.low) {
+      const diff = (m.low - m.value).toFixed(3);
+      deltaText = `-${diff} (低於下限)`;
+      deltaCol = '#DC2626';
+    } else {
+      const margin = Math.min(m.high - m.value, m.value - m.low).toFixed(3);
+      deltaText = `餘量 +${margin}`;
+      deltaCol = '#16A34A';
+    }
+
+    const valDisplay = isFail
+      ? `<strong style="color:#DC2626; font-size:13.5px;">${m.value}</strong>`
+      : `<span style="color:#0F172A; font-weight:700;">${m.value}</span>`;
+
+    const statusBadge = isFail
+      ? `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #DC2626; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11.5px;">FAIL</span>`
+      : `<span style="background:#DCFCE7; color:#14532D; border:1px solid #22C55E; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11.5px;">PASS</span>`;
+
+    const retryBadge = isRetry
+      ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11.5px;">⚠️ ${m.retries}次重試</span>`
+      : `<span style="color:#94A3B8; font-size:11.5px;">1次過</span>`;
+
+    html += `
+      <tr style="background:${rowBg}; border-bottom:1px solid #F1F5F9;">
+        <td style="padding:6px 10px; font-weight:700; color:#1E293B; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${m.step}">${m.step}</td>
+        <td class="mono" style="padding:6px 10px; color:#475569; font-size:12px;">${m.test_id || '-'}</td>
+        <td style="padding:6px 10px; font-weight:700; color:#2563EB;">${m.param}</td>
+        <td class="mono" style="padding:6px 10px; text-align:right;">${valDisplay}</td>
+        <td class="mono" style="padding:6px 10px; text-align:center; color:#475569;">${specDisplay}</td>
+        <td class="mono" style="padding:6px 10px; text-align:right; font-weight:700; color:${deltaCol};">${deltaText}</td>
+        <td style="padding:6px 10px; text-align:center;">${statusBadge}</td>
+        <td style="padding:6px 10px; text-align:center;">${retryBadge}</td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+function copyTestSummary() {
+  if (!LATEST_DIAG_RESULT) {
+    alert('尚未有分析結果可複製！');
+    return;
+  }
+  const r = LATEST_DIAG_RESULT;
+  const m = r.metadata || {};
+  const ms = r.measurement_summary || {};
+  const lines = [
+    `【Centimani 測試診斷摘要】`,
+    `• 測試判定：${r.is_pass ? 'PASS (全數通過)' : (r.is_fail ? 'FAIL (測試中斷)' : '執行完畢')}`,
+    `• 測試站別：${m.Station || '-'}`,
+    `• 待測序號：${m.ISN || '-'}`,
+    `• 軟體版本：${m.SW_Version || '-'} | 機台治具：${m.DeviceID || '-'}`,
+    `• 總測試時間：${r.total_seconds || 0} 秒`,
+    `• 量測統計：共 ${ms.total || 0} 項 (PASS: ${ms.pass_count || 0}, RETRY: ${ms.retry_count || 0}, FAIL: ${ms.fail_count || 0})`
+  ];
+  if (m.ErrorCode) {
+    lines.push(`• 錯誤代碼 (ErrorCode)：${m.ErrorCode}`);
+  }
+  if (r.issues && r.issues.length > 0) {
+    lines.push(`• 異常事故：${r.issues[0].title}`);
+  }
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✓ 已複製測試摘要至剪貼簿！可直接貼至 Teams 或郵件報告。\n\n' + text);
+  }).catch(() => {
+    prompt('請按 Ctrl+C 複製摘要：', text);
+  });
+}
+
+function applyBlockPreset(preset) {
+  if (preset === 'minimal') {
+    STATE.selectedBlockIds = ["BLK_PRETEST_ROUTE", "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"];
+  } else if (preset === 'basic') {
+    STATE.selectedBlockIds = [
+      "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION", "BLK_VOLT_NI6008_BATCH",
+      "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"
+    ];
+  } else {
+    STATE.selectedBlockIds = [];
+  }
+  renderBlockChecklist();
+}
+
+let SELECTED_TIC_ITEM = null;
+let PINNED_TIC_ITEMS = [];
+let MOTHER_TESTID_OVERRIDES = {}; // key: "block_id::step_idx" -> {test_id, description}
+let TIC_TARGET_MODE = 'mother';
+let TIC_EXCEL_FILTER = 'missing';
+let LAST_TIC_RESULTS = [];
+
+function formatIsnHtml(isnInfo) {
+  if (isnInfo && isnInfo.isn_length) {
+    return `<span style="display:inline-block; margin-top:4px; background:#1E3A8A; color:#FFFFFF; padding:3px 10px; border-radius:5px; font-weight:700;">🔢 ISN 條碼輸入位數：需輸入 ${isnInfo.isn_length} 碼</span> <span class="mono" style="font-size:12px; color:#475569;">(${isnInfo.scan_rule})</span>`;
+  }
+  return `🔢 <strong>ISN 條碼輸入位數：</strong>未於 <code>DUTs</code> 設定 <code>ScanBarcode</code> 長度規則`;
+}
+
+function updateGenCustomTicBadge() {
+  const cnt = Object.keys(MOTHER_TESTID_OVERRIDES).length;
+  const badge = document.getElementById('genCustomTicBadge');
+  if (!badge) return;
+  if (cnt > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = `已套用 ${cnt} 筆自訂 TestID（點擊調整）`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+let _ticSearchTimer = null;
+function searchTicLive() {
+  clearTimeout(_ticSearchTimer);
+  _ticSearchTimer = setTimeout(async () => {
+    const q = document.getElementById('ticSearchInput').value.trim();
+    const genericOnly = document.getElementById('chkTicGenericOnly').checked ? '1' : '0';
+    const box = document.getElementById('ticResultBox');
+    if (!q) {
+      box.innerHTML = '請於上方輸入關鍵字開始搜尋官方 TestID 與 Error Code...';
+      return;
+    }
+    const res = await fetch('/api/search_test_id?limit=30&generic_only=' + genericOnly + '&q=' + encodeURIComponent(q));
+    const data = await res.json();
+    const items = data.items || [];
+    LAST_TIC_RESULTS = items;
+    if (!items.length) {
+      box.innerHTML = '<span style="color:#B91C1C;">未找到相符的官方 TestID，請嘗試縮短關鍵字或改用英文詞彙（如 Voltage, LED, UART, Ping）。</span>';
+      return;
+    }
+    let html = '<table class="meas-table" style="background:#FFFFFF; margin-top:4px;"><thead><tr><th>TestID</th><th>Error Code</th><th>類型</th><th>英文 / 中文說明</th><th>快捷操作</th></tr></thead><tbody>';
+    items.forEach((it, idx) => {
+      const isSel = SELECTED_TIC_ITEM && SELECTED_TIC_ITEM.test_id === it.test_id;
+      const rowBg = isSel ? 'background:#DBEAFE;' : '';
+      const tag = it.is_generic
+        ? '<span class="badge badge-pass" style="font-size:11px;">通用碼</span>'
+        : '<span class="badge badge-retry" style="font-size:11px;">專案碼</span>';
+      html += `<tr style="cursor:pointer; ${rowBg}" onclick="selectTicItem(${idx})">
+        <td class="mono" style="font-weight:700; color:#1D4ED8; white-space:nowrap;">${it.test_id}</td>
+        <td class="mono" style="color:#B91C1D; font-weight:700; white-space:nowrap;">${it.error_code || '-'}</td>
+        <td style="white-space:nowrap;">${tag}</td>
+        <td><div><b>${it.desc_en || ''}</b></div><div style="color:#64748B; font-size:11.5px;">${it.desc_cn || ''}</div></td>
+        <td style="white-space:nowrap;" onclick="event.stopPropagation()">
+          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="copyTicCode('${it.test_id}', this)">複製 ID</button>
+          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="copyTicTwoCols(${idx}, this)">雙欄複製</button>
+          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="pinTicItem(${idx})">📌</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  }, 180);
+}
+
+function selectTicItem(idx) {
+  const it = LAST_TIC_RESULTS[idx];
+  if (!it) return;
+  SELECTED_TIC_ITEM = it;
+  renderSelectedTicBanner();
+  searchTicLive();
+}
+
+function renderSelectedTicBanner() {
+  const banner = document.getElementById('ticSelectedBanner');
+  if (!SELECTED_TIC_ITEM) {
+    banner.innerHTML = '尚未選定代碼：請先在左側搜尋並點擊任一筆 <b>TestID</b>。';
+    return;
+  }
+  const it = SELECTED_TIC_ITEM;
+  banner.style.background = '#EFF6FF';
+  banner.style.borderColor = '#3B82F6';
+  banner.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+      <span>已選定：<b class="mono" style="color:#1D4ED8; font-size:14.5px;">${it.test_id}</b>（Error Code: <b class="mono" style="color:#B91C1D;">${it.error_code || '-'}</b>）</span>
+      <span style="font-size:12px; color:#475569;">點擊下方任一列的「⬅️ 套用」即可填入</span>
+    </div>
+    <div style="margin-top:4px; color:#0F172A;"><b>${it.desc_en || ''}</b> <span style="color:#475569;">— ${it.desc_cn || ''}</span></div>
+  `;
+}
+
+function pinTicItem(idx) {
+  const it = LAST_TIC_RESULTS[idx];
+  if (!it) return;
+  if (!PINNED_TIC_ITEMS.some(p => p.test_id === it.test_id)) {
+    PINNED_TIC_ITEMS.push(it);
+  }
+  renderPinnedTray();
+}
+
+function selectPinnedTic(testId) {
+  const it = PINNED_TIC_ITEMS.find(p => p.test_id === testId);
+  if (!it) return;
+  SELECTED_TIC_ITEM = it;
+  renderSelectedTicBanner();
+}
+
+function removePinnedTic(testId) {
+  PINNED_TIC_ITEMS = PINNED_TIC_ITEMS.filter(p => p.test_id !== testId);
+  renderPinnedTray();
+}
+
+function renderPinnedTray() {
+  const tray = document.getElementById('ticPinnedTray');
+  const list = document.getElementById('ticPinnedList');
+  if (!PINNED_TIC_ITEMS.length) {
+    tray.style.display = 'none';
+    return;
+  }
+  tray.style.display = 'flex';
+  list.innerHTML = PINNED_TIC_ITEMS.map(it => `
+    <span style="display:inline-flex; align-items:center; gap:5px; background:#FFFFFF; border:1px solid #94A3B8; border-radius:999px; padding:3px 10px; font-size:12px;">
+      <span class="mono" style="font-weight:700; color:#1D4ED8; cursor:pointer;" onclick="selectPinnedTic('${it.test_id}')">${it.test_id}</span>
+      <span style="color:#475569; cursor:pointer;" onclick="selectPinnedTic('${it.test_id}')">${it.desc_cn || it.desc_en || ''}</span>
+      <span style="cursor:pointer; color:#94A3B8; font-weight:700;" onclick="removePinnedTic('${it.test_id}')">✕</span>
+    </span>
+  `).join('');
+}
+
+function copyTicCode(code, btnEl) {
+  if (navigator.clipboard) navigator.clipboard.writeText(code);
+  const orig = btnEl.textContent;
+  btnEl.textContent = '已複製';
+  btnEl.style.background = '#DCFCE7';
+  setTimeout(() => { btnEl.textContent = orig; btnEl.style.background = ''; }, 700);
+}
+
+function copyTicTwoCols(idx, btnEl) {
+  const it = LAST_TIC_RESULTS[idx];
+  if (!it) return;
+  const text = `${it.desc_en || ''}\t${it.test_id}`;
+  if (navigator.clipboard) navigator.clipboard.writeText(text);
+  const orig = btnEl.textContent;
+  btnEl.textContent = '已複製雙欄';
+  btnEl.style.background = '#DCFCE7';
+  setTimeout(() => { btnEl.textContent = orig; btnEl.style.background = ''; }, 700);
+}
+
+function switchTicTargetMode(mode) {
+  TIC_TARGET_MODE = mode;
+  document.getElementById('btnTicModeMother').className = 'source-mode-tab' + (mode === 'mother' ? ' active' : '');
+  document.getElementById('btnTicModeExcel').className = 'source-mode-tab' + (mode === 'excel' ? ' active' : '');
+  document.getElementById('ticExcelToolbar').style.display = (mode === 'excel') ? 'flex' : 'none';
+  renderTicTargetList();
+}
+
+function setTicExcelFilter(f) {
+  TIC_EXCEL_FILTER = f;
+  document.getElementById('btnTicFilterMissing').className = 'filter-pill' + (f === 'missing' ? ' active' : '');
+  document.getElementById('btnTicFilterAll').className = 'filter-pill' + (f === 'all' ? ' active' : '');
+  renderTicTargetList();
+}
+
+function renderTicTargetList() {
+  const box = document.getElementById('ticTargetList');
+  if (TIC_TARGET_MODE === 'mother') {
+    const selectedBlks = STATE.blocks.filter(b => STATE.selectedBlockIds.includes(b.block_id));
+    if (!selectedBlks.length) {
+      box.innerHTML = '<div style="color:#64748B; padding:12px;">目前「母體產生」尚未勾選任何積木。</div>';
+      return;
+    }
+    let html = '<table class="meas-table"><thead><tr><th>積木 / 步驟</th><th>Description</th><th>TestID</th><th>套用</th></tr></thead><tbody>';
+    let rowCount = 0;
+    selectedBlks.forEach(blk => {
+      (blk.steps || []).forEach((st, stIdx) => {
+        const send = String(st.Send || '').trim();
+        const desc = String(st.Description || '').trim();
+        const tid = String(st.TestID || '').trim();
+        if (!tid && !send.includes(':CheckLimit') && !st.Validation) return;
+        rowCount++;
+        const key = `${blk.block_id}::${stIdx}`;
+        const ov = MOTHER_TESTID_OVERRIDES[key];
+        const curTid = (ov && ov.test_id) ? ov.test_id : tid;
+        const curDesc = (ov && ov.description) ? ov.description : desc;
+        const badge = ov ? '<span class="badge badge-pass" style="font-size:10px;">已改</span>' : '';
+        html += `<tr>
+          <td><div style="font-weight:700; color:#0F172A;">${blk.name || blk.block_id}</div><div class="mono" style="font-size:11px; color:#64748B;">${send || '(step)'}</div></td>
+          <td>${curDesc}</td>
+          <td class="mono" style="font-weight:700; color:#1D4ED8;">${curTid} ${badge}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-primary-blue" style="padding:2px 8px; font-size:11.5px;" onclick="applyTicToMotherStep('${blk.block_id}', ${stIdx})">⬅️ 套用</button>
+            ${ov ? `<button class="btn" style="padding:2px 6px; font-size:11px;" onclick="resetMotherStepTic('${blk.block_id}', ${stIdx})">還原</button>` : ''}
+          </td>
+        </tr>`;
+      });
+    });
+    html += '</tbody></table>';
+    box.innerHTML = rowCount ? html : '<div style="color:#64748B; padding:12px;">已勾選的積木中沒有含 TestID 的步驟。</div>';
+  } else {
+    if (!STATE.workspace) {
+      box.innerHTML = '<div style="color:#64748B; padding:12px;">尚未載入 Excel 檔案。請點擊上方「📂 選擇 Excel 檔案」，或先在「腳本健檢」載入檔案。</div>';
+      document.getElementById('btnTicSaveExcel').style.display = 'none';
+      return;
+    }
+    document.getElementById('btnTicSaveExcel').style.display = 'inline-flex';
+    const ws = STATE.workspace;
+    let rowsHtml = '';
+    let count = 0;
+    const collectRows = (sheetName, arr) => {
+      (arr || []).forEach((r, idx) => {
+        const tid = String(r.TestID || '').trim();
+        const send = String(r.Send || '').trim();
+        const title = String(r.Title || '').trim();
+        if (!send && !title) return;
+        if (TIC_EXCEL_FILTER === 'missing' && tid !== '') return;
+        count++;
+        rowsHtml += `<tr>
+          <td><b>${sheetName}</b> #${idx + 1}</td>
+          <td><div style="font-weight:700;">${title || '-'}</div><div class="mono" style="font-size:11px; color:#64748B;">${send}</div></td>
+          <td>${r.Description || ''}</td>
+          <td class="mono" style="font-weight:700; color:${tid ? '#1D4ED8' : '#DC2626'};">${tid || '(缺漏)'}</td>
+          <td><button class="btn btn-primary-blue" style="padding:2px 8px; font-size:11.5px;" onclick="applyTicToExcelRow('${sheetName}', ${idx})">⬅️ 填入</button></td>
+        </tr>`;
+      });
+    };
+    Object.entries(ws.stations || {}).forEach(([sn, arr]) => collectRows(sn, arr));
+    Object.entries(ws.marcos || {}).forEach(([mn, arr]) => collectRows(mn, arr));
+    if (!count) {
+      box.innerHTML = '<div style="color:#166534; padding:12px; font-weight:700;">目前篩選條件下沒有符合的步驟（此檔案已無缺漏 TestID）。</div>';
+      return;
+    }
+    box.innerHTML = `<table class="meas-table"><thead><tr><th>位置</th><th>Title / Send</th><th>Description</th><th>目前 TestID</th><th>填入</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  }
+}
+
+function applyTicToMotherStep(blockId, stepIdx) {
+  if (!SELECTED_TIC_ITEM) {
+    alert('請先在左側搜尋並點擊選定一筆 TestID。');
+    return;
+  }
+  const applyDesc = document.getElementById('chkTicApplyDesc').checked;
+  const key = `${blockId}::${stepIdx}`;
+  MOTHER_TESTID_OVERRIDES[key] = {
+    test_id: SELECTED_TIC_ITEM.test_id,
+    description: applyDesc ? (SELECTED_TIC_ITEM.desc_en || '') : ''
+  };
+  updateGenCustomTicBadge();
+  renderTicTargetList();
+}
+
+function resetMotherStepTic(blockId, stepIdx) {
+  delete MOTHER_TESTID_OVERRIDES[`${blockId}::${stepIdx}`];
+  updateGenCustomTicBadge();
+  renderTicTargetList();
+}
+
+function applyTicToExcelRow(sheetName, rowIdx) {
+  if (!SELECTED_TIC_ITEM) {
+    alert('請先在左側搜尋並點擊選定一筆 TestID。');
+    return;
+  }
+  if (!STATE.workspace) return;
+  const ws = STATE.workspace;
+  const targetArr = (ws.stations && ws.stations[sheetName]) || (ws.marcos && ws.marcos[sheetName]);
+  if (!targetArr || !targetArr[rowIdx]) return;
+  targetArr[rowIdx].TestID = SELECTED_TIC_ITEM.test_id;
+  if (document.getElementById('chkTicApplyDesc').checked && SELECTED_TIC_ITEM.desc_en) {
+    targetArr[rowIdx].Description = SELECTED_TIC_ITEM.desc_en;
+  }
+  const alertBox = document.getElementById('ticTargetAlert');
+  alertBox.style.display = 'block';
+  alertBox.innerHTML = `✅ 已將 <b>${SELECTED_TIC_ITEM.test_id}</b> 填入 <b>${sheetName} #${rowIdx + 1}</b>（記得點擊上方「💾 儲存 *_FIXED.xlsx + 簽章」寫回檔案）。`;
+  renderTicTargetList();
+}
+
+async function pickExcelFromTic() {
+  await pickExcelNative();
+  renderTicTargetList();
+}
+
+async function saveTicExcelFixed() {
+  if (!STATE.workspace) return;
+  const res = await fetch('/api/fix_and_export_in_place', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      user_choices: STATE.userChoices,
+      dry_run: false
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert('儲存失敗：' + (data.message || ''));
+    return;
+  }
+  const alertBox = document.getElementById('ticTargetAlert');
+  alertBox.style.display = 'block';
+  alertBox.innerHTML = `
+    ✅ <strong>已寫回並自動更新 Checksum！</strong><br>
+    📄 輸出檔案：<span class="mono">${data.excel_path}</span><br>
+    ${formatIsnHtml(data.isn_info)}
+  `;
+}
+
+function updateTicActiveFileDisplay(ticInfo) {
+  const el = document.getElementById('ticActiveFileText');
+  if (!el || !ticInfo) return;
+  if (ticInfo.file_path) {
+    el.textContent = `${ticInfo.file_path} （共 ${ticInfo.count || 0} 筆代碼）`;
+  } else {
+    el.textContent = `預設代碼庫（共 ${ticInfo.count || 0} 筆代碼）`;
+  }
+}
+
+async function pickTicFileNative() {
+  const res = await fetch('/api/pick_tic_file');
+  const data = await res.json();
+  if (data.status === 'cancel') return;
+  if (data.status !== 'ok') {
+    alert(data.message || '載入 Test Item Code 檔案失敗');
+    return;
+  }
+  updateTicActiveFileDisplay(data.tic_info);
+  searchTicLive();
+}
+
+async function initPage() {
+  const res = await fetch('/api/init');
+  const data = await res.json();
+  STATE.blocks = data.blocks || [];
+  if (data.tic_info) updateTicActiveFileDisplay(data.tic_info);
+  renderBlockChecklist();
+}
+
+function renderBlockChecklist() {
+  const grid = document.getElementById('blockCheckGrid');
+  grid.innerHTML = '';
+  STATE.blocks.forEach(blk => {
+    const isChecked = STATE.selectedBlockIds.includes(blk.block_id);
+    const card = document.createElement('div');
+    card.className = 'blk-card' + (isChecked ? ' checked' : '');
+    card.onclick = (e) => {
+      if (e.target.tagName !== 'INPUT') {
+        const cb = card.querySelector('input');
+        cb.checked = !cb.checked;
+      }
+      const cb = card.querySelector('input');
+      if (cb.checked) {
+        if (!STATE.selectedBlockIds.includes(blk.block_id)) STATE.selectedBlockIds.push(blk.block_id);
+        card.classList.add('checked');
+      } else {
+        STATE.selectedBlockIds = STATE.selectedBlockIds.filter(id => id !== blk.block_id);
+        card.classList.remove('checked');
+      }
+    };
+    card.innerHTML = `
+      <input type="checkbox" ${isChecked ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
+      <div>
+        <div class="bold-title" style="color:var(--slate-900);">${blk.name}</div>
+        <div style="font-size:12px; color:#2563EB; margin:1px 0;">預設 Phase: ${blk.default_phase || '-'} (${(blk.steps||[]).length} 步)</div>
+        <div style="font-size:12px; color:var(--slate-700);">${blk.description || ''}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+async function pickExcelNative() {
+  const res = await fetch('/api/pick_file');
+  const data = await res.json();
+  if (data.status === 'cancel') {
+    return;
+  }
+  if (data.status !== 'ok') {
+    alert(data.message || '檔案選取失敗');
+    return;
+  }
+
+  STATE.selectedPath = data.file_path;
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.isnInfo = data.isn_info || null;
+  STATE.userChoices = {};
+  (STATE.report.choice_cards || []).forEach(c => {
+    STATE.userChoices[c.card_id] = c.recommended_value;
+  });
+
+  document.getElementById('pickedPathText').textContent = data.file_path;
+  document.getElementById('btnExportFixed').style.display = 'inline-flex';
+  document.getElementById('btnExportDry').style.display = 'inline-flex';
+  document.getElementById('toggleDetailBar').style.display = 'flex';
+
+  renderAuditResults();
+}
+
+function toggleDetailVisibility() {
+  const isChecked = document.getElementById('chkShowDetails').checked;
+  const detailBox = document.getElementById('issueDetailBox');
+  const choiceBox = document.getElementById('choiceContainer');
+  const cards = (STATE.report && STATE.report.choice_cards) || [];
+
+  if (isChecked) {
+    detailBox.style.display = 'block';
+    if (cards.length > 0) choiceBox.style.display = 'block';
+  } else {
+    detailBox.style.display = 'none';
+    choiceBox.style.display = 'none';
+  }
+}
+
+function renderAuditResults() {
+  const rep = STATE.report;
+  const cards = rep.choice_cards || [];
+  const errors = rep.errors || [];
+  const warnings = rep.warnings || [];
+
+  const alertBox = document.getElementById('auditAlertBox');
+  alertBox.style.display = 'block';
+
+  let statusBadge = '';
+  if (errors.length === 0 && warnings.length === 0) {
+    statusBadge = '<span style="color:#166534; font-size:16px;">🟢 檢查結果：100% 格式正確，無任何邏輯錯誤或警告！</span>';
+  } else if (errors.length > 0) {
+    statusBadge = `<span style="color:#991B1B; font-size:16px;">🔴 檢查結果：抓出 <strong>${errors.length} 個錯誤</strong>、<strong>${warnings.length} 個警告</strong>（系統已備妥自動修復對策）。</span>`;
+  } else {
+    statusBadge = `<span style="color:#92400E; font-size:16px;">🟡 檢查結果：抓出 <strong>${warnings.length} 個警告</strong>（系統已備妥自動優化對策）。</span>`;
+  }
+
+  alertBox.innerHTML = `
+    📄 檢查檔案：<span class="mono">${STATE.selectedPath}</span><br>
+    ${statusBadge}<br>
+    ${formatIsnHtml(STATE.isnInfo)}<br>
+    👉 修復輸出位置：將<strong>直接輸出在原檔案同一個資料夾目錄下</strong>，檔名自動加上 <span class="mono">_FIXED.xlsx</span>，並自動計算 64 碼 Checksum 寫入同目錄的 System.ini！
+  `;
+
+  // Render choice cards
+  const choiceBox = document.getElementById('choiceContainer');
+  const cardList = document.getElementById('choiceCardList');
+  if (cards.length > 0) {
+    cardList.innerHTML = '';
+    cards.forEach((c, idx) => {
+      const selectedVal = STATE.userChoices[c.card_id] || c.recommended_value;
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'fix-card';
+
+      let optsHtml = '';
+      c.options.forEach(opt => {
+        const isSel = (selectedVal === opt.value);
+        optsHtml += `
+          <div class="option-pill ${isSel ? 'selected' : ''}" onclick="selectCardOption('${c.card_id}', '${opt.value}')">
+            <input type="radio" name="rad_${c.card_id}" ${isSel ? 'checked' : ''}>
+            <span>${opt.label}</span>
+          </div>
+        `;
+      });
+
+      cardDiv.innerHTML = `
+        <div style="font-weight:700; color:#78350F; margin-bottom:6px;">題目 ${idx+1}：${c.issue_title}</div>
+        <div class="mono" style="background:#F4F5F7; border-left:3px solid var(--blue-600); padding:5px 8px; margin-bottom:6px; font-size:12.5px;">
+          指令：${c.send_cmd} | 原寫：${c.current_value}
+        </div>
+        <div>${optsHtml}</div>
+      `;
+      cardList.appendChild(cardDiv);
+    });
+  }
+
+  // Render issue list
+  const detailBox = document.getElementById('issueDetailBox');
+  const itemsDiv = document.getElementById('issueItems');
+  let html = '';
+  if (errors.length === 0 && warnings.length === 0) {
+    html = '<div style="color:#166534; font-weight:700;">🎉 恭喜！此檔案未發現任何邏輯錯誤或警告，格式完全合規。</div>';
+  } else {
+    errors.forEach((e, i) => {
+      html += `<div style="color:#991B1B; margin-bottom:2px;">❌ [錯誤 ${i+1}] ${e}</div>`;
+    });
+    warnings.slice(0, 20).forEach((w, i) => {
+      html += `<div style="color:#92400E; margin-bottom:2px;">⚠️ [警告 ${i+1}] ${w}</div>`;
+    });
+    if (warnings.length > 20) {
+      html += `<div style="color:#92400E; font-weight:700;">... 其餘 ${warnings.length - 20} 筆警告亦將一併自動修復</div>`;
+    }
+  }
+  itemsDiv.innerHTML = html;
+
+  // Toggle detail visibility based on checkbox
+  toggleDetailVisibility();
+}
+
+function selectCardOption(cid, val) {
+  STATE.userChoices[cid] = val;
+  renderAuditResults();
+}
+
+async function applyFixAndExport(dryRun) {
+  if (!STATE.workspace) return;
+
+  const res = await fetch('/api/fix_and_export_in_place', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      user_choices: STATE.userChoices,
+      dry_run: dryRun
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert('修復匯出失敗：' + (data.message || ''));
+    return;
+  }
+
+  const alertBox = document.getElementById('auditAlertBox');
+  alertBox.style.display = 'block';
+  alertBox.innerHTML = `
+    ✅ <strong>修復匯出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
+    📂 <span class="mono">${data.output_dir}</span><br>
+    📄 <span class="mono" style="color:#7F1D1D;">${data.excel_path}</span><br>
+    ${formatIsnHtml(data.isn_info)}
+  `;
+}
+
+let WIZ_STEP = 1;
+let WIZ_VOLT_RAILS = [
+  { channel: 0, name: 'VCC_5V', nominal: 5.0, min: '4.75', max: '5.25', test_id: 'BRPW024' },
+  { channel: 1, name: 'VCC_3V3', nominal: 3.3, min: '3.15', max: '3.45', test_id: 'BRPW024' },
+  { channel: 2, name: 'VCC_1V8', nominal: 1.8, min: '1.71', max: '1.89', test_id: 'BRPW024' }
+];
+let WIZ_FW = { mode: 'uart', port: 'COM4', fw_version: '1.0.0_release', command: 'cat /etc/version' };
+let WIZ_PY = { python_path: 'D:\\PythonScript', script_name: 'my_test.py', result_prefix: 'RESULT=', min_val: '0.0', max_val: '100.0' };
+let WIZ_PING = {
+  targets: [
+    { label: 'LAN_Main', dut_ip: '192.168.11.143', pc_ip: '192.168.11.3', timeout_ms: '5000' }
+  ]
+};
+let WIZ_WIFI = {
+  iqxel_ip: '192.168.100.254',
+  tx_tests: [
+    { channel: '3', bw: '20', mcs: '7', antenna: '1', target_pwr: '15', pwr_min: '13', pwr_max: '17', evm_min: '-50', evm_max: '-28' },
+    { channel: '6', bw: '20', mcs: '7', antenna: '2', target_pwr: '15', pwr_min: '13', pwr_max: '17', evm_min: '-50', evm_max: '-28' }
+  ],
+  rx_tests: [
+    { channel: '5', bw: '40', mcs: '7', antenna: '1', rx_level: '-59' },
+    { channel: '5', bw: '40', mcs: '7', antenna: '2', rx_level: '-59' }
+  ]
+};
+let WIZ_FIXTURE = { port: 'COM5', wait_ms: '3000' };
+let WIZ_IPOWER = { delay_ms: '2000' };
+let WIZ_DIFF_VOLT = { channel: '0', name: 'VCC_12V', min: '11.40', max: '12.60' };
+let WIZ_LED = { port: 'COM17', channel: '01', wave_min: '515', wave_max: '535', int_min: '1000', int_max: '99999' };
+let WIZ_SFIS = {
+  fields: [
+    { field_name: 'MAC1', var_name: 'sfisLANMAC', len_min: '12', len_max: '12' },
+    { field_name: '69PN', var_name: 'sf69PN', len_min: '', len_max: '' }
+  ]
+};
+
+function updateIsnRulePreview() {
+  const len = Math.max(1, parseInt(document.getElementById('genIsnLen').value || '3', 10));
+  const pat = document.getElementById('genIsnPattern').value || '[0-9A-Z]';
+  document.getElementById('wizIsnPreview').textContent = `{ISN,${len},${pat}}`;
+}
+
+function goWizardStep(step) {
+  if (step < 1) step = 1;
+  if (step > 4) step = 4;
+  WIZ_STEP = step;
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('wizStep' + i).style.display = (i === step) ? 'block' : 'none';
+    document.getElementById('wizNav' + i).className = 'source-mode-tab' + (i === step ? ' active' : '');
+  }
+  document.getElementById('btnWizPrev').style.display = (step > 1) ? 'inline-flex' : 'none';
+  document.getElementById('btnWizNext').style.display = (step < 4) ? 'inline-flex' : 'none';
+  if (step === 3) renderWizStep3();
+  if (step === 4) renderWizStep4();
+}
+
+function setVoltPresetCount(n) {
+  const defaults = [
+    { channel: 0, name: 'VCC_5V', nominal: 5.0, min: '4.75', max: '5.25', test_id: 'BRPW024' },
+    { channel: 1, name: 'VCC_3V3', nominal: 3.3, min: '3.15', max: '3.45', test_id: 'BRPW024' },
+    { channel: 2, name: 'VCC_1V8', nominal: 1.8, min: '1.71', max: '1.89', test_id: 'BRPW024' },
+    { channel: 3, name: 'VCC_1V2', nominal: 1.2, min: '1.14', max: '1.26', test_id: 'BRPW024' },
+    { channel: 4, name: 'VCC_1V0', nominal: 1.0, min: '0.95', max: '1.05', test_id: 'BRPW024' },
+    { channel: 5, name: 'VCC_12V', nominal: 12.0, min: '11.40', max: '12.60', test_id: 'BRPW024' },
+    { channel: 6, name: 'VDD_CORE', nominal: 0.9, min: '0.855', max: '0.945', test_id: 'BRPW024' },
+    { channel: 7, name: 'VBUS_USB', nominal: 5.0, min: '4.75', max: '5.25', test_id: 'BRPW024' }
+  ];
+  WIZ_VOLT_RAILS = [];
+  for (let i = 0; i < n; i++) {
+    WIZ_VOLT_RAILS.push(Object.assign({}, defaults[i] || { channel: i, name: `VCC_CH${i}`, nominal: 3.3, min: '3.135', max: '3.465', test_id: 'BRPW024' }));
+  }
+  renderWizStep3();
+}
+
+function addVoltRailRow() {
+  const idx = WIZ_VOLT_RAILS.length;
+  WIZ_VOLT_RAILS.push({ channel: idx % 8, name: `VCC_CH${idx}`, nominal: 3.3, min: '3.14', max: '3.47', test_id: 'BRPW024' });
+  renderWizStep3();
+}
+
+function removeVoltRailRow(idx) {
+  if (WIZ_VOLT_RAILS.length <= 1) return;
+  WIZ_VOLT_RAILS.splice(idx, 1);
+  renderWizStep3();
+}
+
+function applyVoltTolerance() {
+  const pct = parseFloat(document.getElementById('wizVoltPct').value || '5') / 100.0;
+  WIZ_VOLT_RAILS.forEach(r => {
+    const nom = parseFloat(r.nominal);
+    if (!isNaN(nom)) {
+      r.min = (nom * (1 - pct)).toFixed(3).replace(/\.?0+$/, '');
+      r.max = (nom * (1 + pct)).toFixed(3).replace(/\.?0+$/, '');
+    }
+  });
+  renderWizStep3();
+}
+
+function onFwModeChange(mode) {
+  WIZ_FW.mode = mode;
+  if (mode === 'uart') WIZ_FW.command = 'cat /etc/version';
+  if (mode === 'adb') WIZ_FW.command = 'adb shell cat /etc/version';
+  if (mode === 'ssh') WIZ_FW.command = 'ssh root@*$(DUTIP_1) "cat /etc/version"';
+  renderWizStep3();
+}
+
+function renderWizStep3() {
+  const body = document.getElementById('wizStep3Body');
+  const sel = STATE.selectedBlockIds;
+  let html = '';
+
+  if (sel.includes('BLK_VOLT_NI6008_BATCH')) {
+    let rows = WIZ_VOLT_RAILS.map((r, i) => `
+      <tr>
+        <td><input type="number" min="0" max="7" value="${r.channel}" onchange="WIZ_VOLT_RAILS[${i}].channel=this.value" style="width:58px; padding:4px;"></td>
+        <td><input type="text" value="${r.name}" onchange="WIZ_VOLT_RAILS[${i}].name=this.value" style="width:120px; padding:4px;" class="mono"></td>
+        <td><input type="number" step="0.01" value="${r.nominal}" onchange="WIZ_VOLT_RAILS[${i}].nominal=this.value" style="width:78px; padding:4px;"></td>
+        <td><input type="text" value="${r.min}" onchange="WIZ_VOLT_RAILS[${i}].min=this.value" style="width:78px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.max}" onchange="WIZ_VOLT_RAILS[${i}].max=this.value" style="width:78px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.test_id}" onchange="WIZ_VOLT_RAILS[${i}].test_id=this.value" style="width:86px; padding:4px;" class="mono"></td>
+        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="removeVoltRailRow(${i})">✕</button></td>
+      </tr>
+    `).join('');
+
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">⚡ NI6008 多通道電壓量測明細（共 ${WIZ_VOLT_RAILS.length} 組）</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <span style="font-size:12.5px; color:#475569;">快速產生：</span>
+            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(3)">3 組</button>
+            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(5)">5 組</button>
+            <button class="btn btn-primary-blue" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(8)">8 組電壓</button>
+            <span style="margin-left:6px; font-size:12.5px; color:#475569;">誤差 ±</span>
+            <input type="number" id="wizVoltPct" value="5" min="1" max="50" style="width:52px; padding:3px 6px;"> %
+            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="applyVoltTolerance()">依標稱值重算上下限</button>
+            <button class="btn btn-primary-green" style="padding:3px 10px; font-size:12px;" onclick="addVoltRailRow()">+ 新增通道</button>
+          </div>
+        </div>
+        <table class="meas-table">
+          <thead><tr><th>AI 通道</th><th>變數名稱</th><th>標稱值 (V)</th><th>下限 Min</th><th>上限 Max</th><th>TestID</th><th>刪除</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_UART_BOOT_FW')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">🔌 韌體版本比對設定（支援 UART / ADB / SSH）</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">連線 / 輸入方式</label>
+            <select onchange="onFwModeChange(this.value)" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;">
+              <option value="uart" ${WIZ_FW.mode==='uart'?'selected':''}>UART (Serial COM Port)</option>
+              <option value="adb" ${WIZ_FW.mode==='adb'?'selected':''}>ADB (CmdConsole@adb shell)</option>
+              <option value="ssh" ${WIZ_FW.mode==='ssh'?'selected':''}>SSH (CmdConsole@ssh)</option>
+            </select>
+          </div>
+          ${WIZ_FW.mode==='uart' ? `
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">COM Port (寫入 Global.ini DUT_UR1)</label>
+            <input type="text" value="${WIZ_FW.port}" onchange="WIZ_FW.port=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>` : ''}
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">目標韌體版本 (FW_VERSION)</label>
+            <input type="text" value="${WIZ_FW.fw_version}" onchange="WIZ_FW.fw_version=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+          <div style="grid-column:1 / -1;">
+            <label class="bold-title" style="display:block; margin-bottom:4px;">執行查詢指令</label>
+            <input type="text" value="${WIZ_FW.command}" onchange="WIZ_FW.command=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_PYTHON_SCRIPT_CALL')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:8px;">🐍 外部 Python 腳本設定</div>
+        <div class="alert-banner" style="margin-bottom:10px; font-size:13px; padding:8px 12px;">
+          📁 <strong>Python 腳本放置位置：</strong>請將您的 <code>.py</code> 檔案放到 <code>Global.ini [Scripts] PythonPath</code> 所指定的資料夾（目前設定：<span class="mono">${WIZ_PY.python_path}</span>）。產線執行時 <code>CentimaniSystem.exe</code> 會透過 <code>cd *$(PythonPath)</code> 呼叫該腳本。
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">PythonPath 資料夾路徑</label>
+            <input type="text" value="${WIZ_PY.python_path}" oninput="WIZ_PY.python_path=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">Python 腳本檔名 (.py)</label>
+            <input type="text" value="${WIZ_PY.script_name}" onchange="WIZ_PY.script_name=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">擷取回傳前綴 (WithinString)</label>
+            <input type="text" value="${WIZ_PY.result_prefix}" onchange="WIZ_PY.result_prefix=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">數值下限 / 上限</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="text" value="${WIZ_PY.min_val}" onchange="WIZ_PY.min_val=this.value" style="width:45%; padding:6px;" class="mono"> ~
+              <input type="text" value="${WIZ_PY.max_val}" onchange="WIZ_PY.max_val=this.value" style="width:45%; padding:6px;" class="mono">
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_UTILITY_PING_LAN')) {
+    let pRows = WIZ_PING.targets.map((t, i) => `
+      <tr>
+        <td><input type="text" value="${t.label}" onchange="WIZ_PING.targets[${i}].label=this.value" style="width:110px; padding:4px;"></td>
+        <td><input type="text" value="${t.dut_ip}" onchange="WIZ_PING.targets[${i}].dut_ip=this.value" style="width:140px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.pc_ip}" onchange="WIZ_PING.targets[${i}].pc_ip=this.value" style="width:130px; padding:4px;" class="mono"></td>
+        <td><input type="number" value="${t.timeout_ms}" onchange="WIZ_PING.targets[${i}].timeout_ms=this.value" style="width:80px; padding:4px;" class="mono"></td>
+        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="if(WIZ_PING.targets.length>1){WIZ_PING.targets.splice(${i},1);renderWizStep3();}">✕</button></td>
+      </tr>
+    `).join('');
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">🌐 網路 Ping 多目標連通性設定（共 ${WIZ_PING.targets.length} 組 IP）</span>
+          <button class="btn btn-primary-green" style="padding:3px 10px; font-size:12px;" onclick="WIZ_PING.targets.push({label:'IP_'+(WIZ_PING.targets.length+1),dut_ip:'192.168.1.1',pc_ip:'192.168.11.3',timeout_ms:'5000'});renderWizStep3();">+ 新增 Ping IP</button>
+        </div>
+        <table class="meas-table">
+          <thead><tr><th>目標名稱</th><th>待測物目標 IP</th><th>測試機網卡 IP</th><th>逾時 (ms)</th><th>刪除</th></tr></thead>
+          <tbody>${pRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_WIFI_RF_IQXEL')) {
+    let txRows = WIZ_WIFI.tx_tests.map((t, i) => `
+      <tr>
+        <td><input type="text" value="${t.channel}" onchange="WIZ_WIFI.tx_tests[${i}].channel=this.value" style="width:48px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.bw}" onchange="WIZ_WIFI.tx_tests[${i}].bw=this.value" style="width:48px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.mcs}" onchange="WIZ_WIFI.tx_tests[${i}].mcs=this.value" style="width:44px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.antenna}" onchange="WIZ_WIFI.tx_tests[${i}].antenna=this.value" style="width:44px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.target_pwr}" onchange="WIZ_WIFI.tx_tests[${i}].target_pwr=this.value" style="width:52px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.pwr_min}" onchange="WIZ_WIFI.tx_tests[${i}].pwr_min=this.value" style="width:54px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.pwr_max}" onchange="WIZ_WIFI.tx_tests[${i}].pwr_max=this.value" style="width:54px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.evm_min}" onchange="WIZ_WIFI.tx_tests[${i}].evm_min=this.value" style="width:54px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${t.evm_max}" onchange="WIZ_WIFI.tx_tests[${i}].evm_max=this.value" style="width:54px; padding:4px;" class="mono"></td>
+        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="WIZ_WIFI.tx_tests.splice(${i},1);renderWizStep3();">✕</button></td>
+      </tr>
+    `).join('');
+    let rxRows = WIZ_WIFI.rx_tests.map((r, i) => `
+      <tr>
+        <td><input type="text" value="${r.channel}" onchange="WIZ_WIFI.rx_tests[${i}].channel=this.value" style="width:56px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.bw}" onchange="WIZ_WIFI.rx_tests[${i}].bw=this.value" style="width:56px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.mcs}" onchange="WIZ_WIFI.rx_tests[${i}].mcs=this.value" style="width:52px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.antenna}" onchange="WIZ_WIFI.rx_tests[${i}].antenna=this.value" style="width:52px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${r.rx_level}" onchange="WIZ_WIFI.rx_tests[${i}].rx_level=this.value" style="width:70px; padding:4px;" class="mono"></td>
+        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="WIZ_WIFI.rx_tests.splice(${i},1);renderWizStep3();">✕</button></td>
+      </tr>
+    `).join('');
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">📶 WiFi Tx / Rx 射頻量測完整 Marco 設定（自動嵌入 <code>WIFI Tx MCS</code> 與 <code>WIFI Rx MCS</code> 子工作表）</span>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:12.5px; font-weight:700;">IQxel IP：</span>
+            <input type="text" value="${WIZ_WIFI.iqxel_ip}" onchange="WIZ_WIFI.iqxel_ip=this.value" style="width:130px; padding:4px 8px;" class="mono">
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 4px 0;">
+          <strong style="font-size:13px; color:#1E3A8A;">📤 WiFi Tx 發射測項（共 ${WIZ_WIFI.tx_tests.length} 組）</strong>
+          <button class="btn btn-primary-green" style="padding:2px 10px; font-size:12px;" onclick="WIZ_WIFI.tx_tests.push({channel:'11',bw:'20',mcs:'7',antenna:'1',target_pwr:'15',pwr_min:'13',pwr_max:'17',evm_min:'-50',evm_max:'-28'});renderWizStep3();">+ 新增 Tx 測項</button>
+        </div>
+        <table class="meas-table" style="margin-bottom:10px;">
+          <thead><tr><th>CH</th><th>BW</th><th>MCS</th><th>Ant</th><th>Target</th><th>Pwr Min</th><th>Pwr Max</th><th>EVM Min</th><th>EVM Max</th><th>刪除</th></tr></thead>
+          <tbody>${txRows}</tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 4px 0;">
+          <strong style="font-size:13px; color:#166534;">📥 WiFi Rx 接收靈敏度測項（共 ${WIZ_WIFI.rx_tests.length} 組）</strong>
+          <button class="btn btn-primary-green" style="padding:2px 10px; font-size:12px;" onclick="WIZ_WIFI.rx_tests.push({channel:'6',bw:'20',mcs:'7',antenna:'1',rx_level:'-59'});renderWizStep3();">+ 新增 Rx 測項</button>
+        </div>
+        <table class="meas-table">
+          <thead><tr><th>CH</th><th>BW</th><th>MCS</th><th>Ant</th><th>Rx Level (dBm)</th><th>刪除</th></tr></thead>
+          <tbody>${rxRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_FIXTURE_ACTION')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">🔧 氣動治具下壓與等待上電設定</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">治具控制 COM Port (PCUART_fixture_1)</label>
+            <input type="text" value="${WIZ_FIXTURE.port}" onchange="WIZ_FIXTURE.port=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">下壓後等待上電穩定 (ms)</label>
+            <input type="number" value="${WIZ_FIXTURE.wait_ms}" onchange="WIZ_FIXTURE.wait_ms=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_POWER_ON_IPOWER')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">🔋 iPower 冷復位上電設定</div>
+        <div style="max-width:280px;">
+          <label class="bold-title" style="display:block; margin-bottom:4px;">斷電放電延遲時間 (ms)</label>
+          <input type="number" value="${WIZ_IPOWER.delay_ms}" onchange="WIZ_IPOWER.delay_ms=this.value" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px;" class="mono">
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_VOLT_DIFF_SINGLE')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">⚡ NI6008 單通道差動電壓量測 (DIFF Mode)</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px;">
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">AI 通道</label>
+            <input type="number" min="0" max="7" value="${WIZ_DIFF_VOLT.channel}" onchange="WIZ_DIFF_VOLT.channel=this.value" style="width:100%; padding:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">變數名稱</label>
+            <input type="text" value="${WIZ_DIFF_VOLT.name}" onchange="WIZ_DIFF_VOLT.name=this.value" style="width:100%; padding:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">下限 Min (V)</label>
+            <input type="text" value="${WIZ_DIFF_VOLT.min}" onchange="WIZ_DIFF_VOLT.min=this.value" style="width:100%; padding:6px;" class="mono">
+          </div>
+          <div>
+            <label class="bold-title" style="display:block; margin-bottom:4px;">上限 Max (V)</label>
+            <input type="text" value="${WIZ_DIFF_VOLT.max}" onchange="WIZ_DIFF_VOLT.max=this.value" style="width:100%; padding:6px;" class="mono">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_LED_FEASA')) {
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">💡 Feasa LED 色彩波長與亮度設定</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+          <div><label class="bold-title">COM Port</label><input type="text" value="${WIZ_LED.port}" onchange="WIZ_LED.port=this.value" style="width:100%; padding:6px;" class="mono"></div>
+          <div><label class="bold-title">光纖通道</label><input type="text" value="${WIZ_LED.channel}" onchange="WIZ_LED.channel=this.value" style="width:100%; padding:6px;" class="mono"></div>
+          <div><label class="bold-title">波長 Min (nm)</label><input type="text" value="${WIZ_LED.wave_min}" onchange="WIZ_LED.wave_min=this.value" style="width:100%; padding:6px;" class="mono"></div>
+          <div><label class="bold-title">波長 Max (nm)</label><input type="text" value="${WIZ_LED.wave_max}" onchange="WIZ_LED.wave_max=this.value" style="width:100%; padding:6px;" class="mono"></div>
+          <div><label class="bold-title">亮度 Min</label><input type="text" value="${WIZ_LED.int_min}" onchange="WIZ_LED.int_min=this.value" style="width:100%; padding:6px;" class="mono"></div>
+          <div><label class="bold-title">亮度 Max</label><input type="text" value="${WIZ_LED.int_max}" onchange="WIZ_LED.int_max=this.value" style="width:100%; padding:6px;" class="mono"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (sel.includes('BLK_SFIS_MAC_69PN')) {
+    let sRows = WIZ_SFIS.fields.map((f, i) => `
+      <tr>
+        <td><input type="text" value="${f.field_name}" onchange="WIZ_SFIS.fields[${i}].field_name=this.value" style="width:110px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${f.var_name}" onchange="WIZ_SFIS.fields[${i}].var_name=this.value" style="width:120px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${f.len_min}" placeholder="不限" onchange="WIZ_SFIS.fields[${i}].len_min=this.value" style="width:70px; padding:4px;" class="mono"></td>
+        <td><input type="text" value="${f.len_max}" placeholder="不限" onchange="WIZ_SFIS.fields[${i}].len_max=this.value" style="width:70px; padding:4px;" class="mono"></td>
+        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="if(WIZ_SFIS.fields.length>1){WIZ_SFIS.fields.splice(${i},1);renderWizStep3();}">✕</button></td>
+      </tr>
+    `).join('');
+    html += `
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">🏷️ SFIS 讀取欄位與長度驗證設定</span>
+          <button class="btn btn-primary-green" style="padding:3px 10px; font-size:12px;" onclick="WIZ_SFIS.fields.push({field_name:'MAC2',var_name:'sfisWIFIMAC',len_min:'12',len_max:'12'});renderWizStep3();">+ 新增 SFIS 欄位</button>
+        </div>
+        <table class="meas-table">
+          <thead><tr><th>SFIS 欄位名</th><th>儲存變數名</th><th>最短長度</th><th>最長長度</th><th>刪除</th></tr></thead>
+          <tbody>${sRows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  if (!html) {
+    html = '<div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:18px; color:#475569;">目前在 Step 2 勾選的積木皆無需額外輸入細部參數，請直接點擊「下一步 ▶」前往總覽產出。</div>';
+  }
+  body.innerHTML = html;
+}
+
+function renderWizStep4() {
+  const proj = document.getElementById('genProj').value.trim() || 'PEGA_NEW';
+  const st = document.getElementById('genStation').value.trim() || 'MB';
+  const dutCount = document.getElementById('genDutCount').value;
+  const isnLen = Math.max(1, parseInt(document.getElementById('genIsnLen').value || '3', 10));
+  const isnPat = document.getElementById('genIsnPattern').value || '[0-9A-Z]';
+  const selBlks = STATE.blocks.filter(b => STATE.selectedBlockIds.includes(b.block_id));
+
+  let details = [];
+  if (STATE.selectedBlockIds.includes('BLK_VOLT_NI6008_BATCH')) details.push(`⚡ 電壓量測：<b>${WIZ_VOLT_RAILS.length}</b> 組通道`);
+  if (STATE.selectedBlockIds.includes('BLK_VOLT_DIFF_SINGLE')) details.push(`⚡ 差動電壓：<code>${WIZ_DIFF_VOLT.name}</code>`);
+  if (STATE.selectedBlockIds.includes('BLK_UART_BOOT_FW')) details.push(`🔌 韌體比對：<b>${WIZ_FW.mode.toUpperCase()}</b>（目標版本 <code>${WIZ_FW.fw_version}</code>）`);
+  if (STATE.selectedBlockIds.includes('BLK_PYTHON_SCRIPT_CALL')) details.push(`🐍 Python 腳本：<code>${WIZ_PY.python_path}\\${WIZ_PY.script_name}</code>`);
+  if (STATE.selectedBlockIds.includes('BLK_UTILITY_PING_LAN')) details.push(`🌐 Ping IP：<b>${WIZ_PING.targets.length}</b> 組（<code>${WIZ_PING.targets.map(t=>t.dut_ip).join(', ')}</code>）`);
+  if (STATE.selectedBlockIds.includes('BLK_WIFI_RF_IQXEL')) details.push(`📶 WiFi RF Marco：<b>${WIZ_WIFI.tx_tests.length}</b> Tx / <b>${WIZ_WIFI.rx_tests.length}</b> Rx 測項`);
+  if (STATE.selectedBlockIds.includes('BLK_LED_FEASA')) details.push(`💡 Feasa LED：Ch${WIZ_LED.channel} (${WIZ_LED.wave_min}~${WIZ_LED.wave_max}nm)`);
+
+  document.getElementById('wizSummaryBox').innerHTML = `
+    <div>📌 <strong>專案 / 站別：</strong><code>${proj}</code> / <code>${st}</code>（多工槽位：<b>${dutCount}</b>）</div>
+    <div>🔢 <strong>ISN 條碼規格：</strong>需輸入 <b>${isnLen} 碼</b>（規則：<code>{ISN,${isnLen},${isnPat}}</code>）</div>
+    <div>🧩 <strong>已勾選積木（${selBlks.length} 個）：</strong>${selBlks.map(b => b.name).join(' → ') || '尚未勾選'}</div>
+    ${details.length ? `<div>⚙️ <strong>細部參數：</strong>${details.join(' ｜ ')}</div>` : ''}
+  `;
+}
+
+async function generateNewMother(dryRun) {
+  const proj = document.getElementById('genProj').value.trim() || 'PEGA_NEW';
+  const st = document.getElementById('genStation').value.trim() || 'MB';
+  const dutCount = parseInt(document.getElementById('genDutCount').value, 10);
+  const isnLen = Math.max(1, parseInt(document.getElementById('genIsnLen').value || '3', 10));
+  const isnPat = document.getElementById('genIsnPattern').value || '[0-9A-Z]';
+
+  const res = await fetch('/api/generate_new_standalone', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      project_name: proj,
+      station_name: st,
+      dut_count: dutCount,
+      block_ids: STATE.selectedBlockIds,
+      dry_run: dryRun,
+      testid_overrides: MOTHER_TESTID_OVERRIDES,
+      wizard_config: {
+        isn_length: isnLen,
+        isn_pattern: isnPat,
+        volt_rails: WIZ_VOLT_RAILS,
+        fw_config: WIZ_FW,
+        python_config: WIZ_PY,
+        ping_config: WIZ_PING,
+        wifi_config: WIZ_WIFI,
+        fixture_config: WIZ_FIXTURE,
+        ipower_config: WIZ_IPOWER,
+        diff_volt_config: WIZ_DIFF_VOLT,
+        led_config: WIZ_LED,
+        sfis_config: WIZ_SFIS
+      }
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert('產生失敗：' + (data.message || ''));
+    return;
+  }
+
+  const alertBox = document.getElementById('genAlertBox');
+  alertBox.style.display = 'block';
+  alertBox.innerHTML = `
+    ✅ <strong>測試包產出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
+    📂 <span class="mono">${data.output_dir}</span><br>
+    📄 <span class="mono">${data.excel_path}</span><br>
+    ${formatIsnHtml(data.isn_info)}
+  `;
+}
+
+window.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

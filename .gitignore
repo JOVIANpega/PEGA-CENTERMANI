@@ -1,0 +1,17 @@
+# Python & OS
+__pycache__/
+*.py[cod]
+*.log
+~$*.xlsx
+~$*.xlsm
+
+# Centimani Studio runtime & generated outputs
+centimani_studio/output_system/
+centimani_studio/uploaded_temp/
+centimani_studio/last_dir.txt
+
+# External runtime binaries & reference customer scripts
+Centimani_1.5.3_sample/
+SCRIPTS/
+DOC/
+完整知識庫文件清單/

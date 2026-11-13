@@ -1,0 +1,1 @@
+# Centimani Studio Core Package
