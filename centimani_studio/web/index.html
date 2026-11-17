@@ -4,592 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<style>
-  :root {
-    --slate-900: #0F172A;
-    --slate-800: #1E293B;
-    --slate-700: #334155;
-    --slate-500: #64748B;
-    --slate-200: #E2E8F0;
-    --slate-100: #F1F5F9;
-    --blue-600: #2563EB;
-    --blue-50: #EFF6FF;
-    --blue-hover: #BAE6FD;
-    --green-600: #16A34A;
-    --green-50: #F0FDF4;
-    --green-hover: #BBF7D0;
-    --amber-100: #FEF08A;
-    --red-700: #7F1D1D;
-    --red-600: #DC2626;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 0;
-    background: #F1F5F9;
-    color: var(--slate-700);
-    font-family: "Calibri", "Microsoft JhengHei UI Light", "Microsoft JhengHei UI", sans-serif;
-    font-size: 14.5px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  h1, h2, h3, h4, strong, th, .bold-title {
-    font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
-    font-weight: 700;
-  }
-  code, .mono {
-    font-family: "Consolas", "Courier New", monospace;
-    font-size: 13.5px;
-  }
-
-  /* Top Navigation Bar */
-  .top-header {
-    background: var(--slate-900);
-    color: #FFFFFF;
-    padding: 10px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 3px solid var(--blue-600);
-    flex-shrink: 0;
-  }
-  .brand-group {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .brand-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #FFFFFF;
-  }
-  .sub-tag {
-    background: #1E3A8A;
-    color: #DBEAFE;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-size: 12px;
-    border: 1px solid #3B82F6;
-  }
-
-  /* App Layout: Left Sidebar + Right Main Workspace */
-  .app-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  /* Left Sidebar Navigation */
-  .left-sidebar {
-    width: 170px;
-    background: #1E293B;
-    border-right: 1px solid #334155;
-    display: flex;
-    flex-direction: column;
-    padding: 10px 10px 14px 10px;
-    gap: 10px;
-    flex-shrink: 0;
-    transition: width 0.18s ease, padding 0.18s ease;
-  }
-  .left-sidebar.collapsed {
-    width: 56px;
-    padding: 10px 6px 14px 6px;
-  }
-  .left-sidebar.collapsed .tab-label,
-  .left-sidebar.collapsed .collapse-label {
-    display: none;
-  }
-  .left-sidebar.collapsed .sidebar-tab-item {
-    justify-content: center;
-    padding: 12px 6px;
-  }
-  .sidebar-collapse-btn {
-    background: #0F172A;
-    color: #CBD5E1;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    padding: 6px 8px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: background-color 0.15s ease, color 0.15s ease;
-  }
-  .sidebar-collapse-btn:hover {
-    background: #334155;
-    color: #FFFFFF;
-  }
-  .sidebar-tab-item {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: #1E293B;
-    color: #94A3B8;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 14px;
-    border: 1px solid transparent;
-    transition: all 0.16s ease;
-    user-select: none;
-  }
-  .sidebar-tab-item:hover {
-    background: #334155;
-    color: #F8FAFC;
-    border-color: #475569;
-  }
-  .sidebar-tab-item.active {
-    background: #2563EB;
-    color: #FFFFFF;
-    border-color: #3B82F6;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
-  }
-
-  /* Hover Popup Window (Tooltip Window) */
-  .sidebar-tab-item .popup-card {
-    display: none;
-    position: absolute;
-    left: calc(100% + 12px);
-    top: 0;
-    width: 320px;
-    background: #0F172A;
-    border: 1.5px solid #38BDF8;
-    border-radius: 8px;
-    padding: 12px 14px;
-    color: #F8FAFC;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-    z-index: 999;
-    pointer-events: none;
-    line-height: 1.5;
-    font-size: 13px;
-    font-weight: 400;
-    animation: fadeIn 0.14s ease-out;
-  }
-  .sidebar-tab-item:hover .popup-card {
-    display: block;
-  }
-  .popup-card h4 {
-    margin: 0 0 6px 0;
-    color: #38BDF8;
-    font-size: 14.5px;
-    font-weight: 700;
-    border-bottom: 1px solid #334155;
-    padding-bottom: 4px;
-  }
-  .popup-card ul {
-    margin: 4px 0 0 0;
-    padding-left: 18px;
-    color: #E2E8F0;
-  }
-  .popup-card li {
-    margin-bottom: 4px;
-  }
-
-  /* Inline Action Popup Window */
-  .has-popup {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-  }
-  .has-popup .popup-card {
-    display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    width: 310px;
-    background: #0F172A;
-    border: 1.5px solid #38BDF8;
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: #F8FAFC;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-    z-index: 999;
-    pointer-events: none;
-    line-height: 1.5;
-    font-size: 12.5px;
-    font-weight: 400;
-    text-align: left;
-    white-space: normal;
-    animation: fadeInDown 0.14s ease-out;
-  }
-  .has-popup.popup-right .popup-card {
-    left: auto;
-    right: 0;
-  }
-  .has-popup:hover .popup-card {
-    display: block;
-  }
-  @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateX(-6px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* Main View Container */
-  .main-content {
-    flex: 1;
-    padding: 16px 20px;
-    overflow-y: auto;
-    background: #FFFFFF;
-    margin: 0;
-  }
-
-  /* Action Bar on top of panel */
-  .action-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #F8FAFC;
-    border: 1px solid #CBD5E1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 12px;
-  }
-
-  /* Interactive Buttons with Universal Hover & Handover Rule */
-  .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: 1px solid #CBD5E1;
-    background: #F8FAFC;
-    color: var(--slate-900);
-    font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  .btn:hover {
-    background: #E2E8F0;
-    border-color: #94A3B8;
-  }
-  .btn-primary-blue {
-    background: #DBEAFE;
-    color: #1E3A8A;
-    border-color: #3B82F6;
-  }
-  .btn-primary-blue:hover {
-    background: #BAE6FD;
-    border-color: #1D4ED8;
-  }
-  .btn-primary-green {
-    background: #DCFCE7;
-    color: #14532D;
-    border-color: #22C55E;
-  }
-  .btn-primary-green:hover {
-    background: #BBF7D0;
-    border-color: #15803D;
-  }
-  .btn-dry {
-    background: #E0E7FF;
-    color: #1E1B4B;
-    border-color: #818CF8;
-  }
-  .btn-dry:hover {
-    background: #C7D2FE;
-    border-color: #4F46E5;
-  }
-
-  /* Path & Alert Box (符合全域深黃色 #FEF08A 不透明規範) */
-  .alert-banner {
-    background: #FEF08A;
-    border: 1.6px solid #DC2626;
-    color: #7F1D1D;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    line-height: 1.5;
-  }
-
-  /* Cards for Choice / Fixing */
-  .fix-card {
-    background: #FFFBEB;
-    border: 1.6px solid #F59E0B;
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
-  }
-  .option-pill {
-    padding: 7px 12px;
-    margin-bottom: 5px;
-    border: 1px solid #CBD5E1;
-    border-radius: 6px;
-    background: #FFFFFF;
-    cursor: pointer;
-    transition: background-color 0.14s ease, border-color 0.14s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .option-pill:hover {
-    background: #E0F2FE;
-    border-color: #0284C7;
-  }
-  .option-pill.selected {
-    background: #DCFCE7;
-    border-color: #16A34A;
-    color: #14532D;
-    font-weight: 700;
-  }
-
-  /* Block Grid for Generator */
-  .block-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-  }
-  .blk-card {
-    border: 1px solid #CBD5E1;
-    border-radius: 6px;
-    padding: 10px 12px;
-    background: #F8FAFC;
-    cursor: pointer;
-    display: flex;
-    gap: 10px;
-    transition: background-color 0.14s ease, border-color 0.14s ease;
-  }
-  .blk-card:hover {
-    background: #E0F2FE;
-    border-color: #38BDF8;
-  }
-  .blk-card.checked {
-    background: #F0FDF4;
-    border-color: #22C55E;
-  }
-  input[type="text"], select {
-    padding: 7px 10px;
-    border: 1px solid #CBD5E1;
-    border-radius: 5px;
-    font-size: 14px;
-    font-family: inherit;
-  }
-
-  /* Loading Spinner */
-  .spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(0, 0, 0, 0.2);
-    border-radius: 50%;
-    border-top-color: currentColor;
-    animation: spin 0.65s linear infinite;
-    vertical-align: middle;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* Metric KPI Dashboard Grid */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .kpi-card {
-    background: #FFFFFF;
-    border: 1px solid #CBD5E1;
-    border-radius: 6px;
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  }
-  .kpi-label {
-    font-size: 11.5px;
-    color: #64748B;
-    font-weight: 700;
-    margin-bottom: 3px;
-  }
-  .kpi-value {
-    font-size: 15.5px;
-    color: #0F172A;
-    font-weight: 700;
-    font-family: "Consolas", monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Progress Bar for Phases */
-  .bar-track {
-    background: #E2E8F0;
-    border-radius: 6px;
-    height: 10px;
-    width: 100%;
-    overflow: hidden;
-  }
-  .bar-fill {
-    background: #2563EB;
-    height: 100%;
-    border-radius: 6px;
-  }
-
-  /* Ranking Badges */
-  .rank-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: "Consolas", monospace;
-  }
-  .rank-1 { background: #FEF08A; color: #854D0E; border: 1px solid #EAB308; }
-  .rank-2 { background: #E2E8F0; color: #334155; border: 1px solid #94A3B8; }
-  .rank-3 { background: #FFEDD5; color: #9A3412; border: 1px solid #FB923C; }
-  .rank-def { background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; }
-
-  /* Interactive Filter Pills for Measurements */
-  .filter-pill {
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    border: 1px solid #CBD5E1;
-    background: #FFFFFF;
-    color: #475569;
-    transition: all 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .filter-pill:hover {
-    background: #F1F5F9;
-    border-color: #94A3B8;
-  }
-  .filter-pill.active {
-    background: #2563EB;
-    color: #FFFFFF;
-    border-color: #1D4ED8;
-    box-shadow: 0 1px 3px rgba(37,99,235,0.3);
-  }
-  .filter-pill.active-fail {
-    background: #DC2626;
-    color: #FFFFFF;
-    border-color: #B91C1C;
-    box-shadow: 0 1px 3px rgba(220,38,38,0.3);
-  }
-  .filter-pill.active-retry {
-    background: #D97706;
-    color: #FFFFFF;
-    border-color: #B45309;
-    box-shadow: 0 1px 3px rgba(217,119,6,0.3);
-  }
-  .filter-pill.active-pass {
-    background: #16A34A;
-    color: #FFFFFF;
-    border-color: #15803D;
-    box-shadow: 0 1px 3px rgba(22,163,74,0.3);
-  }
-
-  /* Segmented Source Mode Toggle */
-  .source-mode-bar {
-    display: flex;
-    gap: 4px;
-    background: #E2E8F0;
-    border-radius: 8px;
-    padding: 3px;
-    margin-bottom: 12px;
-    width: fit-content;
-  }
-  .source-mode-tab {
-    padding: 6px 16px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: #475569;
-    font-weight: 700;
-    font-size: 13.5px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .source-mode-tab:hover {
-    color: #0F172A;
-    background: #CBD5E1;
-  }
-  .source-mode-tab.active {
-    background: #FFFFFF;
-    color: #2563EB;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-
-  /* Collapsible Drawer */
-  .drawer-bar {
-    background: #F8FAFC;
-    border: 1px dashed #CBD5E1;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12.5px;
-    color: #475569;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.15s ease;
-    user-select: none;
-    margin-top: 6px;
-  }
-  .drawer-bar:hover {
-    background: #E0F2FE;
-    color: #0369A1;
-    border-color: #38BDF8;
-  }
-
-  /* Split KPI Panels (Left: Info, Right: Metrics) */
-  .kpi-split-container {
-    display: grid;
-    grid-template-columns: 1fr 1.25fr;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .kpi-panel {
-    background: #FFFFFF;
-    border: 1px solid #CBD5E1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-  }
-  .kpi-panel-title {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #64748B;
-    border-bottom: 1px solid #E2E8F0;
-    padding-bottom: 5px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .kpi-panel-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 8px;
-  }
-</style>
+<link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 
@@ -683,67 +98,143 @@
   <div id="panelAudit">
     <!-- 頂部操作列（排版最佳化：按鈕放上方，檔案路徑完整獨立呈現於下一行） -->
     <div class="action-bar" style="flex-direction:column; align-items:flex-start; gap:8px;">
-      <div style="display:flex; align-items:center; gap:10px; width:100%; flex-wrap:wrap;">
-        <span class="has-popup">
-          <button class="btn btn-primary-blue" onclick="pickExcelNative()">
-            📂 點此選擇要檢查的 Excel 檔案
-          </button>
-          <div class="popup-card">
-            <h4>📂 腳本健檢說明</h4>
-            <ul>
-              <li>掃描 <code>TestFlow</code> 與 <code>Phase</code> 工作表結構。</li>
-              <li>檢查必填欄位（如 <code>TestID</code>、<code>ExecMode</code>）、重複索引與格式錯誤。</li>
-              <li>同步比對同目錄 <code>System.ini</code> 的 Checksum 一致性。</li>
-            </ul>
-          </div>
-        </span>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="has-popup">
+            <button class="btn btn-primary-blue" onclick="pickExcelNative()">
+              📂 選取單一 Excel
+            </button>
+            <div class="popup-card">
+              <h4>📂 腳本健檢說明</h4>
+              <ul>
+                <li>掃描 <code>TestFlow</code> 與 <code>Phase</code> 工作表結構。</li>
+                <li>檢查必填欄位（如 <code>TestID</code>、<code>ExecMode</code>）、重複索引與格式錯誤。</li>
+                <li>同步比對同目錄 <code>System.ini</code> 的 Checksum 一致性。</li>
+              </ul>
+            </div>
+          </span>
 
-        <span class="has-popup">
-          <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)">
-            💾 一鍵修好並存回原資料夾 (*_FIXED.xlsx + 自動簽章)
-          </button>
-          <div class="popup-card">
-            <h4>💾 產線修復匯出</h4>
-            <ul>
-              <li>依下方勾選的修復方案自動修補異常項目。</li>
-              <li>輸出 <code>*_FIXED.xlsx</code> 至原測試包資料夾。</li>
-              <li>自動更新 <code>System.ini</code> 的 <code>[Checksum]</code> 供實機載入。</li>
-            </ul>
-          </div>
-        </span>
+          <span class="has-popup">
+            <button class="btn" style="background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="pickFolderAndScan()">
+              📁 掃描整包資料夾
+            </button>
+            <div class="popup-card">
+              <h4>📁 整包專案資料夾批次健檢</h4>
+              <ul>
+                <li>自動掃描資料夾內所有測試站腳本（自動跳過 <code>*_FIXED</code>、<code>old_*</code> 與 <code>Test Item Code</code>）。</li>
+                <li>一次列出全站錯誤、需人工確認項與自動修補項。</li>
+                <li>支援一鍵整包修復並自動備份原 <code>System.ini</code> / <code>Global.ini</code>。</li>
+              </ul>
+            </div>
+          </span>
+        </div>
 
-        <span class="has-popup">
-          <button id="btnExportDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)">
-            🧪 匯出『無硬體試跑版』(Skip硬體列)
+        <!-- 區 2：進階編修與匯出工具列（載入檔案後才顯示，與純檢查分開） -->
+        <div id="auditEditToolbar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-top:4px; border-top:1px dashed #CBD5E1; width:100%;">
+          <span style="font-size:12.5px; font-weight:700; color:#475569;">🛠️ 編修與產出：</span>
+          <span class="has-popup">
+            <button id="btnOpenInsertInstModal" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openInsertInstModal()">
+              ➕ 插入儀器範本
+            </button>
+            <div class="popup-card">
+              <h4>➕ 插入獨立 Title 儀器範本</h4>
+              <ul>
+                <li>支援全部 34 款盤點儀器（含 <code>iPower</code>、<code>NI6008</code>、<code>MT8870A</code> 等）。</li>
+                <li>嚴格以「獨立新 Title」插在既有區塊之後、<code>Phase 97</code> 之前，不破壞原有跳轉。</li>
+                <li>自動補齊 <code>Instrument</code> 掛載，並將整個新區塊亮黃底提醒。</li>
+              </ul>
+            </div>
+          </span>
+
+          <span class="has-popup">
+            <button id="btnOpenJumpModal" class="btn btn-jump" style="display:none;" onclick="openJumpEditorModal()">
+              🔀 編輯跳轉 (PASS/FAIL)
+            </button>
+            <div class="popup-card">
+              <h4>🔀 視覺化跳轉編輯器</h4>
+              <ul>
+                <li>以 <code>Title</code> 區塊為單位，免算相對步號。</li>
+                <li>選取起點後直接勾選 <code>PASS 跳這</code> / <code>FAIL 跳這</code>。</li>
+                <li>自動組出 <code>4:P,F</code> 或 <code>2:XX</code> 並即時重跑體檢。</li>
+              </ul>
+            </div>
+          </span>
+
+          <button id="btnOpenSfisModal" class="btn" style="display:none; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="openSfisIplasModal('audit')">
+            🌐 SFIS / iPLAS 開關
           </button>
-          <div class="popup-card">
-            <h4>🧪 無硬體試跑轉換</h4>
-            <ul>
-              <li>清空 <code>Instrument</code> / <code>Switch</code> 的 <code>Mount</code> 掛載設定。</li>
-              <li>硬體控制與量測列轉為 <code>ExecMode = 6</code>（Skip）。</li>
-              <li><code>:Sf*</code> 指令維持 <code>8/9</code> 並清空 <code>Validation</code>，供無儀器 PC 驗證流程。</li>
-            </ul>
-          </div>
-        </span>
+
+          <button id="btnOpenCommModal" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCommModal()">
+            🔌 通訊設定 (改 COM / 轉 SSH)
+          </button>
+
+          <span class="has-popup">
+            <button id="btnExportDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)">
+              🧪 無硬體試跑版
+            </button>
+            <div class="popup-card">
+              <h4>🧪 無硬體試跑轉換</h4>
+              <ul>
+                <li>清空 <code>Instrument</code> / <code>Switch</code> 的 <code>Mount</code> 掛載設定。</li>
+                <li>硬體控制與量測列轉為 <code>ExecMode = 6</code>（Skip）。</li>
+                <li><code>:Sf*</code> 指令維持 <code>8/9</code> 並清空 <code>Validation</code>，供無儀器 PC 驗證流程。</li>
+              </ul>
+            </div>
+          </span>
+
+          <span class="has-popup">
+            <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)">
+              💾 一鍵修好並匯出 (*_FIXED.xlsx)
+            </button>
+            <div class="popup-card">
+              <h4>💾 產線修復匯出</h4>
+              <ul>
+                <li>依下方方案自動修補異常項目，輸出 <code>*_FIXED.xlsx</code> 至原資料夾。</li>
+                <li>自動更新 <code>System.ini</code> 的 <code>[Checksum]</code> 供實機載入。</li>
+              </ul>
+            </div>
+          </span>
+        </div>
       </div>
 
       <!-- 完整路徑顯示於下一行，不被按鈕擠壓截斷 -->
       <div style="display:flex; align-items:center; gap:8px; width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
-        <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前選取檔案完整路徑：</span>
+        <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前檔案：</span>
         <span id="pickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
-          尚未選擇檔案（點擊上方「📂 點此選擇要檢查的 Excel 檔案」按鈕，將自動開啟視窗並記憶上次目錄）
+          尚未選擇檔案（點擊上方「📂 選取單一 Excel」或「📁 掃描整包資料夾」）
         </span>
+        <button id="btnRefreshCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:12.5px; background:#F1F5F9; color:#334155; border-color:#94A3B8; white-space:nowrap;" onclick="refreshCurrentExcelFile()" title="Excel 手動微調存檔後，點此重新讀取體檢">
+          🔄 重新檢視
+        </button>
+        <button id="btnOpenCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:12.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
+          📂 開啟此 Excel
+        </button>
       </div>
     </div>
+
+    <!-- 讀取耗時提示列（超過 3 秒顯示即時耗時與預計提示） -->
+    <div id="loadingTimerBar" style="display:none; align-items:center; gap:10px; background:#EFF6FF; border:1.5px solid #3B82F6; color:#1E3A8A; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-weight:700; font-size:13.5px;"></div>
+
+    <!-- 整包資料夾批次掃描結果總表 -->
+    <div id="batchFolderBox" style="display:none; border:1.5px solid #38BDF8; border-radius:8px; padding:12px 14px; background:#F0F9FF; margin-bottom:12px;"></div>
+
+    <!-- 待匯出異動摘要條（插入儀器後顯示，提醒匯出驗證） -->
+    <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:10px;"></div>
 
     <!-- 狀態與路徑提示氣泡 -->
     <div id="auditAlertBox" class="alert-banner" style="display:none;"></div>
 
+    <!-- 多測試站 Sheet 健康度標籤列 -->
+    <div id="sheetFilterBar" class="sheet-tab-bar" style="display:none;"></div>
+
+    <!-- 白話跳轉流程摘要區（異常置頂展開，正常自動收合） -->
+    <div id="jumpSummaryContainer" style="display:none; margin-bottom:10px;"></div>
+
     <!-- 錯誤明細展開勾選框 (平常不顯示，打勾才展開修復對策) -->
     <div id="toggleDetailBar" style="display:none; align-items:center; gap:8px; margin: 0 0 10px 4px;">
       <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#334155; font-size:14px; user-select:none;">
-        <input type="checkbox" id="chkShowDetails" onchange="toggleDetailVisibility()" style="cursor:pointer; width:17px; height:17px;">
-        顯示錯誤細節與修正說明（打勾查看各項修補明細；平時預設收合以保持畫面清爽）
+        <input type="checkbox" id="chkShowDetails" checked onchange="toggleDetailVisibility()" style="cursor:pointer; width:17px; height:17px;">
+        顯示各測試站錯誤與人工確認明細（有問題之站別預設展開，綠燈站別自動收合）
       </label>
     </div>
 
@@ -757,6 +248,395 @@
     <div id="issueDetailBox" style="display:none; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px; background:#F8FAFC; margin-top:8px;">
       <h3 style="margin:0 0 8px 0; color:var(--slate-900);">🛠️ 系統抓到的問題與自動修補對策（存檔時自動套用）：</h3>
       <div id="issueItems" style="font-size:13.5px; line-height:1.6;"></div>
+    </div>
+
+    <!-- 彈出式 Title 區塊跳轉編輯器 Modal -->
+    <div id="jumpEditorModal" class="modal-backdrop">
+      <div class="modal-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
+          <div style="font-weight:700; font-size:15px;">🔀 Title 區塊跳轉編輯器（打勾設定 PASS / FAIL / 重試點）</div>
+          <button onclick="closeJumpEditorModal()" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:10px 16px; background:#EFF6FF; border-bottom:1px solid #CBD5E1;">
+          <label style="font-weight:700; color:#1E3A8A; font-size:13.5px;">工作表：
+            <select id="jeSheetSel" onchange="jeOnSheetChange()" class="mono" style="padding:4px 8px; border-radius:4px; border:1px solid #94A3B8;"></select>
+          </label>
+          <label style="font-weight:700; color:#1E3A8A; font-size:13.5px;">Title 區塊：
+            <select id="jeBlockSel" onchange="jeOnBlockChange()" style="padding:4px 8px; border-radius:4px; border:1px solid #94A3B8; max-width:340px;"></select>
+          </label>
+          <label style="font-weight:700; color:#1E3A8A; font-size:13.5px;">RetryCount：
+            <input id="jeRetryInput" type="number" min="0" style="width:60px; padding:4px 6px; border-radius:4px; border:1px solid #94A3B8; text-align:center;" class="mono">
+            <button onclick="jeSaveRetryCount()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DBEAFE; color:#1E3A8A; border-color:#60A5FA;">更新次數</button>
+          </label>
+          <label style="font-weight:700; color:#0F172A; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="jeOnly4PF" checked onchange="jeOnSheetChange()" style="cursor:pointer;">
+            僅顯示含 4:P,F 跳轉的 Title 區塊
+          </label>
+        </div>
+        <div style="padding:7px 16px; background:#FEF08A; color:#7F1D1D; font-size:13px; font-weight:700; border-bottom:1px solid #FDE047;">
+          操作方式：① 點選左側『起點』→ ② 在目標列勾選『PASS 跳這』或『FAIL 跳這』，或直接點下方「3 大快速模板」→ ③ 點擊『套用此步跳轉』。
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 16px; background:#F8FAFC; border-bottom:1px solid #CBD5E1;">
+          <span style="font-weight:700; color:#334155; font-size:13px;">⚡ 快速模板（針對目前起點）：</span>
+          <button onclick="jeApplyTemplateGuard()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">🛡️ 條件略過 (FAIL 跳末行)</button>
+          <button onclick="jeApplyTemplateIfElse()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DCFCE7; color:#15803D; border-color:#4ADE80;">🔀 雙分支分流 (自動補 PASS 末行跳出)</button>
+          <button onclick="jeApplyTemplateRetry()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;">↩ 區間重試 (2:XX + 補次數)</button>
+          <details style="margin-left:auto; font-size:12.5px;">
+            <summary style="cursor:pointer; font-weight:700; color:#1E3A8A; background:#DBEAFE; border:1px solid #60A5FA; border-radius:4px; padding:3px 10px;">📖 ExecMode 選用速查表 (0~9)</summary>
+            <div style="margin-top:6px; padding:8px 12px; background:#FFFFFF; border:1px solid #94A3B8; border-radius:6px; color:#334155; line-height:1.55;">
+              <b>0 (一般)</b>：正常執行一次　|　<b>1 (單步重試)</b>：該步失敗直接原地重試<br>
+              <b>2:XX (重試回跳)</b>：失敗跳回同 Title 步號 XX　|　<b>3 (忽略續跑)</b>：失敗仍繼續（<code>:ReleaseDevice</code> / <code>:Disconnect</code> 必用）<br>
+              <b>4:P,F (條件分支)</b>：PASS 跳 P、FAIL 跳 F　|　<b>5 (失敗才跑)</b>：前方失敗時才執行　|　<b>6 (略過)</b>：Skip 不執行<br>
+              <b>7 (校正)</b>：<code>7:Step,timeout</code>　|　<b>8 (SFIS執行)</b>：啟用 SFIS 時執行　|　<b>9 (SFIS重試)</b>：啟用 SFIS 時失敗重試
+            </div>
+          </details>
+        </div>
+        <div style="flex:1; overflow:auto; padding:10px 16px;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+              <tr style="background:#1E293B; color:#FFFFFF; text-align:left;">
+                <th style="padding:6px 8px; width:56px;">起點</th>
+                <th style="padding:6px 8px; width:96px;">步號 / 列</th>
+                <th style="padding:6px 8px;">Send 指令</th>
+                <th style="padding:6px 8px;">Description 說明</th>
+                <th style="padding:6px 8px; width:110px;">目前 ExecMode</th>
+                <th style="padding:6px 8px; width:95px;">PASS 跳這</th>
+                <th style="padding:6px 8px; width:105px;">FAIL 跳這</th>
+              </tr>
+            </thead>
+            <tbody id="jeStepRows"></tbody>
+          </table>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
+          <div id="jePreviewText" style="font-weight:700; font-size:13.5px; color:#0F172A;">預覽：請選擇起點與跳轉目標</div>
+          <div style="display:flex; gap:8px;">
+            <button onclick="jeApplyCurrent()" class="btn" style="background:#DBEAFE; color:#1E3A8A; border-color:#3B82F6;">✨ 套用此步跳轉</button>
+            <button onclick="jeClearCurrent()" class="btn" style="background:#E2E8F0; color:#334155; border-color:#94A3B8;">🧹 清除本步 (設為 0)</button>
+            <button onclick="closeJumpEditorModal()" class="btn btn-primary-green">✔ 完成並重新體檢</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 彈出式插入獨立 Title 儀器範本 Modal -->
+    <div id="insertInstModal" class="modal-backdrop">
+      <div class="modal-panel" style="max-width:640px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
+          <div style="font-weight:700; font-size:15px;">➕ 插入獨立 Title 儀器範本（含整塊亮黃底標記）</div>
+          <button onclick="closeInsertInstModal()" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+        </div>
+        <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+          <div style="background:#FEF08A; color:#7F1D1D; padding:7px 10px; border-radius:5px; font-weight:700; font-size:12.5px;">
+            安全插入規則：一律以「獨立新 Title 區塊」插在指定區塊之後、Phase 97 之前，不影響原有 2:XX / 4:P,F，並自動掛載至 Instrument 分頁。
+          </div>
+          <label style="font-weight:700; color:#0F172A;">1. 目標測試站工作表：
+            <select id="iiSheetSel" onchange="iiOnSheetChange()" class="mono" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+          <label style="font-weight:700; color:#0F172A;">2. 插入位置（於此 Title 區塊之後，且永遠在 Phase 97 之前）：
+            <select id="iiAfterBlkSel" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 10px;">
+            <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:5px;">⚡ 常用儀器快選（點選直接進入儀器介紹與互動人機設定）：</div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px;">
+              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'NI6008-1');" class="btn" style="padding:3px 9px; font-size:12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">⚡ NI-6008 / 6009</button>
+              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'IPOWER2401');" class="btn" style="padding:3px 9px; font-size:12px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">🔌 iPower 電源</button>
+              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'Agilent34401A');" class="btn" style="padding:3px 9px; font-size:12px; background:#DCFCE7; color:#166534; border-color:#4ADE80;">📏 34401A / MDA2700</button>
+              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'FeasaLED');" class="btn" style="padding:3px 9px; font-size:12px; background:#F3E8FF; color:#6B21A8; border-color:#C084FC;">💡 Feasa LED</button>
+              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'InstIQApiA');" class="btn" style="padding:3px 9px; font-size:12px; background:#DBEAFE; color:#1E40AF; border-color:#60A5FA;">📡 IQxel RF</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <label style="flex:1; font-weight:700; color:#0F172A;">3A. 依功能分類：
+              <select id="iiCatSel" onchange="iiOnCategoryChange()" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+            </label>
+            <label style="flex:1.3; font-weight:700; color:#0F172A;">3B. 選擇儀器名稱：
+              <select id="iiInstSel" onchange="iiOnInstChange()" class="mono" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+            </label>
+          </div>
+          <div id="iiNi6HintRow" style="display:none; background:#E0F2FE; border:1px solid #38BDF8; border-radius:6px; padding:8px 10px; align-items:center; justify-content:space-between; gap:8px;">
+            <span id="iiHmiHintText" style="font-size:12.5px; font-weight:700; color:#0369A1;">🔌 支援互動式人機介面設定（先看儀器介紹，再進行視覺化參數設定）</span>
+            <button onclick="closeInsertInstModal(); openInstIntroPage('audit', document.getElementById('iiInstSel').value);" class="btn" style="padding:4px 10px; font-size:12.5px; background:#0284C7; color:#FFFFFF; border-color:#0369A1;">開啟人機設定 ▶</button>
+          </div>
+          <label style="font-weight:700; color:#0F172A;">4. 測試項目名稱 (Title，已自動填入合理預設值可自行微調)：
+            <input id="iiTitleInput" type="text" placeholder="例如：Measure 3.3V Rail" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <div style="display:flex; gap:10px;">
+            <label style="flex:1; font-weight:700; color:#0F172A;">下限 DL (選填)：
+              <input id="iiDlInput" type="text" placeholder="例如：3.15" class="mono" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+            <label style="flex:1; font-weight:700; color:#0F172A;">上限 UL (選填)：
+              <input id="iiUlInput" type="text" placeholder="例如：3.45" class="mono" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
+          <button onclick="closeInsertInstModal()" class="btn" style="background:#E2E8F0; color:#334155; border-color:#94A3B8;">取消</button>
+          <button onclick="iiConfirmInsert()" class="btn btn-primary-green">✨ 插入獨立 Title 區塊並高亮標記</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 共用 Modal：🌐 SFIS / iPLAS 開關與廠區 IP 設定 ======================== -->
+  <div id="sfisIplasModal" class="modal-backdrop">
+    <div class="modal-panel" style="max-width:640px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
+        <div style="font-weight:700; font-size:15px;">🌐 SFIS / iPLAS 開關與廠區 IP 設定（寫入 System.ini）</div>
+        <button onclick="document.getElementById('sfisIplasModal').classList.remove('open')" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+      </div>
+      <div style="padding:14px 16px; display:flex; flex-direction:column; gap:12px; font-size:13.5px;">
+        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:6px; padding:10px 12px;">
+          <div style="font-weight:700; color:#166534; margin-bottom:8px;">1. SFIS 產線系統開關與廠區 WebLink</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
+            <label style="font-weight:700; font-size:12.5px;">SFIS_Enable (主開關)：
+              <select id="siSfisEnable" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;">
+                <option value="0">0 — OFF（關閉 / 單機測試）</option>
+                <option value="1">1 — ON（開啟 / 產線過站）</option>
+              </select>
+            </label>
+            <label style="font-weight:700; font-size:12.5px;">SFIS_LinkIPLAS (連動上傳)：
+              <select id="siLinkIplas" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;">
+                <option value="0">0 — OFF（關閉）</option>
+                <option value="1">1 — ON（開啟）</option>
+              </select>
+            </label>
+          </div>
+          <label style="font-weight:700; font-size:12.5px; display:block; margin-bottom:8px;">廠區 SFIS_WebLink 快速選擇（下拉選單）：
+            <select id="siFactoryPreset" onchange="onSfisFactoryPresetChange()" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;">
+              <option value="http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx|DC">PTB / PXD 廠區 (pxd-sftsp-n3)</option>
+              <option value="http://10.176.33.13/SFISWebService/SFISTSPWebService.asmx,2|PTB">PTB 產線常用 (10.176.33.13)</option>
+              <option value="http://172.18.125.49/SFISWebService/SFISTSPWebService.asmx,2|PCQ">PCQ 重慶廠 (172.18.125.49)</option>
+              <option value="http://172.24.248.17/SFISWebService/SFISTSPWebService.asmx,2|PSZ">PSZ 蘇州廠-1 (172.24.248.17)</option>
+              <option value="http://172.24.248.15/SFISWebService/SFISTSPWebService.asmx,2|PSZ">PSZ 蘇州廠 Lot5 (172.24.248.15)</option>
+              <option value="http://172.24.255.113/SFISWebService/SFISTSPWebService.asmx,2|PSZ">PSZ 蘇州廠-2 (172.24.255.113)</option>
+              <option value="http://sfistsp-szascd0-n0.sz.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx,2|PSZ">PSZ 域名版 (sz.pegatroncorp.com)</option>
+              <option value="CUSTOM">✏️ 自訂輸入 WebLink URL...</option>
+            </select>
+          </label>
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+            <label style="font-weight:700; font-size:12.5px;">SFIS_WebLink 完整網址：
+              <input id="siWebLink" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box; font-size:12px;">
+            </label>
+            <label style="font-weight:700; font-size:12.5px;">SFIS_TSP 專案代號：
+              <input id="siTsp" class="mono" placeholder="PEGA,2" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+          </div>
+        </div>
+
+        <div style="background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; padding:10px 12px;">
+          <div style="font-weight:700; color:#1E40AF; margin-bottom:8px;">2. iPLAS 測試紀錄上傳開關</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <label style="font-weight:700; font-size:12.5px;">iPLAS_Enable：
+              <select id="siIplasEnable" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;">
+                <option value="0">0 — OFF（關閉）</option>
+                <option value="1">1 — ON（開啟）</option>
+              </select>
+            </label>
+            <label style="font-weight:700; font-size:12.5px;">iPLAS_Site (廠區代碼)：
+              <input id="siIplasSite" class="mono" placeholder="DC / PTB / PCQ / PSZ" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:12.5px;">iPLAS_ProjectName：
+              <input id="siIplasProj" class="mono" placeholder="PEGA" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
+        <button onclick="document.getElementById('sfisIplasModal').classList.remove('open')" class="btn" style="background:#E2E8F0; color:#334155;">取消</button>
+        <button onclick="confirmSfisIplasModal()" class="btn btn-primary-green">✅ 套用 SFIS / iPLAS 設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 健檢專屬 Modal：🔌 通訊設定 (改 COM Port / UART 轉 SSH) ======================== -->
+  <div id="commModal" class="modal-backdrop">
+    <div class="modal-panel" style="max-width:560px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
+        <div style="font-weight:700; font-size:15px;">🔌 通訊設定（修改 UART COM Port / UART 批次轉 SSH）</div>
+        <button onclick="document.getElementById('commModal').classList.remove('open')" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+      </div>
+      <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+          <label style="font-weight:700; font-size:12.5px;">UART COM Port (DUT_UR1)
+            <input id="cmDutUr1" class="mono" placeholder="COM4" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <label style="font-weight:700; font-size:12.5px;">DUT IP (DUTIP_1)
+            <input id="cmDutIp1" class="mono" placeholder="192.168.11.143" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <label style="font-weight:700; font-size:12.5px;">SSH 登入帳號 (DUT_Login)
+            <input id="cmDutLogin" class="mono" placeholder="root" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+        </div>
+        <div style="background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:10px 12px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; color:#92400E;">
+            <input type="checkbox" id="cmConvertSsh" style="width:16px; height:16px; cursor:pointer;">
+            將選定測試站內的 UART 指令（:Connect,"UART" / UART@...）一鍵轉換為 SSH (CmdConsole@ssh)
+          </label>
+          <label style="display:block; margin-top:8px; font-size:12.5px; font-weight:700; color:#78350F;">套用站別：
+            <select id="cmTargetSheet" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
+        <button onclick="document.getElementById('commModal').classList.remove('open')" class="btn" style="background:#E2E8F0; color:#334155;">取消</button>
+        <button onclick="confirmCommModal()" class="btn btn-primary-blue">✅ 套用通訊設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 獨立主頁切換：📖 全儀器共用公版介紹頁 ======================== -->
+  <div id="panelInstIntro" style="display:none;">
+    <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button onclick="closeInstIntroPage()" class="btn" style="background:#E2E8F0; color:#1E293B; border-color:#94A3B8;">◀ 返回</button>
+        <span id="introPageTitle" style="font-weight:700; font-size:16px; color:#0F172A;">📖 儀器特色功能與接線須知</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px; padding:3px 6px;">
+          <span style="font-size:12px; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
+          <button id="introFs13" onclick="setIntroFontSize(13)" class="btn" style="padding:2px 8px; font-size:12px;">小 (13px)</button>
+          <button id="introFs15" onclick="setIntroFontSize(15)" class="btn" style="padding:2px 8px; font-size:12px;">中 (15px)</button>
+          <button id="introFs17" onclick="setIntroFontSize(17)" class="btn" style="padding:2px 8px; font-size:12px;">大 (17px)</button>
+        </div>
+        <button id="introNextBtn" onclick="proceedFromIntroToConfig()" class="btn btn-primary-green" style="padding:7px 16px; font-size:14px;">
+          下一步：開始設定 ▶
+        </button>
+      </div>
+    </div>
+
+    <div id="introPageBody" style="display:grid; grid-template-columns:360px 1fr; gap:16px; align-items:start;"></div>
+  </div>
+
+  <!-- ======================== 獨立主頁切換：🎛️ 通用儀器互動人機介面 (FeasaLED / iPower / DMM / DIO / RF) ======================== -->
+  <div id="panelInstHmi" style="display:none;">
+    <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button onclick="closeInstHmi()" class="btn" style="background:#E2E8F0; color:#1E293B; border-color:#94A3B8;">◀ 返回原頁面</button>
+        <span id="instHmiTitle" style="font-weight:700; font-size:16px; color:#0F172A;">🎛️ 儀器參數人機設定</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px; padding:3px 6px;">
+          <span style="font-size:12px; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
+          <button id="hmiFs13" onclick="setIntroFontSize(13)" class="btn" style="padding:2px 8px; font-size:12px;">小 (13px)</button>
+          <button id="hmiFs15" onclick="setIntroFontSize(15)" class="btn" style="padding:2px 8px; font-size:12px;">中 (15px)</button>
+          <button id="hmiFs17" onclick="setIntroFontSize(17)" class="btn" style="padding:2px 8px; font-size:12px;">大 (17px)</button>
+        </div>
+        <div id="instHmiTargetBar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label style="font-size:13px; font-weight:700; color:#334155;">目標測試站：
+            <select id="instHmiSheetSel" onchange="onInstHmiSheetChange()" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+          <label style="font-size:13px; font-weight:700; color:#334155;">插入位置：
+            <select id="instHmiAfterSel" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:4px; max-width:240px;"></select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div id="instHmiLeft" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;"></div>
+      <div id="instHmiRight" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+  </div>
+
+  <!-- ======================== 獨立主頁切換：NI USB-6009 電壓量測人機介面 (非 Popup) ======================== -->
+  <div id="panelNi6009" style="display:none;">
+    <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button onclick="closeNi6009Hmi()" class="btn" style="background:#E2E8F0; color:#1E293B; border-color:#94A3B8;">
+          ◀ 返回原頁面
+        </button>
+        <span style="font-weight:700; font-size:16px; color:#0F172A;">🔌 NI USB-6009 電壓量測人機設定（左側看圖打勾，右側選電壓）</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="closeNi6009Hmi()" class="btn" style="background:#F1F5F9; color:#334155; border-color:#CBD5E1;">取消</button>
+        <button onclick="ni6ConfirmSubmit()" class="btn btn-primary-green">✨ 確認加入測試流程</button>
+      </div>
+    </div>
+
+    <div style="background:#EFF6FF; border:1.5px solid #60A5FA; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; color:#1E3A8A; line-height:1.5;">
+      <b>📖 操作步驟說明：</b>
+      ① 在右側選接線方式（一般負極接 GND／兩線差動） →
+      ② 直接點左邊接線圖打勾腳位，<b>或</b>點右側「<code>+ 3.3V / + 12V / + 自訂電壓</code>」自動配孔 →
+      ③ 在下方卡片確認名稱與合格範圍後，點擊右上角「<b>✨ 確認加入測試流程</b>」即可。
+    </div>
+
+    <div style="display:grid; grid-template-columns:460px 1fr; gap:16px; align-items:start;">
+      <!-- 左側：實體外觀 + 留白對齊的 32-Pin 互動接線圖 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:12px;">
+          <img src="/images/51p+17SjMDL.jpg" alt="NI USB-6009" style="height:82px; border-radius:4px; object-fit:contain;">
+          <div style="font-size:12.5px; color:#334155; line-height:1.5;">
+            <div style="font-weight:700; color:#0F172A; font-size:13.5px;">NI USB-6009 多功能 DAQ</div>
+            <div>• 左排 (Pin 1~16)：類比輸入/輸出</div>
+            <div>• 單端耐壓 ±10V ｜ 差動 ±20V</div>
+          </div>
+        </div>
+
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px;">
+          <div style="font-weight:700; font-size:13px; color:#0F172A; margin-bottom:6px;">📍 點擊左側方框勾選腳位（完全不遮擋文字）：</div>
+          <div id="ni6PinDiagramWrap" style="position:relative; width:100%; padding-left:34px; box-sizing:border-box; user-select:none; background:#FFFFFF;">
+            <img src="/images/%E8%9E%A2%E5%B9%95%E6%93%B7%E5%8F%96%E7%95%AB%E9%9D%A2%202026-11-17%20094453.png" alt="NI-6009 Pinout" style="width:100%; display:block; border-radius:4px;">
+            <div id="ni6PinOverlay" style="position:absolute; top:0; bottom:0; left:0; width:34px;"></div>
+          </div>
+          <div style="font-size:12px; color:#475569; margin-top:6px; line-height:1.45;">
+            💡 <b>RSE 一般量測</b>：負極統一接 Pin 1/4/7/10/13/16 (GND)；<b>DIFF 差動</b>：正負成對接 (如 Pin2+ / Pin3-)。
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側：白話接法選擇 + 一鍵新增常用電壓 + 卡片設定 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+          <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">① 您的線怎麼接？</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1.5px solid #3B82F6; border-radius:6px; background:#EFF6FF; font-weight:700; font-size:13.5px;">
+              <input type="radio" name="ni6ModeRad" value="RSE" checked onchange="ni6SetMode('RSE')">
+              一般量測 RSE（正極接 AI0~7，負極接 GND）
+            </label>
+            <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1.5px solid #94A3B8; border-radius:6px; background:#FFFFFF; font-weight:700; font-size:13.5px;">
+              <input type="radio" name="ni6ModeRad" value="DIFF" onchange="ni6SetMode('DIFF')">
+              兩線差動 DIFF（正負極成對接 AI+ / AI-）
+            </label>
+          </div>
+        </div>
+
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+          <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">② 快速新增要測的電壓（自動配孔並在左圖亮燈）：</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button onclick="ni6QuickAdd('1.8V')" class="btn" style="padding:6px 13px; font-size:13px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">+ 1.8V</button>
+            <button onclick="ni6QuickAdd('3.3V')" class="btn" style="padding:6px 13px; font-size:13px; background:#DCFCE7; color:#15803D; border-color:#4ADE80;">+ 3.3V</button>
+            <button onclick="ni6QuickAdd('5V')" class="btn" style="padding:6px 13px; font-size:13px; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;">+ 5V</button>
+            <button onclick="ni6QuickAdd('12V')" class="btn" style="padding:6px 13px; font-size:13px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">+ 12V (含實接提醒)</button>
+            <button onclick="ni6QuickAdd('custom')" class="btn" style="padding:6px 13px; font-size:13px; background:#F1F5F9; color:#334155; border-color:#94A3B8;">+ 自訂電壓 (如 3.6V)</button>
+          </div>
+        </div>
+
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+          <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">③ 已設定的量測通道（可隨時微調名稱與合格範圍）：</div>
+          <div id="ni6ChannelCards" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
+        <details style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px; font-size:13px;">
+          <summary style="cursor:pointer; font-weight:700; color:#334155;">⚙️ 進階設定（測試站 / 插入位置 / Title / Dev1 / 取樣時間，通常免改）</summary>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:8px; margin-top:8px;">
+            <label id="ni6SheetWrap" style="font-weight:700;">工作表：
+              <select id="ni6SheetSel" onchange="ni6OnSheetChange()" class="mono" style="width:100%; padding:4px 6px; margin-top:2px;"></select>
+            </label>
+            <label id="ni6AfterWrap" style="font-weight:700;">插入位置：
+              <select id="ni6AfterSel" style="width:100%; padding:4px 6px; margin-top:2px;"></select>
+            </label>
+            <label style="font-weight:700;">Title 名稱：
+              <input id="ni6TitleInput" type="text" value="Measure Voltage Test" style="width:100%; padding:4px 6px; margin-top:2px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700;">取樣參數 (ms)：
+              <input id="ni6SampleInput" type="text" value="1000" class="mono" style="width:100%; padding:4px 6px; margin-top:2px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700;">裝置代號 (DAQ_1)：
+              <input id="ni6DevInput" type="text" value="Dev1" class="mono" style="width:100%; padding:4px 6px; margin-top:2px; box-sizing:border-box;">
+            </label>
+          </div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -992,13 +872,21 @@
           <div id="wizIsnPreview" class="mono" style="background:#EFF6FF; border:1px solid #3B82F6; color:#1E3A8A; font-weight:700; padding:7px 10px; border-radius:6px;">{ISN,3,[0-9A-Z]}</div>
         </div>
       </div>
+      <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px 12px;">
+        <div id="genSfisIplasBadge" style="font-size:13px; color:#334155;">
+          🌐 <b>System.ini 連線預設：</b>SFIS：<span class="mono">OFF (0)</span> ｜ iPLAS：<span class="mono">OFF (0)</span> ｜ 廠區：<span class="mono">PTB / PXD</span>
+        </div>
+        <button onclick="openSfisIplasModal('gen')" class="btn" style="background:#F0FDF4; color:#166534; border-color:#86EFAC; padding:5px 12px; font-size:13px;">
+          🌐 設定 SFIS / iPLAS 開關與廠區 IP
+        </button>
+      </div>
     </div>
 
     <!-- Step 2: 勾選要測的項目模組 -->
     <div id="wizStep2" style="display:none;">
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:6px 0 8px 0;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <h3 style="margin:0; color:var(--slate-900);">Step 2：請勾選要納入測試流程的積木模組</h3>
+          <h3 style="margin:0; color:var(--slate-900);">Step 2：請勾選標準流程積木與選用測試儀器</h3>
           <span id="genCustomTicBadge" class="badge badge-pass" style="display:none; cursor:pointer;" onclick="switchTab('tic')"></span>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -1007,7 +895,43 @@
           <button class="btn" style="padding:4px 10px; font-size:12.5px;" onclick="applyBlockPreset('none')">☐ 全部取消</button>
         </div>
       </div>
+
+      <div style="font-weight:700; font-size:13.5px; color:#334155; margin-bottom:6px;">① 標準測試流程骨架（純流程控制 / 治具 / 韌體 / SFIS / 收尾）：</div>
       <div id="blockCheckGrid" class="block-grid"></div>
+
+      <!-- 整合後：所有儀器測項統一由此選用（快速按鈕 + 全 34 款分類選單） -->
+      <div style="margin-top:14px; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+        <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">② 測試儀器與量測項目選用（已整合 NI-6009 / iPower / 電表 / FeasaLED / IQxel，點選即進入介紹與人機設定）：</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #CBD5E1;">
+          <span style="font-size:12.5px; font-weight:700; color:#475569; align-self:center;">常用儀器快選：</span>
+          <button onclick="openInstIntroPage('gen', 'NI6008-1')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">⚡ NI-6008 / 6009 電壓量測</button>
+          <button onclick="openInstIntroPage('gen', 'IPOWER2401')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">🔌 iPower 程控電源開關</button>
+          <button onclick="openInstIntroPage('gen', 'Agilent34401A')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DCFCE7; color:#166534; border-color:#4ADE80;">📏 34401A / MDA2700 電表</button>
+          <button onclick="openInstIntroPage('gen', 'FeasaLED')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#F3E8FF; color:#6B21A8; border-color:#C084FC;">💡 Feasa LED 色彩亮度</button>
+          <button onclick="openInstIntroPage('gen', 'InstIQApiA')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DBEAFE; color:#1E40AF; border-color:#60A5FA;">📡 IQxel Wi-Fi RF 測試</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+          <label style="flex:1; min-width:170px; font-weight:700; font-size:12.5px; color:#334155;">功能分類：
+            <select id="genInstCatSel" onchange="genOnCategoryChange()" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+          <label style="flex:1.2; min-width:190px; font-weight:700; font-size:12.5px; color:#334155;">儀器名稱：
+            <select id="genInstSel" onchange="genOnInstChange()" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+          </label>
+          <label style="flex:1.3; min-width:180px; font-weight:700; font-size:12.5px; color:#334155;">測項名稱：
+            <input id="genInstTitle" type="text" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <label style="width:85px; font-weight:700; font-size:12.5px; color:#334155;">下限 DL：
+            <input id="genInstDl" type="text" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <label style="width:85px; font-weight:700; font-size:12.5px; color:#334155;">上限 UL：
+            <input id="genInstUl" type="text" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+          </label>
+          <button onclick="openInstIntroPage('gen', document.getElementById('genInstSel').value || 'NI6008-1')" class="btn" style="padding:6px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC;">📖 儀器介紹</button>
+          <button id="btnGenNi6Diagram" onclick="openInstIntroPage('gen', document.getElementById('genInstSel').value || 'NI6008-1')" class="btn" style="padding:6px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">🔌 互動人機設定</button>
+          <button onclick="genAddCustomInst()" class="btn" style="padding:6px 12px; background:#DBEAFE; color:#1E3A8A; border-color:#3B82F6;">➕ 加入清單</button>
+        </div>
+        <div id="genInstList" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
     </div>
 
     <!-- Step 3: 細部參數填寫 (依 Step 2 勾選項目動態展開) -->
@@ -1031,6 +955,13 @@
         </div>
       </div>
       <div id="genAlertBox" class="alert-banner" style="display:none;"></div>
+    </div>
+
+    <!-- 底部步驟導覽按鈕（與上方同步） -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid #CBD5E1;">
+      <button id="btnWizPrevBottom" class="btn" style="display:none; background:#E2E8F0; color:#1E293B; border-color:#94A3B8; padding:8px 18px; font-size:14px;" onclick="goWizardStep(WIZ_STEP - 1)">◀ 上一步</button>
+      <span></span>
+      <button id="btnWizNextBottom" class="btn btn-primary-blue" style="padding:8px 20px; font-size:14px;" onclick="goWizardStep(WIZ_STEP + 1)">下一步 ▶</button>
     </div>
   </div>
 
@@ -1113,6 +1044,7 @@
 </div>
 </div> <!-- 關閉 app-body 容器 -->
 
+<script src="/js/inst_hmi.js"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -1123,7 +1055,7 @@ let STATE = {
   userChoices: {},
   blocks: [],
   selectedBlockIds: [
-    "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION", "BLK_VOLT_NI6008_BATCH",
+    "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION",
     "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"
   ]
 };
@@ -1141,6 +1073,9 @@ function switchTab(tab) {
   document.getElementById('panelDiagnose').style.display = (tab === 'diagnose') ? 'block' : 'none';
   document.getElementById('panelGen').style.display = (tab === 'gen') ? 'block' : 'none';
   document.getElementById('panelTic').style.display = (tab === 'tic') ? 'block' : 'none';
+  document.getElementById('panelNi6009').style.display = 'none';
+  document.getElementById('panelInstIntro').style.display = 'none';
+  document.getElementById('panelInstHmi').style.display = 'none';
 
   document.getElementById('sideTabAudit').className = 'sidebar-tab-item' + (tab === 'audit' ? ' active' : '');
   document.getElementById('sideTabDiagnose').className = 'sidebar-tab-item' + (tab === 'diagnose' ? ' active' : '');
@@ -1703,9 +1638,12 @@ function applyBlockPreset(preset) {
     STATE.selectedBlockIds = ["BLK_PRETEST_ROUTE", "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"];
   } else if (preset === 'basic') {
     STATE.selectedBlockIds = [
-      "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION", "BLK_VOLT_NI6008_BATCH",
+      "BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION",
       "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"
     ];
+    if (!STATE.genNi6009Blocks || STATE.genNi6009Blocks.length === 0) {
+      openInstIntroPage('gen', 'NI6008-1');
+    }
   } else {
     STATE.selectedBlockIds = [];
   }
@@ -2051,10 +1989,20 @@ async function initPage() {
   renderBlockChecklist();
 }
 
+const FLOW_ONLY_BLOCK_IDS = new Set([
+  'BLK_PRETEST_ROUTE',
+  'BLK_FIXTURE_ACTION',
+  'BLK_UART_BOOT_FW',
+  'BLK_SFIS_MAC_69PN',
+  'BLK_PYTHON_SCRIPT_CALL',
+  'BLK_UTILITY_PING_LAN',
+  'BLK_PHASE97_TEARDOWN'
+]);
+
 function renderBlockChecklist() {
   const grid = document.getElementById('blockCheckGrid');
   grid.innerHTML = '';
-  STATE.blocks.forEach(blk => {
+  STATE.blocks.filter(blk => FLOW_ONLY_BLOCK_IDS.has(blk.block_id)).forEach(blk => {
     const isChecked = STATE.selectedBlockIds.includes(blk.block_id);
     const card = document.createElement('div');
     card.className = 'blk-card' + (isChecked ? ' checked' : '');
@@ -2084,32 +2032,204 @@ function renderBlockChecklist() {
   });
 }
 
-async function pickExcelNative() {
-  const res = await fetch('/api/pick_file');
-  const data = await res.json();
-  if (data.status === 'cancel') {
-    return;
+async function withLoadingTimer(label, asyncFn) {
+  const bar = document.getElementById('loadingTimerBar');
+  const startMs = Date.now();
+  let timerId = setInterval(() => {
+    const sec = (Date.now() - startMs) / 1000;
+    if (sec >= 3.0) {
+      bar.style.display = 'flex';
+      bar.innerHTML = `⏳ ${label}（已耗時 <span class="mono">${sec.toFixed(1)} 秒</span>，大型多測試站腳本解析約需 5~12 秒，請稍候...）`;
+    }
+  }, 150);
+  try {
+    return await asyncFn();
+  } finally {
+    clearInterval(timerId);
+    bar.style.display = 'none';
   }
-  if (data.status !== 'ok') {
-    alert(data.message || '檔案選取失敗');
-    return;
-  }
+}
 
+async function pickExcelNative() {
+  if (STATE.isPickingFile) return;
+  STATE.isPickingFile = true;
+  try {
+    const data = await withLoadingTimer('正在讀取並體檢 Excel 腳本', async () => {
+      const res = await fetch('/api/pick_file');
+      return await res.json();
+    });
+    if (data.status === 'cancel') {
+      return;
+    }
+    if (data.status !== 'ok') {
+      alert(data.message || '檔案選取失敗');
+      return;
+    }
+
+    STATE.selectedPath = data.file_path;
+    STATE.workspace = data.workspace;
+    STATE.report = data.report;
+    STATE.isnInfo = data.isn_info || null;
+    STATE.activeSheetFilter = 'ALL';
+    STATE.showNormalJumps = false;
+    STATE.userChoices = {};
+    (STATE.report.choice_cards || []).forEach(c => {
+      STATE.userChoices[c.card_id] = c.recommended_value;
+    });
+
+    document.getElementById('pickedPathText').textContent = data.file_path;
+    document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
+    document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
+    document.getElementById('btnExportFixed').style.display = 'inline-flex';
+    document.getElementById('btnExportDry').style.display = 'inline-flex';
+    document.getElementById('btnOpenInsertInstModal').style.display = 'inline-flex';
+    document.getElementById('btnOpenJumpModal').style.display = 'inline-flex';
+    document.getElementById('toggleDetailBar').style.display = 'flex';
+
+    renderAuditResults();
+  } finally {
+    STATE.isPickingFile = false;
+  }
+}
+
+async function pickFolderAndScan() {
+  if (STATE.isPickingFile) return;
+  STATE.isPickingFile = true;
+  try {
+    const data = await withLoadingTimer('正在批次掃描整包專案資料夾', async () => {
+      const res = await fetch('/api/pick_folder_and_scan');
+      return await res.json();
+    });
+    if (data.status === 'cancel') return;
+    if (data.status !== 'ok') {
+      alert(data.message || '資料夾掃描失敗');
+      return;
+    }
+    STATE.batchRootDir = data.root_dir;
+    STATE.batchItems = data.items || [];
+    document.getElementById('pickedPathText').textContent = `[專案資料夾] ${data.root_dir}`;
+    renderBatchFolderBox();
+  } finally {
+    STATE.isPickingFile = false;
+  }
+}
+
+function renderBatchFolderBox() {
+  const box = document.getElementById('batchFolderBox');
+  const items = STATE.batchItems || [];
+  if (items.length === 0) {
+    box.style.display = 'block';
+    box.innerHTML = '<div style="font-weight:700; color:#0369A1;">📁 所選資料夾內未找到可掃描的原始 TestFlow .xlsx 腳本。</div>';
+    return;
+  }
+  box.style.display = 'block';
+  const rowsHtml = items.map((it, idx) => {
+    const stBadge = it.status === 'ok'
+      ? '<span style="color:#15803D; font-weight:700;">🟢 正常</span>'
+      : (it.status === 'error' || it.status === 'read_error'
+        ? `<span style="color:#B91C1C; font-weight:700;">🔴 ${it.error_count} 錯</span>`
+        : `<span style="color:#B45309; font-weight:700;">🟡 ${it.manual_warning_count} 需確認</span>`);
+    const fixedBadge = it.has_fixed
+      ? '<span style="color:#0369A1; font-weight:700;">📄 已有 _FIXED（將覆蓋）</span>'
+      : '<span style="color:#64748B;">尚未修復</span>';
+    const multiNote = it.multi_xlsx_in_dir ? ' <span title="同目錄有多份 xlsx，整包修復時 System.ini 會指向最後一份" style="color:#B45309; font-size:11.5px;">(同目錄多檔)</span>' : '';
+    const encPath = encodeURIComponent(it.file_path);
+    return `
+      <tr style="border-bottom:1px solid #CBD5E1; background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+        <td style="padding:5px 8px;" class="mono">${it.rel_path}${multiNote}</td>
+        <td style="padding:5px 8px; text-align:center;">${it.sheet_count}</td>
+        <td style="padding:5px 8px;">${stBadge}</td>
+        <td style="padding:5px 8px; text-align:center; color:#0369A1; font-weight:700;">🤖 ${it.auto_fix_warning_count}</td>
+        <td style="padding:5px 8px; text-align:center;">${it.jump_issues > 0 ? `🔀 ${it.jump_issues}` : '—'}</td>
+        <td style="padding:5px 8px;">${fixedBadge}</td>
+        <td style="padding:5px 8px;"><button class="btn" style="padding:2px 8px; font-size:12px; background:#DBEAFE; color:#1E3A8A; border-color:#60A5FA;" onclick="loadSpecificFile('${encPath}')">🔍 載入細看</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+      <div style="font-weight:700; color:#0F172A;">📁 整包專案掃描結果：共 <strong>${items.length}</strong> 份原始腳本（已自動略過 *_FIXED、old_*、Test Item Code）</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary-green" onclick="batchFixFolder()">⚡ 一鍵整包修復全部腳本 (${items.length} 份)</button>
+        <button class="btn" style="background:#E2E8F0; color:#334155; border-color:#94A3B8;" onclick="document.getElementById('batchFolderBox').style.display='none'">收合總表</button>
+      </div>
+    </div>
+    <div style="max-height:280px; overflow:auto; border:1px solid #CBD5E1; border-radius:6px; background:#FFFFFF;">
+      <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:${Math.max(12, fs - 1)}px;">
+        <thead>
+          <tr style="background:#1E293B; color:#FFFFFF; text-align:left;">
+            <th style="padding:6px 8px;">腳本路徑</th>
+            <th style="padding:6px 8px; text-align:center;">工作表</th>
+            <th style="padding:6px 8px;">人工確認狀態</th>
+            <th style="padding:6px 8px; text-align:center;">自動修補</th>
+            <th style="padding:6px 8px; text-align:center;">跳轉問題</th>
+            <th style="padding:6px 8px;">修復狀態</th>
+            <th style="padding:6px 8px;">操作</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function loadSpecificFile(encPath) {
+  const filePath = decodeURIComponent(encPath);
+  const data = await withLoadingTimer('正在載入所選腳本並進行體檢', async () => {
+    const res = await fetch('/api/load_specific_file?path=' + encodeURIComponent(filePath));
+    return await res.json();
+  });
+  if (data.status !== 'ok') {
+    alert(data.message || '載入失敗');
+    return;
+  }
   STATE.selectedPath = data.file_path;
   STATE.workspace = data.workspace;
   STATE.report = data.report;
+  STATE.pendingInserts = [];
   STATE.isnInfo = data.isn_info || null;
+  STATE.activeSheetFilter = 'ALL';
+  STATE.showNormalJumps = false;
   STATE.userChoices = {};
   (STATE.report.choice_cards || []).forEach(c => {
     STATE.userChoices[c.card_id] = c.recommended_value;
   });
-
   document.getElementById('pickedPathText').textContent = data.file_path;
+  document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
+  document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
   document.getElementById('btnExportFixed').style.display = 'inline-flex';
   document.getElementById('btnExportDry').style.display = 'inline-flex';
+  document.getElementById('btnOpenInsertInstModal').style.display = 'inline-flex';
+  document.getElementById('btnOpenJumpModal').style.display = 'inline-flex';
+  document.getElementById('btnOpenSfisModal').style.display = 'inline-flex';
+  document.getElementById('btnOpenCommModal').style.display = 'inline-flex';
   document.getElementById('toggleDetailBar').style.display = 'flex';
-
   renderAuditResults();
+}
+
+async function batchFixFolder() {
+  const items = STATE.batchItems || [];
+  if (items.length === 0) return;
+  if (!confirm(`即將批次修復這 ${items.length} 份腳本，於原目錄產出 *_FIXED.xlsx 並自動備份原 System.ini / Global.ini 為 .bak。\n確定要執行嗎？`)) return;
+  const data = await withLoadingTimer(`正在整包修復並簽章 ${items.length} 份腳本`, async () => {
+    const res = await fetch('/api/batch_fix_folder', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        root_dir: STATE.batchRootDir,
+        file_paths: items.map(i => i.file_path)
+      })
+    });
+    return await res.json();
+  });
+  if (data.status !== 'ok') {
+    alert('整包修復失敗：' + (data.message || ''));
+    return;
+  }
+  alert(`整包修復完成！共成功產出 ${data.fixed_files} 份 *_FIXED.xlsx（重複執行已直接覆蓋更新，不會產生 _FIXED_FIXED）。`);
+  STATE.batchItems.forEach(it => { it.has_fixed = true; });
+  renderBatchFolderBox();
 }
 
 function toggleDetailVisibility() {
@@ -2127,30 +2247,200 @@ function toggleDetailVisibility() {
   }
 }
 
+function _renderGroupedMessages(msgs, icon, color) {
+  const groups = [];
+  const map = {};
+  msgs.forEach(m => {
+    const norm = m.replace(/第\s*\d+\s*列/g, '第 * 列');
+    if (!map[norm]) {
+      map[norm] = { key: norm, items: [] };
+      groups.push(map[norm]);
+    }
+    map[norm].items.push(m);
+  });
+  let out = '';
+  groups.forEach(g => {
+    if (g.items.length === 1) {
+      out += `<div style="color:${color}; margin-bottom:2px;">${icon} ${g.items[0]}</div>`;
+    } else {
+      const rows = g.items.map(x => {
+        const m = x.match(/第\s*(\d+)\s*列/);
+        return m ? m[1] : '';
+      }).filter(Boolean);
+      const rowPreview = rows.length > 0 ? `（第 ${rows.slice(0, 8).join(', ')}${rows.length > 8 ? ` ... 共 ${rows.length} 列` : ' 列'}）` : `（共 ${g.items.length} 項）`;
+      const cleanTitle = g.key.replace(/^\[[^\]]+\]\s*/, '');
+      out += `
+        <details style="margin:4px 0; background:rgba(255,255,255,0.65); border:1px solid rgba(0,0,0,0.12); border-radius:4px; padding:4px 8px;">
+          <summary style="cursor:pointer; font-weight:700; color:${color};">${icon} ${cleanTitle} <span style="font-weight:500;">${rowPreview} — 點擊展開</span></summary>
+          <div style="margin-top:4px; max-height:180px; overflow:auto; font-size:12.5px;">
+            ${g.items.map((it, idx) => `<div style="color:${color};">[${idx + 1}] ${it}</div>`).join('')}
+          </div>
+        </details>
+      `;
+    }
+  });
+  return out;
+}
+
 function renderAuditResults() {
   const rep = STATE.report;
   const cards = rep.choice_cards || [];
   const errors = rep.errors || [];
-  const warnings = rep.warnings || [];
+  const manualWarnings = rep.manual_warnings !== undefined ? rep.manual_warnings : (rep.warnings || []);
+  const autoFixWarnings = rep.auto_fix_warnings || [];
 
   const alertBox = document.getElementById('auditAlertBox');
   alertBox.style.display = 'block';
+  if (errors.length === 0 && manualWarnings.length === 0) {
+    alertBox.style.background = '#F0FDF4';
+    alertBox.style.border = '1.5px solid #22C55E';
+    alertBox.style.color = '#14532D';
+  } else if (errors.length > 0) {
+    alertBox.style.background = '#FEF2F2';
+    alertBox.style.border = '1.5px solid #EF4444';
+    alertBox.style.color = '#7F1D1D';
+  } else {
+    alertBox.style.background = '#FFFBEB';
+    alertBox.style.border = '1.5px solid #F59E0B';
+    alertBox.style.color = '#78350F';
+  }
+
+  const pendingBar = document.getElementById('pendingChangesBar');
+  const pendings = STATE.pendingInserts || [];
+  if (pendingBar) {
+    if (pendings.length > 0) {
+      pendingBar.style.display = 'block';
+      pendingBar.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-weight:700; font-size:14px; color:#1E3A8A;">📝 本次已插入 ${pendings.length} 項儀器設定（尚未寫入 Excel，請匯出以完成驗證）</div>
+            <div style="font-size:12.5px; color:#1E40AF; margin-top:4px;">
+              ${pendings.map((p, i) => `<div>• [${i + 1}] <span class="mono" style="font-weight:700;">${p.sheet}</span> → <b>${p.inst}</b>：${p.summary}</div>`).join('')}
+            </div>
+          </div>
+          <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:7px 14px; font-size:13.5px;">💾 立即匯出並驗證 (*_FIXED.xlsx)</button>
+        </div>
+      `;
+    } else {
+      pendingBar.style.display = 'none';
+    }
+  }
 
   let statusBadge = '';
-  if (errors.length === 0 && warnings.length === 0) {
-    statusBadge = '<span style="color:#166534; font-size:16px;">🟢 檢查結果：100% 格式正確，無任何邏輯錯誤或警告！</span>';
+  const autoNote = autoFixWarnings.length > 0
+    ? ` <span style="color:#0369A1; font-size:13.5px;">（另有 🤖 ${autoFixWarnings.length} 項機械式格式問題，將於點擊上方「💾 一鍵修好並存回原資料夾」時自動修補）</span>`
+    : '';
+  if (errors.length === 0 && manualWarnings.length === 0) {
+    statusBadge = `<span style="color:#166534; font-size:16px;">🟢 檢查結果：無須人工介入的邏輯錯誤或警告！</span>${autoNote}`;
   } else if (errors.length > 0) {
-    statusBadge = `<span style="color:#991B1B; font-size:16px;">🔴 檢查結果：抓出 <strong>${errors.length} 個錯誤</strong>、<strong>${warnings.length} 個警告</strong>（系統已備妥自動修復對策）。</span>`;
+    statusBadge = `<span style="color:#991B1B; font-size:16px;">🔴 檢查結果：抓出 <strong>${errors.length} 個錯誤</strong>、<strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
   } else {
-    statusBadge = `<span style="color:#92400E; font-size:16px;">🟡 檢查結果：抓出 <strong>${warnings.length} 個警告</strong>（系統已備妥自動優化對策）。</span>`;
+    statusBadge = `<span style="color:#92400E; font-size:16px;">🟡 檢查結果：抓出 <strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
   }
 
   alertBox.innerHTML = `
-    📄 檢查檔案：<span class="mono">${STATE.selectedPath}</span><br>
-    ${statusBadge}<br>
-    ${formatIsnHtml(STATE.isnInfo)}<br>
-    👉 修復輸出位置：將<strong>直接輸出在原檔案同一個資料夾目錄下</strong>，檔名自動加上 <span class="mono">_FIXED.xlsx</span>，並自動計算 64 碼 Checksum 寫入同目錄的 System.ini！
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between;">
+      <div>${statusBadge}</div>
+      <div>${formatIsnHtml(STATE.isnInfo)}</div>
+    </div>
+    <div style="margin-top:4px; font-size:13px;">
+      👉 匯出位置：同目錄 <span class="mono">*_FIXED.xlsx</span>（自動寫入 Checksum 至 <span class="mono">System.ini</span>）
+    </div>
   `;
+
+  // Render multi-sheet health filter bar (compact badges; auto-fix count in tooltip)
+  const sheetBar = document.getElementById('sheetFilterBar');
+  const sheetStats = rep.sheet_stats || [];
+  if (sheetStats.length > 0) {
+    sheetBar.style.display = 'flex';
+    const activeF = STATE.activeSheetFilter || 'ALL';
+    let sHtml = `<button class="sheet-pill ${activeF === 'ALL' ? 'active' : ''}" onclick="setSheetFilter('ALL')">📋 全部工作表 (${sheetStats.length})</button>`;
+    sheetStats.forEach(ss => {
+      const tip = ss.auto_fix_count > 0 ? `含 ${ss.auto_fix_count} 項機械式自動修補項目` : '無自動修補項目';
+      const badge = (ss.errors === 0 && ss.warnings === 0)
+        ? `<span style="color:#15803D;">🟢OK</span>`
+        : `${ss.errors > 0 ? `<span style="color:#B91C1C;">🔴${ss.errors}</span>` : ''} ${ss.warnings > 0 ? `<span style="color:#B45309;">🟡${ss.warnings}</span>` : ''}`;
+      const tag = ss.sheet_type === 'Marco' ? ' <span style="color:#64748B;font-size:11px;">(Marco)</span>' : '';
+      sHtml += `<button class="sheet-pill ${activeF === ss.sheet ? 'active' : ''}" title="${tip}" onclick="setSheetFilter('${ss.sheet.replace(/'/g, "\\'")}')">${ss.sheet}${tag} ${badge}</button>`;
+    });
+    sheetBar.innerHTML = sHtml;
+  } else {
+    sheetBar.style.display = 'none';
+  }
+
+  // Render plain-language jump flow summaries (abnormal expanded on top, normal collapsed)
+  const jumpBox = document.getElementById('jumpSummaryContainer');
+  const allJumps = rep.jump_summaries || [];
+  const activeSheet = STATE.activeSheetFilter || 'ALL';
+  const filteredJumps = activeSheet === 'ALL' ? allJumps : allJumps.filter(j => j.sheet === activeSheet);
+  if (filteredJumps.length > 0) {
+    jumpBox.style.display = 'block';
+    const abnormalJumps = filteredJumps.filter(j => j.status === 'error' || j.status === 'warning');
+    const normalJumps = filteredJumps.filter(j => j.status === 'ok');
+
+    let jHtml = '';
+    if (abnormalJumps.length > 0) {
+      const fixableCount = abnormalJumps.filter(j => !!j.quick_fix).length;
+      const batchBtn = fixableCount > 0
+        ? `<button class="btn" style="padding:4px 12px; font-size:13px; background:#DCFCE7; color:#14532D; border-color:#22C55E;" onclick="applyAllQuickJumpFixes()">⚡ 批次套用全部推薦跳轉修法 (${fixableCount} 處)</button>`
+        : '';
+      jHtml += `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:4px 0 6px 2px;">
+          <span style="font-weight:700; color:#7F1D1D;">🔀 縮排分支樹與跳轉摘要（偵測到 ${abnormalJumps.length} 個區塊需確認）：</span>
+          ${batchBtn}
+        </div>
+      `;
+      abnormalJumps.forEach((j, idx) => {
+        const icon = j.status === 'error' ? '🔴' : '🟡';
+        const qf = j.quick_fix;
+        const qfBtn = qf ? `<button class="btn" style="padding:3px 10px; font-size:12.5px; background:#DCFCE7; color:#14532D; border-color:#22C55E;" onclick="applyQuickJumpFix('${j.sheet.replace(/'/g, "\\'")}', '${j.sheet_type}', ${qf.global_idx}, '${qf.new}', '${qf.old}')">✨ ${qf.label}</button>` : '';
+        const treeHtml = j.tree_text ? `<pre class="mono" style="background:#F8FAFC; border-left:3px solid #2563EB; padding:7px 10px; border-radius:4px; margin:6px 0 0 0; font-size:12.5px; line-height:1.45; overflow-x:auto; color:#0F172A;">${j.tree_text.replace(/</g, '&lt;')}</pre>` : '';
+        jHtml += `
+          <div class="jump-summary-card status-${j.status}">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+              <div style="font-weight:700; color:#0F172A;">${icon} [${j.sheet}] Title：<span class="mono">${j.title}</span>（第 ${j.row_start} 列起，共 ${j.total_steps} 步）</div>
+              <div style="display:flex; gap:6px;">
+                ${qfBtn}
+                <button class="btn btn-jump" style="padding:3px 10px; font-size:12.5px;" onclick="openJumpEditorModal('${j.sheet.replace(/'/g, "\\'")}', '${j.title.replace(/'/g, "\\'")}')">🔀 手動打勾調整</button>
+              </div>
+            </div>
+            ${treeHtml}
+            <ul style="margin:6px 0 0 18px; padding:0; font-size:12.5px; line-height:1.5; color:#475569;">
+              ${j.narratives.map(n => `<li>${n}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      });
+    }
+
+    if (normalJumps.length > 0) {
+      const showNorm = !!STATE.showNormalJumps;
+      jHtml += `
+        <div style="margin-top:6px;">
+          <button class="btn" style="padding:4px 12px; font-size:13px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="toggleNormalJumps()">
+            ${showNorm ? '🔼 收合' : '✅ 其餘'} ${normalJumps.length} 個跳轉區塊邏輯正常（點擊${showNorm ? '收合' : '展開'}縮排分支樹）
+          </button>
+        </div>
+      `;
+      if (showNorm) {
+        normalJumps.forEach(j => {
+          const treeHtml = j.tree_text ? `<pre class="mono" style="background:#FFFFFF; border-left:3px solid #16A34A; padding:7px 10px; border-radius:4px; margin:6px 0 0 0; font-size:12.5px; line-height:1.45; overflow-x:auto; color:#0F172A;">${j.tree_text.replace(/</g, '&lt;')}</pre>` : '';
+          jHtml += `
+            <div class="jump-summary-card status-ok" style="margin-top:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                <div style="font-weight:700; color:#166534;">🟢 [${j.sheet}] Title：<span class="mono">${j.title}</span>（共 ${j.total_steps} 步）</div>
+                <button class="btn btn-jump" style="padding:2px 8px; font-size:12px;" onclick="openJumpEditorModal('${j.sheet.replace(/'/g, "\\'")}', '${j.title.replace(/'/g, "\\'")}')">🔀 調整</button>
+              </div>
+              ${treeHtml}
+            </div>
+          `;
+        });
+      }
+    }
+    jumpBox.innerHTML = jHtml;
+  } else {
+    jumpBox.style.display = 'none';
+  }
 
   // Render choice cards
   const choiceBox = document.getElementById('choiceContainer');
@@ -2184,22 +2474,92 @@ function renderAuditResults() {
     });
   }
 
-  // Render issue list
+  // Render issue list grouped by sheet (<details open> for sheets with issues, collapsed for clean sheets)
   const detailBox = document.getElementById('issueDetailBox');
   const itemsDiv = document.getElementById('issueItems');
+  const sheetsToRender = activeSheet === 'ALL'
+    ? (sheetStats.length > 0 ? sheetStats.map(s => s.sheet) : ['__ALL__'])
+    : [activeSheet];
+
   let html = '';
-  if (errors.length === 0 && warnings.length === 0) {
-    html = '<div style="color:#166534; font-weight:700;">🎉 恭喜！此檔案未發現任何邏輯錯誤或警告，格式完全合規。</div>';
-  } else {
-    errors.forEach((e, i) => {
-      html += `<div style="color:#991B1B; margin-bottom:2px;">❌ [錯誤 ${i+1}] ${e}</div>`;
-    });
-    warnings.slice(0, 20).forEach((w, i) => {
-      html += `<div style="color:#92400E; margin-bottom:2px;">⚠️ [警告 ${i+1}] ${w}</div>`;
-    });
-    if (warnings.length > 20) {
-      html += `<div style="color:#92400E; font-weight:700;">... 其餘 ${warnings.length - 20} 筆警告亦將一併自動修復</div>`;
+  if (activeSheet === 'ALL') {
+    const globalErrs = errors.filter(e => !sheetStats.some(s => e.startsWith(`[${s.sheet}`)));
+    const globalWarns = manualWarnings.filter(w => !sheetStats.some(s => w.startsWith(`[${s.sheet}`)));
+    if (globalErrs.length > 0 || globalWarns.length > 0) {
+      html += `<details open style="margin-bottom:8px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:8px 12px;">
+        <summary style="cursor:pointer; font-weight:700; color:#92400E;">🌐 全域 / DUTs / Instrument 設定檢查 (${globalErrs.length} 錯 / ${globalWarns.length} 人工確認)</summary>
+        <div style="margin-top:6px;">
+          ${globalErrs.map((e, i) => `<div style="color:#991B1B; margin-bottom:2px;">❌ [錯誤 ${i+1}] ${e}</div>`).join('')}
+          ${globalWarns.map((w, i) => `<div style="color:#92400E; margin-bottom:2px;">⚠️ [人工確認 ${i+1}] ${w}</div>`).join('')}
+        </div>
+      </details>`;
     }
+  }
+
+  const cleanSheets = [];
+  sheetsToRender.forEach(sName => {
+    const sErrs = sName === '__ALL__' ? errors : errors.filter(e => e.startsWith(`[${sName}`));
+    const sMan = sName === '__ALL__' ? manualWarnings : manualWarnings.filter(w => w.startsWith(`[${sName}`));
+    const hasIssues = (sErrs.length > 0 || sMan.length > 0);
+    if (!hasIssues && activeSheet === 'ALL' && sName !== '__ALL__') {
+      cleanSheets.push(sName);
+      return;
+    }
+    const needP97 = sMan.some(w => w.includes('缺少 Phase 97'));
+    const needRel = sMan.some(w => w.includes('未呼叫 :ReleaseDevice'));
+    const escS = sName.replace(/'/g, "\\'");
+
+    const p97Btn = (sName !== '__ALL__' && needP97)
+      ? `<button class="btn" style="padding:3px 10px; font-size:12.5px; background:#FEF08A; color:#7F1D1D; border-color:#F59E0B;" onclick="applySafetyFix('${escS}', 'phase97')">🛡️ 一鍵補齊無治具 Phase 97 收尾</button>`
+      : '';
+    const relBtn = (sName !== '__ALL__' && needRel)
+      ? `<button class="btn" style="padding:3px 10px; font-size:12.5px; background:#DCFCE7; color:#14532D; border-color:#22C55E;" onclick="applySafetyFix('${escS}', 'release')">🔓 一鍵補齊 :ReleaseDevice</button>`
+      : '';
+
+    const borderCol = sErrs.length > 0 ? '#EF4444' : (sMan.length > 0 ? '#F59E0B' : '#86EFAC');
+    const bgCol = sErrs.length > 0 ? '#FEF2F2' : (sMan.length > 0 ? '#FFFBEB' : '#F0FDF4');
+    const icon = sErrs.length > 0 ? '🔴' : (sMan.length > 0 ? '🟡' : '🟢');
+    const titleLabel = sName === '__ALL__' ? '全部檢查項目' : sName;
+
+    html += `
+      <details ${hasIssues ? 'open' : ''} style="margin-bottom:8px; background:${bgCol}; border:1px solid ${borderCol}; border-radius:6px; padding:7px 12px;">
+        <summary style="cursor:pointer; font-weight:700; color:#0F172A; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+          <span>${icon} [${titleLabel}] ${hasIssues ? `${sErrs.length} 個錯誤 / ${sMan.length} 個需人工確認` : '無須人工確認之錯誤或警告'}</span>
+        </summary>
+        <div style="margin-top:6px;">
+          ${(p97Btn || relBtn) ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">${p97Btn}${relBtn}</div>` : ''}
+          ${!hasIssues ? '<div style="color:#166534; font-weight:700;">🎉 此測試站無須人工處理之問題。</div>' : ''}
+          ${_renderGroupedMessages(sErrs, '❌', '#991B1B')}
+          ${_renderGroupedMessages(sMan, '⚠️', '#92400E')}
+        </div>
+      </details>
+    `;
+  });
+
+  if (cleanSheets.length > 0) {
+    html += `
+      <details style="margin-bottom:8px; background:#F0FDF4; border:1px solid #86EFAC; border-radius:6px; padding:7px 12px;">
+        <summary style="cursor:pointer; font-weight:700; color:#166534;">
+          🟢 其餘 ${cleanSheets.length} 個測試站無須人工確認之錯誤或警告（點擊展開各站清單）
+        </summary>
+        <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+          ${cleanSheets.map(sn => `<span style="background:#FFFFFF; border:1px solid #86EFAC; border-radius:999px; padding:2px 10px; font-size:12.5px; color:#166534; font-weight:700;">🟢 ${sn}</span>`).join('')}
+        </div>
+      </details>
+    `;
+  }
+
+  const fAuto = activeSheet === 'ALL' ? autoFixWarnings : autoFixWarnings.filter(w => w.startsWith(`[${activeSheet}`));
+  if (fAuto.length > 0) {
+    html += `
+      <details style="margin-top:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:6px 10px;">
+        <summary style="cursor:pointer; font-weight:700; color:#1E3A8A;">🤖 系統已備妥自動靜默修補之機械式項目 (${fAuto.length} 項，點擊展開明細)</summary>
+        <div style="margin-top:6px;">
+          ${fAuto.slice(0, 30).map((w, i) => `<div style="color:#1E40AF; font-size:12.5px; margin-bottom:2px;">🔧 [自動修補 ${i+1}] ${w}</div>`).join('')}
+          ${fAuto.length > 30 ? `<div style="color:#1E40AF; font-weight:700; font-size:12.5px;">... 其餘 ${fAuto.length - 30} 項將於點擊「💾 一鍵修好並存回原資料夾」時一併自動修補</div>` : ''}
+        </div>
+      </details>
+    `;
   }
   itemsDiv.innerHTML = html;
 
@@ -2212,35 +2572,1059 @@ function selectCardOption(cid, val) {
   renderAuditResults();
 }
 
-async function applyFixAndExport(dryRun) {
-  if (!STATE.workspace) return;
+function setSheetFilter(sheetName) {
+  STATE.activeSheetFilter = sheetName;
+  renderAuditResults();
+}
 
-  const res = await fetch('/api/fix_and_export_in_place', {
+function toggleNormalJumps() {
+  STATE.showNormalJumps = !STATE.showNormalJumps;
+  renderAuditResults();
+}
+
+async function reAuditWorkspace() {
+  if (!STATE.workspace) return;
+  const res = await fetch('/api/re_audit', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({workspace: STATE.workspace})
+  });
+  const data = await res.json();
+  if (data.status === 'ok') {
+    STATE.report = data.report;
+    STATE.userChoices = {};
+    (STATE.report.choice_cards || []).forEach(c => {
+      STATE.userChoices[c.card_id] = c.recommended_value;
+    });
+    renderAuditResults();
+  }
+}
+
+async function applyQuickJumpFix(sheetName, sheetType, globalIdx, newVal, oldVal) {
+  if (!STATE.workspace) return;
+  const container = sheetType === 'Marco' ? (STATE.workspace.marcos || {}) : (STATE.workspace.stations || {});
+  const steps = container[sheetName];
+  if (!steps || !steps[globalIdx]) return;
+  steps[globalIdx].ExecMode = newVal;
+  STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+  STATE.workspace._modified_cells.push({
+    sheet: sheetName, row: globalIdx + 2, col_name: 'ExecMode',
+    old: oldVal, new: newVal, note: `白話流程一鍵推薦修正：由 '${oldVal}' 改為 '${newVal}'`
+  });
+  await reAuditWorkspace();
+}
+
+async function applyAllQuickJumpFixes() {
+  if (!STATE.workspace || !STATE.report) return;
+  const activeSheet = STATE.activeSheetFilter || 'ALL';
+  const jumps = (STATE.report.jump_summaries || []).filter(j =>
+    (activeSheet === 'ALL' || j.sheet === activeSheet) && j.status !== 'ok' && j.quick_fix
+  );
+  if (jumps.length === 0) return;
+  STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+  jumps.forEach(j => {
+    const qf = j.quick_fix;
+    const container = j.sheet_type === 'Marco' ? (STATE.workspace.marcos || {}) : (STATE.workspace.stations || {});
+    const steps = container[j.sheet];
+    if (steps && steps[qf.global_idx]) {
+      steps[qf.global_idx].ExecMode = qf.new;
+      STATE.workspace._modified_cells.push({
+        sheet: j.sheet, row: qf.row_num, col_name: 'ExecMode',
+        old: qf.old, new: qf.new, note: `批次一鍵推薦修正：由 '${qf.old}' 改為 '${qf.new}'`
+      });
+    }
+  });
+  await reAuditWorkspace();
+}
+
+async function applySafetyFix(sheetName, fixKind) {
+  if (!STATE.workspace) return;
+  const res = await fetch('/api/apply_safety_fix', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       workspace: STATE.workspace,
-      user_choices: STATE.userChoices,
-      dry_run: dryRun
+      sheet_name: sheetName,
+      fix_kind: fixKind
     })
   });
   const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '安全收尾補齊失敗');
+    return;
+  }
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.userChoices = {};
+  (STATE.report.choice_cards || []).forEach(c => {
+    STATE.userChoices[c.card_id] = c.recommended_value;
+  });
+  renderAuditResults();
+}
+
+// ---------- 彈出式 Title 區塊跳轉編輯器 (Web Modal) ----------
+const JE = {
+  sheets: {},
+  blocks: [],
+  curBlock: null,
+  srcOff: 0,
+  passOff: null,
+  failOff: null
+};
+
+function _jeBuildTitleBlocks(steps) {
+  const blocks = [];
+  let cur = null;
+  (steps || []).forEach((st, idx) => {
+    const tVal = (st.Title || '').toString().trim();
+    if (tVal || !cur) {
+      cur = { title: tVal || '(未命名Title)', steps: [] };
+      blocks.push(cur);
+    }
+    cur.steps.push({ global_idx: idx, row_num: idx + 2, offset: cur.steps.length, step: st });
+  });
+  return blocks;
+}
+
+function openJumpEditorModal(preferSheet, preferTitle) {
+  if (!STATE.workspace) {
+    alert('請先選擇要檢查的 Excel 檔案。');
+    return;
+  }
+  JE.sheets = Object.assign({}, STATE.workspace.stations || {});
+  const marcosObj = STATE.workspace.marcos || {};
+  Object.keys(marcosObj).forEach(mk => {
+    if (Array.isArray(marcosObj[mk])) JE.sheets[mk] = marcosObj[mk];
+  });
+  const names = Object.keys(JE.sheets);
+  if (names.length === 0) {
+    alert('目前工作區沒有測試站或 Marco 工作表。');
+    return;
+  }
+  const sel = document.getElementById('jeSheetSel');
+  sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (preferSheet && JE.sheets[preferSheet]) {
+    sel.value = preferSheet;
+  } else if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && JE.sheets[STATE.activeSheetFilter]) {
+    sel.value = STATE.activeSheetFilter;
+  }
+  jeOnSheetChange(preferTitle);
+  document.getElementById('jumpEditorModal').classList.add('open');
+}
+
+async function closeJumpEditorModal() {
+  document.getElementById('jumpEditorModal').classList.remove('open');
+  await reAuditWorkspace();
+}
+
+function jeOnSheetChange(preferTitle) {
+  const stName = document.getElementById('jeSheetSel').value;
+  let allBlks = _jeBuildTitleBlocks(JE.sheets[stName] || []);
+  const only4 = document.getElementById('jeOnly4PF') && document.getElementById('jeOnly4PF').checked;
+  if (only4 && !preferTitle) {
+    const filtered = allBlks.filter(b => b.steps.some(it => (it.step.ExecMode || '').toString().trim().startsWith('4:')));
+    if (filtered.length > 0) allBlks = filtered;
+  }
+  JE.blocks = allBlks;
+  const bSel = document.getElementById('jeBlockSel');
+  bSel.innerHTML = JE.blocks.map((b, i) => `<option value="${i}">[${i + 1}] ${b.title} (${b.steps.length} 步)</option>`).join('');
+  if (preferTitle) {
+    const foundIdx = JE.blocks.findIndex(b => b.title === preferTitle);
+    if (foundIdx >= 0) bSel.value = String(foundIdx);
+  }
+  jeOnBlockChange();
+}
+
+function jeOnBlockChange() {
+  const idx = parseInt(document.getElementById('jeBlockSel').value || '0', 10);
+  JE.curBlock = JE.blocks[idx] || null;
+  if (!JE.curBlock) return;
+  const parts = (JE.curBlock.title || '').split(',').map(s => s.trim());
+  document.getElementById('jeRetryInput').value = (parts.length >= 3 && parts[2]) ? parts[2] : '0';
+  JE.srcOff = 0;
+  jeLoadTargetsFromSource();
+  jeRenderRows();
+}
+
+function jeLoadTargetsFromSource() {
+  JE.passOff = null;
+  JE.failOff = null;
+  if (!JE.curBlock) return;
+  const bSteps = JE.curBlock.steps;
+  if (JE.srcOff < 0 || JE.srcOff >= bSteps.length) return;
+  const mode = (bSteps[JE.srcOff].step.ExecMode || '').toString().trim();
+  if (mode.startsWith('4:') && mode.includes(',')) {
+    const [p, f] = mode.slice(2).split(',').map(x => parseInt(x.trim(), 10));
+    if (!isNaN(p) && p >= 0 && p < bSteps.length) JE.passOff = p;
+    if (!isNaN(f) && f >= 0 && f < bSteps.length) JE.failOff = f;
+  } else if (mode.startsWith('2:')) {
+    const r = parseInt(mode.slice(2).trim(), 10);
+    if (!isNaN(r) && r >= 0 && r < JE.srcOff) JE.failOff = r;
+  }
+}
+
+function jeSelectSource(off) {
+  JE.srcOff = off;
+  jeLoadTargetsFromSource();
+  jeRenderRows();
+}
+
+function jeTogglePass(off, checked) {
+  if (checked) {
+    if (off <= JE.srcOff) return;
+    JE.passOff = off;
+    if (JE.failOff !== null && JE.failOff <= JE.srcOff) JE.failOff = null;
+  } else if (JE.passOff === off) {
+    JE.passOff = null;
+  }
+  jeRenderRows();
+}
+
+function jeToggleFail(off, checked) {
+  if (checked) {
+    JE.failOff = off;
+    if (off <= JE.srcOff) JE.passOff = null;
+  } else if (JE.failOff === off) {
+    JE.failOff = null;
+  }
+  jeRenderRows();
+}
+
+function jeComputeExecMode() {
+  if (!JE.curBlock) return [null, '尚未選擇區塊'];
+  const bLen = JE.curBlock.steps.length;
+  const s = JE.srcOff, p = JE.passOff, f = JE.failOff;
+  if (p === null && f === null) return [null, '請勾選至少一個 PASS 或 FAIL 跳轉目標'];
+  if (f !== null && f <= s && p === null) {
+    if (f === s) return ['1', '單步原地重試 (ExecMode = 1)'];
+    return [`2:${f}`, `失敗重試跳回步號 ${f} (ExecMode = 2:${f})`];
+  }
+  if (s >= bLen - 1) return [null, '最後一步沒有後續步驟可供 4:P,F 往前跳轉'];
+  const defNext = Math.min(s + 1, bLen - 1);
+  const fp = (p !== null && p > s) ? p : defNext;
+  const ff = (f !== null && f > s) ? f : defNext;
+  if (fp === ff) return [`4:${fp},${ff}`, `無論 PASS/FAIL 皆跳至步號 ${fp} (4:${fp},${ff})`];
+  return [`4:${fp},${ff}`, `PASS 跳步號 ${fp}，FAIL 跳步號 ${ff} (4:${fp},${ff})`];
+}
+
+function jeRenderRows() {
+  const tbody = document.getElementById('jeStepRows');
+  if (!JE.curBlock) { tbody.innerHTML = ''; return; }
+  const bSteps = JE.curBlock.steps;
+  let rowsHtml = '';
+  bSteps.forEach(item => {
+    const off = item.offset;
+    const st = item.step;
+    const isSrc = (off === JE.srcOff);
+    const bg = isSrc ? '#DBEAFE' : (off % 2 === 0 ? '#FFFFFF' : '#F8FAFC');
+    const sSend = (st.Send || '').toString().trim();
+    const sDesc = (st.Description || '').toString().trim();
+    const sMode = (st.ExecMode || '').toString().trim();
+    const modeMap = {
+      '0': '0 (一般)', '1': '1 (單步重試)', '3': '3 (忽略續跑)',
+      '5': '5 (失敗才跑)', '6': '6 (略過)', '8': '8 (SFIS執行)', '9': '9 (SFIS重試)'
+    };
+    const modeLabel = modeMap[sMode] || (sMode.startsWith('2:') ? `${sMode} (重試回跳)` : (sMode.startsWith('4:') ? `${sMode} (條件分支)` : (sMode.startsWith('7:') ? `${sMode} (校正)` : (sMode || '(空)'))));
+    const pDis = off <= JE.srcOff ? 'disabled' : '';
+    const pChk = (JE.passOff === off) ? 'checked' : '';
+    const fChk = (JE.failOff === off) ? 'checked' : '';
+    const fLbl = off > JE.srcOff ? 'FAIL' : (off === JE.srcOff ? '重試本步' : '重回此步');
+    rowsHtml += `
+      <tr style="background:${bg}; border-bottom:1px solid #E2E8F0;">
+        <td style="padding:5px 8px;"><input type="radio" name="jeSrcRad" ${isSrc ? 'checked' : ''} onclick="jeSelectSource(${off})" style="cursor:pointer;"></td>
+        <td style="padding:5px 8px;" class="mono">${String(off).padStart(2, '0')} (列${item.row_num})</td>
+        <td style="padding:5px 8px;" class="mono">${sSend.slice(0, 34)}</td>
+        <td style="padding:5px 8px; color:#475569;">${sDesc.slice(0, 24)}</td>
+        <td style="padding:5px 8px; font-weight:700; color:${sMode.startsWith('2:') || sMode.startsWith('4:') ? '#2563EB' : '#334155'};" class="mono">${modeLabel}</td>
+        <td style="padding:5px 8px;"><label style="cursor:${off > JE.srcOff ? 'pointer' : 'default'}; color:#15803D; font-weight:700;"><input type="checkbox" ${pChk} ${pDis} onchange="jeTogglePass(${off}, this.checked)"> PASS</label></td>
+        <td style="padding:5px 8px;"><label style="cursor:pointer; color:#B91C1C; font-weight:700;"><input type="checkbox" ${fChk} onchange="jeToggleFail(${off}, this.checked)"> ${fLbl}</label></td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = rowsHtml;
+
+  const [newMode, msg] = jeComputeExecMode();
+  const srcSend = ((bSteps[JE.srcOff] && bSteps[JE.srcOff].step.Send) || '').toString().trim();
+  let warnTxt = '';
+  if (srcSend.includes(':ReleaseDevice') || srcSend.includes(':Disconnect')) warnTxt = ' [注意：釋放資源指令建議維持 ExecMode=3]';
+  else if (srcSend.startsWith(':Sf')) warnTxt = ' [注意：SFIS 指令強制要求 ExecMode=8 或 9]';
+  const prev = document.getElementById('jePreviewText');
+  prev.textContent = `起點步號 ${String(JE.srcOff).padStart(2, '0')} (${srcSend.slice(0, 24)}) ➜ ${msg}${warnTxt}`;
+  prev.style.color = warnTxt ? '#B91C1C' : '#0F172A';
+}
+
+function jeSaveRetryCount() {
+  if (!JE.curBlock) return;
+  const val = document.getElementById('jeRetryInput').value.trim();
+  if (!/^\d+$/.test(val)) { alert('RetryCount 請輸入整數'); return; }
+  const firstItem = JE.curBlock.steps[0];
+  const oldTitle = (firstItem.step.Title || '').toString().trim();
+  const parts = oldTitle.split(',').map(s => s.trim());
+  while (parts.length < 2) parts.push('');
+  parts[2] = val;
+  const newTitle = parts.join(',');
+  firstItem.step.Title = newTitle;
+  JE.curBlock.title = newTitle;
+  STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+  STATE.workspace._modified_cells.push({
+    sheet: document.getElementById('jeSheetSel').value, row: firstItem.row_num, col_name: 'Title',
+    old: oldTitle, new: newTitle, note: `透過跳轉編輯器更新 RetryCount 為 ${val}`
+  });
+  alert(`已更新此 Title 的 RetryCount 為 ${val}`);
+}
+
+function jeApplyCurrent() {
+  const [newMode, msg] = jeComputeExecMode();
+  if (!newMode) { alert(msg); return; }
+  const item = JE.curBlock.steps[JE.srcOff];
+  const oldMode = (item.step.ExecMode || '').toString().trim();
+  item.step.ExecMode = newMode;
+  const stName = document.getElementById('jeSheetSel').value;
+  STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+  STATE.workspace._modified_cells.push({
+    sheet: stName, row: item.row_num, col_name: 'ExecMode',
+    old: oldMode, new: newMode, note: `跳轉編輯器設定：${msg}`
+  });
+  if ((newMode.startsWith('2:') || newMode === '1') && (document.getElementById('jeRetryInput').value.trim() === '0' || !document.getElementById('jeRetryInput').value.trim())) {
+    if (confirm('此步驟設為失敗重試，但目前 Title 的 RetryCount 為 0。\n是否一併將 RetryCount 設為 3？')) {
+      document.getElementById('jeRetryInput').value = '3';
+      jeSaveRetryCount();
+    }
+  }
+  jeRenderRows();
+}
+
+function jeClearCurrent() {
+  if (!JE.curBlock) return;
+  const item = JE.curBlock.steps[JE.srcOff];
+  const oldMode = (item.step.ExecMode || '').toString().trim();
+  item.step.ExecMode = '0';
+  JE.passOff = null;
+  JE.failOff = null;
+  STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+  STATE.workspace._modified_cells.push({
+    sheet: document.getElementById('jeSheetSel').value, row: item.row_num, col_name: 'ExecMode',
+    old: oldMode, new: '0', note: '跳轉編輯器清除跳轉設定，恢復 ExecMode = 0'
+  });
+  jeRenderRows();
+}
+
+function jeApplyTemplateGuard() {
+  if (!JE.curBlock) return;
+  const bLen = JE.curBlock.steps.length;
+  const s = JE.srcOff;
+  if (s >= bLen - 1) {
+    alert('目前起點已是區塊最後一步，無需再設定略過跳轉。');
+    return;
+  }
+  JE.passOff = s + 1;
+  JE.failOff = bLen - 1;
+  jeApplyCurrent();
+}
+
+function jeApplyTemplateIfElse() {
+  if (!JE.curBlock) return;
+  const bLen = JE.curBlock.steps.length;
+  const s = JE.srcOff;
+  if (s >= bLen - 1) {
+    alert('目前起點已是區塊最後一步，無法建立雙分支。');
+    return;
+  }
+  const p = (JE.passOff !== null && JE.passOff > s) ? JE.passOff : (s + 1);
+  const f = (JE.failOff !== null && JE.failOff > s) ? JE.failOff : Math.min(p + 1, bLen - 1);
+  if (p === f) {
+    alert('雙分支分流需要 PASS 與 FAIL 指向不同的起點步驟（請先在下方勾選 PASS 與 FAIL 各自的第一步）。');
+    return;
+  }
+  JE.passOff = p;
+  JE.failOff = f;
+  jeApplyCurrent();
+
+  // Automatically add convergence jump at end of PASS branch (f - 1) -> last_off if f < last_off
+  const lastOff = bLen - 1;
+  const passEndOff = f - 1;
+  if (p < f && f < lastOff && passEndOff >= p) {
+    const endItem = JE.curBlock.steps[passEndOff];
+    const oldEndMode = (endItem.step.ExecMode || '').toString().trim();
+    const newEndMode = `4:${lastOff},${lastOff}`;
+    endItem.step.ExecMode = newEndMode;
+    STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+    STATE.workspace._modified_cells.push({
+      sheet: document.getElementById('jeSheetSel').value, row: endItem.row_num, col_name: 'ExecMode',
+      old: oldEndMode, new: newEndMode, note: `雙分支模板自動補齊 PASS 末行跳至步號 ${lastOff} 收尾`
+    });
+    jeRenderRows();
+  }
+}
+
+function jeApplyTemplateRetry() {
+  if (!JE.curBlock) return;
+  const s = JE.srcOff;
+  const target = (JE.failOff !== null && JE.failOff <= s) ? JE.failOff : 0;
+  JE.passOff = null;
+  JE.failOff = target;
+  jeApplyCurrent();
+}
+
+async function refreshCurrentExcelFile() {
+  if (!STATE.selectedPath) return;
+  await loadSpecificFile(encodeURIComponent(STATE.selectedPath));
+}
+
+const INST_CATEGORIES = [
+  { id: 'measure', label: '📏 量測電壓 / 電流 / 電錶 / DAQ', names: ['NI6008-1', 'Agilent34401A', 'GDM906x', 'MDA2700', 'ScpTDS3014B'] },
+  { id: 'power', label: '⚡ 電源開關 / 供電與電子負載', names: ['IPOWER2401', 'IPRO800', 'KEITHLEY2302', 'PPH1503', 'PS2005-1', 'Chroma6150x', 'Chroma6310A'] },
+  { id: 'rf', label: '📡 RF 無線 / 功率計 / 切換器', names: ['InstIQApiA', 'XelM8-B', 'MT8870A', 'E4418B', 'U2004A', 'OSP120', 'SAn9000', 'vnxRFSW'] },
+  { id: 'audio_io', label: '🔊 音訊 / 氣密 / LED / DIO / IR', names: ['FeasaLED', 'NI4461', 'HXTaudio', 'SAu3751', 'FC6000-1', 'FM480-1', 'DIO6509', 'Redrat', 'SFE100'] },
+  { id: 'comm_sw', label: '🔧 條碼 / UART / 軟體工具', names: ['QRDecode', 'DevUart', 'AutoTFTP', 'DevQueue', 'LVdev'] }
+];
+
+function _getInstDefaults(instObj) {
+  const nm = (instObj && instObj.Name) || '';
+  const fn = ((instObj && instObj.Functions) || '').toUpperCase();
+  if (fn.includes('POWERSWITCH')) return { title: `${nm} Power ON Sequence`, dl: '', ul: '' };
+  if (fn.includes('VOLTAGE') || fn.includes('DMM') || fn.includes('DAQ')) return { title: 'Measure 3.3V Rail', dl: '3.15', ul: '3.45' };
+  if (fn.includes('DC') || fn.includes('DCLOAD') || fn.includes('ACSOURCE')) return { title: `${nm} Current Check`, dl: '0.05', ul: '2.50' };
+  if (fn.includes('PMETER') || fn.includes('MEASWIFI') || fn.includes('SA')) return { title: `${nm} RF Power Check`, dl: '12.0', ul: '20.0' };
+  if (fn.includes('LED')) return { title: 'LED Brightness Check', dl: '10', ul: '255' };
+  if (fn.includes('AIRTEST')) return { title: 'Air Leak Pressure Check', dl: '-5.0', ul: '5.0' };
+  if (fn.includes('AUDIO') || fn.includes('VOIP')) return { title: `${nm} Audio THD Check`, dl: '0.0', ul: '5.0' };
+  return { title: `${nm} Function Check`, dl: '', ul: '' };
+}
+
+async function _ensureInstCatalogLoaded() {
+  if (!STATE.instCatalog) {
+    const res = await fetch('/api/instrument_catalog');
+    const data = await res.json();
+    STATE.instCatalog = data.instruments || [];
+    if (data.profiles && typeof INST_INTRO_PROFILES !== 'undefined') {
+      Object.keys(data.profiles).forEach(k => {
+        if (!k.startsWith('_')) {
+          INST_INTRO_PROFILES[k] = Object.assign({}, INST_INTRO_PROFILES[k] || {}, data.profiles[k]);
+        }
+      });
+    }
+  }
+}
+
+function _populateCategoryAndInst(catSelId, instSelId, titleId, dlId, ulId) {
+  const cSel = document.getElementById(catSelId);
+  if (!cSel) return;
+  if (!cSel.options.length) {
+    cSel.innerHTML = INST_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+  }
+  const cat = INST_CATEGORIES.find(c => c.id === cSel.value) || INST_CATEGORIES[0];
+  const catNames = cat.names;
+  const list = (STATE.instCatalog || []).filter(i => catNames.includes(i.Name));
+  const iSel = document.getElementById(instSelId);
+  iSel.innerHTML = list.map(inst =>
+    `<option value="${inst.Name}">${inst.Name} (${inst.ControlDLL}) — ${inst.Desc || inst.Functions}</option>`
+  ).join('');
+  _applyInstDefaults(instSelId, titleId, dlId, ulId);
+}
+
+function _applyInstDefaults(instSelId, titleId, dlId, ulId) {
+  const nm = document.getElementById(instSelId).value;
+  const obj = (STATE.instCatalog || []).find(i => i.Name === nm);
+  const def = _getInstDefaults(obj);
+  document.getElementById(titleId).value = def.title;
+  document.getElementById(dlId).value = def.dl;
+  document.getElementById(ulId).value = def.ul;
+}
+
+function _validateDlUl(dlStr, ulStr) {
+  if (dlStr === '' && ulStr === '') return true;
+  if (dlStr === '' || ulStr === '') {
+    alert('若要設定量測上下限，DL 與 UL 需同時填寫有效數值。');
+    return false;
+  }
+  const dl = parseFloat(dlStr), ul = parseFloat(ulStr);
+  if (isNaN(dl) || isNaN(ul) || dl > ul) {
+    alert(`上下限數值無效：下限 DL (${dlStr}) 必須為數字且 <= 上限 UL (${ulStr})。`);
+    return false;
+  }
+  return true;
+}
+
+async function openInsertInstModal() {
+  if (!STATE.workspace) return;
+  const stNames = Object.keys(STATE.workspace.stations || {});
+  if (stNames.length === 0) {
+    alert('目前工作區沒有測試站工作表。');
+    return;
+  }
+  const sSel = document.getElementById('iiSheetSel');
+  sSel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && STATE.workspace.stations[STATE.activeSheetFilter]) {
+    sSel.value = STATE.activeSheetFilter;
+  }
+  iiOnSheetChange();
+
+  await _ensureInstCatalogLoaded();
+  _populateCategoryAndInst('iiCatSel', 'iiInstSel', 'iiTitleInput', 'iiDlInput', 'iiUlInput');
+  iiUpdateNi6Hint();
+  document.getElementById('insertInstModal').classList.add('open');
+}
+
+const HMI_SUPPORTED_INSTS = [
+  'NI6008-1', 'FeasaLED', 'IPOWER2401', 'IPRO800',
+  'MDA2700', 'Agilent34401A', 'GDM906x', 'DIO6509',
+  'InstIQApiA', 'XelM8-B', 'MT8870A'
+];
+
+function iiUpdateNi6Hint() {
+  const row = document.getElementById('iiNi6HintRow');
+  const instNm = document.getElementById('iiInstSel').value;
+  if (row) row.style.display = HMI_SUPPORTED_INSTS.includes(instNm) ? 'flex' : 'none';
+  const txt = document.getElementById('iiHmiHintText');
+  if (txt) {
+    txt.textContent = (instNm === 'NI6008-1')
+      ? '🔌 NI-6008/6009 支援 32-Pin 圖解接線設定（直接點圖打勾多通道與 12V 分壓提醒）'
+      : `🎛️ ${instNm} 支援專屬互動式人機設定（先看儀器介紹，再透過視覺化介面設定參數）`;
+  }
+}
+
+function iiOnCategoryChange() {
+  _populateCategoryAndInst('iiCatSel', 'iiInstSel', 'iiTitleInput', 'iiDlInput', 'iiUlInput');
+  iiUpdateNi6Hint();
+}
+
+function iiOnInstChange() {
+  _applyInstDefaults('iiInstSel', 'iiTitleInput', 'iiDlInput', 'iiUlInput');
+  iiUpdateNi6Hint();
+}
+
+function closeInsertInstModal() {
+  document.getElementById('insertInstModal').classList.remove('open');
+}
+
+function iiOnSheetChange() {
+  const stName = document.getElementById('iiSheetSel').value;
+  const blks = _jeBuildTitleBlocks((STATE.workspace.stations || {})[stName] || []);
+  const aSel = document.getElementById('iiAfterBlkSel');
+  let opts = '<option value="-1">（插在 Phase 97 之前 / 最後一個正常測項之後）</option>';
+  blks.forEach((b, i) => {
+    opts += `<option value="${i}">插在 [${i + 1}] ${b.title} 之後</option>`;
+  });
+  aSel.innerHTML = opts;
+}
+
+async function iiConfirmInsert() {
+  const dlVal = document.getElementById('iiDlInput').value.trim();
+  const ulVal = document.getElementById('iiUlInput').value.trim();
+  if (!_validateDlUl(dlVal, ulVal)) return;
+  const res = await fetch('/api/insert_instrument_block', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      sheet_name: document.getElementById('iiSheetSel').value,
+      after_block_idx: parseInt(document.getElementById('iiAfterBlkSel').value || '-1', 10),
+      inst_name: document.getElementById('iiInstSel').value,
+      title_name: document.getElementById('iiTitleInput').value.trim(),
+      dl_val: dlVal,
+      ul_val: ulVal
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '插入失敗');
+    return;
+  }
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.pendingInserts = STATE.pendingInserts || [];
+  STATE.pendingInserts.push({
+    sheet: document.getElementById('iiSheetSel').value,
+    inst: document.getElementById('iiInstSel').value,
+    summary: document.getElementById('iiTitleInput').value.trim() || '獨立儀器區塊'
+  });
+  closeInsertInstModal();
+  renderAuditResults();
+  alert(`已插入 ${data.added_rows} 列獨立 Title 區塊（整塊已標記亮黃底，請點擊「💾 立即匯出並驗證」寫入 *_FIXED.xlsx）。`);
+}
+
+async function initGenCustomInstSelector() {
+  await _ensureInstCatalogLoaded();
+  _populateCategoryAndInst('genInstCatSel', 'genInstSel', 'genInstTitle', 'genInstDl', 'genInstUl');
+  genUpdateNi6Btn();
+}
+function genUpdateNi6Btn() {
+  const b = document.getElementById('btnGenNi6Diagram');
+  const instNm = document.getElementById('genInstSel').value;
+  if (b) {
+    b.style.display = HMI_SUPPORTED_INSTS.includes(instNm) ? 'inline-flex' : 'none';
+    b.textContent = (instNm === 'NI6008-1') ? '🔌 圖解接線設定' : `🎛️ ${instNm} 人機設定`;
+  }
+}
+function genOnCategoryChange() {
+  _populateCategoryAndInst('genInstCatSel', 'genInstSel', 'genInstTitle', 'genInstDl', 'genInstUl');
+  genUpdateNi6Btn();
+}
+function genOnInstChange() {
+  _applyInstDefaults('genInstSel', 'genInstTitle', 'genInstDl', 'genInstUl');
+  genUpdateNi6Btn();
+}
+function genAddCustomInst() {
+  const instNm = document.getElementById('genInstSel').value;
+  const titleNm = document.getElementById('genInstTitle').value.trim() || `${instNm} Test`;
+  const dlVal = document.getElementById('genInstDl').value.trim();
+  const ulVal = document.getElementById('genInstUl').value.trim();
+  if (!_validateDlUl(dlVal, ulVal)) return;
+  STATE.genCustomInsts = STATE.genCustomInsts || [];
+  STATE.genCustomInsts.push({ inst_name: instNm, title_name: titleNm, dl_val: dlVal, ul_val: ulVal });
+  renderGenCustomInstList();
+}
+function genRemoveCustomInst(idx) {
+  STATE.genCustomInsts.splice(idx, 1);
+  renderGenCustomInstList();
+}
+function renderGenCustomInstList() {
+  const box = document.getElementById('genInstList');
+  if (!box) return;
+  const arr = STATE.genCustomInsts || [];
+  const niArr = STATE.genNi6009Blocks || [];
+  const rfArr = STATE.genRfBlocks || [];
+  let html = '';
+  if (arr.length > 0) {
+    html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">' + arr.map((item, idx) => {
+      const lim = (item.dl_val || item.ul_val) ? ` (${item.dl_val} ~ ${item.ul_val})` : '';
+      return `<span style="display:inline-flex; align-items:center; gap:6px; background:#DBEAFE; color:#1E3A8A; border:1px solid #60A5FA; border-radius:999px; padding:3px 10px; font-size:12.5px; font-weight:700;">
+        ${item.inst_name}: ${item.title_name}${lim}
+        <button onclick="genRemoveCustomInst(${idx})" style="border:none; background:transparent; color:#B91C1C; cursor:pointer; font-weight:700;">✕</button>
+      </span>`;
+    }).join('') + '</div>';
+  }
+  niArr.forEach((nb, idx) => {
+    const chLines = (nb.channels || []).map(c => {
+      const pm = NI6_PINS.find(p => p.ch === c.ch) || { pin: '?' };
+      return `<tr><td style="padding:3px 8px;" class="mono">AI ${c.ch} (Pin ${pm.pin})</td><td style="padding:3px 8px;" class="mono">${c.name}</td><td style="padding:3px 8px;" class="mono">${c.dl} ～ ${c.ul} V</td></tr>`;
+    }).join('');
+    html += `
+      <div style="background:#EFF6FF; border:1.5px solid #38BDF8; border-radius:6px; padding:8px 10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-weight:700; color:#0369A1; font-size:13px;">🔌 NI-6009 (${nb.mode} 模式) — ${nb.title_name}</span>
+          <div style="display:flex; gap:6px;">
+            <button onclick="openNi6009Hmi('gen', ${idx})" class="btn" style="padding:2px 8px; font-size:12px; background:#FFFFFF; color:#0369A1; border-color:#38BDF8;">✏️ 修改</button>
+            <button onclick="STATE.genNi6009Blocks.splice(${idx},1); renderGenCustomInstList();" class="btn" style="padding:2px 8px; font-size:12px; background:#FEF2F2; color:#B91C1C; border-color:#FCA5A5;">✕ 移除</button>
+          </div>
+        </div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px; background:#FFFFFF; border:1px solid #BAE6FD;">
+          <thead><tr style="background:#E0F2FE; color:#0369A1; text-align:left;"><th style="padding:3px 8px;">通道 / 腳位</th><th style="padding:3px 8px;">變數名稱</th><th style="padding:3px 8px;">合格範圍 (DL ~ UL)</th></tr></thead>
+          <tbody>${chLines}</tbody>
+        </table>
+      </div>
+    `;
+  });
+  rfArr.forEach((rb, idx) => {
+    html += `
+      <div style="background:#F5F3FF; border:1.5px solid #8B5CF6; border-radius:6px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; font-size:13px; color:#5B21B6;">📡 ${rb.inst_name} RF 測試 — Tx ${(rb.tx_tests||[]).length} 筆 / Rx ${(rb.rx_tests||[]).length} 筆（含 WIFI Tx/Rx MCS Marco）</span>
+        <button onclick="STATE.genRfBlocks.splice(${idx},1); renderGenCustomInstList();" class="btn" style="padding:2px 8px; font-size:12px; background:#FEE2E2; color:#B91C1C; border-color:#FCA5A5;">✕ 移除</button>
+      </div>`;
+  });
+  box.innerHTML = html;
+}
+
+// ---------- NI USB-6009 雙向互動接線圖 HMI ----------
+const NI6_PINS = [
+  { ch: 0, pin: 2,  pairPin: 3,  label: 'AI 0 (AI 0+)', topPct: 29.5, color: '#2563EB' },
+  { ch: 4, pin: 3,  pairPin: 2,  label: 'AI 4 (AI 0-)', topPct: 33.7, color: '#0891B2' },
+  { ch: 1, pin: 5,  pairPin: 6,  label: 'AI 1 (AI 1+)', topPct: 41.9, color: '#16A34A' },
+  { ch: 5, pin: 6,  pairPin: 5,  label: 'AI 5 (AI 1-)', topPct: 45.7, color: '#65A30D' },
+  { ch: 2, pin: 8,  pairPin: 9,  label: 'AI 2 (AI 2+)', topPct: 54.0, color: '#9333EA' },
+  { ch: 6, pin: 9,  pairPin: 8,  label: 'AI 6 (AI 2-)', topPct: 58.7, color: '#C026D3' },
+  { ch: 3, pin: 11, pairPin: 12, label: 'AI 3 (AI 3+)', topPct: 66.9, color: '#D97706' },
+  { ch: 7, pin: 12, pairPin: 11, label: 'AI 7 (AI 3-)', topPct: 70.7, color: '#EA580C' }
+];
+// [Moved to /js/inst_hmi.js]
+function openNi6009Hmi(targetMode, editGenIdx = -1) {
+  NI6_STATE.targetMode = targetMode || 'audit';
+  NI6_STATE.editGenIdx = editGenIdx;
+  if (targetMode === 'wiz_volt') {
+    NI6_STATE.mode = 'RSE';
+    NI6_STATE.channels = (WIZ_VOLT_RAILS || []).map(r => {
+      const chNum = parseInt(r.channel, 10) || 0;
+      const nom = parseFloat(r.nominal);
+      const pk = (nom === 1.8) ? '1.8V' : ((nom === 3.3) ? '3.3V' : ((nom === 5) ? '5V' : ((nom === 12) ? '12V' : 'custom')));
+      return { ch: chNum, name: r.name || `VCC_AI${chNum}`, dl: String(r.min || '3.15'), ul: String(r.max || '3.45'), preset: pk };
+    });
+  } else if (targetMode === 'gen' && editGenIdx >= 0 && STATE.genNi6009Blocks && STATE.genNi6009Blocks[editGenIdx]) {
+    const blk = STATE.genNi6009Blocks[editGenIdx];
+    NI6_STATE.mode = blk.mode || 'RSE';
+    NI6_STATE.channels = (blk.channels || []).map(c => ({ ...c, preset: c.preset || 'custom' }));
+    document.getElementById('ni6TitleInput').value = blk.title_name || 'Measure Voltage Test';
+    document.getElementById('ni6SampleInput').value = blk.sample_ms || '1000';
+    document.getElementById('ni6DevInput').value = blk.dev_id || 'Dev1';
+  } else {
+    NI6_STATE.mode = 'RSE';
+    NI6_STATE.channels = [
+      { ch: 0, name: 'VCC_3V3', dl: '3.15', ul: '3.45', preset: '3.3V' }
+    ];
+  }
+  document.querySelectorAll('input[name="ni6ModeRad"]').forEach(r => { r.checked = (r.value === NI6_STATE.mode); });
+
+  const isAudit = (NI6_STATE.targetMode === 'audit');
+  document.getElementById('ni6SheetWrap').style.display = isAudit ? 'block' : 'none';
+  document.getElementById('ni6AfterWrap').style.display = isAudit ? 'block' : 'none';
+  if (isAudit && STATE.workspace) {
+    const stNames = Object.keys(STATE.workspace.stations || {});
+    const sSel = document.getElementById('ni6SheetSel');
+    sSel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+    if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && STATE.workspace.stations[STATE.activeSheetFilter]) {
+      sSel.value = STATE.activeSheetFilter;
+    }
+    ni6OnSheetChange();
+  }
+  ni6RenderAll();
+  document.getElementById('panelAudit').style.display = 'none';
+  document.getElementById('panelGen').style.display = 'none';
+  document.getElementById('panelNi6009').style.display = 'block';
+}
+
+function closeNi6009Hmi() {
+  document.getElementById('panelNi6009').style.display = 'none';
+  if (NI6_STATE.targetMode === 'gen' || NI6_STATE.targetMode === 'wiz_volt') {
+    document.getElementById('panelGen').style.display = 'block';
+  } else {
+    document.getElementById('panelAudit').style.display = 'block';
+  }
+}
+
+function ni6OnSheetChange() {
+  const stName = document.getElementById('ni6SheetSel').value;
+  const blks = _jeBuildTitleBlocks((STATE.workspace.stations || {})[stName] || []);
+  const aSel = document.getElementById('ni6AfterSel');
+  let opts = '<option value="-1">（插在 Phase 97 之前 / 最後一個正常測項之後）</option>';
+  blks.forEach((b, i) => { opts += `<option value="${i}">插在 [${i + 1}] ${b.title} 之後</option>`; });
+  aSel.innerHTML = opts;
+}
+
+function ni6SetMode(mode) {
+  NI6_STATE.mode = mode;
+  if (mode === 'DIFF') {
+    NI6_STATE.channels = NI6_STATE.channels.filter(c => c.ch <= 3);
+  }
+  ni6RenderAll();
+}
+
+function ni6TogglePin(ch) {
+  if (NI6_STATE.mode === 'DIFF' && ch >= 4) return;
+  const idx = NI6_STATE.channels.findIndex(c => c.ch === ch);
+  if (idx >= 0) {
+    NI6_STATE.channels.splice(idx, 1);
+  } else {
+    NI6_STATE.channels.push({ ch: ch, name: `VCC_AI${ch}`, dl: '3.15', ul: '3.45', preset: '3.3V' });
+    NI6_STATE.channels.sort((a, b) => a.ch - b.ch);
+  }
+  ni6RenderAll();
+}
+
+function ni6QuickAdd(presetKey) {
+  const avail = NI6_PINS.filter(p => (NI6_STATE.mode === 'RSE' || p.ch <= 3) && !NI6_STATE.channels.some(c => c.ch === p.ch));
+  if (avail.length === 0) {
+    alert(NI6_STATE.mode === 'DIFF' ? 'DIFF 差動模式最多 4 組通道 (AI0~AI3) 已全滿。' : 'RSE 單端模式 8 個通道 (AI0~AI7) 已全滿。');
+    return;
+  }
+  const nextPin = avail[0];
+  const p = NI6_PRESETS[presetKey] || NI6_PRESETS['custom'];
+  const dupCount = NI6_STATE.channels.filter(c => c.name.startsWith(p.name)).length;
+  const finalName = dupCount > 0 ? `${p.name}_${nextPin.ch}` : p.name;
+  NI6_STATE.channels.push({ ch: nextPin.ch, name: finalName, dl: p.dl, ul: p.ul, preset: presetKey });
+  NI6_STATE.channels.sort((a, b) => a.ch - b.ch);
+  ni6RenderAll();
+}
+
+function ni6ApplyPreset(ch, presetKey) {
+  const item = NI6_STATE.channels.find(c => c.ch === ch);
+  if (!item) return;
+  const p = NI6_PRESETS[presetKey] || NI6_PRESETS['custom'];
+  item.preset = presetKey;
+  if (presetKey !== 'custom') {
+    const hasDup = NI6_STATE.channels.some(c => c.ch !== ch && c.name === p.name);
+    item.name = hasDup ? `${p.name}_${ch}` : p.name;
+    item.dl = p.dl;
+    item.ul = p.ul;
+  }
+  ni6RenderAll();
+}
+
+function ni6RenderAll() {
+  ni6RenderOverlay();
+  ni6RenderCards();
+}
+
+function ni6RenderOverlay() {
+  const ov = document.getElementById('ni6PinOverlay');
+  let html = '';
+  NI6_PINS.forEach(p => {
+    const chObj = NI6_STATE.channels.find(c => c.ch === p.ch);
+    const isDiffLocked = (NI6_STATE.mode === 'DIFF' && p.ch >= 4);
+    const isChecked = !!chObj;
+    const dot = isChecked
+      ? `<span style="width:8px; height:8px; border-radius:50%; background:${p.color}; display:inline-block; margin-left:3px;"></span>`
+      : '';
+    html += `
+      <div style="position:absolute; left:2px; top:${p.topPct}%; transform:translateY(-50%); display:flex; align-items:center;">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} ${isDiffLocked ? 'disabled' : ''}
+          title="Pin ${p.pin}: ${p.label}${isChecked ? ' (' + chObj.name + ')' : ''}"
+          onchange="ni6TogglePin(${p.ch})"
+          style="width:16px; height:16px; cursor:${isDiffLocked ? 'not-allowed' : 'pointer'}; accent-color:${p.color}; margin:0;">
+        ${dot}
+      </div>
+    `;
+  });
+  ov.innerHTML = html;
+}
+
+function ni6RenderCards() {
+  const box = document.getElementById('ni6ChannelCards');
+  if (NI6_STATE.channels.length === 0) {
+    box.innerHTML = '<div style="color:#64748B; padding:12px; text-align:center;">請點擊左側接線圖的 CheckBox，或點擊上方「+ 3.3V / + 12V / + 自訂電壓」按鈕。</div>';
+    return;
+  }
+
+  let html = '';
+  if (NI6_STATE.mode === 'DIFF') {
+    html += `
+      <div style="background:#EFF6FF; border:1px solid #60A5FA; border-radius:6px; padding:8px 10px; font-size:12px; color:#1E3A8A;">
+        <b>⚡ DIFF 兩線差動實接提醒：</b>每組通道需成對接入（正極接 <b>AI0+~3+</b>，負極接相鄰 <b>AI0-~3-</b>），兩端對 GND 不可超過 ±10V。
+      </div>
+    `;
+  }
+
+  NI6_STATE.channels.forEach(c => {
+    const pinMeta = NI6_PINS.find(p => p.ch === c.ch) || { pin: '?', pairPin: '?', color: '#2563EB' };
+    const pinHint = NI6_STATE.mode === 'DIFF'
+      ? `Pin ${pinMeta.pin} (AI${c.ch}+) & Pin ${pinMeta.pairPin} (AI${c.ch}-)`
+      : `Pin ${pinMeta.pin} (AI ${c.ch})，負極接 GND (Pin 1/4/7/10/13/16)`;
+    const needsDivider = (parseFloat(c.ul) > 10.0 || c.preset === '12V');
+
+    const presetBtns = ['1.8V', '3.3V', '5V', '12V', 'custom'].map(pk => {
+      const act = (c.preset === pk);
+      const lbl = pk === 'custom' ? '自訂' : pk;
+      return `<button onclick="ni6ApplyPreset(${c.ch}, '${pk}')" style="padding:2px 8px; font-size:11.5px; font-weight:700; border-radius:4px; cursor:pointer; border:1px solid ${act ? pinMeta.color : '#CBD5E1'}; background:${act ? pinMeta.color : '#FFFFFF'}; color:${act ? '#FFFFFF' : '#334155'};">${lbl}</button>`;
+    }).join(' ');
+
+    const dividerSvg = needsDivider ? `
+      <div style="margin-top:6px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:6px 10px; font-size:11.5px; color:#78350F;">
+        <div style="font-weight:700; margin-bottom:4px;">⚠️ 超過 ±10V 安全範圍：12V 建議接分壓電阻實接示意（或確認治具分壓比）：</div>
+        <svg width="100%" height="58" viewBox="0 0 430 58" style="background:#FFFFFF; border:1px solid #FDE68A; border-radius:4px;">
+          <text x="8" y="24" font-size="11" font-weight="bold" fill="#92400E">12V 待測點</text>
+          <line x1="72" y1="20" x2="112" y2="20" stroke="#DC2626" stroke-width="2"/>
+          <rect x="112" y="12" width="52" height="16" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+          <text x="119" y="24" font-size="10" font-weight="bold" fill="#78350F">R1 10kΩ</text>
+          <line x1="164" y1="20" x2="232" y2="20" stroke="#DC2626" stroke-width="2"/>
+          <circle cx="198" cy="20" r="3" fill="#2563EB"/>
+          <text x="236" y="24" font-size="11" font-weight="bold" fill="#1E3A8A">▶ AI ${c.ch} (Pin ${pinMeta.pin}) ≈ 6V</text>
+          <line x1="198" y1="20" x2="198" y2="44" stroke="#2563EB" stroke-width="1.5"/>
+          <rect x="172" y="34" width="52" height="15" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+          <text x="179" y="45" font-size="10" font-weight="bold" fill="#78350F">R2 10kΩ</text>
+          <line x1="224" y1="42" x2="262" y2="42" stroke="#334155" stroke-width="1.5"/>
+          <text x="266" y="46" font-size="11" font-weight="bold" fill="#334155">GND (Pin 1)</text>
+        </svg>
+      </div>
+    ` : '';
+
+    html += `
+      <div style="border:1.5px solid ${pinMeta.color}; border-radius:6px; padding:8px 10px; background:#F8FAFC;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+          <span style="font-weight:700; color:#0F172A; font-size:13px;">📌 <span style="color:${pinMeta.color};">AI ${c.ch}</span>（${pinHint}）</span>
+          <div style="display:flex; gap:4px; align-items:center;">
+            ${presetBtns}
+            <button onclick="ni6TogglePin(${c.ch})" style="margin-left:4px; padding:2px 7px; font-size:11px; border:1px solid #FCA5A5; background:#FEF2F2; color:#B91C1C; border-radius:4px; cursor:pointer;">移除</button>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12.5px;">
+          <label style="font-weight:700; color:#334155;">名稱：
+            <input type="text" value="${c.name}" onchange="NI6_STATE.channels.find(x=>x.ch===${c.ch}).name=this.value.trim()" class="mono" style="width:120px; padding:3px 6px; border:1px solid #94A3B8; border-radius:4px;">
+          </label>
+          <label style="font-weight:700; color:#334155;">合格範圍：
+            <input type="text" value="${c.dl}" onchange="NI6_STATE.channels.find(x=>x.ch===${c.ch}).dl=this.value.trim()" class="mono" style="width:68px; padding:3px 6px; border:1px solid #94A3B8; border-radius:4px;">
+            ～
+            <input type="text" value="${c.ul}" onchange="NI6_STATE.channels.find(x=>x.ch===${c.ch}).ul=this.value.trim(); ni6RenderCards();" class="mono" style="width:68px; padding:3px 6px; border:1px solid #94A3B8; border-radius:4px;">
+            V
+          </label>
+        </div>
+        ${dividerSvg}
+      </div>
+    `;
+  });
+  rfArr.forEach((rb, idx) => {
+    html += `
+      <div style="background:#F5F3FF; border:1.5px solid #8B5CF6; border-radius:6px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; font-size:13px; color:#5B21B6;">📡 ${rb.inst_name} RF 測試 — Tx ${(rb.tx_tests||[]).length} 筆 / Rx ${(rb.rx_tests||[]).length} 筆（含 WIFI Tx/Rx MCS Marco）</span>
+        <button onclick="STATE.genRfBlocks.splice(${idx},1); renderGenCustomInstList();" class="btn" style="padding:2px 8px; font-size:12px; background:#FEE2E2; color:#B91C1C; border-color:#FCA5A5;">✕ 移除</button>
+      </div>`;
+  });
+  box.innerHTML = html;
+}
+
+async function ni6ConfirmSubmit() {
+  if (NI6_STATE.channels.length === 0) {
+    alert('請至少勾選一個量測通道。');
+    return;
+  }
+  for (const c of NI6_STATE.channels) {
+    if (!c.name || !c.dl || !c.ul || isNaN(parseFloat(c.dl)) || isNaN(parseFloat(c.ul)) || parseFloat(c.dl) > parseFloat(c.ul)) {
+      alert(`通道 AI${c.ch} 的名稱或上下限格式不正確（下限需 <= 上限）。`);
+      return;
+    }
+  }
+  const payloadBlock = {
+    mode: NI6_STATE.mode,
+    sample_ms: document.getElementById('ni6SampleInput').value.trim() || '1000',
+    dev_id: document.getElementById('ni6DevInput').value.trim() || 'Dev1',
+    title_name: document.getElementById('ni6TitleInput').value.trim() || 'Measure Voltage Test',
+    channels: NI6_STATE.channels.map(c => ({ ch: c.ch, name: c.name, dl: c.dl, ul: c.ul }))
+  };
+
+  if (NI6_STATE.targetMode === 'wiz_volt') {
+    WIZ_VOLT_CONFIGURED = true;
+    WIZ_VOLT_MODE = NI6_STATE.mode || 'RSE';
+    WIZ_VOLT_RAILS = NI6_STATE.channels.map(c => {
+      const nom = ((parseFloat(c.dl) + parseFloat(c.ul)) / 2).toFixed(2);
+      return { channel: String(c.ch), name: c.name, nominal: nom, min: String(c.dl), max: String(c.ul), test_id: 'BRPW024' };
+    });
+    closeNi6009Hmi();
+    renderWizStep3();
+    return;
+  }
+
+  if (NI6_STATE.targetMode === 'gen') {
+    STATE.genNi6009Blocks = STATE.genNi6009Blocks || [];
+    if (NI6_STATE.editGenIdx >= 0 && NI6_STATE.editGenIdx < STATE.genNi6009Blocks.length) {
+      STATE.genNi6009Blocks[NI6_STATE.editGenIdx] = payloadBlock;
+    } else {
+      STATE.genNi6009Blocks.push(payloadBlock);
+    }
+    closeNi6009Hmi();
+    renderGenCustomInstList();
+    return;
+  }
+
+  const res = await fetch('/api/insert_ni6009_block', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      sheet_name: document.getElementById('ni6SheetSel').value,
+      after_block_idx: parseInt(document.getElementById('ni6AfterSel').value || '-1', 10),
+      ...payloadBlock
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || 'NI-6009 區塊插入失敗');
+    return;
+  }
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.pendingInserts = STATE.pendingInserts || [];
+  STATE.pendingInserts.push({
+    sheet: document.getElementById('ni6SheetSel').value,
+    inst: 'NI6008-1',
+    summary: `${NI6_STATE.mode} · ${NI6_STATE.channels.map(c => 'AI' + c.ch + '(' + c.name + ')').join(', ')}`
+  });
+  closeNi6009Hmi();
+  renderAuditResults();
+  alert(`已透過 NI-6009 人機介面插入 ${data.added_rows} 列（整塊已亮黃底標記，請點擊「💾 立即匯出並驗證」寫入 *_FIXED.xlsx）。`);
+}
+
+async function openCurrentExcelFile() {
+  if (!STATE.selectedPath) return;
+  const res = await fetch('/api/open_excel_file', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({file_path: STATE.selectedPath})
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '無法開啟 Excel 檔案');
+  }
+}
+
+async function applyFixAndExport(dryRun) {
+  if (!STATE.workspace) return;
+  if (!dryRun && STATE.report) {
+    const errCnt = STATE.report.error_count || 0;
+    const manCnt = STATE.report.manual_warning_count || 0;
+    if (errCnt > 0 || manCnt > 0) {
+      const ok = confirm(
+        `目前還有 ${errCnt} 個錯誤與 ${manCnt} 個需人工確認項目（例如跳轉邏輯或安全收尾），\n` +
+        `確定要直接匯出 *_FIXED.xlsx 嗎？\n（按「取消」可先在頁面上查看紅/黃折疊卡並套用一鍵修補）`
+      );
+      if (!ok) return;
+    }
+  }
+
+  const data = await withLoadingTimer('正在修復、簽章並重新檢查匯出檔', async () => {
+    const res = await fetch('/api/fix_and_export_in_place', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        workspace: STATE.workspace,
+        user_choices: STATE.userChoices,
+        dry_run: dryRun
+      })
+    });
+    return await res.json();
+  });
   if (data.status !== 'ok') {
     alert('修復匯出失敗：' + (data.message || ''));
     return;
   }
 
+  const exportedPendings = (STATE.pendingInserts || []).slice();
+  if (data.workspace && data.report) {
+    STATE.selectedPath = data.excel_path;
+    STATE.workspace = data.workspace;
+    STATE.report = data.report;
+    STATE.pendingInserts = [];
+    STATE.isnInfo = data.isn_info || STATE.isnInfo;
+    STATE.activeSheetFilter = 'ALL';
+    STATE.userChoices = {};
+    (STATE.report.choice_cards || []).forEach(c => {
+      STATE.userChoices[c.card_id] = c.recommended_value;
+    });
+    document.getElementById('pickedPathText').textContent = data.excel_path;
+    document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
+    renderAuditResults();
+  }
+
+  const instVerifyHtml = exportedPendings.length > 0
+    ? `<div style="margin-top:8px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; padding:8px 10px; font-size:12.5px; color:#1E3A8A;">
+         <div style="font-weight:700; margin-bottom:4px;">🔌 本次插入儀器寫入與驗證結果：</div>
+         ${exportedPendings.map((p, i) => `<div>✔ [${i + 1}] 工作表 <span class="mono">${p.sheet}</span> 已寫入 <b>${p.inst}</b>（${p.summary}），並同步更新 Instrument 掛載與 Checksum</div>`).join('')}
+       </div>`
+    : '';
+
+  const logs = data.fixed_logs || [];
+  const logsHtml = logs.length > 0
+    ? `<details style="margin-top:8px; background:#F0FDF4; border:1px solid #86EFAC; border-radius:6px; padding:6px 10px;">
+        <summary style="cursor:pointer; font-weight:700; color:#166534;">📋 本次自動修復異動明細 (共 ${logs.length} 項，點擊展開核對)</summary>
+        <div style="margin-top:6px; max-height:220px; overflow:auto; font-size:12.5px; color:#14532D; line-height:1.5;">
+          ${logs.map((lg, i) => `<div>✔ [${i+1}] ${lg}</div>`).join('')}
+        </div>
+      </details>`
+    : '';
+
   const alertBox = document.getElementById('auditAlertBox');
   alertBox.style.display = 'block';
   alertBox.innerHTML = `
-    ✅ <strong>修復匯出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
+    ✅ <strong>修復匯出完成，並已自動重新載入修復後檔案進行覆檢</strong>（已寫入 Checksum 並開啟資料夾）<br>
     📂 <span class="mono">${data.output_dir}</span><br>
-    📄 <span class="mono" style="color:#7F1D1D;">${data.excel_path}</span><br>
-    ${formatIsnHtml(data.isn_info)}
+    📄 <span class="mono" style="color:#0F172A;">${data.excel_path}</span>
+    ${instVerifyHtml}
+    ${logsHtml}
+    <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:8px 0;">
+    ${alertBox.innerHTML}
   `;
 }
 
 let WIZ_STEP = 1;
+let WIZ_VOLT_CONFIGURED = false;
+let WIZ_VOLT_MODE = 'RSE';
 let WIZ_VOLT_RAILS = [
   { channel: 0, name: 'VCC_5V', nominal: 5.0, min: '4.75', max: '5.25', test_id: 'BRPW024' },
   { channel: 1, name: 'VCC_3V3', nominal: 3.3, min: '3.15', max: '3.45', test_id: 'BRPW024' },
@@ -2291,7 +3675,17 @@ function goWizardStep(step) {
   }
   document.getElementById('btnWizPrev').style.display = (step > 1) ? 'inline-flex' : 'none';
   document.getElementById('btnWizNext').style.display = (step < 4) ? 'inline-flex' : 'none';
-  if (step === 3) renderWizStep3();
+  const prevB = document.getElementById('btnWizPrevBottom');
+  const nextB = document.getElementById('btnWizNextBottom');
+  if (prevB) prevB.style.display = (step > 1) ? 'inline-flex' : 'none';
+  if (nextB) nextB.style.display = (step < 4) ? 'inline-flex' : 'none';
+  if (step === 2) initGenCustomInstSelector();
+  if (step === 3) {
+    renderWizStep3();
+    if (STATE.selectedBlockIds.includes('BLK_VOLT_NI6008_BATCH') && !WIZ_VOLT_CONFIGURED) {
+      openInstIntroPage('wiz_volt', 'NI6008-1');
+    }
+  }
   if (step === 4) renderWizStep4();
 }
 
@@ -2351,35 +3745,25 @@ function renderWizStep3() {
   let html = '';
 
   if (sel.includes('BLK_VOLT_NI6008_BATCH')) {
-    let rows = WIZ_VOLT_RAILS.map((r, i) => `
+    const modeLabel = WIZ_VOLT_MODE === 'DIFF' ? '兩線差動 DIFF' : '一般量測 RSE';
+    let rows = WIZ_VOLT_RAILS.map(r => `
       <tr>
-        <td><input type="number" min="0" max="7" value="${r.channel}" onchange="WIZ_VOLT_RAILS[${i}].channel=this.value" style="width:58px; padding:4px;"></td>
-        <td><input type="text" value="${r.name}" onchange="WIZ_VOLT_RAILS[${i}].name=this.value" style="width:120px; padding:4px;" class="mono"></td>
-        <td><input type="number" step="0.01" value="${r.nominal}" onchange="WIZ_VOLT_RAILS[${i}].nominal=this.value" style="width:78px; padding:4px;"></td>
-        <td><input type="text" value="${r.min}" onchange="WIZ_VOLT_RAILS[${i}].min=this.value" style="width:78px; padding:4px;" class="mono"></td>
-        <td><input type="text" value="${r.max}" onchange="WIZ_VOLT_RAILS[${i}].max=this.value" style="width:78px; padding:4px;" class="mono"></td>
-        <td><input type="text" value="${r.test_id}" onchange="WIZ_VOLT_RAILS[${i}].test_id=this.value" style="width:86px; padding:4px;" class="mono"></td>
-        <td><button class="btn" style="padding:2px 8px; font-size:12px;" onclick="removeVoltRailRow(${i})">✕</button></td>
+        <td class="mono" style="font-weight:700; color:#1D4ED8;">AI ${r.channel}</td>
+        <td class="mono" style="font-weight:700;">${r.name}</td>
+        <td class="mono">${r.nominal} V</td>
+        <td class="mono" style="color:#047857;">${r.min} ~ ${r.max} V</td>
+        <td class="mono">${r.test_id || 'BRPW024'}</td>
       </tr>
     `).join('');
 
     html += `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-          <span style="font-weight:700; font-size:15px; color:#0F172A;">⚡ NI6008 多通道電壓量測明細（共 ${WIZ_VOLT_RAILS.length} 組）</span>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-            <span style="font-size:12.5px; color:#475569;">快速產生：</span>
-            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(3)">3 組</button>
-            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(5)">5 組</button>
-            <button class="btn btn-primary-blue" style="padding:3px 10px; font-size:12px;" onclick="setVoltPresetCount(8)">8 組電壓</button>
-            <span style="margin-left:6px; font-size:12.5px; color:#475569;">誤差 ±</span>
-            <input type="number" id="wizVoltPct" value="5" min="1" max="50" style="width:52px; padding:3px 6px;"> %
-            <button class="btn" style="padding:3px 10px; font-size:12px;" onclick="applyVoltTolerance()">依標稱值重算上下限</button>
-            <button class="btn btn-primary-green" style="padding:3px 10px; font-size:12px;" onclick="addVoltRailRow()">+ 新增通道</button>
-          </div>
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">⚡ NI-6008 / NI-6009 電壓量測明細（${modeLabel} · 共 ${WIZ_VOLT_RAILS.length} 組）</span>
+          <button class="btn" style="padding:5px 14px; font-size:13px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;" onclick="openInstIntroPage('wiz_volt', 'NI6008-1')">🔌 開啟 / 修改 NI-6009 接線與通道設定</button>
         </div>
         <table class="meas-table">
-          <thead><tr><th>AI 通道</th><th>變數名稱</th><th>標稱值 (V)</th><th>下限 Min</th><th>上限 Max</th><th>TestID</th><th>刪除</th></tr></thead>
+          <thead><tr><th>AI 通道</th><th>變數名稱</th><th>標稱值 (V)</th><th>合格範圍 (Min ~ Max)</th><th>TestID</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -2586,7 +3970,10 @@ function renderWizStep3() {
   if (sel.includes('BLK_LED_FEASA')) {
     html += `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
-        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">💡 Feasa LED 色彩波長與亮度設定</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+          <span style="font-weight:700; font-size:15px; color:#0F172A;">💡 Feasa LED 色彩波長與亮度設定</span>
+          <button onclick="openInstIntroPage('wiz_volt', 'FeasaLED')" class="btn" style="padding:4px 12px; font-size:12.5px; background:#F0FDF4; color:#166534; border-color:#86EFAC;">📖 查看 FeasaLED 儀器介紹</button>
+        </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
           <div><label class="bold-title">COM Port</label><input type="text" value="${WIZ_LED.port}" onchange="WIZ_LED.port=this.value" style="width:100%; padding:6px;" class="mono"></div>
           <div><label class="bold-title">光纖通道</label><input type="text" value="${WIZ_LED.channel}" onchange="WIZ_LED.channel=this.value" style="width:100%; padding:6px;" class="mono"></div>
@@ -2646,11 +4033,28 @@ function renderWizStep4() {
   if (STATE.selectedBlockIds.includes('BLK_WIFI_RF_IQXEL')) details.push(`📶 WiFi RF Marco：<b>${WIZ_WIFI.tx_tests.length}</b> Tx / <b>${WIZ_WIFI.rx_tests.length}</b> Rx 測項`);
   if (STATE.selectedBlockIds.includes('BLK_LED_FEASA')) details.push(`💡 Feasa LED：Ch${WIZ_LED.channel} (${WIZ_LED.wave_min}~${WIZ_LED.wave_max}nm)`);
 
+  const niArr = STATE.genNi6009Blocks || [];
+  let niHtml = '';
+  niArr.forEach((nb, idx) => {
+    const chRows = (nb.channels || []).map(c => {
+      const pm = NI6_PINS.find(p => p.ch === c.ch) || { pin: '?' };
+      return `<li><code>AI ${c.ch} (Pin ${pm.pin})</code>：<b>${c.name}</b> ＝ <b>${c.dl} ～ ${c.ul} V</b></li>`;
+    }).join('');
+    niHtml += `<div style="margin-top:8px; background:#EFF6FF; border:1px solid #60A5FA; border-radius:6px; padding:8px 12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>🔌 NI-6009 (${nb.mode}) — ${nb.title_name}</strong>
+        <button onclick="openNi6009Hmi('gen', ${idx})" class="btn" style="padding:2px 8px; font-size:12px; background:#FFFFFF; color:#0369A1; border-color:#38BDF8;">✏️ 修改範圍</button>
+      </div>
+      <ul style="margin:4px 0 0 18px; padding:0; font-size:12.5px;">${chRows}</ul>
+    </div>`;
+  });
+
   document.getElementById('wizSummaryBox').innerHTML = `
     <div>📌 <strong>專案 / 站別：</strong><code>${proj}</code> / <code>${st}</code>（多工槽位：<b>${dutCount}</b>）</div>
     <div>🔢 <strong>ISN 條碼規格：</strong>需輸入 <b>${isnLen} 碼</b>（規則：<code>{ISN,${isnLen},${isnPat}}</code>）</div>
     <div>🧩 <strong>已勾選積木（${selBlks.length} 個）：</strong>${selBlks.map(b => b.name).join(' → ') || '尚未勾選'}</div>
     ${details.length ? `<div>⚙️ <strong>細部參數：</strong>${details.join(' ｜ ')}</div>` : ''}
+    ${niHtml}
   `;
 }
 
@@ -2669,6 +4073,10 @@ async function generateNewMother(dryRun) {
       station_name: st,
       dut_count: dutCount,
       block_ids: STATE.selectedBlockIds,
+      custom_inst_blocks: STATE.genCustomInsts || [],
+      ni6009_blocks: STATE.genNi6009Blocks || [],
+      rf_blocks: STATE.genRfBlocks || [],
+      system_ini_overrides: STATE.genSystemIni || {},
       dry_run: dryRun,
       testid_overrides: MOTHER_TESTID_OVERRIDES,
       wizard_config: {
@@ -2701,6 +4109,122 @@ async function generateNewMother(dryRun) {
     📄 <span class="mono">${data.excel_path}</span><br>
     ${formatIsnHtml(data.isn_info)}
   `;
+}
+
+let SI_MODE = 'gen';
+function openSfisIplasModal(mode) {
+  SI_MODE = mode || 'gen';
+  const cfg = (SI_MODE === 'audit' && STATE.workspace)
+    ? (STATE.workspace.system_ini || {})
+    : (STATE.genSystemIni || {});
+  document.getElementById('siSfisEnable').value = cfg.SFIS_Enable || '0';
+  document.getElementById('siLinkIplas').value = cfg.SFIS_LinkIPLAS || '0';
+  const wl = cfg.SFIS_WebLink || 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx';
+  document.getElementById('siWebLink').value = wl;
+  document.getElementById('siTsp').value = cfg.SFIS_TSP || ((document.getElementById('genProj') ? document.getElementById('genProj').value.trim() : '') || 'PEGA').slice(0, 6) + ',2';
+  document.getElementById('siIplasEnable').value = cfg.iPLAS_Enable || '0';
+  document.getElementById('siIplasSite').value = cfg.iPLAS_Site || 'DC';
+  document.getElementById('siIplasProj').value = cfg.iPLAS_ProjectName || ((document.getElementById('genProj') ? document.getElementById('genProj').value.trim() : '') || 'PEGA');
+
+  const pSel = document.getElementById('siFactoryPreset');
+  let matched = false;
+  for (const opt of pSel.options) {
+    if (opt.value.startsWith(wl + '|')) { pSel.value = opt.value; matched = true; break; }
+  }
+  if (!matched) pSel.value = 'CUSTOM';
+  document.getElementById('sfisIplasModal').classList.add('open');
+}
+
+function onSfisFactoryPresetChange() {
+  const val = document.getElementById('siFactoryPreset').value;
+  if (val !== 'CUSTOM') {
+    const [url, site] = val.split('|');
+    document.getElementById('siWebLink').value = url;
+    if (site) document.getElementById('siIplasSite').value = site;
+  }
+}
+
+function confirmSfisIplasModal() {
+  const patch = {
+    SFIS_Enable: document.getElementById('siSfisEnable').value,
+    SFIS_LinkIPLAS: document.getElementById('siLinkIplas').value,
+    SFIS_WebLink: document.getElementById('siWebLink').value.trim(),
+    SFIS_TSP: document.getElementById('siTsp').value.trim(),
+    iPLAS_Enable: document.getElementById('siIplasEnable').value,
+    iPLAS_Site: document.getElementById('siIplasSite').value.trim() || 'DC',
+    iPLAS_ProjectName: document.getElementById('siIplasProj').value.trim() || 'PEGA'
+  };
+  if (SI_MODE === 'gen') {
+    STATE.genSystemIni = patch;
+    const badge = document.getElementById('genSfisIplasBadge');
+    if (badge) {
+      badge.innerHTML = `🌐 <b>System.ini 連線：</b>SFIS：<span class="mono">${patch.SFIS_Enable==='1'?'ON (1)':'OFF (0)'}</span> ｜ iPLAS：<span class="mono">${patch.iPLAS_Enable==='1'?'ON (1)':'OFF (0)'}</span> ｜ Site：<span class="mono">${patch.iPLAS_Site}</span>`;
+    }
+  } else if (STATE.workspace) {
+    STATE.workspace.system_ini = Object.assign(STATE.workspace.system_ini || {}, patch);
+    STATE.pendingInserts = STATE.pendingInserts || [];
+    STATE.pendingInserts.push({
+      sheet: 'System.ini',
+      inst: 'SFIS / iPLAS',
+      summary: `SFIS=${patch.SFIS_Enable==='1'?'ON':'OFF'}, iPLAS=${patch.iPLAS_Enable==='1'?'ON':'OFF'} (${patch.iPLAS_Site})`
+    });
+    renderAuditResults();
+  }
+  document.getElementById('sfisIplasModal').classList.remove('open');
+}
+
+function openCommModal() {
+  if (!STATE.workspace) return;
+  const gSet = (STATE.workspace.global_ini && STATE.workspace.global_ini.Settings) || {};
+  document.getElementById('cmDutUr1').value = gSet.DUT_UR1 || 'COM4';
+  document.getElementById('cmDutIp1').value = gSet.DUTIP_1 || '192.168.11.143';
+  document.getElementById('cmDutLogin').value = gSet.DUT_Login || 'root';
+  document.getElementById('cmConvertSsh').checked = false;
+
+  const stNames = Object.keys(STATE.workspace.stations || {});
+  const sel = document.getElementById('cmTargetSheet');
+  sel.innerHTML = `<option value="">（全部測試站工作表）</option>` + stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && STATE.workspace.stations[STATE.activeSheetFilter]) {
+    sel.value = STATE.activeSheetFilter;
+  }
+  document.getElementById('commModal').classList.add('open');
+}
+
+async function confirmCommModal() {
+  const dutUr1 = document.getElementById('cmDutUr1').value.trim();
+  const dutIp1 = document.getElementById('cmDutIp1').value.trim();
+  const dutLogin = document.getElementById('cmDutLogin').value.trim();
+  const convSsh = document.getElementById('cmConvertSsh').checked;
+  const targetSheet = document.getElementById('cmTargetSheet').value;
+
+  const res = await fetch('/api/update_comm_settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      dut_ur1: dutUr1,
+      dut_ip1: dutIp1,
+      dut_login: dutLogin,
+      convert_uart_to_ssh: convSsh,
+      target_sheet: targetSheet
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '通訊設定套用失敗');
+    return;
+  }
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.pendingInserts = STATE.pendingInserts || [];
+  STATE.pendingInserts.push({
+    sheet: targetSheet || 'Global.ini / 全部站別',
+    inst: convSsh ? 'UART → SSH' : 'Global.ini COM/IP',
+    summary: `DUT_UR1=${dutUr1}, DUTIP_1=${dutIp1}` + (convSsh ? `（已轉換 ${data.converted_rows} 列為 SSH）` : '')
+  });
+  document.getElementById('commModal').classList.remove('open');
+  renderAuditResults();
+  alert(`已套用通訊設定！${convSsh ? `共將 ${data.converted_rows} 列 UART 指令轉為 SSH。` : ''}\n請點擊「💾 立即匯出並驗證」寫入 Global.ini / *_FIXED.xlsx。`);
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

@@ -87,7 +87,33 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "1.0.0.0", "Switch": "", "Desc": "LED analyser FeasaLED"},
             {"Mount": "", "Name": "NI4461", "Sub": "", "ControlDLL": "DaqNI4461.dll", "Settings": "Dev2", "Functions": "VOIP,RMS", "Version": "1.0.0.0", "Switch": "", "Desc": "DAQ device NI4461 Audio"},
             {"Mount": "", "Name": "QRDecode", "Sub": "", "ControlDLL": "QRDecode.dll", "Settings": "", "Functions": "QRCode", "Version": "1.0.0.0", "Switch": "", "Desc": "Decode QR Code"},
-            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"}
+            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"},
+            {"Mount": "", "Name": "XelM8-B", "Sub": "", "ControlDLL": "InstIQApi_B.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT", "Version": "1.0.0.0", "Switch": "", "Desc": "LitePoint IQxel B Route"},
+            {"Mount": "", "Name": "MT8870A", "Sub": "", "ControlDLL": "InstAnritsu.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT", "Version": "1.0.0.0", "Switch": "", "Desc": "Anritsu MT8870A RF Tester"},
+            {"Mount": "", "Name": "Chroma6150x", "Sub": "", "ControlDLL": "Chroma6150x.dll", "Settings": "", "Functions": "ACSource", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma AC Power Source"},
+            {"Mount": "", "Name": "Chroma6310A", "Sub": "", "ControlDLL": "Chroma6310A.dll", "Settings": "", "Functions": "DCLoad", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma DC Electronic Load"},
+            {"Mount": "", "Name": "KEITHLEY2302", "Sub": "", "ControlDLL": "KEITHLEY2302.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2302 Battery Simulator"},
+            {"Mount": "", "Name": "PPH1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Supply PPH1503"},
+            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Supply PSS2005"},
+            {"Mount": "", "Name": "GDM906x", "Sub": "", "ControlDLL": "GDM906x.dll", "Settings": "", "Functions": "DMM", "Version": "1.0.0.0", "Switch": "", "Desc": "GW Instek GDM906x Multimeter"},
+            {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ", "Version": "1.0.0.0", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
+            {"Mount": "", "Name": "E4418B", "Sub": "", "ControlDLL": "PMeterE4418B.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent E4418B Power Meter"},
+            {"Mount": "", "Name": "U2004A", "Sub": "", "ControlDLL": "U2004A.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Keysight U2004A USB Power Sensor"},
+            {"Mount": "", "Name": "OSP120", "Sub": "", "ControlDLL": "NFT.dll", "Settings": "", "Functions": "RFSW", "Version": "1.0.0.0", "Switch": "", "Desc": "R&S OSP120 RF Switch"},
+            {"Mount": "", "Name": "SAn9000", "Sub": "", "ControlDLL": "SAn9000.dll", "Settings": "", "Functions": "SA", "Version": "1.0.0.0", "Switch": "", "Desc": "Spectrum Analyzer"},
+            {"Mount": "", "Name": "vnxRFSW", "Sub": "", "ControlDLL": "vnxRFSWlib.dll", "Settings": "", "Functions": "RFSW", "Version": "1.0.0.0", "Switch": "", "Desc": "Vaunix RF Switch"},
+            {"Mount": "", "Name": "HXTaudio", "Sub": "", "ControlDLL": "HXTaudio.dll", "Settings": "", "Functions": "Audio", "Version": "1.0.0.0", "Switch": "", "Desc": "HXT Audio Analyzer"},
+            {"Mount": "", "Name": "SAu3751", "Sub": "", "ControlDLL": "SAu3751.dll", "Settings": "", "Functions": "Audio", "Version": "1.0.0.0", "Switch": "", "Desc": "Audio Analyzer SAu3751"},
+            {"Mount": "", "Name": "FC6000-1", "Sub": "", "ControlDLL": "FCPM6000.dll", "Settings": "", "Functions": "AirTest", "Version": "1.0.0.0", "Switch": "", "Desc": "Fukuda Air Leak Tester FC6000"},
+            {"Mount": "", "Name": "FM480-1", "Sub": "", "ControlDLL": "FM480.dll", "Settings": "", "Functions": "AirTest", "Version": "1.0.0.0", "Switch": "", "Desc": "Flow Meter FM480"},
+            {"Mount": "", "Name": "DIO6509", "Sub": "", "ControlDLL": "DigitIO6509.dll", "Settings": "", "Functions": "DIO", "Version": "1.0.0.0", "Switch": "", "Desc": "NI PCI-6509 Digital I/O"},
+            {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
+            {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
+            {"Mount": "", "Name": "ScpTDS3014B", "Sub": "", "ControlDLL": "ScpTDS3014B.dll", "Settings": "", "Functions": "Scope", "Version": "1.0.0.0", "Switch": "", "Desc": "Tektronix TDS3014B Oscilloscope"},
+            {"Mount": "", "Name": "DevUart", "Sub": "", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.0.0", "Switch": "", "Desc": "SubDevice UART Controller"},
+            {"Mount": "", "Name": "AutoTFTP", "Sub": "", "ControlDLL": "AutoTFTP.dll", "Settings": "", "Functions": "TFTP", "Version": "1.0.0.0", "Switch": "", "Desc": "Auto TFTP Server"},
+            {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.0.0", "Switch": "", "Desc": "Device Queue Sync"},
+            {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"}
         ],
         "stations": {
             station_name: []
@@ -161,7 +187,7 @@ STANDARD_BLOCKS = [
         "block_id": "BLK_FIXTURE_ACTION",
         "category": "01. 前置與治具控制 (Phase 0)",
         "name": "氣動治具下壓與等待上電 (Fixture Down)",
-        "description": "VALO360 / MU310 標準治具下壓動作，等待待測物供電穩定。",
+        "description": "標準治具下壓動作，等待待測物供電穩定。",
         "default_phase": "",
         "required_globals": {"Settings": {"PCUART_fixture": "COM5"}, "Scripts": {}},
         "steps": [
@@ -188,8 +214,8 @@ STANDARD_BLOCKS = [
     {
         "block_id": "BLK_VOLT_NI6008_BATCH",
         "category": "02. 電壓與電流測試 (Voltage & Power)",
-        "name": "NI6008 多通道批次電壓量測 (:Dev.VOLTAGE + :CheckLimit)",
-        "description": "VALO360 / KANGAROO (MU310) 產線真實標準寫法：一次讀取多通道 RSE 電壓後逐項執行 :CheckLimit 比對。",
+        "name": "NI-6008 / NI-6009 電壓量測（支援單端 RSE 與差動 DIFF）",
+        "description": "標準 DAQ 電壓量測：支援單端 RSE 多通道一次讀取與兩線差動 DIFF，可於 Step 3 開啟圖文接線介面點選腳位與上下限。",
         "default_phase": "1",
         "required_globals": {"Settings": {"DAQ_1": "Dev1"}, "Scripts": {}},
         "steps": [
@@ -200,19 +226,6 @@ STANDARD_BLOCKS = [
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_5V)","4.75","5.25","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_5V (4.75V~5.25V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_3V3)","3.15","3.45","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_3V3 (3.15V~3.45V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_1V8)","1.71","1.89","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_1V8 (1.71V~1.89V)", "TestID": "BRPW024"}
-        ]
-    },
-    {
-        "block_id": "BLK_VOLT_DIFF_SINGLE",
-        "category": "02. 電壓與電流測試 (Voltage & Power)",
-        "name": "NI6008 單通道差動電壓量測 (DIFF Mode + Validation)",
-        "description": "MU310 實戰寫法：使用 DIFF 差動模式量測單一電源軌（如 12V），直接於 Validation 欄判定上下限。",
-        "default_phase": "2",
-        "required_globals": {"Settings": {"DAQ_1": "Dev1"}, "Scripts": {}},
-        "steps": [
-            {"Phase": "2", "Title": "0,Measure VCC_12V,3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ':Dev.VOLTAGE,"DIFF,2000,0"', "Reply": "0", "EndPrompt": "", "Ref": "$VCC_12V", "Validation": "(VCC_12V,%f,11.40,12.60)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Measure VCC_12V (11.40V~12.60V)", "TestID": "BRPW024"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"}
         ]
     },
     {
@@ -245,7 +258,7 @@ STANDARD_BLOCKS = [
         "block_id": "BLK_SFIS_MAC_69PN",
         "category": "04. SFIS 資料讀取與寫入 (SFIS & MAC/SN)",
         "name": "SFIS 取得 MAC 與 69PN 並寫入比對",
-        "description": "MU310 / VALO360 實戰積木：從 SFIS 讀取 LAN/WiFi MAC 與 69PN，驗證 12 碼長度。",
+        "description": "標準 SFIS 讀取積木：取得 LAN/WiFi MAC 與 69PN，並驗證 12 碼長度。",
         "default_phase": "5",
         "required_globals": {"Settings": {}, "Scripts": {}},
         "steps": [

@@ -22,6 +22,7 @@ from core.golden_data import STANDARD_BLOCKS, get_golden_mother
 from core.excel_engine import export_workspace_to_excel, import_excel_to_workspace
 from core.ini_engine import sync_and_generate_inis
 from core.script_doctor import audit_workspace, auto_fix_workspace
+from jump_editor import JumpEditorDialog
 
 FONT_H1 = ("Microsoft JhengHei UI", 13, "bold")
 FONT_H2 = ("Microsoft JhengHei UI", 11, "bold")
@@ -234,6 +235,14 @@ class CentimaniDesktopApp(tk.Tk):
         btn_dry_fix.pack(side="right", padx=(6, 0))
         bind_hover(btn_dry_fix, "#E0E7FF", "#C7D2FE")
 
+        btn_jump_edit = tk.Button(
+            top_row, text="🔀 編輯跳轉 (PASS/FAIL)", font=FONT_BOLD,
+            bg="#FEF3C7", fg="#78350F", relief="solid", bd=1, padx=12, pady=6,
+            command=self._open_jump_editor
+        )
+        btn_jump_edit.pack(side="right", padx=(6, 0))
+        bind_hover(btn_jump_edit, "#FEF3C7", "#FDE68A")
+
         btn_export_fix = tk.Button(
             top_row, text="💾 第二步：一鍵修好並彈出輸出視窗 (.xlsx + 雙 INI)", font=FONT_BOLD,
             bg="#DCFCE7", fg="#14532D", relief="solid", bd=1, padx=14, pady=6,
@@ -409,6 +418,21 @@ class CentimaniDesktopApp(tk.Tk):
                     text=f"  ... 其餘 {len(warnings) - 30} 筆警告亦將一併自動處理",
                     font=FONT_BOLD, bg="#F8FAFC", fg="#92400E", anchor="w"
                 ).pack(fill="x", pady=2)
+
+    def _open_jump_editor(self):
+        if not self.loaded_workspace:
+            messagebox.showinfo("提示", "請先點擊左上角「📂 第一步：點此選擇要檢查的 Excel 檔案」！")
+            return
+        JumpEditorDialog(self, self.loaded_workspace, on_done_callback=self._refresh_audit_after_edit)
+
+    def _refresh_audit_after_edit(self):
+        if not self.loaded_workspace:
+            return
+        self.loaded_report = audit_workspace(self.loaded_workspace)
+        self.user_choices = {}
+        for c in self.loaded_report.get("choice_cards", []):
+            self.user_choices[c["card_id"]] = tk.StringVar(value=c["recommended_value"])
+        self._render_audit_cards(self.loaded_file_path or "")
 
     def _export_repaired_package(self, dry_run=False):
         if not self.loaded_workspace:

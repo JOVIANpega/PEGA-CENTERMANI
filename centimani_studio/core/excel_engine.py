@@ -33,10 +33,10 @@ FILL_SKIP = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="sol
 FILL_FIXED_CELL = PatternFill(start_color="FEF08A", end_color="FEF08A", fill_type="solid")
 
 BORDER_THIN = Border(
-    left=Side(style="thin", color="D9D9D9"),
-    right=Side(style="thin", color="D9D9D9"),
-    top=Side(style="thin", color="D9D9D9"),
-    bottom=Side(style="thin", color="D9D9D9")
+    left=Side(style="thin", color="64748B"),
+    right=Side(style="thin", color="64748B"),
+    top=Side(style="thin", color="64748B"),
+    bottom=Side(style="thin", color="64748B")
 )
 
 ALIGN_LEFT = Alignment(wrap_text=True, vertical="center", horizontal="left")
@@ -86,7 +86,10 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
                     note_txt = fixed_cell_map[(r_idx, c_idx)]
                     cell.fill = FILL_FIXED_CELL
                     cell.font = FONT_FIXED
-                    cell.comment = Comment(f"[Centimani Studio 自動修正]\n{note_txt}", "ScriptDoctor")
+                    cmt = Comment(f"[Centimani Studio 自動修正]\n{note_txt}", "ScriptDoctor")
+                    cmt.width = 320
+                    cmt.height = 120
+                    cell.comment = cmt
 
     # Auto-adjust column widths based on text length
     for col in ws.columns:
@@ -128,25 +131,49 @@ def export_workspace_to_excel(workspace, output_excel_path):
         # IN-PLACE NON-DESTRUCTIVE PATCH MODE
         wb = openpyxl.load_workbook(source_file)
 
-        # Update Instrument sheet if workspace has updated instrument rows
+        # Update Instrument sheet if workspace has updated instrument rows (Version, Mount, Settings, or newly added rows)
         if "Instrument" in wb.sheetnames and workspace.get("instruments"):
             ws_inst = wb["Instrument"]
             headers = [str(c.value).strip() if c.value is not None else "" for c in ws_inst[1]]
+            mount_col = headers.index("Mount") + 1 if "Mount" in headers else None
             ver_col = headers.index("Version") + 1 if "Version" in headers else None
             name_col = headers.index("Name") + 1 if "Name" in headers else None
             dll_col = headers.index("ControlDLL") + 1 if "ControlDLL" in headers else None
-            if ver_col:
-                inst_map = {}
-                for item in workspace.get("instruments", []):
-                    key = item.get("Name", "").strip() or item.get("ControlDLL", "").strip()
-                    if key:
-                        inst_map[key.lower()] = item.get("Version", "")
-                for r in range(2, ws_inst.max_row + 1):
-                    n_val = str(ws_inst.cell(row=r, column=name_col).value or "").strip().lower() if name_col else ""
-                    d_val = str(ws_inst.cell(row=r, column=dll_col).value or "").strip().lower() if dll_col else ""
-                    match_ver = inst_map.get(n_val) or inst_map.get(d_val)
-                    if match_ver:
-                        ws_inst.cell(row=r, column=ver_col, value=match_ver)
+            set_col = headers.index("Settings") + 1 if "Settings" in headers else None
+
+            inst_map = {}
+            for item in workspace.get("instruments", []):
+                key = str(item.get("Name", "")).strip() or str(item.get("ControlDLL", "")).strip()
+                if key:
+                    inst_map[key.lower()] = item
+
+            seen_keys = set()
+            for r in range(2, ws_inst.max_row + 1):
+                n_val = str(ws_inst.cell(row=r, column=name_col).value or "").strip().lower() if name_col else ""
+                d_val = str(ws_inst.cell(row=r, column=dll_col).value or "").strip().lower() if dll_col else ""
+                match_item = inst_map.get(n_val) or inst_map.get(d_val)
+                if match_item:
+                    if n_val:
+                        seen_keys.add(n_val)
+                    if d_val:
+                        seen_keys.add(d_val)
+                    if ver_col and match_item.get("Version"):
+                        ws_inst.cell(row=r, column=ver_col, value=match_item.get("Version"))
+                    if mount_col and match_item.get("Mount") is not None:
+                        m_str = str(match_item.get("Mount", "")).strip()
+                        if m_str:
+                            ws_inst.cell(row=r, column=mount_col, value=m_str)
+                    if set_col and match_item.get("Settings"):
+                        ws_inst.cell(row=r, column=set_col, value=match_item.get("Settings"))
+
+            # Append any newly added instruments (e.g., NI6008-1) not present in original Instrument sheet
+            headers_to_use = headers if any(headers) else INSTRUMENT_HEADERS_9
+            for item in workspace.get("instruments", []):
+                n_key = str(item.get("Name", "")).strip().lower()
+                d_key = str(item.get("ControlDLL", "")).strip().lower()
+                if (n_key and n_key in seen_keys) or (d_key and d_key in seen_keys):
+                    continue
+                ws_inst.append([item.get(h, "") or None for h in headers_to_use])
 
         # Update Switch sheet if workspace has updated switch rows
         if "Switch" in wb.sheetnames and workspace.get("switches"):
@@ -292,7 +319,10 @@ def import_excel_to_workspace(xlsx_path):
     ws_data["stations"] = {}
     ws_data["marcos"] = {}
 
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    try:
+        wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    except Exception:
+        wb = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True)
 
     # 1. Read Properties
     if "Properties" in wb.sheetnames:

@@ -1,0 +1,50 @@
+{
+  "_comment": "Canonical instrument intro & HMI metadata served by /api/instrument_catalog",
+  "NI6008-1": {
+    "title": "NI USB-6009 / NI-6008 多功能資料擷取卡",
+    "dll": "DaqUSBNi.dll",
+    "category": "量測電壓 / DAQ",
+    "img": "/images/51p+17SjMDL.jpg",
+    "hasInteractiveHmi": true
+  },
+  "FeasaLED": {
+    "title": "Feasa LED Analyser 光學色彩與亮度分析儀",
+    "dll": "LED_analyser.dll",
+    "category": "LED 色彩 / 波長 / 亮度檢測",
+    "img": "/images/FeasaLED.png",
+    "hasInteractiveHmi": true,
+    "hmiType": "feasa"
+  },
+  "IPOWER2401": {
+    "title": "IPOWER2401 / IPRO800 網路程控電源開關",
+    "dll": "iPower2401.dll / iPowerPro800.dll",
+    "category": "電源控制 (POWERSWITCH)",
+    "img": "/images/IPOWER2401.png",
+    "hasInteractiveHmi": true,
+    "hmiType": "ipower"
+  },
+  "MDA2700": {
+    "title": "MDA2700 / 34401A 數位電表與資料擷取器",
+    "dll": "MDA2700.dll / Agilent34401A.dll",
+    "category": "精密電壓 / 電流 / 電阻量測 (DMM / DAQ)",
+    "img": "/images/MDA2700.png",
+    "hasInteractiveHmi": true,
+    "hmiType": "dmm"
+  },
+  "DIO6509": {
+    "title": "NI PCI-6509 96 通道工業數位 I/O 卡",
+    "dll": "DigitIO6509.dll",
+    "category": "數位 I/O 控制與讀取 (DIO)",
+    "img": "/images/DIO6509.png",
+    "hasInteractiveHmi": true,
+    "hmiType": "dio"
+  },
+  "InstIQApiA": {
+    "title": "LitePoint IQxel / MT8870A 射頻綜合測試儀",
+    "dll": "InstIQApi_A.dll / InstIQApi_B.dll",
+    "category": "Wi-Fi / Bluetooth 射頻測試 (RF)",
+    "img": "/images/InstIQApiA.png",
+    "hasInteractiveHmi": true,
+    "hmiType": "rf"
+  }
+}

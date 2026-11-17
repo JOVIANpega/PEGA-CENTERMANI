@@ -15,7 +15,7 @@ import tempfile
 import webbrowser
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -35,7 +35,7 @@ from core.excel_engine import (
     import_excel_to_workspace
 )
 from core.ini_engine import sync_and_generate_inis
-from core.script_doctor import audit_workspace, auto_fix_workspace
+from core.script_doctor import audit_workspace, auto_fix_workspace, apply_safety_ending_fix, insert_instrument_title_block, insert_ni6009_block, insert_rf_iqxel_block, update_comm_settings
 from core.checksum_signer import generate_official_checksum
 from core.log_analyzer import analyze_centimani_log
 from desktop_app import convert_workspace_to_dry_run
@@ -65,23 +65,120 @@ def set_last_opened_dir(folder_path):
         pass
 
 
+_PICK_LOCK = None
+
+
 def pick_file_native(file_types=None, title="選擇要檢查與修復的 Centimani Excel 腳本"):
-    import tkinter as tk
-    from tkinter import filedialog
-    init_dir = get_last_opened_dir()
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes("-topmost", 1)
-    types = file_types or [("Excel 活頁簿", "*.xlsx *.XLSX")]
-    file_path = filedialog.askopenfilename(
-        title=title,
-        initialdir=init_dir,
-        filetypes=types
-    )
-    root.destroy()
-    if file_path:
-        set_last_opened_dir(os.path.dirname(os.path.abspath(file_path)))
-    return file_path
+    global _PICK_LOCK
+    import threading
+    if _PICK_LOCK is None:
+        _PICK_LOCK = threading.Lock()
+    if not _PICK_LOCK.acquire(blocking=False):
+        return ""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        init_dir = get_last_opened_dir()
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", 1)
+        types = file_types or [("Excel 活頁簿", "*.xlsx *.XLSX")]
+        file_path = filedialog.askopenfilename(
+            title=title,
+            initialdir=init_dir,
+            filetypes=types
+        )
+        root.destroy()
+        if file_path:
+            set_last_opened_dir(os.path.dirname(os.path.abspath(file_path)))
+        return file_path
+    finally:
+        _PICK_LOCK.release()
+
+
+def pick_folder_native(title="選擇要批次掃描的 Centimani 專案資料夾"):
+    global _PICK_LOCK
+    import threading
+    if _PICK_LOCK is None:
+        _PICK_LOCK = threading.Lock()
+    if not _PICK_LOCK.acquire(blocking=False):
+        return ""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        init_dir = get_last_opened_dir()
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", 1)
+        folder_path = filedialog.askdirectory(title=title, initialdir=init_dir)
+        root.destroy()
+        if folder_path:
+            set_last_opened_dir(os.path.abspath(folder_path))
+        return folder_path
+    finally:
+        _PICK_LOCK.release()
+
+
+def _is_scannable_testflow(fname):
+    low = fname.lower()
+    if not low.endswith(".xlsx"):
+        return False
+    if low.startswith(("~$", "old_", "test item code")):
+        return False
+    stem = os.path.splitext(low)[0]
+    if stem.endswith(("_fixed", "_dryrun")):
+        return False
+    return True
+
+
+def _scan_project_folder(root_dir):
+    candidates = []
+    dir_counts = {}
+    for r, _dirs, files in os.walk(root_dir):
+        valid_in_dir = [f for f in files if _is_scannable_testflow(f)]
+        if valid_in_dir:
+            dir_counts[r] = len(valid_in_dir)
+            for f in sorted(valid_in_dir):
+                candidates.append((r, os.path.join(r, f)))
+
+    items = []
+    for r, p in candidates:
+        rel_path = os.path.relpath(p, root_dir)
+        base_name = os.path.splitext(os.path.basename(p))[0]
+        for sfx in ["_Fixed", "_FIXED", "_DryRun", "temp_uploaded"]:
+            base_name = base_name.replace(sfx, "")
+        fixed_path = os.path.join(r, f"{base_name}_FIXED.xlsx")
+        has_fixed = os.path.exists(fixed_path)
+        try:
+            ws = import_excel_to_workspace(p)
+            rep = audit_workspace(ws)
+            items.append({
+                "file_path": p,
+                "rel_path": rel_path,
+                "sheet_count": len(ws.get("stations", {})),
+                "error_count": rep.get("error_count", 0),
+                "manual_warning_count": rep.get("manual_warning_count", 0),
+                "auto_fix_warning_count": rep.get("auto_fix_warning_count", 0),
+                "jump_issues": sum(1 for j in rep.get("jump_summaries", []) if j.get("status") != "ok"),
+                "has_fixed": has_fixed,
+                "multi_xlsx_in_dir": dir_counts.get(r, 1) > 1,
+                "status": "error" if rep.get("error_count", 0) > 0 else ("warning" if rep.get("manual_warning_count", 0) > 0 else "ok")
+            })
+        except Exception as e:
+            items.append({
+                "file_path": p,
+                "rel_path": rel_path,
+                "sheet_count": 0,
+                "error_count": 1,
+                "manual_warning_count": 0,
+                "auto_fix_warning_count": 0,
+                "jump_issues": 0,
+                "has_fixed": has_fixed,
+                "multi_xlsx_in_dir": dir_counts.get(r, 1) > 1,
+                "status": "read_error",
+                "error_msg": str(e)
+            })
+    return items
 
 
 def open_folder_in_explorer(folder_path):
@@ -426,11 +523,56 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
+        elif parsed.path.startswith("/images/"):
+            fname = os.path.basename(unquote(parsed.path[len("/images/"):]))
+            img_path = os.path.join(PROJECT_ROOT, "IMAGES", fname)
+            if not fname or not os.path.exists(img_path):
+                self.send_error(404)
+                return
+            ext = os.path.splitext(fname)[1].lower()
+            ctype = "image/png" if ext == ".png" else ("image/jpeg" if ext in (".jpg", ".jpeg") else "application/octet-stream")
+            with open(img_path, "rb") as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        elif parsed.path.startswith("/css/") or parsed.path.startswith("/js/"):
+            sub = "css" if parsed.path.startswith("/css/") else "js"
+            fname = os.path.basename(unquote(parsed.path.split("/", 2)[2]))
+            fpath = os.path.join(BASE_DIR, "web", sub, fname)
+            if not fname or not os.path.exists(fpath):
+                self.send_error(404)
+                return
+            ctype = "text/css; charset=utf-8" if sub == "css" else "application/javascript; charset=utf-8"
+            with open(fpath, "rb") as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
         elif parsed.path == "/api/init":
             self._send_json({
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "tic_info": get_active_tic_info()
+            })
+        elif parsed.path == "/api/instrument_catalog":
+            gm = get_golden_mother()
+            prof_path = os.path.join(BASE_DIR, "core", "instrument_profiles.json")
+            profiles = {}
+            if os.path.exists(prof_path):
+                try:
+                    with open(prof_path, "r", encoding="utf-8") as pf:
+                        profiles = json.load(pf)
+                except Exception:
+                    profiles = {}
+            self._send_json({
+                "status": "ok",
+                "instruments": gm.get("instruments", []),
+                "profiles": profiles
             })
         elif parsed.path == "/api/pick_tic_file":
             tic_types = [("Test Item Code Excel", "*.xlsx;*.xlsm"), ("所有檔案", "*.*")]
@@ -456,6 +598,32 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "workspace": ws,
                 "report": rep,
                 "isn_info": extract_isn_info(ws)
+            })
+        elif parsed.path == "/api/load_specific_file":
+            qs = parse_qs(parsed.query)
+            selected_path = qs.get("path", [""])[0]
+            if not selected_path or not os.path.exists(selected_path):
+                self._send_json({"status": "error", "message": "找不到指定檔案"}, 404)
+                return
+            ws = import_excel_to_workspace(selected_path)
+            rep = audit_workspace(ws)
+            self._send_json({
+                "status": "ok",
+                "file_path": selected_path,
+                "workspace": ws,
+                "report": rep,
+                "isn_info": extract_isn_info(ws)
+            })
+        elif parsed.path == "/api/pick_folder_and_scan":
+            root_dir = pick_folder_native()
+            if not root_dir:
+                self._send_json({"status": "cancel"})
+                return
+            items = _scan_project_folder(root_dir)
+            self._send_json({
+                "status": "ok",
+                "root_dir": root_dir,
+                "items": items
             })
         elif parsed.path == "/api/pick_log_file":
             log_types = [("Centimani 日誌與報告", "*.log;*.txt;*.csv;*.LOG;*.TXT;*.CSV"), ("所有檔案", "*.*")]
@@ -550,6 +718,165 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if parsed.path == "/api/re_audit":
+                ws = payload.get("workspace", {})
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/apply_safety_fix":
+                ws = payload.get("workspace", {})
+                sheet_name = payload.get("sheet_name", "")
+                fix_kind = payload.get("fix_kind", "")
+                added = apply_safety_ending_fix(ws, sheet_name, fix_kind)
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "added_rows": added,
+                    "workspace": ws,
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/insert_instrument_block":
+                ws = payload.get("workspace", {})
+                sheet_name = payload.get("sheet_name", "")
+                inst_name = payload.get("inst_name", "")
+                title_name = payload.get("title_name", "")
+                after_block_idx = int(payload.get("after_block_idx", -1))
+                dl_val = payload.get("dl_val", "")
+                ul_val = payload.get("ul_val", "")
+                added = insert_instrument_title_block(
+                    ws, sheet_name, inst_name, title_name,
+                    after_block_idx=after_block_idx, dl_val=dl_val, ul_val=ul_val,
+                    custom_steps=payload.get("custom_steps"),
+                    globals_patch=payload.get("globals_patch")
+                )
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "added_rows": added,
+                    "workspace": ws,
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/insert_ni6009_block":
+                ws = payload.get("workspace", {})
+                added = insert_ni6009_block(
+                    ws,
+                    sheet_name=payload.get("sheet_name", ""),
+                    mode=payload.get("mode", "RSE"),
+                    sample_ms=str(payload.get("sample_ms", "1000")),
+                    dev_id=str(payload.get("dev_id", "Dev1")),
+                    title_name=str(payload.get("title_name", "Measure Voltage Test")),
+                    channels=payload.get("channels", []),
+                    after_block_idx=int(payload.get("after_block_idx", -1))
+                )
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "added_rows": added,
+                    "workspace": ws,
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/insert_rf_iqxel_block":
+                ws = payload.get("workspace", {})
+                added = insert_rf_iqxel_block(
+                    ws,
+                    sheet_name=payload.get("sheet_name", ""),
+                    inst_name=str(payload.get("inst_name", "InstIQApiA")),
+                    title_name=str(payload.get("title_name", "WIFI RF Test")),
+                    settings_str=str(payload.get("settings_str", "")),
+                    tx_tests=payload.get("tx_tests", []),
+                    rx_tests=payload.get("rx_tests", []),
+                    after_block_idx=int(payload.get("after_block_idx", -1))
+                )
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "added_rows": added,
+                    "workspace": ws,
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/update_comm_settings":
+                ws = payload.get("workspace", {})
+                converted = update_comm_settings(
+                    ws,
+                    dut_ur1=str(payload.get("dut_ur1", "")),
+                    dut_ip1=str(payload.get("dut_ip1", "")),
+                    dut_login=str(payload.get("dut_login", "")),
+                    convert_uart_to_ssh=bool(payload.get("convert_uart_to_ssh", False)),
+                    target_sheet=str(payload.get("target_sheet", ""))
+                )
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "converted_rows": converted,
+                    "workspace": ws,
+                    "report": rep
+                })
+                return
+
+            if parsed.path == "/api/batch_fix_folder":
+                import shutil
+                file_paths = payload.get("file_paths", [])
+                root_dir = payload.get("root_dir", "")
+                results = []
+                for src_file in file_paths:
+                    if not src_file or not os.path.exists(src_file):
+                        continue
+                    try:
+                        orig_dir = os.path.dirname(os.path.abspath(src_file))
+                        base_name = os.path.splitext(os.path.basename(src_file))[0]
+                        for sfx in ["_Fixed", "_FIXED", "_DryRun", "temp_uploaded"]:
+                            base_name = base_name.replace(sfx, "")
+                        if not base_name:
+                            base_name = "Centimani_TestFlow"
+                        fixed_xlsx_name = f"{base_name}_FIXED.xlsx"
+
+                        for ini_n in ("System.ini", "Global.ini"):
+                            ini_p = os.path.join(orig_dir, ini_n)
+                            bak_p = os.path.join(orig_dir, f"{ini_n}.bak")
+                            if os.path.exists(ini_p) and not os.path.exists(bak_p):
+                                shutil.copy2(ini_p, bak_p)
+
+                        ws = import_excel_to_workspace(src_file)
+                        rep_before = audit_workspace(ws)
+                        choices = {c["card_id"]: c["recommended_value"] for c in rep_before.get("choice_cards", [])}
+                        fixed_logs = auto_fix_workspace(ws, user_choices=choices)
+                        out_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
+                        export_workspace_to_excel(ws, out_xlsx_path)
+                        sys_ini, _ = sync_and_generate_inis(ws, fixed_xlsx_name, orig_dir)
+                        generate_official_checksum(out_xlsx_path, sys_ini)
+                        results.append({
+                            "file_path": src_file,
+                            "fixed_path": out_xlsx_path,
+                            "fixed_count": len(fixed_logs),
+                            "status": "ok"
+                        })
+                    except Exception as e:
+                        results.append({
+                            "file_path": src_file,
+                            "status": "error",
+                            "message": str(e)
+                        })
+                if root_dir and os.path.exists(root_dir):
+                    open_folder_in_explorer(root_dir)
+                self._send_json({
+                    "status": "ok",
+                    "fixed_files": sum(1 for r in results if r["status"] == "ok"),
+                    "results": results
+                })
+                return
+
             if parsed.path == "/api/fix_and_export_in_place":
                 ws = payload.get("workspace", {})
                 user_choices = payload.get("user_choices", {})
@@ -575,7 +902,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     ws_to_export = ws
                     fixed_xlsx_name = f"{base_name}_FIXED.xlsx"
 
-                auto_fix_workspace(ws_to_export, user_choices=user_choices)
+                fixed_logs = auto_fix_workspace(ws_to_export, user_choices=user_choices)
 
                 # Export DIRECTLY to the original file directory!
                 out_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
@@ -589,6 +916,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 open_folder_in_explorer(orig_dir)
 
+                ws_re = import_excel_to_workspace(out_xlsx_path)
+                rep_re = audit_workspace(ws_re)
+
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
@@ -596,8 +926,22 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
-                    "isn_info": extract_isn_info(ws_to_export)
+                    "fixed_logs": fixed_logs,
+                    "isn_info": extract_isn_info(ws_re),
+                    "workspace": ws_re,
+                    "report": rep_re
                 })
+
+            elif parsed.path == "/api/open_excel_file":
+                fpath = payload.get("file_path", "")
+                if not fpath or not os.path.exists(fpath):
+                    self._send_json({"status": "error", "message": "找不到該 Excel 檔案"}, 404)
+                    return
+                if not fpath.lower().endswith((".xlsx", ".xls")):
+                    self._send_json({"status": "error", "message": "僅支援開啟 Excel 檔案"}, 400)
+                    return
+                os.startfile(os.path.normpath(fpath))
+                self._send_json({"status": "ok"})
 
             elif parsed.path == "/api/generate_new_standalone":
                 proj = payload.get("project_name", "PEGA_NEW").strip() or "PEGA_NEW"
@@ -677,6 +1021,47 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             pass
 
                 ws["stations"] = {st: steps}
+
+                sys_overrides = payload.get("system_ini_overrides") or {}
+                if isinstance(sys_overrides, dict) and sys_overrides:
+                    ws.setdefault("system_ini", {}).update({str(k): str(v) for k, v in sys_overrides.items()})
+
+                custom_inst_blocks = payload.get("custom_inst_blocks", []) or []
+                for ci in custom_inst_blocks:
+                    inst_nm = str(ci.get("inst_name", "")).strip()
+                    if inst_nm:
+                        insert_instrument_title_block(
+                            ws, st, inst_nm,
+                            str(ci.get("title_name", "")).strip() or f"{inst_nm} Test",
+                            after_block_idx=-1,
+                            dl_val=str(ci.get("dl_val", "")).strip(),
+                            ul_val=str(ci.get("ul_val", "")).strip(),
+                            custom_steps=ci.get("custom_steps"),
+                            globals_patch=ci.get("globals_patch")
+                        )
+
+                for nb in (payload.get("ni6009_blocks", []) or []):
+                    insert_ni6009_block(
+                        ws, st,
+                        mode=nb.get("mode", "RSE"),
+                        sample_ms=str(nb.get("sample_ms", "1000")),
+                        dev_id=str(nb.get("dev_id", "Dev1")),
+                        title_name=str(nb.get("title_name", "Measure Voltage Test")),
+                        channels=nb.get("channels", []),
+                        after_block_idx=-1
+                    )
+
+                for rb in (payload.get("rf_blocks", []) or []):
+                    insert_rf_iqxel_block(
+                        ws, st,
+                        inst_name=str(rb.get("inst_name", "InstIQApiA")),
+                        title_name=str(rb.get("title_name", "WIFI RF Test")),
+                        settings_str=str(rb.get("settings_str", "")),
+                        tx_tests=rb.get("tx_tests", []),
+                        rx_tests=rb.get("rx_tests", []),
+                        after_block_idx=-1
+                    )
+
                 auto_fix_workspace(ws)
 
                 if dry_run:
@@ -728,7 +1113,10 @@ def launch_fullscreen_browser(url):
     ]
     for exe in browser_candidates:
         if os.path.exists(exe):
-            subprocess.Popen([exe, "--start-maximized", "--app=" + url if "chrome" in exe.lower() else url])
+            if "chrome" in exe.lower():
+                subprocess.Popen([exe, "--start-maximized", "--new-window", "--app=" + url])
+            else:
+                subprocess.Popen([exe, "--start-maximized", "--new-window", url])
             return
     webbrowser.open(url)
 

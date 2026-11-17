@@ -107,6 +107,11 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 raw_sys = re.sub(r"(?m)^NewFormatScriptFile=.*$", f"NewFormatScriptFile={excel_filename}", raw_sys)
                 raw_sys = re.sub(r"(?m)^TestItemCodeFile=.*$", f"TestItemCodeFile={actual_tic_name}", raw_sys)
                 raw_sys = re.sub(r"(?m)^DebugMode=.*$", "DebugMode=1", raw_sys)
+                for k_ov in ("SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
+                    if k_ov in sys_cfg and str(sys_cfg[k_ov]).strip() != "":
+                        v_ov = str(sys_cfg[k_ov]).strip()
+                        if re.search(rf"(?m)^{re.escape(k_ov)}=.*$", raw_sys):
+                            raw_sys = re.sub(rf"(?m)^{re.escape(k_ov)}=.*$", lambda _m, val=f"{k_ov}={v_ov}": val, raw_sys)
                 with open(system_ini_path, "w", encoding="utf-8") as f:
                     f.write(raw_sys)
                 has_preserved_sys = True
@@ -146,9 +151,9 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
             "[SFIS]",
             f"SFIS_Enable={sys_cfg.get('SFIS_Enable', '0')}",
             "SFIS_AutoLogin=1",
-            "SFIS_LinkIPLAS=0",
-            "SFIS_WebLink=http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx",
-            f"SFIS_TSP={proj_name[:6]},2",
+            f"SFIS_LinkIPLAS={sys_cfg.get('SFIS_LinkIPLAS', '0')}",
+            f"SFIS_WebLink={sys_cfg.get('SFIS_WebLink', 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx')}",
+            f"SFIS_TSP={sys_cfg.get('SFIS_TSP', proj_name[:6] + ',2')}",
             "SFIS_OPID_LENGTH=9",
             "SFIS_OPID_PATTERN=[L-S][0-9A-Z][0-9A-Z][0-9A-Z][0-9][0-9][0-9][0-9][0-9]",
             "SFIS_CheckRouteType=1",
@@ -185,7 +190,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
             "[iPLAS]",
             f"iPLAS_Enable={sys_cfg.get('iPLAS_Enable', '0')}",
             "iPLAS_DebugMsg=1",
-            f"iPLAS_ProjectName={proj_name}",
+            f"iPLAS_ProjectName={sys_cfg.get('iPLAS_ProjectName', proj_name)}",
             "iPLAS_ScanDirectories=Log;Report;Record;Debug",
             "iPLAS_UploadPassLog=1",
             "iPLAS_UploadFailLog=1",
@@ -195,7 +200,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
             "iPLAS_UploadMatchISN=1",
             "iPLAS_EncryptedZip=0",
             "iPLAS_SkipErrorCode=BSFO14;BSFO75;OTCH013",
-            "iPLAS_Site=DC",
+            f"iPLAS_Site={sys_cfg.get('iPLAS_Site', 'DC')}",
             "",
             "[YRsetting]",
             "Auto_Clear=1",
