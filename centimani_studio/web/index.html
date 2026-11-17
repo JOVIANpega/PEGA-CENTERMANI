@@ -168,6 +168,10 @@
             🔌 通訊設定 (改 COM / 轉 SSH)
           </button>
 
+          <button id="btnOpenGlobalEditor" class="btn" style="display:none; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel()">
+            ⚙️ 微調 DUTs / Instrument / Global.ini
+          </button>
+
           <span class="has-popup">
             <button id="btnExportDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)">
               🧪 無硬體試跑版
@@ -220,6 +224,9 @@
 
     <!-- 待匯出異動摘要條（插入儀器後顯示，提醒匯出驗證） -->
     <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:10px;"></div>
+
+    <!-- 全域設定線上微調區 (DUTs / Instrument / Global.ini) -->
+    <div id="auditGlobalEditor" style="display:none;"></div>
 
     <!-- 狀態與路徑提示氣泡 -->
     <div id="auditAlertBox" class="alert-banner" style="display:none;"></div>
@@ -1045,6 +1052,7 @@
 </div> <!-- 關閉 app-body 容器 -->
 
 <script src="/js/inst_hmi.js"></script>
+<script src="/js/audit_editors.js"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2204,6 +2212,9 @@ async function loadSpecificFile(encPath) {
   document.getElementById('btnOpenJumpModal').style.display = 'inline-flex';
   document.getElementById('btnOpenSfisModal').style.display = 'inline-flex';
   document.getElementById('btnOpenCommModal').style.display = 'inline-flex';
+  document.getElementById('btnOpenGlobalEditor').style.display = 'inline-flex';
+  const geBox = document.getElementById('auditGlobalEditor');
+  if (geBox) geBox.style.display = 'none';
   document.getElementById('toggleDetailBar').style.display = 'flex';
   renderAuditResults();
 }
