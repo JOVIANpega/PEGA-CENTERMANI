@@ -2434,7 +2434,7 @@ function renderAuditResults() {
       pendingBar.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <div style="font-weight:700; font-size:14px; color:#1E3A8A;">📝 本次已插入 ${pendings.length} 項儀器設定（尚未寫入 Excel，請匯出以完成驗證）</div>
+            <div style="font-weight:700; font-size:14px; color:#1E3A8A;">📝 本次已暫存 ${pendings.length} 項設定（尚未寫入硬碟！原 Excel 保持不動，請點右側按鈕匯出 *_FIXED.xlsx）</div>
             <div style="font-size:12.5px; color:#1E40AF; margin-top:4px;">
               ${pendings.map((p, i) => `<div>• [${i + 1}] <span class="mono" style="font-weight:700;">${p.sheet}</span> → <b>${p.inst}</b>：${p.summary}</div>`).join('')}
             </div>
@@ -3644,7 +3644,7 @@ async function ni6ConfirmSubmit() {
   });
   closeNi6009Hmi();
   renderAuditResults();
-  alert(`已透過 NI-6009 人機介面插入 ${data.added_rows} 列（整塊已亮黃底標記，請點擊「💾 立即匯出並驗證」寫入 *_FIXED.xlsx）。`);
+  alert(`已透過 NI-6009 人機介面暫存 ${data.added_rows} 列（整塊已亮黃底標記；原 Excel 尚未被改動，請點擊「💾 立即匯出並驗證 (*_FIXED.xlsx)」產出新檔）。`);
 }
 
 async function openCurrentExcelFile() {
