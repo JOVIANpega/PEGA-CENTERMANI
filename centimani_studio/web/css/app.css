@@ -1052,6 +1052,6 @@ button:not(:disabled):hover {
 
 .acc-card[data-theme="slate"].active,
 .acc-card[data-theme="slate"]:hover {
-  background: linear-gradient(145deg, #CCFBF1 0%, #F0FDFA 100%);
-  border-color: #0D9488;
+  background: linear-gradient(145deg, #FFE4E6 0%, #FFF1F2 100%);
+  border-color: #E11D48;
 }

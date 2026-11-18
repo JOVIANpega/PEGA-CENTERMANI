@@ -255,7 +255,8 @@ function setIntroFontSize(sz) {
       }
     });
   });
-  document.querySelectorAll('.intro-scalable-text').forEach(el => {
+  document.body.style.fontSize = valid + 'px';
+  document.querySelectorAll('.intro-scalable-text, .flow-guide-desc').forEach(el => {
     el.style.fontSize = valid + 'px';
   });
   document.querySelectorAll('.intro-spec-table').forEach(el => {

@@ -1,4 +1,4 @@
-// Flow Guide (Scrollable Detailed Tutorial + Flowchart) & System Settings Manager
+// Flow Guide (Scrollable Detailed Tutorial + Single-Focus Red-Box Screenshots) & System Settings Manager
 let APP_SETTINGS = {
   auto_fullscreen: true,
   show_flow_guide: true,
@@ -25,40 +25,40 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-blue',
     btnLabel: '開始使用：腳本健檢 ▶',
     steps: [
-      { num: '①', title: '選取檔案', items: ['單一 Excel 腳本', '或整包資料夾掃描'] },
-      { num: '②', title: '檢查與微調', items: ['看紅黃燈錯誤明細', '線上改站別/ISN/IP/COM'] },
-      { num: '③', title: '補儀器 / 跳轉', items: ['插 NI-6009 / Feasa / RF', '視覺化改 PASS/FAIL 跳轉'] },
-      { num: '④', title: '匯出與簽章', items: ['產出 *_FIXED.xlsx', '寫入 Global.ini 與 Checksum'] }
+      { num: '①', title: '選取單檔或整包', items: ['單一 Excel 體檢', '整包資料夾批次掃描'] },
+      { num: '②', title: '檢視紅黃燈報告', items: ['同類錯誤自動折疊', '自動對比實體 DLL'] },
+      { num: '③', title: '微調與補儀器', items: ['站別/ISN/IP/COM 微調', '插 NI-6009 / Feasa / RF'] },
+      { num: '④', title: '匯出與簽章', items: ['產出 *_FIXED.xlsx', '寫入 INI 與 Checksum'] }
     ],
     detailedSteps: [
       {
-        step: 'Step 1｜選擇「單一 Excel」或「整包專案資料夾」',
-        desc: '進入後點擊上方藍色「📂 選取單一 Excel」開啟既有腳本；若要檢查整個專案目錄內所有站別，可點「📁 掃描整包資料夾」（系統會自動排除 *_FIXED 與 old_ 備份）。',
-        mockup: '<div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="background:#DBEAFE;color:#1E3A8A;padding:3px 8px;border-radius:4px;font-weight:700;">📂 選取單一 Excel</span> <span style="background:#E0F2FE;color:#0369A1;padding:3px 8px;border-radius:4px;font-weight:700;margin-left:4px;">📁 掃描整包資料夾</span><div style="margin-top:6px;color:#475569;">📍 目前檔案：<code>D:\\...\\TestFlow.xlsx</code></div></div>',
-        img: '/images/guide_audit_1.png'
+        step: 'Step 1｜「選取單一 Excel」：針對單份測試腳本進行體檢與微調',
+        desc: '適合您只想檢查或修改某一個站的 TestFlow Excel 時使用。點選後會跳出檔案視窗，自動解析 Properties、DUTs、Instrument、所有測試站與 Marco 子工作表，並於下方列出錯誤與警告明細。',
+        img: '/images/guide_audit_1a.png'
       },
       {
-        step: 'Step 2｜檢視體檢報告（紅燈錯誤 / 黃燈人工確認 / 綠燈正常）',
-        desc: '上方橫幅會顯示錯誤總數與目前讀取到的 ISN 條碼位數；下方依測試站分頁顯示健康度，同類型的大量錯誤（如 42 筆缺少 TestID）會自動折疊成單一條目方便檢視。',
-        mockup: '<div style="background:#FEF2F2;border:1px solid #EF4444;border-radius:6px;padding:8px 10px;font-size:12px;color:#7F1D1D;">🔴 檢查結果：抓出 <b>42 個錯誤</b>（同類錯誤已折疊，存檔時將自動補齊 7 碼 TestID）</div>',
+        step: 'Step 2｜「掃描整包資料夾」：一次體檢整個專案目錄內所有站別腳本',
+        desc: '當整個專案資料夾內包含多個站別的 Excel（例如 Download、MB、RF、OQC 分散在不同檔案）時使用。系統會自動遞迴掃描全資料夾、略過 *_FIXED 與 old_ 備份檔，一次列出全專案錯誤總表，並支援「一鍵整包批次修復」（同時自動備份原 System.ini / Global.ini）。',
+        img: '/images/guide_audit_1b.png'
+      },
+      {
+        step: 'Step 3｜檢視紅黃燈體檢報告與折疊明細',
+        desc: '上方橫幅會顯示錯誤總數、需人工確認數量，以及從 DUTs 讀取到的 ISN 條碼位數。若同一站出現多列相同錯誤（例如 42 列缺少第 16 欄 TestID），系統會自動折疊成單一條目，存檔時會一併自動補齊合法 7 碼代碼。',
         img: '/images/guide_audit_2.png'
       },
       {
-        step: 'Step 3｜線上語意微調（站別開關 / ISN 位數 / IP / COM Port）',
-        desc: '點擊「⚙️ 微調 DUTs / Instrument / Global.ini」可切換站別啟用開關、批量修改 ISN 位數、調整 PC/DUT IP 與 Ping IP；若要改 UART COM Port 或將 UART 轉為 SSH，點「🔌 通訊設定」。',
-        mockup: '<div style="background:#FFFBEB;border:1px solid #F59E0B;border-radius:6px;padding:8px 10px;font-size:12px;">📋 站別開關 (🟢 啟用 / ⚪ 停用) ｜ 🔢 ISN 位數 [15] ｜ 🌐 網路 IP / Ping ｜ 🔌 儀器掛載</div>',
+        step: 'Step 4｜線上語意微調（站別開關 / ISN 位數 / 網路 IP / 儀器 Mount）',
+        desc: '點擊「⚙️ 微調 DUTs / Instrument / Global.ini」即可展開任務導向設定區：支援直接開關測試站（🟢啟用/⚪停用）、一鍵批量修改所有站別 ISN 位數、修改 Ping 目標 IP 與本腳本實際用到的儀器掛載與 COM Port。',
         img: '/images/guide_audit_3.png'
       },
       {
-        step: 'Step 4｜插入儀器測項或調整 PASS/FAIL 跳轉',
-        desc: '需要補測項時點「➕ 插入儀器範本」，可直接快選 NI-6009（32-Pin 接線圖）、FeasaLED（光纖色域）、iPower、電表或 IQxel RF（自動補齊 21/22 步 Marco）；點「🔀 編輯跳轉」可用打勾方式設定 4:P,F 跳轉。',
-        mockup: '<div style="background:#F5F3FF;border:1px solid #8B5CF6;border-radius:6px;padding:8px 10px;font-size:12px;color:#5B21B6;">⚡ 快選：NI-6009 ｜ iPower ｜ 34401A ｜ FeasaLED ｜ IQxel RF（先看介紹頁 → 再進人機）</div>',
+        step: 'Step 5｜插入儀器範本與專屬互動人機（NI-6009 / FeasaLED / IQxel RF）',
+        desc: '點「➕ 插入儀器範本」可從常用快選鈕直接開啟 NI-6009（32-Pin 接線圖）、FeasaLED（光纖通道與色域）、iPower、電表或 IQxel RF（自動補齊 21/22 步 Marco），安全插在 Phase 97 之前並亮黃底標記。',
         img: '/images/guide_audit_4.png'
       },
       {
-        step: 'Step 5｜一鍵修好並匯出（或產出無硬體試跑版）',
-        desc: '確認待匯出異動清單無誤後，點擊「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統會自動於原資料夾產出修復檔（異動儲存格亮黃底標記），並同步更新 Global.ini、System.ini 與 64 碼 Checksum。',
-        mockup: '<div style="background:#DCFCE7;border:1px solid #22C55E;border-radius:6px;padding:8px 10px;font-size:12px;color:#14532D;">✅ 已匯出 <code>*_FIXED.xlsx</code> ＋ 寫入 Checksum ＋ 覆檢 0 錯誤</div>',
+        step: 'Step 6｜一鍵修好並匯出 (*_FIXED.xlsx) 或產出「無硬體試跑版」',
+        desc: '確認無誤後，點擊綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」會於原資料夾輸出修復後 Excel、寫入 Global.ini 與 64 碼 System.ini Checksum；若要在沒有儀器的辦公室電腦先跑通流程，可點「🧪 無硬體試跑版」自動略過儀器控制步驟。',
         img: '/images/guide_audit_5.png'
       }
     ],
@@ -79,27 +79,33 @@ const FLOW_GUIDE_DATA = {
     ],
     detailedSteps: [
       {
-        step: 'Step 1｜基本資料、ISN 條碼與 SFIS / iPLAS 廠區設定',
-        desc: '填入專案名稱、站別（如 MB / RF）、多工槽位數（1/2/4）與 ISN 碼數規則；若有廠區過站需求，點「🌐 設定 SFIS / iPLAS 開關與廠區 IP」直接從下拉選單選廠區。',
-        mockup: '<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:8px 10px;font-size:12px;">專案：<code>PEGA_NEW</code> ｜ 站別：<code>MB</code> ｜ ISN：<code>{ISN,15,[0-9A-Z]}</code> ｜ SFIS：OFF/ON</div>',
-        img: '/images/guide_gen_1.png'
+        step: 'Step 1A｜填寫專案名稱、站別、槽位數與 ISN 條碼規則',
+        desc: '輸入專案代號、站別名稱（如 MB / RF）、多工槽位數（1/2/4 板同步測試），以及掃描條碼的位數與字元規則（系統會即時預覽成標準 {ISN,位數,Pattern} 語法）。',
+        img: '/images/guide_gen_1a.png'
       },
       {
-        step: 'Step 2｜勾選標準流程骨架 ＋ 選用測試儀器',
-        desc: '上方勾選開機流程骨架（CheckRoute、治具下壓、UART 韌體比對、SFIS、Phase 97 收尾）；下方點擊常用儀器快選鈕（NI-6009 / iPower / 電表 / FeasaLED / IQxel）直接進入儀器介紹與人機設定。',
-        mockup: '<div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:6px;padding:8px 10px;font-size:12px;">① 流程積木打勾 → ② 儀器快選（自動進入介紹頁與人機設定加入清單）</div>',
-        img: '/images/guide_gen_2.png'
+        step: 'Step 1B｜設定 SFIS / iPLAS 開關與各廠區 WebLink IP',
+        desc: '點擊右下角「🌐 設定 SFIS / iPLAS 開關與廠區 IP」，即可直接從下拉選單切換 PTB / PCQ / PSZ 等廠區 SFIS_WebLink 與開啟/關閉 SFIS、iPLAS，匯出時直接寫入 System.ini，無須手動改 INI。',
+        img: '/images/guide_gen_1b.png'
       },
       {
-        step: 'Step 3｜填寫各流程積木細部參數',
-        desc: '檢視已設定完成的 NI-6009 電壓通道摘要（可點按鈕再次修改），並填寫 UART/ADB/SSH 韌體版本指令、Python 腳本路徑或 Ping IP 清單。',
-        mockup: '<div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;padding:8px 10px;font-size:12px;">⚡ NI-6009 通道摘要 ｜ 🔌 UART/SSH 韌體版本比對設定</div>',
+        step: 'Step 2A｜勾選「標準測試流程骨架」積木',
+        desc: '上方區塊為純流程骨架（CheckRoute 路由驗證、氣動治具下壓、UART/ADB/SSH 韌體版本比對、SFIS MAC/69PN、Python 呼叫、Ping 測試、Phase 97 安全收尾），可直接用右上角「最小骨架」快速套用。',
+        img: '/images/guide_gen_2a.png'
+      },
+      {
+        step: 'Step 2B｜「測試儀器快選」進入儀器介紹與互動人機設定',
+        desc: '下方整合所有 34 款儀器：點擊常用的「NI-6008/6009」、「iPower」、「34401A 電表」、「Feasa LED」或「IQxel RF」按鈕，會先顯示該儀器特色與安全接線介紹，接著進入專屬人機設定並加入清單。',
+        img: '/images/guide_gen_2b.png'
+      },
+      {
+        step: 'Step 3｜確認已勾選項目之細部參數（韌體指令 / 電壓通道 / Ping IP）',
+        desc: '依 Step 2 勾選項目展開細部設定卡，可在此確認 NI-6009 已設定完成的通道摘要，以及調整 UART/ADB/SSH 韌體比對指令與目標版本號。',
         img: '/images/guide_gen_3.png'
       },
       {
-        step: 'Step 4｜總覽核對並產出完整產線測試包',
-        desc: '確認所有參數後，可選擇「🧪 產生無硬體試跑版 (Dry-Run)」先在辦公室驗證流程，或點擊「🚀 產生產線實機測試包」一次產出 Excel、System.ini、Global.ini 與 Test Item Code。',
-        mockup: '<div style="background:#DCFCE7;border:1px solid #22C55E;border-radius:6px;padding:8px 10px;font-size:12px;">📁 自動輸出至 <code>output_system/&lt;專案_站別&gt;/System/</code> 並彈出資料夾</div>',
+        step: 'Step 4｜總覽核對並產出「產線實機測試包」或「無硬體試跑版」',
+        desc: '核對專案資訊、ISN 與所有積木後，點擊「🚀 產生產線實機測試包」即可一次產出標準 16 欄 Excel、System.ini、Global.ini 與 Test Item Code 表；若尚未接上硬體可先產出 Dry-Run 版測試流程。',
         img: '/images/guide_gen_4.png'
       }
     ],
@@ -120,21 +126,18 @@ const FLOW_GUIDE_DATA = {
     ],
     detailedSteps: [
       {
-        step: 'Step 1｜選取 Log 檔案或貼上錯誤文字',
-        desc: '支援數百 KB 的完整 Centimani Log / CSV 檔案直接選取解析，也可切換「貼上文字」模式貼入終端機片段。',
-        mockup: '<div style="background:#FFFBEB;border:1px solid #FBBF24;border-radius:6px;padding:8px 10px;font-size:12px;">📄 選取 Log 檔 / 貼上文字 ➔ 點擊「🔍 開始分析」</div>',
+        step: 'Step 1｜選擇 Log / CSV 檔案（支援數百 KB 大檔快速解析）',
+        desc: '點擊「📂 點此選擇要分析的 Log / CSV 檔案」載入 Centimani 產線測試紀錄；若只有幾行終端機錯誤訊息，也可切換上方「📋 模式二：貼上錯誤文字」直接貼上分析。',
         img: '/images/guide_diag_1.png'
       },
       {
-        step: 'Step 2｜檢視失敗定位、數值超標差距與 Phase 耗時排行',
-        desc: '系統自動抓出所有實測值與規格上下限並標示超標幅度，同時列出耗時最長的前 5 個 Phase 協助優化測試時間 (CT)。',
-        mockup: '<div style="background:#FEF2F2;border:1px solid #EF4444;border-radius:6px;padding:8px 10px;font-size:12px;color:#7F1D1D;">❌ VCC_3V3 實測 2.91V (規格 3.15~3.45V，低於下限 -0.24V)</div>',
+        step: 'Step 2｜檢視失敗定位、超標幅度與 Phase 耗時瓶頸',
+        desc: '系統會自動列出所有量測數值與規格上下限對比，標註超出幾 V / 幾 dBm，並統計各 Phase 耗時 Top 5 協助找出拖慢 Cycle Time 的瓶頸步驟；重新修改過 Log 後可按右側「🔄 重新解析本檔」。',
         img: '/images/guide_diag_2.png'
       },
       {
-        step: 'Step 3｜複製異常摘要報告回報產線',
-        desc: '點擊「📋 複製異常摘要」，即可將整理好的錯誤測項、根因推測與實測數據貼至 Teams 或郵件。',
-        mockup: '<div style="background:#F0FDF4;border:1px solid #4ADE80;border-radius:6px;padding:8px 10px;font-size:12px;">✔ 已複製純淨異常摘要至剪貼簿</div>',
+        step: 'Step 3｜一鍵複製乾淨異常摘要報告',
+        desc: '點擊右上角「📋 複製測試結論摘要」，自動將專案站別、異常測項、實測數據與推測原因整理成純文字摘要，方便直接貼到 Teams 群組或 Mail 回報。',
         img: '/images/guide_diag_3.png'
       }
     ],
@@ -155,21 +158,18 @@ const FLOW_GUIDE_DATA = {
     ],
     detailedSteps: [
       {
-        step: 'Step 1｜自動載入官方 Test Item Code V2.04（免選檔）',
-        desc: '進入頁面後系統已預設載入最新版 Test Item Code V2.04_20250310.xlsx；僅當未來有更新版本（如 V2.05）時才需點「📂 更換檔案」。',
-        mockup: '<div style="background:#EEF2FF;border:1px solid #818CF8;border-radius:6px;padding:8px 10px;font-size:12px;">📚 目前載入：<code>Test Item Code V2.04_20250310.xlsx</code></div>',
+        step: 'Step 1｜自動載入官方 V2.04 表，輸入關鍵字即時篩選',
+        desc: '系統開機已自動載入最新版 Test Item Code V2.04_20250310.xlsx（共 5,200+ 筆代碼），無需手動選檔。直接在搜尋框輸入中文（如「電壓」「LED」）、英文或 7 碼代碼即可搜尋，並建議勾選「僅顯示通用碼」。',
         img: '/images/guide_tic_1.png'
       },
       {
-        step: 'Step 2｜輸入中英文關鍵字或 Error Code 即時搜尋',
-        desc: '在搜尋框輸入如「電壓」、「LED」、「UART」、「BRPW024」即可即時篩選，建議勾選「僅顯示通用碼」優先採用跨機種標準碼。',
-        mockup: '<div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;padding:8px 10px;font-size:12px;">🔍 [ 電壓 ] ☑ 僅顯示通用碼 ➔ <code>BRPW024</code> / <code>BRPW033</code></div>',
+        step: 'Step 2｜在左側搜尋結果選定目標 TestID / Error Code',
+        desc: '左側清單會列出符合條件的代碼與中英文說明，點擊任一筆即可選中；也可直接點「雙欄複製」將「Description + Tab + TestID」直接貼入 Excel。',
         img: '/images/guide_tic_2.png'
       },
       {
-        step: 'Step 3｜一鍵複製或直接套用至母體 / 健檢腳本',
-        desc: '找到目標代碼後可直接複製（Description + TestID），或直接套用到目前「母體產生器」積木與「腳本健檢」載入中的工作表列。',
-        mockup: '<div style="background:#DCFCE7;border:1px solid #4ADE80;border-radius:6px;padding:8px 10px;font-size:12px;">📋 複製代碼 ｜ ✨ 套用至現有 Excel 指定列</div>',
+        step: 'Step 3｜在右側直接套用至「母體積木」或「現有 Excel」',
+        desc: '選定左側代碼後，可於右側切換「方案一：套用至母體積木」或「方案二：寫入現有 Excel」，點擊步驟旁的「套用」按鈕即可將合法 7 碼代碼直接寫入測試步驟。',
         img: '/images/guide_tic_3.png'
       }
     ],
@@ -181,8 +181,10 @@ function applyLoadedSettings(s) {
   if (!s) return;
   APP_SETTINGS = Object.assign({}, APP_SETTINGS, s);
   try { localStorage.setItem('centimani_app_settings', JSON.stringify(APP_SETTINGS)); } catch (e) {}
-  if (APP_SETTINGS.intro_font_size && typeof setIntroFontSize === 'function') {
-    setIntroFontSize(parseInt(APP_SETTINGS.intro_font_size, 10) || 15);
+  const fs = parseInt(APP_SETTINGS.intro_font_size, 10) || 15;
+  document.body.style.fontSize = fs + 'px';
+  if (typeof setIntroFontSize === 'function') {
+    setIntroFontSize(fs);
   }
   const chkTic = document.getElementById('chkTicGenericOnly');
   if (chkTic) chkTic.checked = !!APP_SETTINGS.tic_generic_only;
@@ -244,6 +246,7 @@ function renderFlowGuidePage(tab) {
   const d = FLOW_GUIDE_DATA[tab];
   if (!d) { switchTab(tab); return; }
 
+  const fs = parseInt(APP_SETTINGS.intro_font_size || 15, 10);
   const stepsHtml = d.steps.map((st, idx) => `
     <div style="display:flex; align-items:stretch; flex:1; min-width:170px; gap:8px;">
       <div style="flex:1; background:#FFFFFF; border:1.5px solid ${d.themeBorder}; border-radius:10px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.06);">
@@ -259,17 +262,15 @@ function renderFlowGuidePage(tab) {
     </div>
   `).join('');
 
-  const detailCardsHtml = (d.detailedSteps || []).map((ds, i) => `
+  const detailCardsHtml = (d.detailedSteps || []).map(ds => `
     <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:14px 16px;">
-      <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:6px;">${ds.step}</div>
-      <div style="font-size:13.5px; color:#334155; line-height:1.65; margin-bottom:10px;">${ds.desc}</div>
+      <div style="font-weight:700; font-size:${fs + 1}px; color:#0F172A; margin-bottom:6px;">${ds.step}</div>
+      <div class="flow-guide-desc" style="font-size:${fs}px; color:#334155; line-height:1.65; margin-bottom:10px;">${ds.desc}</div>
       <div style="text-align:center; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:8px;">
         <img src="${ds.img}" alt="${ds.step}"
-             style="max-width:100%; max-height:420px; border-radius:6px; border:1px solid #CBD5E1; cursor:zoom-in;"
+             style="max-width:100%; max-height:380px; border-radius:6px; border:1px solid #CBD5E1; cursor:zoom-in;"
              onclick="window.open(this.src, '_blank')"
-             title="點擊開啟原尺寸大圖"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="display:none; text-align:left;">${ds.mockup}</div>
+             title="點擊開啟原尺寸大圖">
       </div>
     </div>
   `).join('');
@@ -292,13 +293,13 @@ function renderFlowGuidePage(tab) {
         ${stepsHtml}
       </div>
 
-      <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px; font-size:13.5px; color:#1E293B; margin-bottom:14px;">
+      <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px; font-size:${fs - 1}px; color:#1E293B; margin-bottom:14px;">
         💡 <b>說明：</b>${d.tip}
       </div>
 
       <div style="margin-bottom:16px;">
-        <div style="font-weight:700; font-size:14.5px; color:#0F172A; margin-bottom:10px;">📖 詳細操作步驟與畫面對照教學（向下捲動閱讀，支援放入實機截圖至 IMAGES/）</div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">📖 詳細操作步驟與單項紅框教學（共 ${d.detailedSteps.length} 步，向下捲動閱讀）</div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
           ${detailCardsHtml}
         </div>
       </div>
@@ -341,11 +342,11 @@ function renderSettingsPanel() {
   const box = document.getElementById('panelSettings');
   if (!box) return;
   box.innerHTML = `
-    <div style="background:#FFFFFF; border:1.5px solid #94A3B8; border-radius:12px; padding:20px 24px; max-width:860px;">
+    <div style="background:#FFFFFF; border:1.5px solid #E11D48; border-radius:12px; padding:20px 24px; max-width:860px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-bottom:12px; border-bottom:1px solid #E2E8F0; margin-bottom:16px;">
         <div>
           <h2 style="margin:0; font-size:19px; color:#0F172A;">⚙️ 系統與環境設定 (Preferences)</h2>
-          <div style="font-size:13px; color:#64748B; margin-top:2px;">勾選後即時保存至 config.json，亦可按下方確認鈕完成儲存</div>
+          <div style="font-size:13px; color:#64748B; margin-top:2px;">勾選後即時保存至 config.json，字體大小會即時套用至全站</div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span id="settingsSaveStatus" style="display:none; padding:4px 10px; border-radius:6px; border:1px solid #4ADE80; font-size:12.5px; font-weight:700;"></span>
@@ -353,7 +354,7 @@ function renderSettingsPanel() {
         </div>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:12px; font-size:14px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
         <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; cursor:pointer;">
           <input type="checkbox" id="setChkFullscreen" ${s.auto_fullscreen ? 'checked' : ''} onchange="saveAppSettings({auto_fullscreen:this.checked})" style="width:18px; height:18px;">
           <div>
@@ -389,8 +390,8 @@ function renderSettingsPanel() {
 
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px;">
           <div>
-            <div style="font-weight:700; color:#0F172A;">儀器介紹與人機頁預設字體大小</div>
-            <div style="font-size:12.5px; color:#64748B;">調整儀器規格與說明文字的預設閱讀字級</div>
+            <div style="font-weight:700; color:#0F172A;">全站介面與教學說明預設字體大小</div>
+            <div style="font-size:12.5px; color:#64748B;">切換後立即放大 / 縮小全站文字、流程教學與儀器介紹頁</div>
           </div>
           <div style="display:inline-flex; gap:6px;">
             <button onclick="saveAppSettings({intro_font_size:13}); applyLoadedSettings({intro_font_size:13}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===13?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">小 (13px)</button>
