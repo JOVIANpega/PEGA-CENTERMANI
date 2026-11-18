@@ -139,6 +139,16 @@ const FLOW_GUIDE_DATA = {
         step: 'Step 3｜一鍵複製乾淨異常摘要報告',
         desc: '點擊右上角「📋 複製測試結論摘要」，自動將專案站別、異常測項、實測數據與推測原因整理成純文字摘要，方便直接貼到 Teams 群組或 Mail 回報。',
         img: '/images/guide_diag_3.png'
+      },
+      {
+        step: 'Step 4｜書籤二：切換至「模式二：貼上錯誤文字 / 診斷片段」',
+        desc: '若當下沒有完整 .log 檔，只有從黑色主控台視窗或 System Error 彈窗複製出來的幾行文字，可點擊上方第二個書籤切換至文字貼上模式。',
+        img: '/images/guide_diag_4.png'
+      },
+      {
+        step: 'Step 5｜貼上錯誤文字並點擊「立即診斷貼上文字」',
+        desc: '將錯誤訊息貼入文字框後點擊右下角綠色「🔍 立即診斷貼上文字」，系統會自動比對 Checksum 失敗、SFIS 斷線、儀器鎖定與腳本語法錯誤，立即給出排查步驟。',
+        img: '/images/guide_diag_5.png'
       }
     ],
     tip: '適用場景：產線 FAIL 快速判讀、找出測試 Cycle Time 瓶頸測項'
@@ -168,9 +178,19 @@ const FLOW_GUIDE_DATA = {
         img: '/images/guide_tic_2.png'
       },
       {
-        step: 'Step 3｜在右側直接套用至「母體積木」或「現有 Excel」',
-        desc: '選定左側代碼後，可於右側切換「方案一：套用至母體積木」或「方案二：寫入現有 Excel」，點擊步驟旁的「套用」按鈕即可將合法 7 碼代碼直接寫入測試步驟。',
+        step: 'Step 3｜書籤一：套用至母體積木（寫入新產生腳本）',
+        desc: '在右側預設的「🧩 方案一：套用至母體積木」頁籤中，展開欲修改的積木步驟，點擊右側「套用」按鈕即可將合法 7 碼代碼直接寫入新腳本母體，並可勾選同步帶入英文 Description。',
         img: '/images/guide_tic_3.png'
+      },
+      {
+        step: 'Step 4｜書籤二：切換至「方案二：寫入現有 Excel」',
+        desc: '若是要補齊既有的 TestFlow.xlsx 檔案（例如稽核抓出缺少第 16 欄 TestID），請點擊右側第二個書籤「📄 方案二：寫入現有 Excel」。',
+        img: '/images/guide_tic_4.png'
+      },
+      {
+        step: 'Step 5｜方案二：篩選「僅看缺 TestID 列」並寫入存檔',
+        desc: '點擊「📂 選擇 Excel 檔案」（若剛在健檢載入過會自動帶入），切換「僅看缺 TestID 列」只列出漏填代碼的步驟，套用後即可直接簽章存回原檔。',
+        img: '/images/guide_tic_5.png'
       }
     ],
     tip: '適用場景：撰寫新測項找標準 7 碼代碼，或補齊健檢抓出的缺少 TestID 列'

@@ -2073,7 +2073,9 @@ async function initPage() {
   else if (tour === 'ni6009') { openNi6009Hmi('gen'); }
   else if (tour === 'feasa') { openInstHmi('gen', 'FeasaLED'); }
   else if (tour === 'diag_1') { switchTab('diagnose'); }
+  else if (tour === 'diag_2') { switchTab('diagnose'); if (typeof switchSourceMode === 'function') switchSourceMode('text'); }
   else if (tour === 'tic_1') { switchTab('tic'); }
+  else if (tour === 'tic_2') { switchTab('tic'); if (typeof switchTicTargetMode === 'function') switchTicTargetMode('excel'); }
   else if (tour === 'audit_1') { switchTab('audit'); }
   else if (tour === 'audit_2' || tour === 'audit_3') {
     switchTab('audit');
