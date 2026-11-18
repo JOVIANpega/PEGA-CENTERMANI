@@ -44,25 +44,51 @@ from desktop_app import convert_workspace_to_dry_run
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
 
-def get_last_opened_dir():
+DEFAULT_SETTINGS = {
+    "auto_fullscreen": True,
+    "show_flow_guide": True,
+    "auto_open_folder": True,
+    "auto_checksum": True,
+    "tic_generic_only": False,
+    "intro_font_size": 15,
+    "skip_guides": {}
+}
+
+
+def get_app_settings():
+    res = dict(DEFAULT_SETTINGS)
     try:
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                d = data.get("last_dir", "")
-                if d and os.path.exists(d):
-                    return d
+                if isinstance(data, dict):
+                    res.update(data)
     except Exception:
         pass
+    return res
+
+
+def save_app_settings(patch):
+    cur = get_app_settings()
+    if isinstance(patch, dict):
+        cur.update(patch)
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cur, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    return cur
+
+
+def get_last_opened_dir():
+    d = get_app_settings().get("last_dir", "")
+    if d and os.path.exists(d):
+        return d
     return PROJECT_ROOT
 
 
 def set_last_opened_dir(folder_path):
-    try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump({"last_dir": folder_path}, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    save_app_settings({"last_dir": folder_path})
 
 
 _PICK_LOCK = None
@@ -557,8 +583,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self._send_json({
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
-                "tic_info": get_active_tic_info()
+                "tic_info": get_active_tic_info(),
+                "settings": get_app_settings()
             })
+        elif parsed.path == "/api/get_settings":
+            self._send_json({"status": "ok", "settings": get_app_settings()})
         elif parsed.path == "/api/instrument_catalog":
             gm = get_golden_mother()
             prof_path = os.path.join(BASE_DIR, "core", "instrument_profiles.json")
@@ -718,12 +747,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if parsed.path == "/api/save_settings":
+                updated = save_app_settings(payload.get("settings", {}))
+                self._send_json({"status": "ok", "settings": updated})
+                return
+
             if parsed.path == "/api/re_audit":
                 ws = payload.get("workspace", {})
                 rep = audit_workspace(ws)
                 self._send_json({
                     "status": "ok",
-                    "report": rep
+                    "report": rep,
+                    "isn_info": extract_isn_info(ws)
                 })
                 return
 
@@ -1085,7 +1120,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 sys_ini, glb_ini = sync_and_generate_inis(ws, xlsx_name, target_dir)
                 chk = "已自動寫入 [Checksum]"
 
-                open_folder_in_explorer(target_dir)
+                if get_app_settings().get("auto_open_folder", True):
+                    open_folder_in_explorer(target_dir)
 
                 self._send_json({
                     "status": "ok",
@@ -1103,8 +1139,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
 
 def launch_fullscreen_browser(url):
-    """Launches the default or installed browser in maximized/fullscreen mode."""
-    # Try Chrome or Edge with --start-maximized
+    """Launches the default or installed browser in maximized/fullscreen mode if enabled."""
+    use_fs = get_app_settings().get("auto_fullscreen", True)
     browser_candidates = [
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
@@ -1113,10 +1149,11 @@ def launch_fullscreen_browser(url):
     ]
     for exe in browser_candidates:
         if os.path.exists(exe):
+            flags = ["--start-maximized", "--new-window"] if use_fs else ["--new-window"]
             if "chrome" in exe.lower():
-                subprocess.Popen([exe, "--start-maximized", "--new-window", "--app=" + url])
+                subprocess.Popen([exe] + flags + ["--app=" + url])
             else:
-                subprocess.Popen([exe, "--start-maximized", "--new-window", url])
+                subprocess.Popen([exe] + flags + [url])
             return
     webbrowser.open(url)
 

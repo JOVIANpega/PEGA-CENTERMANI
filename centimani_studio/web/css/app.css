@@ -1049,3 +1049,9 @@ button:not(:disabled):hover {
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.14);
   filter: brightness(0.94);
 }
+
+.acc-card[data-theme="slate"].active,
+.acc-card[data-theme="slate"]:hover {
+  background: linear-gradient(145deg, #E2E8F0 0%, #F8FAFC 100%);
+  border-color: #475569;
+}
