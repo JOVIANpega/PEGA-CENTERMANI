@@ -119,34 +119,59 @@ const FLOW_GUIDE_DATA = {
     ],
     detailedSteps: [
       {
-        step: 'Step 1A｜填寫專案名稱、站別、槽位數與 ISN 條碼規則',
+        step: 'Step 1｜填寫專案名稱、站別、槽位數與 ISN 條碼規則',
         desc: '輸入專案代號、站別名稱（如 MB / RF）、多工槽位數（1/2/4 板同步測試），以及掃描條碼的位數與字元規則（系統會即時預覽成標準 {ISN,位數,Pattern} 語法）。',
         img: '/images/guide_gen_1a.png'
       },
       {
-        step: 'Step 1B｜設定 SFIS / iPLAS 開關與各廠區 WebLink IP',
-        desc: '點擊右下角「🌐 設定 SFIS / iPLAS 開關與廠區 IP」，即可直接從下拉選單切換 PTB / PCQ / PSZ 等廠區 SFIS_WebLink 與開啟/關閉 SFIS、iPLAS，匯出時直接寫入 System.ini，無須手動改 INI。',
+        step: 'Step 2｜設定 SFIS / iPLAS 開關與各廠區 WebLink IP',
+        desc: '點擊右下角「🌐 設定 SFIS / iPLAS 開關與廠區 IP」會彈出廠區連線設定視窗，可直接從下拉選單切換 PTB / PXD 等廠區 SFIS_WebLink 與開啟/關閉 SFIS、iPLAS，匯出時直接寫入 System.ini。',
         img: '/images/guide_gen_1b.png'
       },
       {
-        step: 'Step 2A｜勾選「標準測試流程骨架」積木',
-        desc: '上方區塊為純流程骨架（CheckRoute 路由驗證、氣動治具下壓、UART/ADB/SSH 韌體版本比對、SFIS MAC/69PN、Python 呼叫、Ping 測試、Phase 97 安全收尾），可直接用右上角「最小骨架」快速套用。',
+        step: 'Step 3｜（點擊「SFIS / iPLAS 開關」後的彈出視窗畫面）',
+        desc: '在彈出視窗中選擇 SFIS_Enable (0=關閉 / 1=啟用) 與廠區代碼即可套用，免去手動查表輸入網址。',
+        img: '/images/guide_audit_7.png'
+      },
+      {
+        step: 'Step 4｜Step 2 快速骨架範本（最小骨架 / 基礎上電量測 / 全部取消）',
+        desc: '進入 Step 2 後，右上角提供三個快速鍵：「🧩 最小骨架」一鍵勾選 CheckRoute + 治具 + UART + Phase 97；「⚡ 基礎上電量測」額外帶入基礎電源量測；「□ 全部取消」清空所有勾選從頭自選。',
+        img: '/images/guide_gen_2c.png'
+      },
+      {
+        step: 'Step 5｜勾選「① 標準測試流程骨架」7 大積木',
+        desc: '依需求勾選純流程積木：CheckRoute 路由驗證、氣動治具下壓、UART/ADB/SSH 韌體比對、SFIS 讀取 MAC/69PN、呼叫外部 Python 腳本 (CmdConsole@python.exe)、Ping 連通性測試與 Phase 97 強制斷電收尾。',
         img: '/images/guide_gen_2a.png'
       },
       {
-        step: 'Step 2B｜「測試儀器快選」進入儀器介紹與互動人機設定',
-        desc: '下方整合所有 34 款儀器：點擊常用的「NI-6008/6009」、「iPower」、「34401A 電表」、「Feasa LED」或「IQxel RF」按鈕，會先顯示該儀器特色與安全接線介紹，接著進入專屬人機設定並加入清單。',
+        step: 'Step 6｜「② 常用儀器快選」5 顆一鍵進入人機設定',
+        desc: '下方提供 5 顆常用儀器快選鈕（NI-6008/6009 電壓量測、iPower 程控電源、34401A/MDA2700 電表、Feasa LED 色彩亮度、IQxel Wi-Fi RF），點擊後會直接開啟該儀器的專屬介紹與互動人機頁面。',
         img: '/images/guide_gen_2b.png'
       },
       {
-        step: 'Step 3｜確認已勾選項目之細部參數（韌體指令 / 電壓通道 / Ping IP）',
-        desc: '依 Step 2 勾選項目展開細部設定卡，可在此確認 NI-6009 已設定完成的通道摘要，以及調整 UART/ADB/SSH 韌體比對指令與目標版本號。',
+        step: 'Step 7｜手動挑選 34 款儀器：儀器介紹 / 圖解接線 / 加入清單',
+        desc: '若要選用其他型號，可從「功能分類 → 儀器名稱」挑選 34 款儀器並填寫測項名稱與上下限 (DL/UL)；點「📖 儀器介紹」看外觀接線與手冊、點「🔌 圖解接線設定」進入互動接線、點「➕ 加入清單」直接掛載至本母體。',
+        img: '/images/guide_gen_2d.png'
+      },
+      {
+        step: 'Step 8｜（進入「儀器互動人機」設定接線與規格畫面）',
+        desc: '點擊快選或「圖解接線設定」後會開啟此互動介面（圖為 FeasaLED / NI-6009 示意），可直覺勾選通道、光纖腳位與上下限，按下套用即自動加入 Step 2 已選儀器清單。',
+        img: '/images/guide_audit_4.png'
+      },
+      {
+        step: 'Step 9｜Step 3 確認與填寫細部測試參數',
+        desc: '依 Step 2 勾選的積木與儀器動態產生設定卡：可調整韌體比對的連線方式（UART / ADB / SSH）、COM Port、目標韌體版本與查詢指令，以及治具控制 COM Port 與等待上電穩定毫秒數 (ms)。',
         img: '/images/guide_gen_3.png'
       },
       {
-        step: 'Step 4｜總覽核對並產出「產線實機測試包」或「無硬體試跑版」',
-        desc: '核對專案資訊、ISN 與所有積木後，點擊「🚀 產生產線實機測試包」即可一次產出標準 16 欄 Excel、System.ini、Global.ini 與 Test Item Code 表；若尚未接上硬體可先產出 Dry-Run 版測試流程。',
-        img: '/images/guide_gen_4.png'
+        step: 'Step 10A｜Step 4 產出「🧪 無硬體試跑版 (Dry-Run)」',
+        desc: '在總覽確認核對專案、ISN 與積木無誤後，若辦公室電腦尚未接上實體儀器，可點藍色「🧪 Finish：產生『無硬體試跑版』」，系統會清空 Mount 並將量測列轉為 ExecMode = 6，供您先在 Centimani 驗證整體流程跳轉。',
+        img: '/images/guide_gen_4a.png'
+      },
+      {
+        step: 'Step 10B｜Step 4 產出「🚀 產線實機測試包」（含簽章 + 彈出資料夾）',
+        desc: '準備上線實測時，點擊綠色「🚀 Finish：產生『產線實機測試包』」，一次產出標準 16 欄 TestFlow.xlsx、System.ini（含 64 碼 Checksum 簽章）、Global.ini 與 Test Item Code 表，並自動開啟輸出資料夾。',
+        img: '/images/guide_gen_4b.png'
       }
     ],
     tip: '產出物：標準 16 欄 TestFlow.xlsx ＋ System.ini ＋ Global.ini ＋ Test Item Code 表'
