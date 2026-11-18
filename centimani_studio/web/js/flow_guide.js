@@ -364,14 +364,21 @@ function renderFlowGuidePage(tab) {
     const rawTitle = (parts[1] || '').replace(/[「」『』]/g, '').trim();
     const shortTitle = rawTitle.length > 10 ? rawTitle.slice(0, 10) + '…' : rawTitle;
     return `<button type="button" class="flow-step-pill" onclick="jumpToFlowStep(${idx})" title="${ds.step}">
-      <span style="color:${d.themeBorder}; font-weight:800;">${stepTag}</span>
+      <span style="background:#FACC15; color:#0F172A; font-weight:800; padding:1px 6px; border-radius:4px; border:1px solid #CA8A04;">${stepTag}</span>
       ${shortTitle ? `<span>${shortTitle}</span>` : ''}
     </button>`;
   }).join('');
 
-  const detailCardsHtml = (d.detailedSteps || []).map((ds, idx) => `
+  const detailCardsHtml = (d.detailedSteps || []).map((ds, idx) => {
+    const parts = String(ds.step || '').split('｜');
+    const stepTag = (parts[0] || ('Step ' + (idx + 1))).trim();
+    const stepTitle = parts.slice(1).join('｜').trim();
+    const headerHtml = stepTitle
+      ? `<span style="display:inline-block; background:#FACC15; color:#0F172A; font-weight:800; padding:2px 10px; border-radius:6px; border:1px solid #CA8A04; margin-right:8px;">${stepTag}</span><span>${stepTitle}</span>`
+      : `<span>${ds.step}</span>`;
+    return `
     <div id="flowStepCard_${idx}" style="scroll-margin-top:16px; background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:14px 16px; transition:box-shadow 0.25s ease;">
-      <div style="font-weight:700; font-size:${fs + 1}px; color:#0F172A; margin-bottom:6px;">${ds.step}</div>
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-weight:700; font-size:${fs + 1}px; color:#0F172A; margin-bottom:8px;">${headerHtml}</div>
       <div class="flow-guide-desc" style="font-size:${fs}px; color:#334155; line-height:1.65; margin-bottom:10px;">${ds.desc}</div>
       <div style="text-align:center; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:8px;">
         <img src="${ds.img}" alt="${ds.step}"
@@ -380,7 +387,8 @@ function renderFlowGuidePage(tab) {
              title="點擊開啟原尺寸大圖">
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const box = document.getElementById('panelFlowGuide');
   box.innerHTML = `
