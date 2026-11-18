@@ -327,6 +327,17 @@ function enterModule(tab, afterAction = null) {
   renderFlowGuidePage(tab);
 }
 
+function jumpToFlowStep(idx) {
+  const el = document.getElementById('flowStepCard_' + idx);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const prevShadow = el.style.boxShadow;
+  el.style.boxShadow = '0 0 0 3px #2563EB, 0 6px 16px rgba(37, 99, 235, 0.18)';
+  setTimeout(() => {
+    el.style.boxShadow = prevShadow || '';
+  }, 1200);
+}
+
 function renderFlowGuidePage(tab) {
   const d = FLOW_GUIDE_DATA[tab];
   if (!d) { switchTab(tab); return; }
@@ -347,8 +358,19 @@ function renderFlowGuidePage(tab) {
     </div>
   `).join('');
 
-  const detailCardsHtml = (d.detailedSteps || []).map(ds => `
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:14px 16px;">
+  const quickJumpHtml = (d.detailedSteps || []).map((ds, idx) => {
+    const parts = String(ds.step || '').split('｜');
+    const stepTag = (parts[0] || ('Step ' + (idx + 1))).trim();
+    const rawTitle = (parts[1] || '').replace(/[「」『』]/g, '').trim();
+    const shortTitle = rawTitle.length > 10 ? rawTitle.slice(0, 10) + '…' : rawTitle;
+    return `<button type="button" class="flow-step-pill" onclick="jumpToFlowStep(${idx})" title="${ds.step}">
+      <span style="color:${d.themeBorder}; font-weight:800;">${stepTag}</span>
+      ${shortTitle ? `<span>${shortTitle}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  const detailCardsHtml = (d.detailedSteps || []).map((ds, idx) => `
+    <div id="flowStepCard_${idx}" style="scroll-margin-top:16px; background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:14px 16px; transition:box-shadow 0.25s ease;">
       <div style="font-weight:700; font-size:${fs + 1}px; color:#0F172A; margin-bottom:6px;">${ds.step}</div>
       <div class="flow-guide-desc" style="font-size:${fs}px; color:#334155; line-height:1.65; margin-bottom:10px;">${ds.desc}</div>
       <div style="text-align:center; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:8px;">
@@ -383,7 +405,10 @@ function renderFlowGuidePage(tab) {
       </div>
 
       <div style="margin-bottom:16px;">
-        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:10px;">📖 詳細操作步驟與單項紅框教學（共 ${d.detailedSteps.length} 步，向下捲動閱讀）</div>
+        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:8px;">📖 詳細操作步驟與單項紅框教學（共 ${d.detailedSteps.length} 步，點擊下方快捷鍵可跳轉至對應步驟）</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding:10px 12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px;">
+          ${quickJumpHtml}
+        </div>
         <div style="display:flex; flex-direction:column; gap:12px;">
           ${detailCardsHtml}
         </div>
