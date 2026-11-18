@@ -2077,13 +2077,25 @@ async function initPage() {
   else if (tour === 'tic_1') { switchTab('tic'); }
   else if (tour === 'tic_2') { switchTab('tic'); if (typeof switchTicTargetMode === 'function') switchTicTargetMode('excel'); }
   else if (tour === 'audit_1') { switchTab('audit'); }
-  else if (tour === 'audit_2' || tour === 'audit_3') {
+  else if (tour && tour.startsWith('audit_') && tour !== 'audit_1') {
     switchTab('audit');
     const demoPath = urlParams.get('file');
     if (demoPath) {
       await loadSpecificFile(encodeURIComponent(demoPath));
-      if (tour === 'audit_3' && typeof toggleGlobalEditorPanel === 'function') {
-        toggleGlobalEditorPanel('station_isn');
+      if (tour === 'audit_3' || tour === 'audit_global_isn') {
+        if (typeof toggleGlobalEditorPanel === 'function') toggleGlobalEditorPanel('station_isn');
+      } else if (tour === 'audit_global_net') {
+        if (typeof toggleGlobalEditorPanel === 'function') toggleGlobalEditorPanel('net_ip');
+      } else if (tour === 'audit_global_inst') {
+        if (typeof toggleGlobalEditorPanel === 'function') toggleGlobalEditorPanel('inst_mount');
+      } else if (tour === 'audit_inst_modal') {
+        if (typeof openInsertInstModal === 'function') openInsertInstModal();
+      } else if (tour === 'audit_jump_modal') {
+        if (typeof openJumpEditorModal === 'function') openJumpEditorModal();
+      } else if (tour === 'audit_sfis_modal') {
+        if (typeof openSfisIplasModal === 'function') openSfisIplasModal('audit');
+      } else if (tour === 'audit_comm_modal') {
+        if (typeof openCommModal === 'function') openCommModal();
       }
     }
   }

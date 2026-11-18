@@ -33,33 +33,73 @@ const FLOW_GUIDE_DATA = {
     detailedSteps: [
       {
         step: 'Step 1｜「選取單一 Excel」：針對單份測試腳本進行體檢與微調',
-        desc: '適合您只想檢查或修改某一個站的 TestFlow Excel 時使用。點選後會跳出檔案視窗，自動解析 Properties、DUTs、Instrument、所有測試站與 Marco 子工作表，並於下方列出錯誤與警告明細。',
+        desc: '適合您只想檢查或修改某一個站的 TestFlow Excel 時使用。點選後會跳出檔案視窗，自動讀入同資料夾內的 System.ini 與 Global.ini，並解析所有測試站與 Marco 子工作表，立即列出錯誤與警告明細。',
         img: '/images/guide_audit_1a.png'
       },
       {
         step: 'Step 2｜「掃描整包資料夾」：一次體檢整個專案目錄內所有站別腳本',
-        desc: '當整個專案資料夾內包含多個站別的 Excel（例如 Download、MB、RF、OQC 分散在不同檔案）時使用。系統會自動遞迴掃描全資料夾、略過 *_FIXED 與 old_ 備份檔，一次列出全專案錯誤總表，並支援「一鍵整包批次修復」（同時自動備份原 System.ini / Global.ini）。',
+        desc: '當整個專案資料夾內包含多個站別的 Excel（例如 Download、MB、RF、OQC 分散在不同檔案）時使用。系統會遞迴掃描全資料夾、略過 *_FIXED 與 old_ 備份檔，一次列出每個檔案的紅綠燈與錯誤數，點擊清單即可切換檢視或「一鍵整包批次修復」。',
         img: '/images/guide_audit_1b.png'
       },
       {
-        step: 'Step 3｜檢視紅黃燈體檢報告與折疊明細',
-        desc: '上方橫幅會顯示錯誤總數、需人工確認數量，以及從 DUTs 讀取到的 ISN 條碼位數。若同一站出現多列相同錯誤（例如 42 列缺少第 16 欄 TestID），系統會自動折疊成單一條目，存檔時會一併自動補齊合法 7 碼代碼。',
+        step: 'Step 3｜檢視紅黃燈體檢報告與自動修補預告',
+        desc: '上方紅色橫幅會顯示抓出的錯誤總數（例如 42 個錯誤）、需人工確認數量、從 DUTs 讀取到的 ISN 條碼位數，以及存檔時將自動補齊的數百項格式問題；下方會列出各站錯誤與系統自動修補對策。',
         img: '/images/guide_audit_2.png'
       },
       {
-        step: 'Step 4｜線上語意微調（站別開關 / ISN 位數 / 網路 IP / 儀器 Mount）',
-        desc: '點擊「⚙️ 微調 DUTs / Instrument / Global.ini」即可展開任務導向設定區：支援直接開關測試站（🟢啟用/⚪停用）、一鍵批量修改所有站別 ISN 位數、修改 Ping 目標 IP 與本腳本實際用到的儀器掛載與 COM Port。',
+        step: 'Step 4｜工作表燈號篩選、跳轉分支樹與折疊明細',
+        desc: '點擊上方工作表膠囊（如 MainBoard 🔴42）可只篩選看該站別的錯誤；點擊綠色「其餘 8 個跳轉區塊邏輯正常」可展開縮排跳轉分支樹檢查邏輯；點擊下方折疊的紅色明細列可檢視具體列號與補齊內容。',
+        img: '/images/guide_audit_2b.png'
+      },
+      {
+        step: 'Step 5｜「微調 DUTs / Instrument / Global.ini」分頁 1：站別開關與 ISN',
+        desc: '點擊工具列黃色「⚙️ 微調 DUTs / Instrument / Global.ini」會展開全域設定微調區。在第一分頁「站別開關與 ISN」可直接切換站別啟用/停用 (Load=1/0)、修改 DUT 名稱、或一鍵批量套用全部站別的 ISN 條碼位數與字元規則。',
         img: '/images/guide_audit_3.png'
       },
       {
-        step: 'Step 5｜插入儀器範本與專屬互動人機（NI-6009 / FeasaLED / IQxel RF）',
-        desc: '點「➕ 插入儀器範本」可從常用快選鈕直接開啟 NI-6009（32-Pin 接線圖）、FeasaLED（光纖通道與色域）、iPower、電表或 IQxel RF（自動補齊 21/22 步 Marco），安全插在 Phase 97 之前並亮黃底標記。',
+        step: 'Step 6｜全域微調分頁 2：「🌐 網路 IP / Ping / Port」',
+        desc: '切換至第二分頁「🌐 網路 IP / Ping / Port」，系統只列出本腳本實際使用的 PCIP_1、DUTIP_1、GoldenIP 與各站 DUT UDP 連線 Port，方便直接修改數值而不用在龐雜的 Global.ini 中翻找。',
+        img: '/images/guide_audit_3b.png'
+      },
+      {
+        step: 'Step 7｜全域微調分頁 3：「🔌 儀器掛載與 COM Port」',
+        desc: '切換至第三分頁「🔌 儀器掛載與 COM Port」，集中修改待測板 UART COM Port (DUT_UR1)、SFIS 機台編號 (DEVID_1)、DAQ / FeasaLED 裝置代號等變數。以上三個分頁修改完成後，記得點右上角「✓ 套用微調並重跑健檢」。',
+        img: '/images/guide_audit_3c.png'
+      },
+      {
+        step: 'Step 8｜點擊「➕ 插入儀器範本」後的彈出設定視窗',
+        desc: '點擊紫色「➕ 插入儀器範本」會彈出此視窗：先選取「1. 目標測試站工作表」與「2. 插入位置」（系統強制保證插在 Phase 97 之前且不破壞原有 2:XX / 4:P,F 跳轉），再挑選 34 款儀器或點擊常用儀器快選鈕。',
+        img: '/images/guide_audit_4a.png'
+      },
+      {
+        step: 'Step 9｜進入儀器互動人機介面（以 FeasaLED / NI-6009 為例）',
+        desc: '在彈窗點擊常用快選鈕或「開啟人機設定▶」，即進入專屬視覺化人機（如 FeasaLED 光纖通道與 RGB/XY 色域設定、NI-6009 32-Pin 點圖接線與 12V 分壓提醒），確認後按套用即自動寫入獨立 Title 區塊並亮黃底標記。',
         img: '/images/guide_audit_4.png'
       },
       {
-        step: 'Step 6｜一鍵修好並匯出 (*_FIXED.xlsx) 或產出「無硬體試跑版」',
-        desc: '確認無誤後，點擊綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」會於原資料夾輸出修復後 Excel、寫入 Global.ini 與 64 碼 System.ini Checksum；若要在沒有儀器的辦公室電腦先跑通流程，可點「🧪 無硬體試跑版」自動略過儀器控制步驟。',
-        img: '/images/guide_audit_5.png'
+        step: 'Step 10｜點擊「🔀 編輯跳轉 (PASS/FAIL)」後的視覺化跳轉編輯器',
+        desc: '點擊橘色「🔀 編輯跳轉 (PASS/FAIL)」會彈出此視窗，以 Title 區塊為單位免算相對步號：先選取左側「起點」步號，再勾選目標列的「PASS 跳這 / FAIL 跳這」（或直接套用三大快速模板），自動組出 4:P,F 或 2:XX 並重跑體檢。',
+        img: '/images/guide_audit_6.png'
+      },
+      {
+        step: 'Step 11｜點擊「🌐 SFIS / iPLAS 開關」後的廠區連線設定視窗',
+        desc: '點擊綠色「🌐 SFIS / iPLAS 開關」會彈出此視窗：可直接切換 SFIS_Enable 主開關、從下拉選單快速帶入 PTB / PXD 廠區 SFIS_WebLink 網址，以及設定 iPLAS_Enable 與廠區代碼，按下套用即寫入 System.ini。',
+        img: '/images/guide_audit_7.png'
+      },
+      {
+        step: 'Step 12｜點擊「🔌 通訊設定 (改 COM / 轉 SSH)」後的批次轉換視窗',
+        desc: '點擊藍色「🔌 通訊設定」會彈出此視窗：可統一修改 UART COM Port、DUT IP 與 SSH 登入帳號，並可勾選將指定工作表內的 :Connect,"UART" / UART@... 指令一鍵批次轉換為 CmdConsole@ssh。',
+        img: '/images/guide_audit_8.png'
+      },
+      {
+        step: 'Step 13｜產出「🧪 無硬體試跑版」：無儀器 PC 驗證流程專用',
+        desc: '若工程師在辦公桌沒有治具與實體儀器、想先在 Centimani 跑通整體流程與跳轉邏輯，可點「🧪 無硬體試跑版」：系統會自動清空 Instrument / Switch 的 Mount 掛載、將量測列轉為 ExecMode = 6 (Skip) 並清空 :Sf* 驗證。',
+        img: '/images/guide_audit_5a.png'
+      },
+      {
+        step: 'Step 14｜「💾 一鍵修好並匯出 (*_FIXED.xlsx)」正式產出與 Checksum 簽章',
+        desc: '所有檢查與微調確認無誤後，點擊綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統會將補齊的 7 碼 TestID、格式修正與參數微調寫入同目錄 *_FIXED.xlsx（修正處亮黃底），並自動重算 64 碼 Checksum 寫入 System.ini。',
+        img: '/images/guide_audit_5b.png'
       }
     ],
     tip: '產出物：同目錄 *_FIXED.xlsx（修正儲存格亮黃底標註）＋ Checksum 簽章 ＋ Global.ini'
