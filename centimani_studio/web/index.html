@@ -8,156 +8,166 @@
 </head>
 <body>
 
-<!-- Top Header -->
+<!-- Top Header (整合模組切換列，取代左側重複側邊欄) -->
 <div class="top-header">
-  <div class="brand-group">
+  <div class="brand-group" style="flex-wrap:wrap;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <button onclick="switchTab('home')" class="btn" style="padding:4px 12px; font-size:13px; background:#1E293B; color:#F8FAFC; border:1px solid #475569;">🏠 首頁</button>
+    <div class="top-nav-pills">
+      <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
+      <button id="topNavAudit" class="top-nav-pill" onclick="switchTab('audit')">🛠️ 腳本健檢</button>
+      <button id="topNavGen" class="top-nav-pill" onclick="switchTab('gen')">🧩 母體產生</button>
+      <button id="topNavDiagnose" class="top-nav-pill" onclick="switchTab('diagnose')">🩺 檢查LOG</button>
+      <button id="topNavTic" class="top-nav-pill" onclick="switchTab('tic')">🏷️ 代碼速查</button>
+    </div>
   </div>
-  <div style="font-size:13px; color:#E2E8F0;">
-    全螢幕瀏覽器模式  |  產線相容：Centimani 1.5.3 ~ 2.0
+  <div style="font-size:13px; color:#E2E8F0; white-space:nowrap;">
+    產線相容：Centimani 1.5.3 ~ 2.0
   </div>
 </div>
 
-<!-- 全螢幕主畫面容器 (左側直向導航 + 右側主工作區) -->
+<!-- 全螢幕主畫面容器 (已整合左側選單至頂部導覽列，釋放全寬作業空間) -->
 <div class="app-body">
-
-  <!-- ======================== 左側直向書籤導航欄 ======================== -->
-  <div id="leftSidebar" class="left-sidebar collapsed">
-    <button id="btnCollapseSidebar" class="sidebar-collapse-btn" onclick="toggleLeftSidebar()" title="摺疊 / 展開左側選單">
-      <span id="collapseSidebarIcon">▶</span>
-      <span class="collapse-label">收合選單</span>
-    </button>
-
-    <!-- 首頁總覽 -->
-    <div id="sideTabHome" class="sidebar-tab-item active" onclick="switchTab('home')">
-      <span style="font-size:16px;">🏠</span>
-      <span class="tab-label">首頁總覽</span>
-    </div>
-
-    <!-- 書籤一：腳本健檢 -->
-    <div id="sideTabAudit" class="sidebar-tab-item" onclick="switchTab('audit')">
-      <span style="font-size:16px;">🔍</span>
-      <span class="tab-label">腳本健檢</span>
-      <!-- 懸停彈出視窗 Popup Window -->
-      <div class="popup-card">
-        <h4>🔍 現有 Excel 腳本健檢與原路徑修復</h4>
-        <ul>
-          <li><strong>邏輯自檢</strong>：自動檢查 10 大項目（Phase 連號、Index 編排、TestID 缺漏、ExecMode 跳轉）。</li>
-          <li><strong>硬體核對</strong>：自動比對 <code>Device\*.dll</code> 實體 PE 版本，杜絕 Version mismatch。</li>
-          <li><strong>同目錄保存</strong>：自動輸出回原資料夾，檔名加上 <code>_FIXED.xlsx</code>。</li>
-          <li><strong>自動官方簽章</strong>：調用 <code>LoadScript.dll</code> 計算 64 碼 Checksum 並寫入 <code>System.ini</code>。</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 書籤二：檢查LOG -->
-    <div id="sideTabDiagnose" class="sidebar-tab-item" onclick="switchTab('diagnose')">
-      <span style="font-size:16px;">🩺</span>
-      <span class="tab-label">檢查LOG</span>
-      <!-- 懸停彈出視窗 Popup Window -->
-      <div class="popup-card">
-        <h4>🩺 Centimani 運行日誌與檢查LOG</h4>
-        <ul>
-          <li><strong>雙模輸入</strong>：支援幾百 KB 大檔 Log / CSV 直接選檔，或短文字直接貼上。</li>
-          <li><strong>FAIL 事故定位</strong>：秒抓通訊埠不存在、Dictionary 重複鍵、超時或數值超標。</li>
-          <li><strong>PASS 節拍分析</strong>：自動解析各 Phase 耗時、Top 5 瓶頸排行與 CT 縮短建議。</li>
-          <li><strong>解法導引</strong>：提供真實機台排查步驟與一鍵「無硬體試跑 (Dry-Run)」對策。</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 書籤三：母體產生 -->
-    <div id="sideTabGen" class="sidebar-tab-item" onclick="switchTab('gen')">
-      <span style="font-size:16px;">🟢</span>
-      <span class="tab-label">母體產生</span>
-      <!-- 懸停彈出視窗 Popup Window -->
-      <div class="popup-card">
-        <h4>🟢 空白標準母體與測試積木產生器</h4>
-        <ul>
-          <li><strong>標準 16 欄</strong>：自動建立合規的 Properties、DUTs、Switch、Instrument 分頁。</li>
-          <li><strong>積木庫勾選</strong>：自由勾選開機、NI6008 量測、MAC 燒錄與 Phase 97 安全收尾。</li>
-          <li><strong>完整獨立包</strong>：自動生成 <code>System.ini</code>、<code>Global.ini</code> 並複製 Test Item Code 檔案。</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 書籤四：TestID / Error Code 代碼速查與套用 -->
-    <div id="sideTabTic" class="sidebar-tab-item" onclick="switchTab('tic')">
-      <span style="font-size:16px;">🏷️</span>
-      <span class="tab-label">代碼速查</span>
-      <div class="popup-card">
-        <h4>🏷️ TestID / Error Code 速查與精準套用</h4>
-        <ul>
-          <li><strong>官方字典檢索</strong>：依中英文關鍵字搜尋 Test Item Code V2.04，支援僅顯示通用碼。</li>
-          <li><strong>方案一（母體積木）</strong>：直接替換「母體產生」已勾選積木的指定步驟 TestID。</li>
-          <li><strong>方案二（現有 Excel）</strong>：列出載入腳本的測試列，一鍵填入 TestID 並簽章存檔。</li>
-          <li><strong>方案三（複製與暫存）</strong>：支援單欄/雙欄複製（<code>Description + Tab + TestID</code>）與暫存籃。</li>
-        </ul>
-      </div>
-    </div>
-  </div>
+  <div id="leftSidebar" style="display:none;"></div>
 
   <!-- ======================== 右側主工作區域 ======================== -->
   <div class="main-content">
 
-  <!-- ======================== 總覽首頁 (Style A：左側灰階卡牌懸停亮色 + 右側即時詳解) ======================== -->
+  <!-- ======================== 總覽首頁（支援切換 方案 1 深色駕駛艙 / 方案 2 橫向手風琴展開卡） ======================== -->
   <div id="panelHome" style="display:block;">
-    <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
         <h2 style="margin:0; font-size:20px; color:#0F172A;">歡迎使用 Centimani 自動化腳本工作台</h2>
-        <div style="font-size:13.5px; color:#475569; margin-top:2px;">滑鼠移至左側功能卡即可即時預覽說明，點擊直接進入對應工作區</div>
+        <div style="font-size:13.5px; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時預覽與點亮主題色，點擊進入對應功能</div>
+      </div>
+      <div style="display:inline-flex; gap:6px; background:#E2E8F0; padding:4px; border-radius:8px; border:1px solid #CBD5E1;">
+        <button id="btnScheme1" onclick="setHomeScheme(1)" class="btn" style="padding:5px 12px; font-size:12.5px; background:#0F172A; color:#38BDF8; border-color:#38BDF8; font-weight:700;">🖥️ 方案 1：深色科技駕駛艙</button>
+        <button id="btnScheme2" onclick="setHomeScheme(2)" class="btn" style="padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;">🎴 方案 2：橫向手風琴展開卡</button>
       </div>
     </div>
 
-    <div class="home-layout">
+    <!-- 方案 1：深色科技駕駛艙 -->
+    <div id="homeScheme1" class="cyber-layout">
       <div class="home-card-list">
-        <div id="homeCard_audit" class="home-card active" data-theme="blue" onmouseenter="previewHomeFeature('audit')" onclick="switchTab('audit')">
+        <div id="homeCard_audit" class="cyber-card active" data-theme="blue" onmouseenter="previewHomeFeature('audit')" onclick="switchTab('audit')">
           <div style="display:flex; align-items:center; gap:12px;">
-            <span class="hc-icon">🛠️</span>
+            <span class="cc-num">01</span>
+            <span class="cc-icon">🛠️</span>
             <div>
-              <div class="hc-title">腳本健檢與修復</div>
-              <div class="hc-sub">Audit &amp; Auto-Fix</div>
+              <div class="cc-title">腳本健檢與修復</div>
+              <div class="cc-sub">單檔 / 整包 / 語意微調</div>
             </div>
           </div>
-          <span class="hc-arrow">▶</span>
+          <span style="font-weight:700;">▶</span>
         </div>
-
-        <div id="homeCard_gen" class="home-card" data-theme="green" onmouseenter="previewHomeFeature('gen')" onclick="switchTab('gen')">
+        <div id="homeCard_gen" class="cyber-card" data-theme="green" onmouseenter="previewHomeFeature('gen')" onclick="switchTab('gen')">
           <div style="display:flex; align-items:center; gap:12px;">
-            <span class="hc-icon">🧩</span>
+            <span class="cc-num">02</span>
+            <span class="cc-icon">🧩</span>
             <div>
-              <div class="hc-title">新腳本母體產生器</div>
-              <div class="hc-sub">4-Step Mother Builder</div>
+              <div class="cc-title">新腳本母體產生器</div>
+              <div class="cc-sub">4 步驟精靈 / 產線測試包</div>
             </div>
           </div>
-          <span class="hc-arrow">▶</span>
+          <span style="font-weight:700;">▶</span>
         </div>
-
-        <div id="homeCard_diagnose" class="home-card" data-theme="amber" onmouseenter="previewHomeFeature('diagnose')" onclick="switchTab('diagnose')">
+        <div id="homeCard_diagnose" class="cyber-card" data-theme="amber" onmouseenter="previewHomeFeature('diagnose')" onclick="switchTab('diagnose')">
           <div style="display:flex; align-items:center; gap:12px;">
-            <span class="hc-icon">🩺</span>
+            <span class="cc-num">03</span>
+            <span class="cc-icon">🩺</span>
             <div>
-              <div class="hc-title">測試 Log 失敗診斷</div>
-              <div class="hc-sub">Failure Log Analyzer</div>
+              <div class="cc-title">測試 Log 失敗診斷</div>
+              <div class="cc-sub">FAIL 定位 / 節拍分析</div>
             </div>
           </div>
-          <span class="hc-arrow">▶</span>
+          <span style="font-weight:700;">▶</span>
         </div>
-
-        <div id="homeCard_tic" class="home-card" data-theme="indigo" onmouseenter="previewHomeFeature('tic')" onclick="switchTab('tic')">
+        <div id="homeCard_tic" class="cyber-card" data-theme="indigo" onmouseenter="previewHomeFeature('tic')" onclick="switchTab('tic')">
           <div style="display:flex; align-items:center; gap:12px;">
-            <span class="hc-icon">🏷️</span>
+            <span class="cc-num">04</span>
+            <span class="cc-icon">🏷️</span>
             <div>
-              <div class="hc-title">TestID / ErrorCode 速查</div>
-              <div class="hc-sub">Standard Code Lookup</div>
+              <div class="cc-title">TestID / ErrorCode 速查</div>
+              <div class="cc-sub">官方標準代碼 V2.04</div>
             </div>
           </div>
-          <span class="hc-arrow">▶</span>
+          <span style="font-weight:700;">▶</span>
+        </div>
+      </div>
+      <div id="homeInspectorPanel" style="background:#0F172A; border:1.5px solid #38BDF8; border-radius:12px; padding:20px 24px; color:#E2E8F0; display:flex; flex-direction:column; justify-content:space-between; min-height:360px;"></div>
+    </div>
+
+    <!-- 方案 2：橫向手風琴展開卡 -->
+    <div id="homeScheme2" class="acc-row" style="display:none;">
+      <div id="accCard_audit" class="acc-card active" data-theme="blue" onmouseenter="setActiveAccCard('audit')" onclick="switchTab('audit')">
+        <div>
+          <div class="acc-num">01 / AUDIT</div>
+          <div class="acc-icon">🛠️</div>
+          <div class="acc-title">腳本健檢與修復</div>
+          <div class="acc-sub">Audit &amp; Auto-Fix</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#0C4A6E; line-height:1.6;">
+            <li>單檔體檢與整包資料夾批次掃描</li>
+            <li>語意微調：開關站別、ISN、IP / COM</li>
+            <li>插入 NI-6009 / FeasaLED / IQxel RF</li>
+          </ul>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="event.stopPropagation(); switchTab('audit'); pickExcelNative();" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;">📂 選取 Excel</button>
+            <button onclick="event.stopPropagation(); switchTab('audit'); pickFolderAndScan();" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">📁 掃描資料夾</button>
+          </div>
         </div>
       </div>
 
-      <div id="homeInspectorPanel" style="background:#FFFFFF; border:1.5px solid #CBD5E1; border-radius:10px; padding:18px 22px; display:flex; flex-direction:column; justify-content:space-between; min-height:340px;"></div>
+      <div id="accCard_gen" class="acc-card" data-theme="green" onmouseenter="setActiveAccCard('gen')" onclick="switchTab('gen')">
+        <div>
+          <div class="acc-num">02 / BUILDER</div>
+          <div class="acc-icon">🧩</div>
+          <div class="acc-title">新腳本母體產生器</div>
+          <div class="acc-sub">4-Step Mother Builder</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.6;">
+            <li>4 步驟建立全新 16 欄 TestFlow</li>
+            <li>整合 34 款儀器介紹與互動人機</li>
+            <li>同步產出 System.ini / Global.ini 與簽章</li>
+          </ul>
+          <button onclick="event.stopPropagation(); switchTab('gen');" class="btn btn-primary-green" style="padding:6px 14px; font-size:12.5px;">🚀 開始建立新母體 ▶</button>
+        </div>
+      </div>
+
+      <div id="accCard_diagnose" class="acc-card" data-theme="amber" onmouseenter="setActiveAccCard('diagnose')" onclick="switchTab('diagnose')">
+        <div>
+          <div class="acc-num">03 / LOG</div>
+          <div class="acc-icon">🩺</div>
+          <div class="acc-title">測試 Log 失敗診斷</div>
+          <div class="acc-sub">Failure Log Analyzer</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.6;">
+            <li>匯入產線 FAIL Log 或貼上錯誤片段</li>
+            <li>秒抓超標數據、規格差距與瓶頸耗時</li>
+            <li>一鍵複製乾淨異常摘要報告</li>
+          </ul>
+          <button onclick="event.stopPropagation(); switchTab('diagnose');" class="btn" style="padding:6px 14px; font-size:12.5px; background:#D97706; color:#FFFFFF; border-color:#B45309;">📄 匯入 Log 診斷 ▶</button>
+        </div>
+      </div>
+
+      <div id="accCard_tic" class="acc-card" data-theme="indigo" onmouseenter="setActiveAccCard('tic')" onclick="switchTab('tic')">
+        <div>
+          <div class="acc-num">04 / CODE</div>
+          <div class="acc-icon">🏷️</div>
+          <div class="acc-title">TestID / ErrorCode 速查</div>
+          <div class="acc-sub">Standard Code Lookup</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#312E81; line-height:1.6;">
+            <li>查詢 Test Item Code V2.04 合法 7 碼</li>
+            <li>中英文關鍵字即時搜尋通用碼</li>
+            <li>一鍵複製或套用至測試腳本</li>
+          </ul>
+          <button onclick="event.stopPropagation(); switchTab('tic');" class="btn btn-primary-blue" style="padding:6px 14px; font-size:12.5px; background:#4F46E5; border-color:#4338CA;">🔍 查詢標準代碼 ▶</button>
+        </div>
+      </div>
     </div>
 
     <div id="homeStatusFooter" style="margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:9px 14px; font-size:13px; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -1158,17 +1168,37 @@ function switchTab(tab) {
   document.getElementById('panelInstIntro').style.display = 'none';
   document.getElementById('panelInstHmi').style.display = 'none';
 
-  const sh = document.getElementById('sideTabHome');
-  if (sh) sh.className = 'sidebar-tab-item' + (tab === 'home' ? ' active' : '');
-  document.getElementById('sideTabAudit').className = 'sidebar-tab-item' + (tab === 'audit' ? ' active' : '');
-  document.getElementById('sideTabDiagnose').className = 'sidebar-tab-item' + (tab === 'diagnose' ? ' active' : '');
-  document.getElementById('sideTabGen').className = 'sidebar-tab-item' + (tab === 'gen' ? ' active' : '');
-  document.getElementById('sideTabTic').className = 'sidebar-tab-item' + (tab === 'tic' ? ' active' : '');
+  const navMap = { home: 'topNavHome', audit: 'topNavAudit', gen: 'topNavGen', diagnose: 'topNavDiagnose', tic: 'topNavTic' };
+  Object.entries(navMap).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.className = 'top-nav-pill' + (tab === k ? ' active' : '');
+  });
 
   if (tab === 'tic') {
     renderTicTargetList();
     setTimeout(() => document.getElementById('ticSearchInput').focus(), 50);
   }
+}
+
+function setHomeScheme(n) {
+  document.getElementById('homeScheme1').style.display = (n === 1) ? 'grid' : 'none';
+  document.getElementById('homeScheme2').style.display = (n === 2) ? 'flex' : 'none';
+  const b1 = document.getElementById('btnScheme1');
+  const b2 = document.getElementById('btnScheme2');
+  if (n === 1) {
+    b1.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#0F172A; color:#38BDF8; border-color:#38BDF8; font-weight:700;';
+    b2.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;';
+  } else {
+    b2.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#0F172A; color:#4ADE80; border-color:#4ADE80; font-weight:700;';
+    b1.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;';
+  }
+}
+
+function setActiveAccCard(key) {
+  ['audit', 'gen', 'diagnose', 'tic'].forEach(k => {
+    const el = document.getElementById('accCard_' + k);
+    if (el) el.classList.toggle('active', k === key);
+  });
 }
 
 const HOME_FEATURE_DATA = {
@@ -1239,31 +1269,33 @@ function previewHomeFeature(key) {
   const panel = document.getElementById('homeInspectorPanel');
   if (!panel) return;
   panel.style.borderColor = d.accent;
+  const flowPills = d.flow.split('→').map(s => `<span style="background:#1E293B; color:#E2E8F0; border:1px solid #334155; border-radius:6px; padding:4px 9px; font-size:12.5px;">${s.trim()}</span>`).join(' <span style="color:#64748B;">➔</span> ');
   panel.innerHTML = `
     <div>
-      <div style="display:flex; align-items:center; gap:10px; padding-bottom:10px; border-bottom:1.5px solid ${d.bg};">
-        <span style="font-size:28px; background:${d.bg}; padding:6px 10px; border-radius:8px;">${d.icon}</span>
-        <div>
-          <div style="font-size:18px; font-weight:700; color:#0F172A;">${d.title}</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:12px; border-bottom:1px solid #334155;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:28px; background:${d.bg}; padding:6px 11px; border-radius:8px;">${d.icon}</span>
+          <div style="font-size:18px; font-weight:700; color:#F8FAFC;">${d.title}</div>
         </div>
+        <span style="font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; background:${d.bg}; color:#0F172A;">READY</span>
       </div>
-      <div style="margin-top:12px;">
-        <div style="font-weight:700; font-size:13.5px; color:#334155;">📌 適用時機</div>
-        <div style="font-size:13.5px; color:#1E293B; margin-top:4px; line-height:1.55;">${d.when}</div>
+      <div style="margin-top:14px;">
+        <div style="font-weight:700; font-size:13px; color:#94A3B8;">📌 適用時機</div>
+        <div style="font-size:14px; color:#E2E8F0; margin-top:4px; line-height:1.55;">${d.when}</div>
       </div>
-      <div style="margin-top:12px;">
-        <div style="font-weight:700; font-size:13.5px; color:#334155;">⚙️ 核心功能</div>
-        <ul style="margin:5px 0 0 18px; padding:0; font-size:13.5px; color:#334155; line-height:1.6;">
+      <div style="margin-top:14px;">
+        <div style="font-weight:700; font-size:13px; color:#94A3B8;">⚙️ 核心功能</div>
+        <ul style="margin:6px 0 0 18px; padding:0; font-size:13.5px; color:#CBD5E1; line-height:1.65;">
           ${d.features.map(f => `<li>${f}</li>`).join('')}
         </ul>
       </div>
-      <div style="margin-top:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 12px; font-size:13px;">
-        <span style="font-weight:700; color:#0F172A;">🧭 操作流程：</span>
-        <span style="color:#334155;">${d.flow}</span>
+      <div style="margin-top:14px;">
+        <div style="font-weight:700; font-size:13px; color:#94A3B8; margin-bottom:6px;">🧭 操作流程</div>
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">${flowPills}</div>
       </div>
     </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:12px; border-top:1px solid #E2E8F0;">
-      ${d.actions.map(a => `<button onclick="${a.fn}" class="btn ${a.cls}" style="padding:8px 16px; font-size:13.5px;">${a.label}</button>`).join('')}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; padding-top:14px; border-top:1px solid #334155;">
+      ${d.actions.map(a => `<button onclick="${a.fn}" class="btn ${a.cls}" style="padding:8px 18px; font-size:13.5px;">${a.label}</button>`).join('')}
     </div>
   `;
 }

@@ -787,3 +787,253 @@
 .home-card[data-theme="indigo"].active .hc-title { color: #3730A3; }
 .home-card[data-theme="indigo"]:hover .hc-arrow,
 .home-card[data-theme="indigo"].active .hc-arrow { color: #4F46E5; }
+
+.top-home-btn {
+  padding: 4px 12px;
+  font-size: 13px;
+  background: #1E293B;
+  color: #F8FAFC;
+  border: 1px solid #475569;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.top-home-btn:hover {
+  background: #E0F2FE !important;
+  color: #0369A1 !important;
+  border-color: #38BDF8 !important;
+}
+
+
+/* ======================== Top Header Integrated Module Switcher ======================== */
+.top-nav-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.top-nav-pill {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: #1E293B;
+  color: #CBD5E1;
+  border: 1px solid #334155;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.top-nav-pill:hover {
+  background: #E0F2FE;
+  color: #0369A1;
+  border-color: #38BDF8;
+}
+.top-nav-pill.active {
+  background: #2563EB;
+  color: #FFFFFF;
+  border-color: #60A5FA;
+}
+
+/* ======================== Scheme 1: Dark Cyber Cockpit ======================== */
+.cyber-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .cyber-layout { grid-template-columns: 1fr; }
+}
+.cyber-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  background: #0F172A;
+  border: 1.5px solid #334155;
+  border-radius: 10px;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+.cyber-card .cc-num {
+  font-family: "Consolas", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: #1E293B;
+  color: #64748B;
+  border: 1px solid #334155;
+}
+.cyber-card .cc-icon {
+  font-size: 24px;
+  filter: grayscale(100%);
+  opacity: 0.7;
+  transition: filter 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+.cyber-card .cc-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #CBD5E1;
+}
+.cyber-card .cc-sub {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 2px;
+}
+.cyber-card:hover,
+.cyber-card.active {
+  transform: translateX(6px);
+  background: #1E293B;
+}
+.cyber-card:hover .cc-icon,
+.cyber-card.active .cc-icon {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.1);
+}
+.cyber-card[data-theme="blue"]:hover,
+.cyber-card[data-theme="blue"].active {
+  border-color: #38BDF8;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+}
+.cyber-card[data-theme="blue"]:hover .cc-num,
+.cyber-card[data-theme="blue"].active .cc-num {
+  background: #0284C7; color: #FFFFFF; border-color: #38BDF8;
+}
+.cyber-card[data-theme="blue"]:hover .cc-title,
+.cyber-card[data-theme="blue"].active .cc-title { color: #E0F2FE; }
+
+.cyber-card[data-theme="green"]:hover,
+.cyber-card[data-theme="green"].active {
+  border-color: #4ADE80;
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.25);
+}
+.cyber-card[data-theme="green"]:hover .cc-num,
+.cyber-card[data-theme="green"].active .cc-num {
+  background: #16A34A; color: #FFFFFF; border-color: #4ADE80;
+}
+.cyber-card[data-theme="green"]:hover .cc-title,
+.cyber-card[data-theme="green"].active .cc-title { color: #DCFCE7; }
+
+.cyber-card[data-theme="amber"]:hover,
+.cyber-card[data-theme="amber"].active {
+  border-color: #FBBF24;
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.25);
+}
+.cyber-card[data-theme="amber"]:hover .cc-num,
+.cyber-card[data-theme="amber"].active .cc-num {
+  background: #D97706; color: #FFFFFF; border-color: #FBBF24;
+}
+.cyber-card[data-theme="amber"]:hover .cc-title,
+.cyber-card[data-theme="amber"].active .cc-title { color: #FEF3C7; }
+
+.cyber-card[data-theme="indigo"]:hover,
+.cyber-card[data-theme="indigo"].active {
+  border-color: #818CF8;
+  box-shadow: 0 0 18px rgba(129, 140, 248, 0.28);
+}
+.cyber-card[data-theme="indigo"]:hover .cc-num,
+.cyber-card[data-theme="indigo"].active .cc-num {
+  background: #4F46E5; color: #FFFFFF; border-color: #818CF8;
+}
+.cyber-card[data-theme="indigo"]:hover .cc-title,
+.cyber-card[data-theme="indigo"].active .cc-title { color: #E0E7FF; }
+
+/* ======================== Scheme 2: Horizontal Accordion Cards ======================== */
+.acc-row {
+  display: flex;
+  gap: 14px;
+  min-height: 390px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .acc-row { flex-direction: column; min-height: auto; }
+}
+.acc-card {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  background: #E2E8F0;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  cursor: pointer;
+  transition: flex 0.32s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+}
+.acc-card .acc-num {
+  font-family: "Consolas", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748B;
+}
+.acc-card .acc-icon {
+  font-size: 38px;
+  margin: 12px 0 8px 0;
+  filter: grayscale(100%);
+  opacity: 0.72;
+  transition: filter 0.24s ease, opacity 0.24s ease, transform 0.24s ease;
+}
+.acc-card .acc-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acc-card .acc-sub {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 2px;
+}
+.acc-card .acc-body {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.24s ease, max-height 0.3s ease, transform 0.24s ease;
+}
+.acc-card.active,
+.acc-card:hover {
+  flex: 2.8 1 0%;
+  box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.14);
+}
+.acc-card.active .acc-icon,
+.acc-card:hover .acc-icon {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.06);
+}
+.acc-card.active .acc-body,
+.acc-card:hover .acc-body {
+  opacity: 1;
+  max-height: 280px;
+  transform: translateY(0);
+  margin-top: 12px;
+}
+.acc-card[data-theme="blue"].active,
+.acc-card[data-theme="blue"]:hover {
+  background: linear-gradient(145deg, #E0F2FE 0%, #F0F9FF 100%);
+  border-color: #0284C7;
+}
+.acc-card[data-theme="green"].active,
+.acc-card[data-theme="green"]:hover {
+  background: linear-gradient(145deg, #DCFCE7 0%, #F0FDF4 100%);
+  border-color: #16A34A;
+}
+.acc-card[data-theme="amber"].active,
+.acc-card[data-theme="amber"]:hover {
+  background: linear-gradient(145deg, #FEF3C7 0%, #FFFBEB 100%);
+  border-color: #D97706;
+}
+.acc-card[data-theme="indigo"].active,
+.acc-card[data-theme="indigo"]:hover {
+  background: linear-gradient(145deg, #E0E7FF 0%, #EEF2FF 100%);
+  border-color: #4F46E5;
+}
