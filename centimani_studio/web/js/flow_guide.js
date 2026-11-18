@@ -25,10 +25,11 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-blue',
     btnLabel: '開始使用：腳本健檢 ▶',
     steps: [
-      { num: '①', title: '選取單檔或整包', items: ['單一 Excel 體檢', '整包資料夾批次掃描'] },
-      { num: '②', title: '檢視紅黃燈報告', items: ['同類錯誤自動折疊', '自動對比實體 DLL'] },
-      { num: '③', title: '微調與補儀器', items: ['站別/ISN/IP/COM 微調', '插 NI-6009 / Feasa / RF'] },
-      { num: '④', title: '匯出與簽章', items: ['產出 *_FIXED.xlsx', '寫入 INI 與 Checksum'] }
+      { num: '①', title: '選檔 / 掃描整包', jumpIdx: 0, items: ['單一 Excel 體檢', '整包資料夾批次掃描'] },
+      { num: '②', title: '紅黃燈體檢報告', jumpIdx: 2, items: ['抓出錯漏與條碼位數', '燈號篩選與跳轉樹'] },
+      { num: '③', title: '全域 / 跳轉 / 通訊', jumpIdx: 4, items: ['站別 / ISN / IP / COM', '視覺化跳轉與轉 SSH'] },
+      { num: '④', title: '插入 34 款儀器', jumpIdx: 7, items: ['NI-6009 / Feasa / RF', '互動人機免查指令'] },
+      { num: '⑤', title: '試跑與匯出簽章', jumpIdx: 12, items: ['無硬體試跑 Dry-Run', '產出 *_FIXED + Checksum'] }
     ],
     detailedSteps: [
       {
@@ -112,10 +113,11 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-green',
     btnLabel: '開始使用：母體產生器 ▶',
     steps: [
-      { num: '①', title: '基本與 ISN', items: ['輸入專案 / 站別 / 槽位', '設定 ISN 與 SFIS/iPLAS 廠區'] },
-      { num: '②', title: '骨架與儀器', items: ['勾選標準流程積木', '快選 34 款儀器進入人機'] },
-      { num: '③', title: '細部參數', items: ['接線圖點腳位與上下限', '設定韌體 / Ping / Python'] },
-      { num: '④', title: '產出測試包', items: ['實機產線測試包', '或無硬體試跑 Dry-Run 版'] }
+      { num: '①', title: '基本與 ISN 規格', jumpIdx: 0, items: ['專案 / 站別 / 多工槽位', 'ISN 條碼與規則預覽'] },
+      { num: '②', title: 'SFIS / iPLAS 廠區', jumpIdx: 1, items: ['一鍵套用 PTB / PXD', '開關直接寫入 INI'] },
+      { num: '③', title: '骨架與 34 款儀器', jumpIdx: 3, items: ['最小骨架 / 7 大積木', '快選儀器進入互動人機'] },
+      { num: '④', title: '細部測試參數', jumpIdx: 8, items: ['UART/ADB/SSH 韌體指令', '治具 COM 與等待時間'] },
+      { num: '⑤', title: '雙模式產出測試包', jumpIdx: 9, items: ['無硬體試跑 Dry-Run', '產線實機包 + 64 碼簽章'] }
     ],
     detailedSteps: [
       {
@@ -184,10 +186,11 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-jump',
     btnLabel: '開始使用：Log 診斷 ▶',
     steps: [
-      { num: '①', title: '匯入 Log', items: ['選取大檔 Log / CSV 檔', '或直接貼上錯誤文字片段'] },
-      { num: '②', title: '自動定位異常', items: ['抓出 FAIL 測項與錯誤碼', '計算實測值 vs 規格差距'] },
-      { num: '③', title: '節拍與對策', items: ['Phase 耗時 Top5 排行', '產線排查步驟建議'] },
-      { num: '④', title: '一鍵匯報', items: ['產生乾淨異常摘要報告', '複製貼至 Teams / 郵件'] }
+      { num: '①', title: '載入 Log 檔案', jumpIdx: 0, items: ['選取 .log / .csv 大檔', '支援修改後重新解析'] },
+      { num: '②', title: '自動定位與瓶頸', jumpIdx: 1, items: ['抓出 FAIL 與超標幅度', 'Phase 耗時 Top5 排行'] },
+      { num: '③', title: '一鍵複製摘要', jumpIdx: 2, items: ['整理純文字結論報告', '直接貼至 Teams / 郵件'] },
+      { num: '④', title: '書籤二：貼上文字', jumpIdx: 3, items: ['貼上黑窗 / 彈窗錯誤', '免完整檔案立即診斷'] },
+      { num: '⑤', title: '即時給予對策', jumpIdx: 4, items: ['比對 Checksum / SFIS', '提供產線排查步驟'] }
     ],
     detailedSteps: [
       {
@@ -226,10 +229,11 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-dry',
     btnLabel: '開始使用：代碼速查 ▶',
     steps: [
-      { num: '①', title: '自動載入表', items: ['預設載入最新 V2.04 版', '免手動選檔（可換新版）'] },
-      { num: '②', title: '關鍵字搜尋', items: ['搜尋中英文 / 7 碼代碼', '即時過濾 Error Code'] },
-      { num: '③', title: '篩選通用碼', items: ['勾選僅顯示通用碼', '避免誤用舊專案專屬碼'] },
-      { num: '④', title: '複製或套用', items: ['一鍵複製至剪貼簿', '或直接套入健檢/母體'] }
+      { num: '①', title: '自動載入 V2.04', jumpIdx: 0, items: ['開機預載最新官方表', '支援篩選僅顯示通用碼'] },
+      { num: '②', title: '搜尋與雙欄複製', jumpIdx: 1, items: ['中英文 / TestID 搜尋', '雙欄複製直接貼 Excel'] },
+      { num: '③', title: '方案一：套用母體', jumpIdx: 2, items: ['寫入新腳本母體積木', '可同步帶入英文描述'] },
+      { num: '④', title: '方案二：寫入 Excel', jumpIdx: 3, items: ['切換第二書籤選 Excel', '接續健檢檔案直接補碼'] },
+      { num: '⑤', title: '篩選缺碼並存檔', jumpIdx: 4, items: ['僅看缺 TestID 列', '套用後直接簽章存回'] }
     ],
     detailedSteps: [
       {
@@ -343,20 +347,28 @@ function renderFlowGuidePage(tab) {
   if (!d) { switchTab(tab); return; }
 
   const fs = parseInt(APP_SETTINGS.intro_font_size || 15, 10);
-  const stepsHtml = d.steps.map((st, idx) => `
-    <div style="display:flex; align-items:stretch; flex:1; min-width:170px; gap:8px;">
-      <div style="flex:1; background:#FFFFFF; border:1.5px solid ${d.themeBorder}; border-radius:10px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.06);">
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-          <span style="background:${d.themeBg}; color:#0F172A; font-weight:700; font-size:13px; padding:2px 8px; border-radius:999px; border:1px solid ${d.themeBorder};">${st.num}</span>
-          <span style="font-weight:700; font-size:15px; color:#0F172A;">${st.title}</span>
+  const stepsHtml = d.steps.map((st, idx) => {
+    const jIdx = typeof st.jumpIdx === 'number' ? st.jumpIdx : idx;
+    const targetStep = (d.detailedSteps && d.detailedSteps[jIdx]) ? String(d.detailedSteps[jIdx].step).split('｜')[0].trim() : `Step ${jIdx + 1}`;
+    return `
+    <div style="display:flex; align-items:stretch; flex:1; min-width:165px; gap:6px;">
+      <div class="flow-stage-card" onclick="jumpToFlowStep(${jIdx})" title="點擊跳轉至 ${targetStep}"
+           style="flex:1; background:#FFFFFF; border:1.5px solid ${d.themeBorder}; border-top:4px solid ${d.themeBorder}; border-radius:10px; padding:11px 12px; box-shadow:0 2px 6px rgba(15,23,42,0.06); display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+            <span style="background:${d.themeBg}; color:#0F172A; font-weight:800; font-size:12.5px; padding:2px 8px; border-radius:999px; border:1px solid ${d.themeBorder};">${st.num}</span>
+            <span style="font-weight:700; font-size:14.5px; color:#0F172A;">${st.title}</span>
+          </div>
+          <ul style="margin:0 0 8px 16px; padding:0; font-size:12.5px; color:#334155; line-height:1.5;">
+            ${st.items.map(it => `<li>${it}</li>`).join('')}
+          </ul>
         </div>
-        <ul style="margin:0 0 0 16px; padding:0; font-size:13px; color:#334155; line-height:1.55;">
-          ${st.items.map(it => `<li>${it}</li>`).join('')}
-        </ul>
+        <div style="font-size:11.5px; font-weight:700; color:${d.themeBorder}; text-align:right;">跳至 ${targetStep} ▶</div>
       </div>
-      ${idx < d.steps.length - 1 ? '<div style="display:flex; align-items:center; font-size:20px; font-weight:700; color:#64748B;">➔</div>' : ''}
+      ${idx < d.steps.length - 1 ? '<div style="display:flex; align-items:center; font-size:18px; font-weight:700; color:#64748B;">➔</div>' : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const quickJumpHtml = (d.detailedSteps || []).map((ds, idx) => {
     const parts = String(ds.step || '').split('｜');

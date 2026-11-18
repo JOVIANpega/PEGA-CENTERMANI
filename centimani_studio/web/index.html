@@ -3573,13 +3573,6 @@ function ni6RenderCards() {
       </div>
     `;
   });
-  rfArr.forEach((rb, idx) => {
-    html += `
-      <div style="background:#F5F3FF; border:1.5px solid #8B5CF6; border-radius:6px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700; font-size:13px; color:#5B21B6;">📡 ${rb.inst_name} RF 測試 — Tx ${(rb.tx_tests||[]).length} 筆 / Rx ${(rb.rx_tests||[]).length} 筆（含 WIFI Tx/Rx MCS Marco）</span>
-        <button onclick="STATE.genRfBlocks.splice(${idx},1); renderGenCustomInstList();" class="btn" style="padding:2px 8px; font-size:12px; background:#FEE2E2; color:#B91C1C; border-color:#FCA5A5;">✕ 移除</button>
-      </div>`;
-  });
   box.innerHTML = html;
 }
 

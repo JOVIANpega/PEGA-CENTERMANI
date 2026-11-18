@@ -428,7 +428,7 @@ const INST_HMI_STATE = {
   targetMode: 'audit',
   instName: 'FeasaLED',
   hmiType: 'feasa',
-  // FeasaLED
+  // FeasaLED (支援多顆 RGB / 多通道批次設定)
   feasaCh: '01',
   feasaColor: 'green',
   feasaCom: 'COM17',
@@ -436,6 +436,9 @@ const INST_HMI_STATE = {
   feasaWaveMax: '535',
   feasaIntMin: '1000',
   feasaIntMax: '99999',
+  feasaItems: [
+    { ch: '01', color: 'green', label: 'Green LED', waveMin: '515', waveMax: '535', intMin: '1000', intMax: '99999' }
+  ],
   // IPOWER
   pwrOutlet: '1',
   pwrAction: 'cycle',
@@ -517,21 +520,63 @@ function onInstHmiSheetChange() {
   aSel.innerHTML = opts;
 }
 
+const FEASA_COLOR_PRESETS = {
+  green:  { label: 'Green LED', wmin: '515', wmax: '535', imin: '1000', imax: '99999', title: 'Check Green LED' },
+  red:    { label: 'Red LED',   wmin: '615', wmax: '640', imin: '1000', imax: '99999', title: 'Check Red LED' },
+  blue:   { label: 'Blue LED',  wmin: '455', wmax: '475', imin: '1000', imax: '99999', title: 'Check Blue LED' },
+  yellow: { label: 'Amber LED', wmin: '580', wmax: '600', imin: '1000', imax: '99999', title: 'Check Amber LED' },
+  white:  { label: 'White LED', wmin: '400', wmax: '700', imin: '1500', imax: '99999', title: 'Check White LED Intensity' }
+};
+
 function setFeasaColorPreset(colorKey) {
   INST_HMI_STATE.feasaColor = colorKey;
-  const presets = {
-    green:  { wmin: '515', wmax: '535', imin: '1000', imax: '99999', title: 'Check Green LED' },
-    red:    { wmin: '615', wmax: '640', imin: '1000', imax: '99999', title: 'Check Red LED' },
-    blue:   { wmin: '455', wmax: '475', imin: '1000', imax: '99999', title: 'Check Blue LED' },
-    yellow: { wmin: '580', wmax: '600', imin: '1000', imax: '99999', title: 'Check Amber LED' },
-    white:  { wmin: '400', wmax: '700', imin: '1500', imax: '99999', title: 'Check White LED Intensity' }
-  };
-  const p = presets[colorKey] || presets.green;
+  const p = FEASA_COLOR_PRESETS[colorKey] || FEASA_COLOR_PRESETS.green;
   INST_HMI_STATE.feasaWaveMin = p.wmin;
   INST_HMI_STATE.feasaWaveMax = p.wmax;
   INST_HMI_STATE.feasaIntMin = p.imin;
   INST_HMI_STATE.feasaIntMax = p.imax;
-  INST_HMI_STATE.titleName = p.title;
+  if (!INST_HMI_STATE.feasaItems || INST_HMI_STATE.feasaItems.length === 0) {
+    INST_HMI_STATE.feasaItems = [{ ch: INST_HMI_STATE.feasaCh || '01', color: colorKey, label: p.label, waveMin: p.wmin, waveMax: p.wmax, intMin: p.imin, intMax: p.imax }];
+  } else {
+    const target = INST_HMI_STATE.feasaItems[0];
+    target.color = colorKey;
+    target.label = p.label;
+    target.waveMin = p.wmin;
+    target.waveMax = p.wmax;
+    target.intMin = p.imin;
+    target.intMax = p.imax;
+  }
+  INST_HMI_STATE.titleName = INST_HMI_STATE.feasaItems.length > 1 ? 'Check Multi-Color LEDs' : p.title;
+  renderInstHmi();
+}
+
+function addFeasaColorItem(colorKey) {
+  const p = FEASA_COLOR_PRESETS[colorKey] || FEASA_COLOR_PRESETS.green;
+  INST_HMI_STATE.feasaItems = INST_HMI_STATE.feasaItems || [];
+  // Find next unused channel starting from selected feasaCh or 01..10
+  const used = new Set(INST_HMI_STATE.feasaItems.map(x => x.ch));
+  let ch = String(INST_HMI_STATE.feasaCh || '01').padStart(2, '0');
+  if (used.has(ch)) {
+    for (let i = 1; i <= 10; i++) {
+      const cand = String(i).padStart(2, '0');
+      if (!used.has(cand)) { ch = cand; break; }
+    }
+  }
+  INST_HMI_STATE.feasaItems.push({
+    ch, color: colorKey, label: p.label,
+    waveMin: p.wmin, waveMax: p.wmax, intMin: p.imin, intMax: p.imax
+  });
+  INST_HMI_STATE.titleName = INST_HMI_STATE.feasaItems.length > 1 ? 'Check Multi-Color LEDs' : p.title;
+  renderInstHmi();
+}
+
+function addFeasaRgbPreset() {
+  INST_HMI_STATE.feasaItems = [
+    { ch: '01', color: 'red',   label: 'Red LED',   waveMin: '615', waveMax: '640', intMin: '1000', intMax: '99999' },
+    { ch: '02', color: 'green', label: 'Green LED', waveMin: '515', waveMax: '535', intMin: '1000', intMax: '99999' },
+    { ch: '03', color: 'blue',  label: 'Blue LED',  waveMin: '455', waveMax: '475', intMin: '1000', intMax: '99999' }
+  ];
+  INST_HMI_STATE.titleName = 'Check RGB LEDs (Ch01~03)';
   renderInstHmi();
 }
 
@@ -544,15 +589,27 @@ function buildInstHmiPayload() {
   let ul = '';
 
   if (t === 'feasa') {
-    const ch = String(s.feasaCh).padStart(2, '0');
-    dl = s.feasaWaveMin;
-    ul = s.feasaWaveMax;
-    globalsPatch = { Settings: { LED_AZ1: s.feasaCom || 'COM17', LED_Light1: ch } };
-    steps = [
-      { Instrument: 'LED_Test', Send: ':ObtainDevice', ExecMode: '0', Description: 'LED#-#Obtain Feasa LED Lock', TestID: 'BRME027' },
-      { Instrument: 'LED_Test', Send: `:Dev.CaptureAndRead,"${ch}"`, Ref: '$LED_Wave;\n$LED_Int', Validation: `(LED_Wave,%f,${s.feasaWaveMin},${s.feasaWaveMax});\n(LED_Int,%f,${s.feasaIntMin},${s.feasaIntMax})`, ExecMode: '2:0', Description: `LED#-#Ch${ch} Wavelength(${s.feasaWaveMin}~${s.feasaWaveMax}nm) & Intensity`, TestID: 'IOLE015' },
-      { Instrument: 'LED_Test', Send: ':ReleaseDevice', ExecMode: '3', Description: 'LED#-#Release Feasa LED Lock', TestID: 'BRME027' }
-    ];
+    const items = (s.feasaItems && s.feasaItems.length > 0)
+      ? s.feasaItems
+      : [{ ch: String(s.feasaCh || '01').padStart(2, '0'), label: 'LED', waveMin: s.feasaWaveMin, waveMax: s.feasaWaveMax, intMin: s.feasaIntMin, intMax: s.feasaIntMax }];
+    const first = items[0];
+    dl = first.waveMin;
+    ul = first.waveMax;
+    globalsPatch = { Settings: { LED_AZ1: s.feasaCom || 'COM17', LED_Light1: String(first.ch).padStart(2, '0') } };
+    steps.push({ Instrument: 'LED_Test', Send: ':ObtainDevice', ExecMode: '0', Description: 'LED#-#Obtain Feasa LED Lock', TestID: 'BRME027' });
+    items.forEach(it => {
+      const ch = String(it.ch).padStart(2, '0');
+      steps.push({
+        Instrument: 'LED_Test',
+        Send: `:Dev.CaptureAndRead,"${ch}"`,
+        Ref: '$LED_Wave;\n$LED_Int',
+        Validation: `(LED_Wave,%f,${it.waveMin},${it.waveMax});\n(LED_Int,%f,${it.intMin},${it.intMax})`,
+        ExecMode: '2:0',
+        Description: `LED#-#Ch${ch} ${it.label || 'LED'} (${it.waveMin}~${it.waveMax}nm) & Intensity`,
+        TestID: 'IOLE015'
+      });
+    });
+    steps.push({ Instrument: 'LED_Test', Send: ':ReleaseDevice', ExecMode: '3', Description: 'LED#-#Release Feasa LED Lock', TestID: 'BRME027' });
   } else if (t === 'ipower') {
     const out = s.pwrOutlet || '1';
     steps.push({ Instrument: s.instName, Send: ':ObtainDevice', ExecMode: '1', Description: `PC#-#Obtain ${s.instName}`, TestID: 'B7PL025' });
@@ -605,48 +662,56 @@ function renderInstHmi() {
   let rightControls = '';
 
   if (s.hmiType === 'feasa') {
+    const items = s.feasaItems || [];
+    const usedSet = new Set(items.map(x => String(x.ch).padStart(2, '0')));
     const chButtons = Array.from({length: 10}, (_, i) => {
       const ch = String(i + 1).padStart(2, '0');
       const active = s.feasaCh === ch;
-      return `<button onclick="INST_HMI_STATE.feasaCh='${ch}';renderInstHmi();" class="btn" style="padding:5px 9px; font-size:12px; ${active ? 'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;' : 'background:#F8FAFC;color:#334155;'}">Ch ${ch}</button>`;
+      const inList = usedSet.has(ch);
+      return `<button onclick="INST_HMI_STATE.feasaCh='${ch}';renderInstHmi();" class="btn" style="padding:5px 9px; font-size:12px; ${active ? 'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;' : (inList ? 'background:#DCFCE7;color:#166534;border-color:#22C55E;font-weight:700;' : 'background:#F8FAFC;color:#334155;')}">Ch ${ch}${inList ? ' ✓' : ''}</button>`;
     }).join('');
     leftPicker = `
-      <div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">💡 點選光纖測試通道（Ch 01 ~ 10）：</div>
+      <div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">💡 點選光纖測試通道（Ch 01 ~ 10，綠底 ✓ 代表已加入清單）：</div>
       <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">${chButtons}</div>
     `;
+    const ledRowsHtml = items.map((it, idx) => `
+      <tr>
+        <td><input value="${it.ch}" onchange="INST_HMI_STATE.feasaItems[${idx}].ch=this.value.padStart(2,'0');renderInstHmi();" class="mono" style="width:44px;padding:3px;"></td>
+        <td><input value="${it.label}" onchange="INST_HMI_STATE.feasaItems[${idx}].label=this.value;renderInstHmi();" style="width:96px;padding:3px;"></td>
+        <td><input value="${it.waveMin}" onchange="INST_HMI_STATE.feasaItems[${idx}].waveMin=this.value;renderInstHmi();" class="mono" style="width:52px;padding:3px;"></td>
+        <td><input value="${it.waveMax}" onchange="INST_HMI_STATE.feasaItems[${idx}].waveMax=this.value;renderInstHmi();" class="mono" style="width:52px;padding:3px;"></td>
+        <td><input value="${it.intMin}" onchange="INST_HMI_STATE.feasaItems[${idx}].intMin=this.value;renderInstHmi();" class="mono" style="width:62px;padding:3px;"></td>
+        <td><input value="${it.intMax}" onchange="INST_HMI_STATE.feasaItems[${idx}].intMax=this.value;renderInstHmi();" class="mono" style="width:68px;padding:3px;"></td>
+        <td><button class="btn" style="padding:2px 6px;" onclick="INST_HMI_STATE.feasaItems.splice(${idx},1);renderInstHmi();">✕</button></td>
+      </tr>
+    `).join('');
+
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">① 快速套用 LED 顏色標準</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button onclick="setFeasaColorPreset('green')" class="btn" style="background:#DCFCE7; color:#166534; border-color:#86EFAC;">🟢 綠燈 (515~535nm)</button>
-          <button onclick="setFeasaColorPreset('red')" class="btn" style="background:#FEE2E2; color:#991B1B; border-color:#FCA5A5;">🔴 紅燈 (615~640nm)</button>
-          <button onclick="setFeasaColorPreset('blue')" class="btn" style="background:#DBEAFE; color:#1E40AF; border-color:#93C5FD;">🔵 藍燈 (455~475nm)</button>
-          <button onclick="setFeasaColorPreset('yellow')" class="btn" style="background:#FEF3C7; color:#92400E; border-color:#FCD34D;">🟡 黃燈 (580~600nm)</button>
-          <button onclick="setFeasaColorPreset('white')" class="btn" style="background:#F1F5F9; color:#334155; border-color:#CBD5E1;">⚪ 白燈 / 純測亮度</button>
+        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">① 一鍵加入單色 / RGB 多顆燈號（支援同站一次寫入多組燈號）</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <button onclick="addFeasaRgbPreset()" class="btn" style="background:#FEF08A; color:#0F172A; border-color:#CA8A04; font-weight:700;">🌈 一鍵加入 RGB 三色 (Ch01紅+02綠+03藍)</button>
+          <button onclick="addFeasaColorItem('green')" class="btn" style="background:#DCFCE7; color:#166534; border-color:#86EFAC;">➕ 綠燈 (515~535nm)</button>
+          <button onclick="addFeasaColorItem('red')" class="btn" style="background:#FEE2E2; color:#991B1B; border-color:#FCA5A5;">➕ 紅燈 (615~640nm)</button>
+          <button onclick="addFeasaColorItem('blue')" class="btn" style="background:#DBEAFE; color:#1E40AF; border-color:#93C5FD;">➕ 藍燈 (455~475nm)</button>
+          <button onclick="addFeasaColorItem('yellow')" class="btn" style="background:#FEF3C7; color:#92400E; border-color:#FCD34D;">➕ 黃燈 (580~600nm)</button>
+          <button onclick="addFeasaColorItem('white')" class="btn" style="background:#F1F5F9; color:#334155; border-color:#CBD5E1;">➕ 白燈 / 純亮度</button>
         </div>
-      </div>
-      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">② 微調光纖通道、COM Port 與合格上下限</div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
           <label style="font-size:12.5px; font-weight:700;">Title 測項名稱
             <input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
           </label>
           <label style="font-size:12.5px; font-weight:700;">COM Port (Global.ini)
             <input value="${s.feasaCom}" onchange="INST_HMI_STATE.feasaCom=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
           </label>
-          <label style="font-size:12.5px; font-weight:700;">波長下限 (nm)
-            <input value="${s.feasaWaveMin}" onchange="INST_HMI_STATE.feasaWaveMin=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-          </label>
-          <label style="font-size:12.5px; font-weight:700;">波長上限 (nm)
-            <input value="${s.feasaWaveMax}" onchange="INST_HMI_STATE.feasaWaveMax=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-          </label>
-          <label style="font-size:12.5px; font-weight:700;">亮度下限 (Intensity)
-            <input value="${s.feasaIntMin}" onchange="INST_HMI_STATE.feasaIntMin=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-          </label>
-          <label style="font-size:12.5px; font-weight:700;">亮度上限 (Intensity)
-            <input value="${s.feasaIntMax}" onchange="INST_HMI_STATE.feasaIntMax=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-          </label>
         </div>
+      </div>
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
+        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">② 已加入的 LED 測試清單（共 ${items.length} 顆燈號，送出時一次寫入）</div>
+        <table class="meas-table">
+          <thead><tr><th>Ch</th><th>燈號名稱</th><th>波長下限(nm)</th><th>波長上限(nm)</th><th>亮度下限</th><th>亮度上限</th><th>刪</th></tr></thead>
+          <tbody>${ledRowsHtml || '<tr><td colspan="7" style="text-align:center;color:#64748B;">尚未加入 LED 測項，請點上方「➕」或「🌈 RGB 三色」</td></tr>'}</tbody>
+        </table>
       </div>
     `;
   } else if (s.hmiType === 'ipower') {
