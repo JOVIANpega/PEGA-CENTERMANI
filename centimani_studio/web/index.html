@@ -32,72 +32,17 @@
   <!-- ======================== 右側主工作區域 ======================== -->
   <div class="main-content">
 
-  <!-- ======================== 總覽首頁（支援切換 方案 1 深色駕駛艙 / 方案 2 橫向手風琴展開卡） ======================== -->
+  <!-- ======================== 總覽首頁（橫向手風琴展開卡） ======================== -->
   <div id="panelHome" style="display:block;">
     <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
         <h2 style="margin:0; font-size:20px; color:#0F172A;">歡迎使用 Centimani 自動化腳本工作台</h2>
-        <div style="font-size:13.5px; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時預覽與點亮主題色，點擊進入對應功能</div>
-      </div>
-      <div style="display:inline-flex; gap:6px; background:#E2E8F0; padding:4px; border-radius:8px; border:1px solid #CBD5E1;">
-        <button id="btnScheme1" onclick="setHomeScheme(1)" class="btn" style="padding:5px 12px; font-size:12.5px; background:#0F172A; color:#38BDF8; border-color:#38BDF8; font-weight:700;">🖥️ 方案 1：深色科技駕駛艙</button>
-        <button id="btnScheme2" onclick="setHomeScheme(2)" class="btn" style="padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;">🎴 方案 2：橫向手風琴展開卡</button>
+        <div style="font-size:13.5px; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時展開功能說明並點亮主題色，點擊進入對應工作區</div>
       </div>
     </div>
 
-    <!-- 方案 1：深色科技駕駛艙 -->
-    <div id="homeScheme1" class="cyber-layout">
-      <div class="home-card-list">
-        <div id="homeCard_audit" class="cyber-card active" data-theme="blue" onmouseenter="previewHomeFeature('audit')" onclick="switchTab('audit')">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="cc-num">01</span>
-            <span class="cc-icon">🛠️</span>
-            <div>
-              <div class="cc-title">腳本健檢與修復</div>
-              <div class="cc-sub">單檔 / 整包 / 語意微調</div>
-            </div>
-          </div>
-          <span style="font-weight:700;">▶</span>
-        </div>
-        <div id="homeCard_gen" class="cyber-card" data-theme="green" onmouseenter="previewHomeFeature('gen')" onclick="switchTab('gen')">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="cc-num">02</span>
-            <span class="cc-icon">🧩</span>
-            <div>
-              <div class="cc-title">新腳本母體產生器</div>
-              <div class="cc-sub">4 步驟精靈 / 產線測試包</div>
-            </div>
-          </div>
-          <span style="font-weight:700;">▶</span>
-        </div>
-        <div id="homeCard_diagnose" class="cyber-card" data-theme="amber" onmouseenter="previewHomeFeature('diagnose')" onclick="switchTab('diagnose')">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="cc-num">03</span>
-            <span class="cc-icon">🩺</span>
-            <div>
-              <div class="cc-title">測試 Log 失敗診斷</div>
-              <div class="cc-sub">FAIL 定位 / 節拍分析</div>
-            </div>
-          </div>
-          <span style="font-weight:700;">▶</span>
-        </div>
-        <div id="homeCard_tic" class="cyber-card" data-theme="indigo" onmouseenter="previewHomeFeature('tic')" onclick="switchTab('tic')">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="cc-num">04</span>
-            <span class="cc-icon">🏷️</span>
-            <div>
-              <div class="cc-title">TestID / ErrorCode 速查</div>
-              <div class="cc-sub">官方標準代碼 V2.04</div>
-            </div>
-          </div>
-          <span style="font-weight:700;">▶</span>
-        </div>
-      </div>
-      <div id="homeInspectorPanel" style="background:#0F172A; border:1.5px solid #38BDF8; border-radius:12px; padding:20px 24px; color:#E2E8F0; display:flex; flex-direction:column; justify-content:space-between; min-height:360px;"></div>
-    </div>
-
-    <!-- 方案 2：橫向手風琴展開卡 -->
-    <div id="homeScheme2" class="acc-row" style="display:none;">
+    <!-- 橫向手風琴展開卡 -->
+    <div id="homeScheme2" class="acc-row">
       <div id="accCard_audit" class="acc-card active" data-theme="blue" onmouseenter="setActiveAccCard('audit')" onclick="switchTab('audit')">
         <div>
           <div class="acc-num">01 / AUDIT</div>
@@ -165,7 +110,7 @@
             <li>中英文關鍵字即時搜尋通用碼</li>
             <li>一鍵複製或套用至測試腳本</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchTab('tic');" class="btn btn-primary-blue" style="padding:6px 14px; font-size:12.5px; background:#4F46E5; border-color:#4338CA;">🔍 查詢標準代碼 ▶</button>
+          <button onclick="event.stopPropagation(); switchTab('tic');" class="btn" style="padding:6px 14px; font-size:12.5px; background:#4F46E5; color:#FFFFFF; border-color:#4338CA; font-weight:700;">🔍 查詢標準代碼 ▶</button>
         </div>
       </div>
     </div>
@@ -1180,124 +1125,11 @@ function switchTab(tab) {
   }
 }
 
-function setHomeScheme(n) {
-  document.getElementById('homeScheme1').style.display = (n === 1) ? 'grid' : 'none';
-  document.getElementById('homeScheme2').style.display = (n === 2) ? 'flex' : 'none';
-  const b1 = document.getElementById('btnScheme1');
-  const b2 = document.getElementById('btnScheme2');
-  if (n === 1) {
-    b1.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#0F172A; color:#38BDF8; border-color:#38BDF8; font-weight:700;';
-    b2.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;';
-  } else {
-    b2.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#0F172A; color:#4ADE80; border-color:#4ADE80; font-weight:700;';
-    b1.style.cssText = 'padding:5px 12px; font-size:12.5px; background:#FFFFFF; color:#334155; border-color:#CBD5E1;';
-  }
-}
-
 function setActiveAccCard(key) {
   ['audit', 'gen', 'diagnose', 'tic'].forEach(k => {
     const el = document.getElementById('accCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
-}
-
-const HOME_FEATURE_DATA = {
-  audit: {
-    icon: '🛠️', title: '腳本健檢與修復 (Audit & Auto-Fix)', accent: '#0284C7', bg: '#E0F2FE',
-    when: '拿到既有測試腳本或舊專案範本，需快速抓出邏輯錯誤、微調站別/IP/COM/ISN、插入新儀器並重新計算 Checksum 上線。',
-    features: [
-      '單檔體檢與整包專案資料夾批次掃描（自動跳過 *_FIXED 與 old_ 備份）',
-      '語意化線上微調區：直接開關站別、設定 ISN 位數、修改 Ping IP / COM Port / 儀器 Mount',
-      '互動式插入 NI-6009 / FeasaLED / iPower / DMM / IQxel RF（含 21/22 步 Marco）',
-      '一鍵自動修補格式與 TestID，並更新 System.ini Checksum（支援無硬體 Dry-Run）'
-    ],
-    flow: '選取 Excel → 檢視紅黃燈與微調參數 → 一鍵修好並匯出 (*_FIXED.xlsx)',
-    actions: [
-      { label: '📂 立即進入：選取單一 Excel', cls: 'btn-primary-blue', fn: "switchTab('audit'); pickExcelNative();" },
-      { label: '📁 立即進入：掃描整包資料夾', cls: 'btn', fn: "switchTab('audit'); pickFolderAndScan();" }
-    ]
-  },
-  gen: {
-    icon: '🧩', title: '新腳本母體產生器 (4-Step Mother Builder)', accent: '#16A34A', bg: '#DCFCE7',
-    when: '新機種 / 新測試站從零建立標準 16 欄 TestFlow Excel 與配套 System.ini / Global.ini。',
-    features: [
-      '4 步驟精靈：設定專案/ISN → 勾選標準流程骨架 → 選用儀器互動人機 → 總覽產出',
-      '內建 NI-6009 接線圖點選、FeasaLED 光纖色域設定、IQxel RF Tx/Rx 批次產生',
-      '同步設定 SFIS / iPLAS 開關與各廠區 WebLink IP，直接寫入 System.ini',
-      '產出即為完整可執行測試包（含 Excel、Global.ini、System.ini、Test Item Code）'
-    ],
-    flow: '① 基本與 ISN → ② 流程骨架與儀器 → ③ 細部參數 → ④ Finish 產出',
-    actions: [
-      { label: '🚀 開始建立新母體 ▶', cls: 'btn-primary-green', fn: "switchTab('gen');" }
-    ]
-  },
-  diagnose: {
-    icon: '🩺', title: '測試 Log 失敗診斷 (Failure Log Analyzer)', accent: '#D97706', bg: '#FEF3C7',
-    when: '產線試跑或量產出現 FAIL Log 時，快速定位超標數值、通訊超時或腳本異常原因。',
-    features: [
-      '支援匯入大型 Log / CSV 檔案或直接貼上錯誤片段文字',
-      '自動整理各測項實測值 vs 規格上下限，標出超標幅度',
-      '解析各 Phase 耗時排行與瓶頸建議，輔助縮短測試 Cycle Time',
-      '一鍵複製乾淨測試異常摘要，方便貼至 Teams 或郵件回報'
-    ],
-    flow: '貼上或選取 Log 檔 → 自動解析失敗項目與耗時 → 檢視對策與複製摘要',
-    actions: [
-      { label: '📄 立即進入：匯入 Log 診斷 ▶', cls: 'btn', fn: "switchTab('diagnose');" }
-    ]
-  },
-  tic: {
-    icon: '🏷️', title: 'TestID / ErrorCode 速查與套用', accent: '#4F46E5', bg: '#E0E7FF',
-    when: '撰寫新測項或補齊缺少的 7 碼 TestID 時，查詢官方 Test Item Code V2.04 標準代碼。',
-    features: [
-      '支援中英文關鍵字、TestID 與 Error Code 即時篩選（可過濾僅顯示通用碼）',
-      '可直接套用至「母體產生器」積木步驟或「腳本健檢」載入中的 Excel',
-      '支援單欄 / 雙欄快速複製（Description + Tab + TestID）與暫存籃'
-    ],
-    flow: '輸入關鍵字搜尋 → 點選標準 7 碼代碼 → 一鍵複製或套用至腳本',
-    actions: [
-      { label: '🔍 立即進入：查詢標準代碼 ▶', cls: 'btn-primary-blue', fn: "switchTab('tic');" }
-    ]
-  }
-};
-
-function previewHomeFeature(key) {
-  const d = HOME_FEATURE_DATA[key] || HOME_FEATURE_DATA.audit;
-  ['audit', 'gen', 'diagnose', 'tic'].forEach(k => {
-    const el = document.getElementById('homeCard_' + k);
-    if (el) el.classList.toggle('active', k === key);
-  });
-  const panel = document.getElementById('homeInspectorPanel');
-  if (!panel) return;
-  panel.style.borderColor = d.accent;
-  const flowPills = d.flow.split('→').map(s => `<span style="background:#1E293B; color:#E2E8F0; border:1px solid #334155; border-radius:6px; padding:4px 9px; font-size:12.5px;">${s.trim()}</span>`).join(' <span style="color:#64748B;">➔</span> ');
-  panel.innerHTML = `
-    <div>
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:12px; border-bottom:1px solid #334155;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <span style="font-size:28px; background:${d.bg}; padding:6px 11px; border-radius:8px;">${d.icon}</span>
-          <div style="font-size:18px; font-weight:700; color:#F8FAFC;">${d.title}</div>
-        </div>
-        <span style="font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; background:${d.bg}; color:#0F172A;">READY</span>
-      </div>
-      <div style="margin-top:14px;">
-        <div style="font-weight:700; font-size:13px; color:#94A3B8;">📌 適用時機</div>
-        <div style="font-size:14px; color:#E2E8F0; margin-top:4px; line-height:1.55;">${d.when}</div>
-      </div>
-      <div style="margin-top:14px;">
-        <div style="font-weight:700; font-size:13px; color:#94A3B8;">⚙️ 核心功能</div>
-        <ul style="margin:6px 0 0 18px; padding:0; font-size:13.5px; color:#CBD5E1; line-height:1.65;">
-          ${d.features.map(f => `<li>${f}</li>`).join('')}
-        </ul>
-      </div>
-      <div style="margin-top:14px;">
-        <div style="font-weight:700; font-size:13px; color:#94A3B8; margin-bottom:6px;">🧭 操作流程</div>
-        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">${flowPills}</div>
-      </div>
-    </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; padding-top:14px; border-top:1px solid #334155;">
-      ${d.actions.map(a => `<button onclick="${a.fn}" class="btn ${a.cls}" style="padding:8px 18px; font-size:13.5px;">${a.label}</button>`).join('')}
-    </div>
-  `;
 }
 
 let CURRENT_SOURCE_MODE = 'file';
@@ -2203,7 +2035,6 @@ async function initPage() {
     if (hl && data.tic_info.filename) hl.textContent = data.tic_info.filename;
   }
   renderBlockChecklist();
-  previewHomeFeature('audit');
 }
 
 const FLOW_ONLY_BLOCK_IDS = new Set([
