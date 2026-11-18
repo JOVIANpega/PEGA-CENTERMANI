@@ -260,13 +260,16 @@ function renderFlowGuidePage(tab) {
   `).join('');
 
   const detailCardsHtml = (d.detailedSteps || []).map((ds, i) => `
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:12px 14px;">
-      <div style="font-weight:700; font-size:14.5px; color:#0F172A; margin-bottom:4px;">${ds.step}</div>
-      <div style="font-size:13.5px; color:#334155; line-height:1.6; margin-bottom:8px;">${ds.desc}</div>
-      <div>
-        <img src="${ds.img}" alt="${ds.step}" style="max-width:100%; max-height:260px; border-radius:6px; border:1px solid #CBD5E1; margin-bottom:4px;"
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid ${d.themeBorder}; border-radius:8px; padding:14px 16px;">
+      <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:6px;">${ds.step}</div>
+      <div style="font-size:13.5px; color:#334155; line-height:1.65; margin-bottom:10px;">${ds.desc}</div>
+      <div style="text-align:center; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px; padding:8px;">
+        <img src="${ds.img}" alt="${ds.step}"
+             style="max-width:100%; max-height:420px; border-radius:6px; border:1px solid #CBD5E1; cursor:zoom-in;"
+             onclick="window.open(this.src, '_blank')"
+             title="點擊開啟原尺寸大圖"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="display:none;">${ds.mockup}</div>
+        <div style="display:none; text-align:left;">${ds.mockup}</div>
       </div>
     </div>
   `).join('');

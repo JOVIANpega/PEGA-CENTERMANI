@@ -2063,6 +2063,28 @@ async function initPage() {
     if (hl && data.tic_info.filename) hl.textContent = data.tic_info.filename;
   }
   renderBlockChecklist();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const tour = urlParams.get('tour');
+  if (tour === 'gen_1') { switchTab('gen'); goWizardStep(1); }
+  else if (tour === 'gen_2') { switchTab('gen'); goWizardStep(2); }
+  else if (tour === 'gen_3') { switchTab('gen'); WIZ_VOLT_CONFIGURED = true; goWizardStep(3); }
+  else if (tour === 'gen_4') { switchTab('gen'); goWizardStep(4); }
+  else if (tour === 'ni6009') { openNi6009Hmi('gen'); }
+  else if (tour === 'feasa') { openInstHmi('gen', 'FeasaLED'); }
+  else if (tour === 'diag_1') { switchTab('diagnose'); }
+  else if (tour === 'tic_1') { switchTab('tic'); }
+  else if (tour === 'audit_1') { switchTab('audit'); }
+  else if (tour === 'audit_2' || tour === 'audit_3') {
+    switchTab('audit');
+    const demoPath = urlParams.get('file');
+    if (demoPath) {
+      await loadSpecificFile(encodeURIComponent(demoPath));
+      if (tour === 'audit_3' && typeof toggleGlobalEditorPanel === 'function') {
+        toggleGlobalEditorPanel('station_isn');
+      }
+    }
+  }
 }
 
 const FLOW_ONLY_BLOCK_IDS = new Set([
@@ -3362,8 +3384,10 @@ function openNi6009Hmi(targetMode, editGenIdx = -1) {
     ni6OnSheetChange();
   }
   ni6RenderAll();
-  document.getElementById('panelAudit').style.display = 'none';
-  document.getElementById('panelGen').style.display = 'none';
+  ['panelHome', 'panelAudit', 'panelGen', 'panelDiagnose', 'panelTic', 'panelFlowGuide', 'panelSettings', 'panelInstIntro', 'panelInstHmi'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('panelNi6009').style.display = 'block';
 }
 

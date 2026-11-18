@@ -393,10 +393,10 @@ function openInstIntroPage(targetMode, instName = 'NI6008-1', editGenIdx = -1) {
   `;
 
   setIntroFontSize(fs);
-  document.getElementById('panelAudit').style.display = 'none';
-  document.getElementById('panelGen').style.display = 'none';
-  document.getElementById('panelNi6009').style.display = 'none';
-  document.getElementById('panelInstHmi').style.display = 'none';
+  ['panelHome', 'panelAudit', 'panelGen', 'panelDiagnose', 'panelTic', 'panelFlowGuide', 'panelSettings', 'panelNi6009', 'panelInstHmi'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('panelInstIntro').style.display = 'block';
 }
 
@@ -489,10 +489,10 @@ function openInstHmi(targetMode, instName) {
 
   renderInstHmi();
   setIntroFontSize(INTRO_STATE.fontSize || 15);
-  document.getElementById('panelAudit').style.display = 'none';
-  document.getElementById('panelGen').style.display = 'none';
-  document.getElementById('panelInstIntro').style.display = 'none';
-  document.getElementById('panelNi6009').style.display = 'none';
+  ['panelHome', 'panelAudit', 'panelGen', 'panelDiagnose', 'panelTic', 'panelFlowGuide', 'panelSettings', 'panelInstIntro', 'panelNi6009'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('panelInstHmi').style.display = 'block';
 }
 
