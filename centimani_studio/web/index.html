@@ -1786,11 +1786,24 @@ let TIC_TARGET_MODE = 'mother';
 let TIC_EXCEL_FILTER = 'missing';
 let LAST_TIC_RESULTS = [];
 
-function formatIsnHtml(isnInfo) {
-  if (isnInfo && isnInfo.isn_length) {
-    return `<span style="display:inline-block; margin-top:4px; background:#1E3A8A; color:#FFFFFF; padding:3px 10px; border-radius:5px; font-weight:700;">🔢 ISN 條碼輸入位數：需輸入 ${isnInfo.isn_length} 碼</span> <span class="mono" style="font-size:12px; color:#475569;">(${isnInfo.scan_rule})</span>`;
+function openIsnEditorFromAudit() {
+  switchTab('gen');
+  switchGenSubMode('edit');
+  if (typeof toggleGlobalEditorPanel === 'function') {
+    toggleGlobalEditorPanel('station_isn');
   }
-  return `🔢 <strong>ISN 條碼輸入位數：</strong>未於 <code>DUTs</code> 設定 <code>ScanBarcode</code> 長度規則`;
+  setTimeout(() => {
+    const el = document.getElementById('auditGlobalEditor');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function formatIsnHtml(isnInfo) {
+  const editBtn = `<button type="button" onclick="openIsnEditorFromAudit()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12.5px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">✏️ 修改 ISN 位數 ▶</button>`;
+  if (isnInfo && isnInfo.isn_length) {
+    return `<span style="display:inline-block; margin-top:4px; background:#1E3A8A; color:#FFFFFF; padding:3px 10px; border-radius:5px; font-weight:700;">🔢 ISN 條碼輸入位數：需輸入 ${isnInfo.isn_length} 碼</span> <span class="mono" style="font-size:12px; color:#475569;">(${isnInfo.scan_rule})</span>${editBtn}`;
+  }
+  return `🔢 <strong>ISN 條碼輸入位數：</strong>未於 <code>DUTs</code> 設定 <code>ScanBarcode</code> 長度規則${editBtn}`;
 }
 
 function updateGenCustomTicBadge() {
