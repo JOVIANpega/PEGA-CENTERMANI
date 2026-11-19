@@ -42,15 +42,15 @@
       <div id="accCard_audit" class="acc-card active" data-theme="blue" onmouseenter="setActiveAccCard('audit')" onclick="enterModule('audit')">
         <div>
           <div class="acc-num">01 / AUDIT</div>
-          <div class="acc-icon">🛠️</div>
-          <div class="acc-title">腳本健檢與修復</div>
+          <div class="acc-icon">🔍</div>
+          <div class="acc-title">腳本健檢與自動修復</div>
           <div class="acc-sub">Audit &amp; Auto-Fix</div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#0C4A6E; line-height:1.6;">
             <li>單檔體檢與整包資料夾批次掃描</li>
-            <li>語意微調：開關站別、ISN、IP / COM</li>
-            <li>插入 NI-6009 / FeasaLED / IQxel RF</li>
+            <li>紅黃燈錯誤報告與跳轉分支樹檢查</li>
+            <li>一鍵補碼修復簽章，或帶入 02 編修</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button onclick="event.stopPropagation(); enterModule('audit', pickExcelNative);" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;">📂 選取 Excel</button>
@@ -61,18 +61,21 @@
 
       <div id="accCard_gen" class="acc-card" data-theme="green" onmouseenter="setActiveAccCard('gen')" onclick="enterModule('gen')">
         <div>
-          <div class="acc-num">02 / BUILDER</div>
-          <div class="acc-icon">🧩</div>
-          <div class="acc-title">新腳本母體產生器</div>
-          <div class="acc-sub">4-Step Mother Builder</div>
+          <div class="acc-num">02 / BUILDER &amp; EDITOR</div>
+          <div class="acc-icon">🛠️</div>
+          <div class="acc-title">腳本建立與編修中心</div>
+          <div class="acc-sub">Builder (0→1) &amp; Editor (1→N)</div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.6;">
-            <li>4 步驟建立全新 16 欄 TestFlow</li>
-            <li>整合 34 款儀器介紹與互動人機</li>
-            <li>同步產出 System.ini / Global.ini 與簽章</li>
+            <li><b>書籤一</b>：首次 4 步驟建立新腳本母體</li>
+            <li><b>書籤二</b>：既有 Excel 無限次編修與加儀器</li>
+            <li>34 款儀器人機、跳轉、通訊與全域微調</li>
           </ul>
-          <button onclick="event.stopPropagation(); enterModule('gen');" class="btn btn-primary-green" style="padding:6px 14px; font-size:12.5px;">🚀 開始建立新母體 ▶</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn btn-primary-green" style="padding:6px 12px; font-size:12.5px;">🆕 建立新母體</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">✏️ 編修既有腳本</button>
+          </div>
         </div>
       </div>
 
@@ -175,62 +178,11 @@
           </span>
         </div>
 
-        <!-- 區 2：進階編修與匯出工具列（載入檔案後才顯示，與純檢查分開） -->
-        <div id="auditEditToolbar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-top:4px; border-top:1px dashed #CBD5E1; width:100%;">
-          <span style="font-size:12.5px; font-weight:700; color:#475569;">🛠️ 編修與產出：</span>
-          <span class="has-popup">
-            <button id="btnOpenInsertInstModal" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openInsertInstModal()">
-              ➕ 插入儀器範本
-            </button>
-            <div class="popup-card">
-              <h4>➕ 插入獨立 Title 儀器範本</h4>
-              <ul>
-                <li>支援全部 34 款盤點儀器（含 <code>iPower</code>、<code>NI6008</code>、<code>MT8870A</code> 等）。</li>
-                <li>嚴格以「獨立新 Title」插在既有區塊之後、<code>Phase 97</code> 之前，不破壞原有跳轉。</li>
-                <li>自動補齊 <code>Instrument</code> 掛載，並將整個新區塊亮黃底提醒。</li>
-              </ul>
-            </div>
-          </span>
-
-          <span class="has-popup">
-            <button id="btnOpenJumpModal" class="btn btn-jump" style="display:none;" onclick="openJumpEditorModal()">
-              🔀 編輯跳轉 (PASS/FAIL)
-            </button>
-            <div class="popup-card">
-              <h4>🔀 視覺化跳轉編輯器</h4>
-              <ul>
-                <li>以 <code>Title</code> 區塊為單位，免算相對步號。</li>
-                <li>選取起點後直接勾選 <code>PASS 跳這</code> / <code>FAIL 跳這</code>。</li>
-                <li>自動組出 <code>4:P,F</code> 或 <code>2:XX</code> 並即時重跑體檢。</li>
-              </ul>
-            </div>
-          </span>
-
-          <button id="btnOpenSfisModal" class="btn" style="display:none; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="openSfisIplasModal('audit')">
-            🌐 SFIS / iPLAS 開關
+        <!-- 健檢右側動作：一鍵帶入編修 / 一鍵修好並匯出 -->
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()">
+            ✏️ 帶入此檔前往編修 ▶
           </button>
-
-          <button id="btnOpenCommModal" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCommModal()">
-            🔌 通訊設定 (改 COM / 轉 SSH)
-          </button>
-
-          <button id="btnOpenGlobalEditor" class="btn" style="display:none; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel()">
-            ⚙️ 微調 DUTs / Instrument / Global.ini
-          </button>
-
-          <span class="has-popup">
-            <button id="btnExportDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)">
-              🧪 無硬體試跑版
-            </button>
-            <div class="popup-card">
-              <h4>🧪 無硬體試跑轉換</h4>
-              <ul>
-                <li>清空 <code>Instrument</code> / <code>Switch</code> 的 <code>Mount</code> 掛載設定。</li>
-                <li>硬體控制與量測列轉為 <code>ExecMode = 6</code>（Skip）。</li>
-                <li><code>:Sf*</code> 指令維持 <code>8/9</code> 並清空 <code>Validation</code>，供無儀器 PC 驗證流程。</li>
-              </ul>
-            </div>
-          </span>
 
           <span class="has-popup">
             <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)">
@@ -267,12 +219,6 @@
 
     <!-- 整包資料夾批次掃描結果總表 -->
     <div id="batchFolderBox" style="display:none; border:1.5px solid #38BDF8; border-radius:8px; padding:12px 14px; background:#F0F9FF; margin-bottom:12px;"></div>
-
-    <!-- 待匯出異動摘要條（插入儀器後顯示，提醒匯出驗證） -->
-    <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:10px;"></div>
-
-    <!-- 全域設定線上微調區 (DUTs / Instrument / Global.ini) -->
-    <div id="auditGlobalEditor" style="display:none;"></div>
 
     <!-- 狀態與路徑提示氣泡 -->
     <div id="auditAlertBox" class="alert-banner" style="display:none;"></div>
@@ -871,6 +817,20 @@
 
   <!-- ======================== 書籤三：4 步驟精靈式母體產生器 ======================== -->
   <div id="panelGen" style="display:none;">
+    <!-- 02 頂部雙書籤切換列（首次建立新母體 vs 既有腳本無限次編修） -->
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <div class="source-mode-bar">
+        <button id="btnGenModeCreate" class="source-mode-tab active" onclick="switchGenSubMode('create')">
+          🆕 書籤一：首次建立新母體 (0 → 1)
+        </button>
+        <button id="btnGenModeEdit" class="source-mode-tab" onclick="switchGenSubMode('edit')">
+          ✏️ 書籤二：既有腳本編修與加儀器 (1 → N)
+        </button>
+      </div>
+      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 專案初期用書籤一建母體，日常新增儀器 / 改跳轉 / 調通訊請用書籤二</span>
+    </div>
+
+    <div id="genModeCreate">
     <!-- 頂部步驟導覽列 -->
     <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
       <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -1016,6 +976,106 @@
       <span></span>
       <button id="btnWizNextBottom" class="btn btn-primary-blue" style="padding:8px 20px; font-size:14px;" onclick="goWizardStep(WIZ_STEP + 1)">下一步 ▶</button>
     </div>
+    </div><!-- /genModeCreate -->
+
+    <!-- 書籤二：既有腳本編修與加儀器 (1 → N) -->
+    <div id="genModeEdit" style="display:none;">
+      <!-- ① 目標檔案列 -->
+      <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary-blue" onclick="pickExcelForEditor()">
+              📂 選擇要編修的 TestFlow.xlsx
+            </button>
+            <span style="font-size:12.5px; color:#475569;">（若剛在「01 腳本健檢」載入過，會自動帶入目前檔案）</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button id="btnEditorBackAudit" class="btn" style="display:none; background:#F1F5F9; color:#334155; border-color:#94A3B8;" onclick="switchTab('audit')">
+              🔍 回健檢看體檢報告
+            </button>
+            <button id="btnEditorOpenExcel" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCurrentExcelFile()">
+              📂 開啟目前原檔
+            </button>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
+          <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前編修檔案：</span>
+          <span id="editorPickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
+            尚未載入 Excel 檔案（請點擊上方「📂 選擇要編修的 TestFlow.xlsx」）
+          </span>
+        </div>
+      </div>
+
+      <!-- 未載入檔案時的引導卡片 -->
+      <div id="editorEmptyHint" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:28px 20px; text-align:center; color:#475569;">
+        <div style="font-size:30px; margin-bottom:6px;">✏️</div>
+        <div style="font-weight:700; font-size:15.5px; color:#0F172A; margin-bottom:6px;">請先選擇一份既有的 TestFlow.xlsx 開始編修</div>
+        <div style="font-size:13.5px; margin-bottom:14px;">載入後即可無限次插入 34 款儀器人機、調整 PASS/FAIL 跳轉、切換 SFIS/iPLAS、修改 COM / 轉 SSH 與全域微調，原檔保持不動，匯出時產出 *_FIXED.xlsx。</div>
+        <button class="btn btn-primary-blue" style="padding:8px 18px; font-size:14px;" onclick="pickExcelForEditor()">📂 選擇要編修的 TestFlow.xlsx</button>
+      </div>
+
+      <!-- 載入檔案後的編修工作區 -->
+      <div id="editorWorkspaceBody" style="display:none;">
+        <!-- ② 任務分類編修區（左：改測試步驟 / 右：改環境通訊） -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:14px; margin-bottom:12px;">
+          <!-- 左卡 A：測試站流程與儀器 -->
+          <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:14px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+              <div style="font-weight:800; font-size:15px; color:#4C1D95;">A. 測試站流程與儀器編修</div>
+              <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:#334155;">
+                目標站別：
+                <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:12.5px; font-weight:700;"></select>
+              </label>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button id="btnOpenInsertInstModal" class="btn" style="flex:1; min-width:170px; justify-content:center; padding:10px 12px; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openInsertInstModal()">
+                ➕ 插入儀器範本 (34 款人機)
+              </button>
+              <button id="btnOpenJumpModal" class="btn btn-jump" style="flex:1; min-width:170px; justify-content:center; padding:10px 12px;" onclick="openJumpEditorModal()">
+                🔀 編輯跳轉 (PASS/FAIL)
+              </button>
+            </div>
+          </div>
+
+          <!-- 右卡 B：全域環境與通訊 (INI / DUTs) -->
+          <div style="background:#FFFFFF; border:1.5px solid #93C5FD; border-top:4px solid #2563EB; border-radius:10px; padding:14px 16px;">
+            <div style="font-weight:800; font-size:15px; color:#1E3A8A; margin-bottom:10px;">B. 全域環境與通訊設定 (INI / DUTs)</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 160px; justify-content:center; padding:9px 10px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="openSfisIplasModal('audit')">
+                🌐 SFIS / iPLAS 開關
+              </button>
+              <button id="btnOpenCommModal" class="btn" style="flex:1 1 190px; justify-content:center; padding:9px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCommModal()">
+                🔌 通訊設定 (改 COM / 轉 SSH)
+              </button>
+              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 240px; justify-content:center; padding:9px 10px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel()">
+                ⚙️ 微調 DUTs / Instrument / Global.ini
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ 內嵌展開區：全域設定線上微調區 (DUTs / Instrument / Global.ini) -->
+        <div id="auditGlobalEditor" style="display:none; margin-bottom:12px;"></div>
+
+        <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
+        <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
+
+        <!-- ⑤ 產出確認列 -->
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:13px; color:#475569;">
+            💡 <b>安全存檔機制：</b>所有編修先暫存於記憶體，匯出時產出同目錄 <code>*_FIXED.xlsx</code>（新增區塊亮黃底標記）並自動更新 <code>System.ini</code> Checksum，原始檔案保持不動。
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btnExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
+              🧪 匯出「無硬體試跑版」
+            </button>
+            <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:13.5px;" onclick="applyFixAndExport(false)">
+              💾 寫入並匯出 (*_FIXED.xlsx)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /genModeEdit -->
   </div>
 
   <!-- ======================== 書籤四：TestID / Error Code 速查與精準套用 ======================== -->
@@ -2050,6 +2110,77 @@ async function pickTicFileNative() {
   searchTicLive();
 }
 
+let GEN_SUB_MODE = 'create';
+
+function switchGenSubMode(mode) {
+  GEN_SUB_MODE = (mode === 'edit') ? 'edit' : 'create';
+  const cBox = document.getElementById('genModeCreate');
+  const eBox = document.getElementById('genModeEdit');
+  const cBtn = document.getElementById('btnGenModeCreate');
+  const eBtn = document.getElementById('btnGenModeEdit');
+  if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
+  if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
+  if (cBtn) cBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'create' ? ' active' : '');
+  if (eBtn) eBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'edit' ? ' active' : '');
+  if (GEN_SUB_MODE === 'edit') syncEditorView();
+}
+
+function openCurrentAuditInEditor() {
+  switchTab('gen');
+  switchGenSubMode('edit');
+}
+
+async function pickExcelForEditor() {
+  await pickExcelNative();
+  switchTab('gen');
+  switchGenSubMode('edit');
+}
+
+function onEditorSheetChange() {
+  const sel = document.getElementById('editorSheetSel');
+  if (sel && sel.value) {
+    STATE.activeSheetFilter = sel.value;
+  }
+}
+
+function syncEditorView() {
+  const pathEl = document.getElementById('editorPickedPathText');
+  const emptyEl = document.getElementById('editorEmptyHint');
+  const bodyEl = document.getElementById('editorWorkspaceBody');
+  const backBtn = document.getElementById('btnEditorBackAudit');
+  const openBtn = document.getElementById('btnEditorOpenExcel');
+  const goEditBtn = document.getElementById('btnGoToEditorFromAudit');
+
+  const hasWs = !!(STATE.workspace && STATE.selectedPath);
+  if (goEditBtn) goEditBtn.style.display = hasWs ? 'inline-flex' : 'none';
+  if (!pathEl || !emptyEl || !bodyEl) return;
+
+  if (hasWs) {
+    const stNames = Object.keys(STATE.workspace.stations || {});
+    pathEl.textContent = `${STATE.selectedPath}  （共 ${stNames.length} 個測試站）`;
+    emptyEl.style.display = 'none';
+    bodyEl.style.display = 'block';
+    if (backBtn) backBtn.style.display = 'inline-flex';
+    if (openBtn) openBtn.style.display = 'inline-flex';
+    const sel = document.getElementById('editorSheetSel');
+    if (sel) {
+      const prev = sel.value;
+      sel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+      if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && stNames.includes(STATE.activeSheetFilter)) {
+        sel.value = STATE.activeSheetFilter;
+      } else if (prev && stNames.includes(prev)) {
+        sel.value = prev;
+      }
+    }
+  } else {
+    pathEl.textContent = '尚未載入 Excel 檔案（請點擊上方「📂 選擇要編修的 TestFlow.xlsx」）';
+    emptyEl.style.display = 'block';
+    bodyEl.style.display = 'none';
+    if (backBtn) backBtn.style.display = 'none';
+    if (openBtn) openBtn.style.display = 'none';
+  }
+}
+
 async function initPage() {
   const res = await fetch('/api/init');
   const data = await res.json();
@@ -2066,10 +2197,10 @@ async function initPage() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const tour = urlParams.get('tour');
-  if (tour === 'gen_1') { switchTab('gen'); goWizardStep(1); }
-  else if (tour === 'gen_2') { switchTab('gen'); goWizardStep(2); }
-  else if (tour === 'gen_3') { switchTab('gen'); WIZ_VOLT_CONFIGURED = true; goWizardStep(3); }
-  else if (tour === 'gen_4') { switchTab('gen'); goWizardStep(4); }
+  if (tour === 'gen_1') { switchTab('gen'); switchGenSubMode('create'); goWizardStep(1); }
+  else if (tour === 'gen_2') { switchTab('gen'); switchGenSubMode('create'); goWizardStep(2); }
+  else if (tour === 'gen_3') { switchTab('gen'); switchGenSubMode('create'); WIZ_VOLT_CONFIGURED = true; goWizardStep(3); }
+  else if (tour === 'gen_4') { switchTab('gen'); switchGenSubMode('create'); goWizardStep(4); }
   else if (tour === 'ni6009') { openNi6009Hmi('gen'); }
   else if (tour === 'feasa') { openInstHmi('gen', 'FeasaLED'); }
   else if (tour === 'diag_1') { switchTab('diagnose'); }
@@ -2077,6 +2208,15 @@ async function initPage() {
   else if (tour === 'tic_1') { switchTab('tic'); }
   else if (tour === 'tic_2') { switchTab('tic'); if (typeof switchTicTargetMode === 'function') switchTicTargetMode('excel'); }
   else if (tour === 'audit_1') { switchTab('audit'); }
+  else if (tour === 'editor_1') {
+    switchTab('gen');
+    switchGenSubMode('edit');
+    const demoPath = urlParams.get('file');
+    if (demoPath) {
+      await loadSpecificFile(encodeURIComponent(demoPath));
+      syncEditorView();
+    }
+  }
   else if (tour && tour.startsWith('audit_') && tour !== 'audit_1') {
     switchTab('audit');
     const demoPath = urlParams.get('file');
@@ -2404,6 +2544,7 @@ function _renderGroupedMessages(msgs, icon, color) {
 }
 
 function renderAuditResults() {
+  if (typeof syncEditorView === 'function') syncEditorView();
   const rep = STATE.report;
   const cards = rep.choice_cards || [];
   const errors = rep.errors || [];
@@ -3407,10 +3548,11 @@ function openNi6009Hmi(targetMode, editGenIdx = -1) {
 
 function closeNi6009Hmi() {
   document.getElementById('panelNi6009').style.display = 'none';
+  document.getElementById('panelGen').style.display = 'block';
   if (NI6_STATE.targetMode === 'gen' || NI6_STATE.targetMode === 'wiz_volt') {
-    document.getElementById('panelGen').style.display = 'block';
+    switchGenSubMode('create');
   } else {
-    document.getElementById('panelAudit').style.display = 'block';
+    switchGenSubMode('edit');
   }
 }
 

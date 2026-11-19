@@ -18,106 +18,66 @@ let PENDING_FLOW_TARGET = { tab: 'audit', afterAction: null };
 
 const FLOW_GUIDE_DATA = {
   audit: {
-    icon: '🛠️',
-    title: '腳本健檢與修復 — 完整操作流程與畫面教學',
+    icon: '🔍',
+    title: '腳本健檢與自動修復 — 完整操作流程與畫面教學',
     themeBg: '#E0F2FE',
     themeBorder: '#0284C7',
     btnClass: 'btn-primary-blue',
     btnLabel: '開始使用：腳本健檢 ▶',
     steps: [
-      { num: '①', title: '選檔 / 掃描整包', jumpIdx: 0, items: ['單一 Excel 體檢', '整包資料夾批次掃描'] },
-      { num: '②', title: '紅黃燈體檢報告', jumpIdx: 2, items: ['抓出錯漏與條碼位數', '燈號篩選與跳轉樹'] },
-      { num: '③', title: '全域 / 跳轉 / 通訊', jumpIdx: 4, items: ['站別 / ISN / IP / COM', '視覺化跳轉與轉 SSH'] },
-      { num: '④', title: '插入 34 款儀器', jumpIdx: 7, items: ['NI-6009 / Feasa / RF', '互動人機免查指令'] },
-      { num: '⑤', title: '試跑與匯出簽章', jumpIdx: 12, items: ['無硬體試跑 Dry-Run', '產出 *_FIXED + Checksum'] }
+      { num: '①', title: '選取單一 Excel', jumpIdx: 0, items: ['單份腳本即時體檢', '自動比對 System.ini'] },
+      { num: '②', title: '掃描整包資料夾', jumpIdx: 1, items: ['遞迴掃描專案內多站', '支援一鍵整包批次修復'] },
+      { num: '③', title: '紅黃燈體檢報告', jumpIdx: 2, items: ['抓出缺碼與格式錯誤', '自動讀取 ISN 條碼位數'] },
+      { num: '④', title: '燈號篩選與跳轉樹', jumpIdx: 3, items: ['依工作表過濾異常站', '展開跳轉樹檢查邏輯'] },
+      { num: '⑤', title: '一鍵修好或前往編修', jumpIdx: 4, items: ['自動補碼匯出 *_FIXED', '或帶入 02 編修中心'] }
     ],
     detailedSteps: [
       {
-        step: 'Step 1｜「選取單一 Excel」：針對單份測試腳本進行體檢與微調',
-        desc: '適合您只想檢查或修改某一個站的 TestFlow Excel 時使用。點選後會跳出檔案視窗，自動讀入同資料夾內的 System.ini 與 Global.ini，並解析所有測試站與 Marco 子工作表，立即列出錯誤與警告明細。',
+        step: 'Step 1｜「選取單一 Excel」：針對單份測試腳本進行快速體檢',
+        desc: '適合您只想檢查某一個站的 TestFlow Excel 時使用。點選後自動讀入同資料夾內的 System.ini 與 Global.ini，檢查 16 欄格式、必填 TestID、ExecMode 與跳轉邏輯。',
         img: '/images/guide_audit_1a.png'
       },
       {
-        step: 'Step 2｜「掃描整包資料夾」：一次體檢整個專案目錄內所有站別腳本',
-        desc: '當整個專案資料夾內包含多個站別的 Excel（例如 Download、MB、RF、OQC 分散在不同檔案）時使用。系統會遞迴掃描全資料夾、略過 *_FIXED 與 old_ 備份檔，一次列出每個檔案的紅綠燈與錯誤數，點擊清單即可切換檢視或「一鍵整包批次修復」。',
+        step: 'Step 2｜「掃描整包資料夾」：一次體檢專案目錄內所有站別 Excel',
+        desc: '當一個專案目錄下分散了多個站別的 Excel（如 Download、MB、RF、OQC）時使用。系統會遞迴掃描全資料夾、自動略過 *_FIXED、old_* 備份檔與 Test Item Code 表，一次列出所有檔案的紅綠燈與錯誤數，並支援「一鍵整包批次修復」（自動備份原 INI 為 .bak）。',
         img: '/images/guide_audit_1b.png'
       },
       {
         step: 'Step 3｜檢視紅黃燈體檢報告與自動修補預告',
-        desc: '上方紅色橫幅會顯示抓出的錯誤總數（例如 42 個錯誤）、需人工確認數量、從 DUTs 讀取到的 ISN 條碼位數，以及存檔時將自動補齊的數百項格式問題；下方會列出各站錯誤與系統自動修補對策。',
+        desc: '上方紅色橫幅顯示抓出的錯誤總數（如缺少第 16 欄 TestID）、需人工確認數量、從 DUTs 讀取到的 ISN 條碼位數，以及存檔時將自動補齊的數百項格式問題。',
         img: '/images/guide_audit_2.png'
       },
       {
         step: 'Step 4｜工作表燈號篩選、跳轉分支樹與折疊明細',
-        desc: '點擊上方工作表膠囊（如 MainBoard 🔴42）可只篩選看該站別的錯誤；點擊綠色「其餘 8 個跳轉區塊邏輯正常」可展開縮排跳轉分支樹檢查邏輯；點擊下方折疊的紅色明細列可檢視具體列號與補齊內容。',
+        desc: '點擊上方工作表膠囊（如 MainBoard 🔴42）可只篩選看該站別的錯誤；點擊綠色「跳轉區塊邏輯正常」可展開縮排分支樹檢查跳轉；點擊下方折疊明細列可檢視具體列號。',
         img: '/images/guide_audit_2b.png'
       },
       {
-        step: 'Step 5｜「微調 DUTs / Instrument / Global.ini」分頁 1：站別開關與 ISN',
-        desc: '點擊工具列黃色「⚙️ 微調 DUTs / Instrument / Global.ini」會展開全域設定微調區。在第一分頁「站別開關與 ISN」可直接切換站別啟用/停用 (Load=1/0)、修改 DUT 名稱、或一鍵批量套用全部站別的 ISN 條碼位數與字元規則。',
-        img: '/images/guide_audit_3.png'
-      },
-      {
-        step: 'Step 6｜全域微調分頁 2：「🌐 網路 IP / Ping / Port」',
-        desc: '切換至第二分頁「🌐 網路 IP / Ping / Port」，系統只列出本腳本實際使用的 PCIP_1、DUTIP_1、GoldenIP 與各站 DUT UDP 連線 Port，方便直接修改數值而不用在龐雜的 Global.ini 中翻找。',
-        img: '/images/guide_audit_3b.png'
-      },
-      {
-        step: 'Step 7｜全域微調分頁 3：「🔌 儀器掛載與 COM Port」',
-        desc: '切換至第三分頁「🔌 儀器掛載與 COM Port」，集中修改待測板 UART COM Port (DUT_UR1)、SFIS 機台編號 (DEVID_1)、DAQ / FeasaLED 裝置代號等變數。以上三個分頁修改完成後，記得點右上角「✓ 套用微調並重跑健檢」。',
-        img: '/images/guide_audit_3c.png'
-      },
-      {
-        step: 'Step 8｜點擊「➕ 插入儀器範本」後的彈出設定視窗',
-        desc: '點擊紫色「➕ 插入儀器範本」會彈出此視窗：先選取「1. 目標測試站工作表」與「2. 插入位置」（系統強制保證插在 Phase 97 之前且不破壞原有 2:XX / 4:P,F 跳轉），再挑選 34 款儀器或點擊常用儀器快選鈕。',
-        img: '/images/guide_audit_4a.png'
-      },
-      {
-        step: 'Step 9｜進入儀器互動人機介面（以 FeasaLED / NI-6009 為例）',
-        desc: '在彈窗點擊常用快選鈕或「開啟人機設定▶」，即進入專屬視覺化人機（如 FeasaLED 光纖通道與 RGB/XY 色域設定、NI-6009 32-Pin 點圖接線與 12V 分壓提醒），確認後按套用即自動寫入獨立 Title 區塊並亮黃底標記。',
-        img: '/images/guide_audit_4.png'
-      },
-      {
-        step: 'Step 10｜點擊「🔀 編輯跳轉 (PASS/FAIL)」後的視覺化跳轉編輯器',
-        desc: '點擊橘色「🔀 編輯跳轉 (PASS/FAIL)」會彈出此視窗，以 Title 區塊為單位免算相對步號：先選取左側「起點」步號，再勾選目標列的「PASS 跳這 / FAIL 跳這」（或直接套用三大快速模板），自動組出 4:P,F 或 2:XX 並重跑體檢。',
-        img: '/images/guide_audit_6.png'
-      },
-      {
-        step: 'Step 11｜點擊「🌐 SFIS / iPLAS 開關」後的廠區連線設定視窗',
-        desc: '點擊綠色「🌐 SFIS / iPLAS 開關」會彈出此視窗：可直接切換 SFIS_Enable 主開關、從下拉選單快速帶入 PTB / PXD 廠區 SFIS_WebLink 網址，以及設定 iPLAS_Enable 與廠區代碼，按下套用即寫入 System.ini。',
-        img: '/images/guide_audit_7.png'
-      },
-      {
-        step: 'Step 12｜點擊「🔌 通訊設定 (改 COM / 轉 SSH)」後的批次轉換視窗',
-        desc: '點擊藍色「🔌 通訊設定」會彈出此視窗：可統一修改 UART COM Port、DUT IP 與 SSH 登入帳號，並可勾選將指定工作表內的 :Connect,"UART" / UART@... 指令一鍵批次轉換為 CmdConsole@ssh。',
-        img: '/images/guide_audit_8.png'
-      },
-      {
-        step: 'Step 13｜產出「🧪 無硬體試跑版」：無儀器 PC 驗證流程專用',
-        desc: '若工程師在辦公桌沒有治具與實體儀器、想先在 Centimani 跑通整體流程與跳轉邏輯，可點「🧪 無硬體試跑版」：系統會自動清空 Instrument / Switch 的 Mount 掛載、將量測列轉為 ExecMode = 6 (Skip) 並清空 :Sf* 驗證。',
-        img: '/images/guide_audit_5a.png'
-      },
-      {
-        step: 'Step 14｜「💾 一鍵修好並匯出 (*_FIXED.xlsx)」正式產出與 Checksum 簽章',
-        desc: '所有檢查與微調確認無誤後，點擊綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統會將補齊的 7 碼 TestID、格式修正與參數微調寫入同目錄 *_FIXED.xlsx（修正處亮黃底），並自動重算 64 碼 Checksum 寫入 System.ini。',
+        step: 'Step 5｜「💾 一鍵修好並匯出 (*_FIXED.xlsx)」自動補碼與簽章',
+        desc: '若只需自動修補格式與缺漏的 7 碼 TestID，直接點擊綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統將於同目錄產出修復檔（修正處亮黃底）並自動重算 64 碼 Checksum 寫入 System.ini。',
         img: '/images/guide_audit_5b.png'
+      },
+      {
+        step: 'Step 6｜「✏️ 帶入此檔前往編修 ▶」無縫切換至 02 編修中心',
+        desc: '若檢視完報告需要手動插入新儀器、改 PASS/FAIL 跳轉、改 COM / 轉 SSH 或微調全域變數，點擊紫色「✏️ 帶入此檔前往編修 ▶」即可免重新選檔直接跳轉至「02 腳本建立與編修中心」的書籤二。',
+        img: '/images/guide_audit_to_editor.png'
       }
     ],
-    tip: '產出物：同目錄 *_FIXED.xlsx（修正儲存格亮黃底標註）＋ Checksum 簽章 ＋ Global.ini'
+    tip: '定位：高頻快速檢查單檔或整包專案腳本；需要新增儀器或修改流程時，可一鍵帶入「02 腳本建立與編修中心」'
   },
   gen: {
-    icon: '🧩',
-    title: '新腳本母體產生器 — 完整操作流程與畫面教學',
+    icon: '🛠️',
+    title: '腳本建立與編修中心 — 完整操作流程與畫面教學',
     themeBg: '#DCFCE7',
     themeBorder: '#16A34A',
     btnClass: 'btn-primary-green',
-    btnLabel: '開始使用：母體產生器 ▶',
+    btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
-      { num: '①', title: '基本與 ISN 規格', jumpIdx: 0, items: ['專案 / 站別 / 多工槽位', 'ISN 條碼與規則預覽'] },
-      { num: '②', title: 'SFIS / iPLAS 廠區', jumpIdx: 1, items: ['一鍵套用 PTB / PXD', '開關直接寫入 INI'] },
-      { num: '③', title: '骨架與 34 款儀器', jumpIdx: 3, items: ['最小骨架 / 7 大積木', '快選儀器進入互動人機'] },
-      { num: '④', title: '細部測試參數', jumpIdx: 8, items: ['UART/ADB/SSH 韌體指令', '治具 COM 與等待時間'] },
-      { num: '⑤', title: '雙模式產出測試包', jumpIdx: 9, items: ['無硬體試跑 Dry-Run', '產線實機包 + 64 碼簽章'] }
+      { num: '①', title: '書籤一：建新母體', jumpIdx: 0, items: ['專案 / ISN / 廠區設定', '4 步精靈從 0 → 1 建檔'] },
+      { num: '②', title: '骨架與 34 款儀器', jumpIdx: 3, items: ['7 大標準流程積木', '快選儀器進入互動人機'] },
+      { num: '③', title: '書籤二：既有編修', jumpIdx: 11, items: ['載入既有 TestFlow.xlsx', '無限次 1 → N 編修維護'] },
+      { num: '④', title: '插儀器 / 跳轉 / 通訊', jumpIdx: 12, items: ['34 款儀器 & RGB 多色', '視覺化跳轉與全域微調'] },
+      { num: '⑤', title: '安全暫存與匯出', jumpIdx: 19, items: ['原 Excel 保持不動', '產出試跑版或 *_FIXED'] }
     ],
     detailedSteps: [
       {
@@ -171,12 +131,62 @@ const FLOW_GUIDE_DATA = {
         img: '/images/guide_gen_4a.png'
       },
       {
-        step: 'Step 10B｜Step 4 產出「🚀 產線實機測試包」（含簽章 + 彈出資料夾）',
+        step: 'Step 10B｜書籤一：產出「🚀 產線實機測試包」（含簽章 + 彈出資料夾）',
         desc: '準備上線實測時，點擊綠色「🚀 Finish：產生『產線實機測試包』」，一次產出標準 16 欄 TestFlow.xlsx、System.ini（含 64 碼 Checksum 簽章）、Global.ini 與 Test Item Code 表，並自動開啟輸出資料夾。',
         img: '/images/guide_gen_4b.png'
+      },
+      {
+        step: 'Step 11｜書籤二：切換至「✏️ 既有腳本編修與加儀器 (1 → N)」',
+        desc: '日常專案維護要修改既有 Excel 時，請點上方「✏️ 書籤二：既有腳本編修與加儀器」，點擊「📂 選擇要編修的 TestFlow.xlsx」（若剛在 01 健檢載入過會自動帶入），右上角可隨時切回健檢報告或開啟原檔。',
+        img: '/images/guide_editor_tab.png'
+      },
+      {
+        step: 'Step 12｜書籤二 A 區：選目標站別 → 插入儀器 / 編輯跳轉',
+        desc: '左卡「A. 測試站流程與儀器編修」先從右上角選定目標工作表（如 Download / MainBoard），再點「➕ 插入儀器範本 (34 款人機)」或「🔀 編輯跳轉 (PASS/FAIL)」。',
+        img: '/images/guide_editor_zone_a.png'
+      },
+      {
+        step: 'Step 13｜點擊「➕ 插入儀器範本」後的設定視窗',
+        desc: '選擇插入位置（系統保證插在 Phase 97 之前不破壞原有跳轉）與 34 款儀器或常用快選，點擊「開啟人機設定▶」即可進入圖解互動人機（支援 FeasaLED RGB 多色批次、NI-6009 多通道、IQxel RF 多組 Tx/Rx）。',
+        img: '/images/guide_audit_4a.png'
+      },
+      {
+        step: 'Step 14｜點擊「🔀 編輯跳轉 (PASS/FAIL)」後的視覺化跳轉編輯器',
+        desc: '以 Title 區塊為單位免算相對步號：選取左側起點後直接勾選目標列的「PASS 跳這 / FAIL 跳這」（或套用三大快速模板），自動組出 4:P,F 或 2:XX 並重跑驗證。',
+        img: '/images/guide_audit_6.png'
+      },
+      {
+        step: 'Step 15｜書籤二 B 區：全域環境與通訊設定 (INI / DUTs)',
+        desc: '右卡「B. 全域環境與通訊設定」集中管理整包專案的 System.ini、Global.ini 與 DUTs：包含 SFIS/iPLAS 廠區連線、改 COM/轉 SSH 以及全域微調 3 分頁。',
+        img: '/images/guide_editor_zone_b.png'
+      },
+      {
+        step: 'Step 16｜點擊「🔌 通訊設定」後的改 COM / 批次轉 SSH 視窗',
+        desc: '可統一修改 UART COM Port、DUT IP 與 SSH 帳號，並勾選將指定工作表內的 UART 指令一鍵批次轉換為 CmdConsole@ssh。',
+        img: '/images/guide_audit_8.png'
+      },
+      {
+        step: 'Step 17｜全域微調分頁 1：站別開關與 ISN 條碼規則',
+        desc: '點擊「⚙️ 微調 DUTs / Instrument / Global.ini」後會直接內嵌展開於下方。第一分頁可切換站別啟用/停用 (Load=1/0)、修改 DUT 名稱與一鍵批量套用全部站別的 ISN 條碼位數。',
+        img: '/images/guide_audit_3.png'
+      },
+      {
+        step: 'Step 18｜全域微調分頁 2：網路 IP / Ping / Port',
+        desc: '第二分頁只列出本腳本實際使用的 PCIP_1、DUTIP_1、GoldenIP 與各站連線 Port，免翻找龐雜的 Global.ini。',
+        img: '/images/guide_audit_3b.png'
+      },
+      {
+        step: 'Step 19｜全域微調分頁 3：儀器掛載與 COM Port',
+        desc: '第三分頁集中修改待測板 COM Port、SFIS 機台編號 (DEVID_1) 與 DAQ / FeasaLED 裝置代號，修改完成後點「✓ 套用微調並重跑健檢」。',
+        img: '/images/guide_audit_3c.png'
+      },
+      {
+        step: 'Step 20｜書籤二底部：安全暫存與匯出（原檔不動，產出 *_FIXED.xlsx）',
+        desc: '所有編修先暫存於記憶體並條列於待匯出清單，確認無誤後點擊「🧪 匯出無硬體試跑版」或綠色「💾 寫入並匯出 (*_FIXED.xlsx)」產出新檔（新增區塊亮黃底）並重算 64 碼 Checksum。',
+        img: '/images/guide_editor_export.png'
       }
     ],
-    tip: '產出物：標準 16 欄 TestFlow.xlsx ＋ System.ini ＋ Global.ini ＋ Test Item Code 表'
+    tip: '書籤一用於首次從 0 建立新母體；書籤二用於專案全生命週期無限次新增儀器、改跳轉與微調環境'
   },
   diagnose: {
     icon: '🩺',

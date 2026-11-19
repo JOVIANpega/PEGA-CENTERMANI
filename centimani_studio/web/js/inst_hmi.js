@@ -403,10 +403,9 @@ function openInstIntroPage(targetMode, instName = 'NI6008-1', editGenIdx = -1) {
 
 function closeInstIntroPage() {
   document.getElementById('panelInstIntro').style.display = 'none';
-  if (INTRO_STATE.targetMode === 'gen' || INTRO_STATE.targetMode === 'wiz_volt') {
-    document.getElementById('panelGen').style.display = 'block';
-  } else {
-    document.getElementById('panelAudit').style.display = 'block';
+  document.getElementById('panelGen').style.display = 'block';
+  if (typeof switchGenSubMode === 'function') {
+    switchGenSubMode((INTRO_STATE.targetMode === 'gen' || INTRO_STATE.targetMode === 'wiz_volt') ? 'create' : 'edit');
   }
 }
 
@@ -502,10 +501,9 @@ function openInstHmi(targetMode, instName) {
 
 function closeInstHmi() {
   document.getElementById('panelInstHmi').style.display = 'none';
-  if (INST_HMI_STATE.targetMode === 'gen' || INST_HMI_STATE.targetMode === 'wiz_volt') {
-    document.getElementById('panelGen').style.display = 'block';
-  } else {
-    document.getElementById('panelAudit').style.display = 'block';
+  document.getElementById('panelGen').style.display = 'block';
+  if (typeof switchGenSubMode === 'function') {
+    switchGenSubMode((INST_HMI_STATE.targetMode === 'gen' || INST_HMI_STATE.targetMode === 'wiz_volt') ? 'create' : 'edit');
   }
 }
 
