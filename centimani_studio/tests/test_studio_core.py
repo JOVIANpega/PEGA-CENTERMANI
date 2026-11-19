@@ -151,6 +151,40 @@ class TestCentimaniStudioCore(unittest.TestCase):
         self.assertIn("DUT_UR1=COM9", glb_txt)
         self.assertIn("DUTIP_1=192.168.50.10", glb_txt)
 
+    def test_phase_order_detection_and_block_sorter(self):
+        from centimani_studio.core.block_sorter import (
+            extract_station_blocks,
+            reorder_station_blocks,
+        )
+        ws = get_golden_mother()
+        st = "MB"
+        ws["stations"][st] = [
+            {"Index": "001", "Phase": "2", "Title": "Load", "Send": ':SetVal,"$sEth_MAC","AABBCC"', "Ref": "", "Validation": "", "ExecMode": "0", "Description": "Set MAC", "TestID": "B7PL025"},
+            {"Index": "002", "Phase": "3", "Title": "WaitBoot", "Send": ':Delay,"3000"', "Ref": "", "Validation": "", "ExecMode": "0", "Description": "Wait", "TestID": "B7PL025"},
+            {"Index": "003", "Phase": "12", "Title": "Software reboot", "Send": 'LAN@@reboot', "Ref": "", "Validation": "", "ExecMode": "0", "Description": "Reboot", "TestID": "B7PL025"},
+            {"Index": "004", "Phase": "", "Title": "", "Send": ':Delay,"1000"', "Ref": "", "Validation": "", "ExecMode": "0", "Description": "Substep", "TestID": "B7PL025"},
+            {"Index": "005", "Phase": "4", "Title": "CheckVersion", "Send": ':Compare,"$sEth_MAC"', "Ref": "", "Validation": "", "ExecMode": "0", "Description": "Use MAC", "TestID": "B7PL025"},
+            {"Index": "006", "Phase": "97", "Title": "Teardown", "Send": ':Disconnect,"LAN"', "Ref": "", "Validation": "", "ExecMode": "3", "Description": "End", "TestID": "B7PL025"},
+        ]
+        rep = audit_workspace(ws)
+        issues = rep.get("phase_order_issues", [])
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0]["title"], "CheckVersion")
+        self.assertIn("倒退", issues[0]["reason"])
+
+        # Reorder so Software reboot (idx 2) goes after CheckVersion (idx 3), and auto-renumber Phase
+        res = reorder_station_blocks(ws, st, [0, 1, 3, 2, 4], auto_renumber_phase=True)
+        self.assertEqual(res["dep_warnings"], [])
+        rep_after = audit_workspace(ws)
+        self.assertEqual(rep_after.get("phase_order_issues", []), [])
+        phases_after = [r["Phase"] for r in ws["stations"][st] if r["Phase"]]
+        self.assertEqual(phases_after, ["1", "2", "3", "4", "97"])
+
+        # Now test variable dependency warning if producer (Load, now idx 0) is moved after consumer (CheckVersion, now idx 2)
+        res_bad = reorder_station_blocks(ws, st, [1, 2, 0, 3, 4], auto_renumber_phase=True)
+        self.assertEqual(len(res_bad["dep_warnings"]), 1)
+        self.assertIn("$sEth_MAC", res_bad["dep_warnings"][0])
+
 
 if __name__ == "__main__":
     unittest.main()

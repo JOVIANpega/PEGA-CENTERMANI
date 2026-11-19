@@ -912,6 +912,40 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if parsed.path == "/api/get_station_blocks":
+                from centimani_studio.core.block_sorter import (
+                    extract_station_blocks,
+                    serialize_blocks_for_ui,
+                    check_var_dependencies,
+                )
+                ws = payload.get("workspace", {})
+                sheet_name = payload.get("sheet_name", "")
+                rows = (ws.get("stations") or {}).get(sheet_name, [])
+                blocks = extract_station_blocks(rows)
+                self._send_json({
+                    "status": "ok",
+                    "blocks": serialize_blocks_for_ui(blocks),
+                    "dep_warnings": check_var_dependencies(blocks),
+                })
+                return
+
+            if parsed.path == "/api/reorder_station_blocks":
+                from centimani_studio.core.block_sorter import reorder_station_blocks
+                ws = payload.get("workspace", {})
+                sheet_name = payload.get("sheet_name", "")
+                new_order = payload.get("new_order_indices", [])
+                auto_renum = bool(payload.get("auto_renumber_phase", True))
+                res = reorder_station_blocks(ws, sheet_name, new_order, auto_renumber_phase=auto_renum)
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "workspace": ws,
+                    "report": rep,
+                    "blocks": res["blocks"],
+                    "dep_warnings": res["dep_warnings"],
+                })
+                return
+
             if parsed.path == "/api/fix_and_export_in_place":
                 ws = payload.get("workspace", {})
                 user_choices = payload.get("user_choices", {})

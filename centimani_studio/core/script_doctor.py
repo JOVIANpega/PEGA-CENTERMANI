@@ -752,6 +752,11 @@ def audit_workspace(workspace):
             if js:
                 jump_summaries.append(js)
 
+    # Check Phase order regression across all stations
+    from centimani_studio.core.block_sorter import find_phase_order_issues
+    phase_order_issues, phase_order_warns = find_phase_order_issues(workspace)
+    warnings.extend(phase_order_warns)
+
     # Separate mechanical auto-fixable warnings from manual-review warnings
     auto_fix_keywords = (
         "TestID ",
@@ -805,7 +810,8 @@ def audit_workspace(workspace):
         "suggestions": suggestions,
         "choice_cards": choice_cards,
         "jump_summaries": jump_summaries,
-        "sheet_stats": sheet_stats
+        "sheet_stats": sheet_stats,
+        "phase_order_issues": phase_order_issues
     }
 
 
