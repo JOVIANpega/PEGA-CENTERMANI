@@ -532,9 +532,12 @@ function bsRenderBlocks() {
     const isSwappedA = (BS_STATE.swappedAIdx === idx);
     const isSwappedB = (BS_STATE.swappedBIdx === idx);
 
+    // 檢查卡牌是否有被調整過順序 (與原始載入順序 orig_idx 比對)
+    const isOrderChanged = (b.orig_idx !== undefined && b.orig_idx !== idx);
+
     html += `
       <div id="bsCard_${idx}"
-           class="bs-poker-mini-card ${isSelected ? 'active' : ''} ${st.hasConflict ? 'conflict' : ''} ${isTeardown ? 'teardown' : ''} ${isSwappedA ? 'just-swapped-a' : ''} ${isSwappedB ? 'just-swapped-b' : ''}"
+           class="bs-poker-mini-card ${isSelected ? 'active' : ''} ${st.hasConflict ? 'conflict' : ''} ${isTeardown ? 'teardown' : ''} ${isOrderChanged && !isTeardown ? 'order-modified' : ''} ${isSwappedA ? 'just-swapped-a' : ''} ${isSwappedB ? 'just-swapped-b' : ''}"
            ${isTeardown ? '' : 'draggable="true"'}
            ondragstart="bsOnDragStart(event, ${idx})"
            ondragover="bsOnDragOver(event, ${idx})"
@@ -542,7 +545,7 @@ function bsRenderBlocks() {
            ondrop="bsOnDrop(event, ${idx})"
            ondragend="bsOnDragEnd()"
            onclick="bsSelectCard(${idx})"
-           title="${bsEscapeHtml(b.title)} (${b.row_count} 行) · 原第 ${b.start_row} 列">
+           title="${bsEscapeHtml(b.title)} (${b.row_count} 行) · 原第 ${b.start_row} 列${isOrderChanged ? ' · 順序已調整' : ''}">
         
         <!-- Phase 標籤（支援點擊序號直接手動指派順序） -->
         <div class="bs-card-phase-badge" onclick="event.stopPropagation();">
@@ -565,9 +568,16 @@ function bsRenderBlocks() {
           ${bsEscapeHtml(b.title)}
         </div>
 
-        <!-- 步數 (改成 行) 膠囊標籤 -->
-        <div class="bs-card-steps-pill">
-          ${b.row_count} 行
+        <!-- 步數 (改成 行) 膠囊標籤與異動標籤 -->
+        <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center;">
+          <div class="bs-card-steps-pill">
+            ${b.row_count} 行
+          </div>
+          ${isOrderChanged && !isTeardown ? `
+            <span class="bs-card-moved-tag" title="此積木順序已經過調動 (原序號 #${b.orig_idx + 1})">
+              已調動
+            </span>
+          ` : ''}
         </div>
 
         <!-- 底座隱形懸停條：固定區不顯示微調按鈕 -->

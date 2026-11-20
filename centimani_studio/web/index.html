@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v2.9.8</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.1</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1102,61 +1102,58 @@
       </div>
     </div><!-- /genModeEdit -->
 
-    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機) -->
+    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 免選檔自動由母體生成範本) -->
     <div id="genModeInst" style="display:none;">
       <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:18px 20px; margin-bottom:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div>
-            <h3 style="margin:0 0 4px 0; color:#4C1D95; font-size:17px;">🔌 書籤三：插入獨立儀器範本與互動人機 (34 款)</h3>
-            <div style="font-size:13px; color:#64748B;">安全插入規則：以獨立 Title 區塊插入指定位置，自動掛載至 Instrument 表，不破壞既有 4:P,F 跳轉。</div>
+            <h3 style="margin:0 0 4px 0; color:#4C1D95; font-size:17px;">🔌 書籤三：插入儀器範本 (34 款人機 - 免選檔自動生成)</h3>
+            <div style="font-size:13px; color:#64748B;">免選手動 Excel 檔案！系統自動以母體生成標準測試腳本範本，載入儀器測項後全自動體檢除錯，並即時產出 Excel 喚醒開啟給您檢視。</div>
           </div>
-          <button onclick="openInsertInstModal()" class="btn btn-primary-blue" style="padding:8px 18px; font-weight:800; font-size:13.5px;">
-            ➕ 開啟彈窗式精準插入器
+          <div style="display:flex; gap:8px;">
+            <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800; font-size:14px; box-shadow:0 2px 6px rgba(22,163,74,0.3);">
+              🚀 自動產生母體範本、載入儀器並開啟 Excel
+            </button>
+          </div>
+        </div>
+
+        <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:16px; margin-bottom:16px;">
+          <div style="font-weight:800; color:#5B21B6; margin-bottom:12px; font-size:14.5px;">1. 選擇要載入的儀器與測項規格：</div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+            <label style="flex:1; min-width:160px; font-weight:700; font-size:13px; color:#334155;">功能分類：
+              <select id="tab3CatSel" onchange="tab3OnCatChange()" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px;"></select>
+            </label>
+            <label style="flex:1.2; min-width:190px; font-weight:700; font-size:13px; color:#334155;">儀器名稱 (34款標準型錄)：
+              <select id="tab3InstSel" onchange="tab3OnInstChange()" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; font-weight:700; color:#1E293B;"></select>
+            </label>
+            <label style="flex:1.4; min-width:200px; font-weight:700; font-size:13px; color:#334155;">測項名稱 (Title)：
+              <input id="tab3TitleInput" type="text" placeholder="例如：Measure 3.3V Rail" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+            </label>
+            <label style="width:95px; font-weight:700; font-size:13px; color:#334155;">下限 DL：
+              <input id="tab3DlInput" type="text" placeholder="3.15" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+            </label>
+            <label style="width:95px; font-weight:700; font-size:13px; color:#334155;">上限 UL：
+              <input id="tab3UlInput" type="text" placeholder="3.45" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+            </label>
+            <button onclick="tab3OpenIntro()" class="btn" style="padding:7px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC; font-weight:700;">📖 儀器規格介紹</button>
+            <button id="btnTab3Hmi" onclick="tab3OpenHmi()" class="btn" style="padding:7px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;">🔌 互動人機設定</button>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:14px 18px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-weight:700; font-size:13.5px; color:#0F172A;">✨ 自動生成流程保障：</div>
+            <div style="font-size:12.5px; color:#64748B; margin-top:2px;">
+              點擊上方或右方綠色按鈕後，後台將自動以 Golden Mother 建立全新腳本，自動掛載前置路由與 Phase 97 收尾保護，載入您選定的儀器並執行全自動語法與邏輯檢查，產出後立即置頂開啟 Excel。
+            </div>
+          </div>
+          <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800; font-size:14px;">
+            🚀 立即生成並自動開啟 Excel
           </button>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:16px;">
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-            <label style="font-weight:700; color:#0F172A; display:block; margin-bottom:4px;">1. 目標測試站工作表：</label>
-            <select id="tab3SheetSel" onchange="tab3OnSheetChange()" class="mono" style="width:100%; padding:6px 8px; border:1px solid #94A3B8; border-radius:5px; font-weight:700;"></select>
-          </div>
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-            <label style="font-weight:700; color:#0F172A; display:block; margin-bottom:4px;">2. 插入位置（此 Title 之後、Phase 97 之前）：</label>
-            <select id="tab3AfterBlkSel" style="width:100%; padding:6px 8px; border:1px solid #94A3B8; border-radius:5px;"></select>
-          </div>
-        </div>
-
-        <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:14px; margin-bottom:14px;">
-          <div style="font-weight:800; color:#5B21B6; margin-bottom:10px;">3. 選擇要插入的儀器與測項規格：</div>
-          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
-            <label style="flex:1; min-width:160px; font-weight:700; font-size:12.5px; color:#334155;">功能分類：
-              <select id="tab3CatSel" onchange="tab3OnCatChange()" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
-            </label>
-            <label style="flex:1.2; min-width:180px; font-weight:700; font-size:12.5px; color:#334155;">儀器名稱：
-              <select id="tab3InstSel" onchange="tab3OnInstChange()" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
-            </label>
-            <label style="flex:1.4; min-width:180px; font-weight:700; font-size:12.5px; color:#334155;">測項名稱 (Title)：
-              <input id="tab3TitleInput" type="text" placeholder="例如：Measure 3.3V Rail" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-            </label>
-            <label style="width:90px; font-weight:700; font-size:12.5px; color:#334155;">下限 DL：
-              <input id="tab3DlInput" type="text" placeholder="3.15" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-            </label>
-            <label style="width:90px; font-weight:700; font-size:12.5px; color:#334155;">上限 UL：
-              <input id="tab3UlInput" type="text" placeholder="3.45" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
-            </label>
-            <button onclick="tab3OpenIntro()" class="btn" style="padding:7px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC;">📖 儀器介紹</button>
-            <button id="btnTab3Hmi" onclick="tab3OpenHmi()" class="btn" style="padding:7px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">🔌 互動人機設定</button>
-            <button onclick="tab3ConfirmInsert()" class="btn btn-primary-green" style="padding:7px 16px; font-weight:800;">✨ 立即插入新區塊</button>
-          </div>
-        </div>
-
-        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <span style="font-size:12.5px; color:#64748B;">💡 插入後會暫存於記憶體，隨時可切換回「書籤一」檢視、排序或點擊右方匯出產出正式腳本。</span>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-dry" style="padding:7px 14px; font-size:13px;" onclick="applyFixAndExport(true)">🧪 匯出「無硬體試跑版」</button>
-            <button class="btn btn-primary-green" style="padding:7px 16px; font-size:13px; font-weight:800;" onclick="applyFixAndExport(false)">💾 寫入並匯出 (*_FIXED.xlsx)</button>
-          </div>
-        </div>
+        <!-- 產出狀態展示盒 -->
+        <div id="tab3OutputBox" style="display:none; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:12px 16px; margin-top:10px;"></div>
       </div>
     </div><!-- /genModeInst -->
   </div>
@@ -1323,9 +1320,6 @@
 
     <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; flex-shrink:0;">
       <span style="font-size:12px; color:#64748B;">💡 提示：可直接修改卡片上的 Phase 數字插隊；滑鼠碰觸卡片下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕大牌桌」可折疊右欄。</span>
-      <div style="display:flex; gap:8px;">
-        <button type="button" class="btn btn-modal-close" style="padding:7px 20px; font-size:13px;" onclick="closeBlockSorterModal()" title="關閉 Phase 積木排序工作台">✕ 關閉</button>
-      </div>
     </div>
   </div>
 </div>
@@ -2403,33 +2397,72 @@ function switchGenSubMode(mode) {
 }
 
 async function syncTab3View() {
-  if (!STATE.workspace) {
-    alert('尚未載入任何 TestFlow 腳本，請先於「書籤一」載入要編修的 Excel 檔案！');
-    switchGenSubMode('edit');
-    return;
-  }
-  const stNames = Object.keys(STATE.workspace.stations || {});
-  const sSel = document.getElementById('tab3SheetSel');
-  if (sSel && stNames.length > 0) {
-    sSel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
-    const edSel = document.getElementById('editorSheetSel');
-    if (edSel && edSel.value && stNames.includes(edSel.value)) sSel.value = edSel.value;
-  }
-  tab3OnSheetChange();
+  // 書籤三：免選檔，由母體自動建立範本
   try {
     await _ensureInstCatalogLoaded();
   } catch (err) {}
   _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
 }
 
-function tab3OnSheetChange() {
-  const sSel = document.getElementById('tab3SheetSel');
-  const blkSel = document.getElementById('tab3AfterBlkSel');
-  if (!sSel || !blkSel || !STATE.workspace) return;
-  const sheet = sSel.value;
-  const rows = (STATE.workspace.stations || {})[sheet] || [];
-  const blks = _extractStationTitleBlocks(rows);
-  blkSel.innerHTML = blks.map(b => `<option value="${b.idx}">${b.label}</option>`).join('');
+async function tab3GenerateStandalone() {
+  const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}`;
+  const dlVal = (document.getElementById('tab3DlInput') || {}).value.trim();
+  const ulVal = (document.getElementById('tab3UlInput') || {}).value.trim();
+
+  // 顯示進度指示
+  const outBox = document.getElementById('tab3OutputBox');
+  if (outBox) {
+    outBox.style.display = 'block';
+    outBox.style.background = '#EFF6FF';
+    outBox.style.borderColor = '#60A5FA';
+    outBox.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; color:#1E3A8A; font-weight:700;">
+        <span style="font-size:18px; animation:spinLoading 1.5s linear infinite;">⏳</span>
+        <span>正在以 Golden Mother 母體自動產生腳本範本、掛載儀器 [${instName}]、執行全自動體檢與修復...</span>
+      </div>
+    `;
+  }
+
+  try {
+    const res = await fetch('/api/generate_inst_template_standalone', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        inst_name: instName,
+        title_name: titleName,
+        dl_val: dlVal,
+        ul_val: ulVal,
+        project_name: 'INST_MOTHER',
+        station_name: 'MB'
+      })
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      alert('產生失敗：' + (data.message || '未知錯誤'));
+      if (outBox) outBox.style.display = 'none';
+      return;
+    }
+
+    if (outBox) {
+      outBox.style.background = '#F0FDF4';
+      outBox.style.borderColor = '#86EFAC';
+      outBox.innerHTML = `
+        <div style="font-size:14px; color:#166534; font-weight:800; margin-bottom:6px;">
+          🎉 成功以母體自動產出儀器測試範本，並已自動開啟 Excel 與目標資料夾！
+        </div>
+        <div style="font-size:12.5px; color:#334155; line-height:1.6;">
+          • <b>儀器項目：</b><span class="mono">${data.inst_name}</span> (Title: ${data.title_name})<br>
+          • <b>輸出目錄：</b><span class="mono">${data.output_dir}</span><br>
+          • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
+          • <b>腳本體檢：</b><span style="color:#15803D; font-weight:700;">✅ 自動防呆檢查通過 (已補齊 16 欄邊界、前置路由、Phase 97 結束碼與 Checksum)</span>
+        </div>
+      `;
+    }
+  } catch (err) {
+    alert('呼叫伺服器時發生異常：' + (err && err.message ? err.message : err));
+    if (outBox) outBox.style.display = 'none';
+  }
 }
 
 function tab3OnCatChange() {

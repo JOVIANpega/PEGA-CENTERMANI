@@ -1464,6 +1464,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if get_app_settings().get("auto_open_folder", True):
                     open_folder_in_explorer(target_dir)
 
+                launch_excel_file_async(out_xlsx)
+
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
@@ -1472,6 +1474,77 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
                     "isn_info": extract_isn_info(ws)
+                })
+
+            elif parsed.path == "/api/generate_inst_template_standalone":
+                inst_name = str(payload.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                title_name = str(payload.get("title_name", "")).strip() or f"Test_{inst_name}"
+                dl_val = str(payload.get("dl_val", "")).strip()
+                ul_val = str(payload.get("ul_val", "")).strip()
+                proj_name = str(payload.get("project_name", "INST_MOTHER")).strip() or "INST_MOTHER"
+                st_name = str(payload.get("station_name", "MB")).strip() or "MB"
+
+                # 1. 建立全新標準母體 (Golden Blank Mother Template)
+                ws = get_golden_mother(proj_name, st_name)
+
+                # 2. 自動載入前置路由與收尾保護骨架
+                blk_map = {b["block_id"]: b for b in STANDARD_BLOCKS}
+                init_steps = []
+                for b_key in ["BLK_PRETEST_ROUTE", "BLK_PHASE97_TEARDOWN"]:
+                    b_obj = blk_map.get(b_key)
+                    if b_obj:
+                        for k, v in b_obj.get("required_globals", {}).get("Settings", {}).items():
+                            ws["global_ini"]["Settings"][k] = v
+                        for k, v in b_obj.get("required_globals", {}).get("Scripts", {}).items():
+                            ws["global_ini"]["Scripts"][k] = v
+                        for m_name, m_rows in b_obj.get("required_marcos", {}).items():
+                            ws.setdefault("marcos", {})[m_name] = [dict(mr) for mr in m_rows]
+                        for s_row in b_obj.get("steps", []):
+                            init_steps.append(dict(s_row))
+
+                ws["stations"] = {st_name: init_steps}
+
+                # 3. 載入目標儀器測項至前置路由之後、Phase 97 收尾之前
+                insert_instrument_title_block(
+                    ws, st_name, inst_name, title_name,
+                    after_block_idx=0,
+                    dl_val=dl_val,
+                    ul_val=ul_val
+                )
+
+                # 4. 全自動檢查與錯誤修復 (Auto Audit & Repair)
+                audit_rep = audit_workspace(ws)
+                auto_fix_workspace(ws)
+
+                # 5. 輸出 Excel 與 INI，自動寫入 Checksum
+                xlsx_name = f"{proj_name}_{inst_name}_{st_name}.xlsx"
+                folder_label = f"InstTemplate_{inst_name}_{st_name}"
+                target_dir = os.path.join(OUTPUT_ROOT, folder_label, "System")
+                os.makedirs(target_dir, exist_ok=True)
+                for old_f in os.listdir(target_dir):
+                    try:
+                        os.remove(os.path.join(target_dir, old_f))
+                    except Exception:
+                        pass
+
+                out_xlsx = os.path.join(target_dir, xlsx_name)
+                export_workspace_to_excel(ws, out_xlsx)
+                sys_ini, glb_ini = sync_and_generate_inis(ws, xlsx_name, target_dir)
+                generate_official_checksum(out_xlsx, sys_ini)
+
+                # 6. 自動開啟目標目錄與喚醒 Excel 給使用者檢視
+                if get_app_settings().get("auto_open_folder", True):
+                    open_folder_in_explorer(target_dir)
+
+                launch_excel_file_async(out_xlsx)
+
+                self._send_json({
+                    "status": "ok",
+                    "output_dir": target_dir,
+                    "excel_path": out_xlsx,
+                    "inst_name": inst_name,
+                    "title_name": title_name,
+                    "audit_report": audit_rep
                 })
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
