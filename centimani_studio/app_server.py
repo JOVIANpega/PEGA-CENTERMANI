@@ -375,6 +375,55 @@ def open_folder_in_explorer(folder_path):
         pass
 
 
+def launch_excel_file_async(file_path):
+    """Reliably launches Excel for the given file in background without blocking server HTTP thread."""
+    if not file_path or not os.path.exists(file_path):
+        return
+
+    import threading
+    def _open_task():
+        norm_p = os.path.normpath(file_path)
+        # Attempt 1: os.startfile
+        try:
+            os.startfile(norm_p)
+            return
+        except Exception as e1:
+            print(f"[launch_excel_file_async] os.startfile failed: {e1}")
+
+        # Attempt 2: Direct EXCEL.EXE execution via App Paths / default paths
+        excel_candidates = [
+            r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE",
+            r"C:\Program Files\Microsoft Office\Office16\EXCEL.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Office16\EXCEL.EXE",
+            r"C:\Program Files\Microsoft Office\Office15\EXCEL.EXE",
+        ]
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\excel.exe") as key:
+                val, _ = winreg.QueryValueEx(key, "")
+                if val and os.path.exists(val):
+                    excel_candidates.insert(0, val)
+        except Exception:
+            pass
+
+        for exe in excel_candidates:
+            if os.path.exists(exe):
+                try:
+                    subprocess.Popen([exe, norm_p])
+                    return
+                except Exception as e2:
+                    print(f"[launch_excel_file_async] direct excel spawn failed: {e2}")
+
+        # Attempt 3: cmd start fallback
+        try:
+            subprocess.Popen(f'start "" "{norm_p}"', shell=True)
+        except Exception as e3:
+            print(f"[launch_excel_file_async] cmd start failed: {e3}")
+
+    threading.Thread(target=_open_task, daemon=True).start()
+
+
 def extract_isn_info(ws):
     """Extracts the configured ISN barcode digit length and rule from DUTs ScanBarcode."""
     import re
@@ -855,6 +904,38 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
 
+        if parsed.path == "/api/upload_and_analyze_log":
+            # Direct multipart file upload for Log / CSV with zero UI dialog freeze
+            ctype, pdict = cgi.parse_header(self.headers.get("content-type", ""))
+            if ctype == "multipart/form-data":
+                pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
+                fields = cgi.parse_multipart(self.rfile, pdict)
+                file_items = fields.get("log_file", [])
+                if not file_items:
+                    self._send_json({"status": "error", "message": "未收到上傳的 Log 檔案"}, 400)
+                    return
+                raw_bytes = file_items[0]
+                content = ""
+                for enc in ["utf-8", "big5", "cp950", "gbk", "latin-1"]:
+                    try:
+                        content = raw_bytes.decode(enc)
+                        break
+                    except Exception:
+                        pass
+                if not content:
+                    content = raw_bytes.decode("latin-1", errors="replace")
+
+                res = analyze_centimani_log(content)
+                self._send_json({
+                    "status": "ok",
+                    "file_size_kb": round(len(raw_bytes) / 1024, 2),
+                    "log_snippet": content[:1200] if len(content) > 1200 else content,
+                    "result": res
+                })
+            else:
+                self._send_json({"status": "error", "message": "Invalid content-type"}, 400)
+            return
+
         if parsed.path == "/api/upload_and_audit":
             # Handles multipart file upload from web browser
             ctype, pdict = cgi.parse_header(self.headers.get("content-type", ""))
@@ -1165,10 +1246,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 open_folder_in_explorer(orig_dir)
                 if open_excel and os.path.exists(target_xlsx_path):
-                    try:
-                        os.startfile(os.path.normpath(target_xlsx_path))
-                    except Exception as _oe:
-                        print(f"Warning: failed to launch excel: {_oe}")
+                    launch_excel_file_async(target_xlsx_path)
 
                 ws_re = import_excel_to_workspace(target_xlsx_path)
                 rep_re = audit_workspace(ws_re)
@@ -1194,7 +1272,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if not fpath.lower().endswith((".xlsx", ".xls")):
                     self._send_json({"status": "error", "message": "僅支援開啟 Excel 檔案"}, 400)
                     return
-                os.startfile(os.path.normpath(fpath))
+                launch_excel_file_async(fpath)
                 self._send_json({"status": "ok"})
 
             elif parsed.path == "/api/generate_new_standalone":

@@ -698,8 +698,10 @@
 
     <!-- 模式一：檔案分析專屬區塊 (預設顯示) -->
     <div id="subModeFile" style="margin-bottom:12px;">
+      <!-- 原生零卡頓檔案選取器 (支援本機秒選秒傳) -->
+      <input type="file" id="localLogFileInput" accept=".log,.txt,.csv,.LOG,.TXT,.CSV" style="display:none;" onchange="handleNativeLogSelected(this)">
       <div class="action-bar" style="margin-bottom:6px;">
-        <button id="btnPickLog" class="btn btn-primary-blue" onclick="pickLogFileNative()">
+        <button id="btnPickLog" class="btn btn-primary-blue" onclick="document.getElementById('localLogFileInput').click()">
           📂 點此選擇要分析的 Log / CSV 檔案（支援幾百K大檔秒速解析）
         </button>
         <span style="flex:1;"></span>
@@ -1211,10 +1213,8 @@
             ↩️ 還原原始順序
           </button>
         </div>
-        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:#1E3A8A; cursor:pointer;">
-          <input type="checkbox" id="chkBsAutoRenumber" checked onchange="bsRenderBlocks()" style="width:16px; height:16px; cursor:pointer;">
-          套用時自動順編 Phase 號碼 (1, 2, 3...，保留 Phase 97 收尾在最後)
-        </label>
+        <!-- 順編選項預設永遠啟用，依使用者指示自介面隱藏 -->
+        <input type="checkbox" id="chkBsAutoRenumber" checked style="display:none;">
       </div>
 
       <!-- 左右雙欄工作台 (支援折疊切換全景大牌桌或全景指令終端，高度充實彈性撐滿) -->
@@ -1427,7 +1427,53 @@ async function reAnalyzePickedFile() {
   }
 }
 
+async function handleNativeLogSelected(inputEl) {
+  if (!inputEl.files || inputEl.files.length === 0) return;
+  const file = inputEl.files[0];
+  const btn = document.getElementById('btnPickLog');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 正在秒速解析 Log 內容...';
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('log_file', file);
+    const res = await fetch('/api/upload_and_analyze_log', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      alert(data.message || 'Log 檔案解析失敗');
+      return;
+    }
+
+    STATE.lastPickedLogPath = data.file_path || file.name;
+    document.getElementById('pickedLogPathText').textContent = `${file.name} (${data.file_size_kb || (file.size/1024).toFixed(1)} KB)`;
+    if (data.log_snippet) {
+      document.getElementById('txtRawPreview').value = data.log_snippet + ((data.file_size_kb || 0) > 2 ? '\n... (其餘內容已由後端引擎完成全量分析) ...' : '');
+    }
+    renderDiagResult(data.result);
+  } catch (err) {
+    console.error('handleNativeLogSelected error:', err);
+    alert('Log 檔案解析發生錯誤：' + (err && err.message ? err.message : err));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+    inputEl.value = ''; // 清空以利重複選取同名更新檔
+  }
+}
+
 async function pickLogFileNative() {
+  const fileInput = document.getElementById('localLogFileInput');
+  if (fileInput) {
+    fileInput.click();
+    return;
+  }
   const btn = document.getElementById('btnPickLog');
   const origText = btn.innerHTML;
   btn.disabled = true;
