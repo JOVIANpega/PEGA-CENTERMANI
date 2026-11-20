@@ -106,7 +106,7 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
         ws.column_dimensions[col_letter].width = col_w
 
 
-def export_workspace_to_excel(workspace, output_excel_path):
+def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     """
     Exports the workspace JSON into a standard 16-column Centimani .xlsx workbook.
     If `source_file` exists, patches the original workbook in-place so all Marco sheets (11-col),
@@ -231,6 +231,9 @@ def export_workspace_to_excel(workspace, output_excel_path):
             if s_other not in workspace.get("stations", {}):
                 apply_sheet_formatting(wb[s_other], is_station=False)
 
+        if active_sheet and active_sheet in wb.sheetnames:
+            wb.active = wb[active_sheet]
+
         wb.save(output_excel_path)
         return output_excel_path
 
@@ -300,6 +303,9 @@ def export_workspace_to_excel(workspace, output_excel_path):
                 row_vals.append(val if (val is not None and str(val) != "") else None)
             ws_m.append(row_vals)
         apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=sheet_fixed_map.get(m_name, {}))
+
+    if active_sheet and active_sheet in wb.sheetnames:
+        wb.active = wb[active_sheet]
 
     wb.save(output_excel_path)
     return output_excel_path
@@ -413,6 +419,21 @@ def import_excel_to_workspace(xlsx_path):
                     elif "=" in s and curr_sec in ["Settings", "Scripts"]:
                         k, v = s.split("=", 1)
                         ws_data["global_ini"][curr_sec][k.strip()] = v.strip()
+            break
+
+    # 5. Read sibling System.ini SFIS/iPLAS keys if available
+    for s_cand in [os.path.join(folder, "System.ini"), os.path.join(folder, "System", "System.ini")]:
+        if os.path.exists(s_cand):
+            with open(s_cand, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    s = line.strip()
+                    if not s or s.startswith("//") or s.startswith(";") or s.startswith("["):
+                        continue
+                    if "=" in s:
+                        k, v = s.split("=", 1)
+                        k_s = k.strip()
+                        if k_s in ("SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName", "TestItemCodeFile"):
+                            ws_data.setdefault("system_ini", {})[k_s] = v.strip()
             break
 
     return ws_data

@@ -1,3 +1,10 @@
 {
-  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\TEMP_SCRIPT"
+  "auto_fullscreen": true,
+  "show_flow_guide": true,
+  "auto_open_folder": true,
+  "auto_checksum": true,
+  "tic_generic_only": false,
+  "intro_font_size": 17,
+  "skip_guides": {},
+  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\SCRIPTS"
 }

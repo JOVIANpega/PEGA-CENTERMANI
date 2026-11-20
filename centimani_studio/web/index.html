@@ -4,20 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/app.css?v=2.8.6">
 </head>
 <body>
 
 <!-- Top Header (整合模組切換列，取代左側重複側邊欄) -->
 <div class="top-header">
-  <div class="brand-group" style="flex-wrap:wrap;">
+  <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v2.9.0</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
+      <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
+      <button id="topNavGen" class="top-nav-pill" style="display:none;" onclick="switchTab('gen'); switchGenSubMode('edit');">✏️ 02 流程編修與母體</button>
+      <button id="topNavDiagnose" class="top-nav-pill" style="display:none;" onclick="switchTab('diagnose')">📄 03 Log 診斷</button>
+      <button id="topNavTic" class="top-nav-pill" style="display:none;" onclick="switchTab('tic')">🏷️ 04 TestID 速查</button>
+      <button id="topNavSettings" class="top-nav-pill" style="display:none;" onclick="switchTab('settings')">⚙️ 系統設定</button>
     </div>
   </div>
-  <div style="font-size:13px; color:#E2E8F0; white-space:nowrap;">
-    產線相容：Centimani 1.5.3 ~ 2.0
+  <div style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#E2E8F0; white-space:nowrap;">
+    <button type="button" class="btn" onclick="location.reload(true)" style="background:#334155; color:#F8FAFC; border:1px solid #475569; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;" title="滑鼠點此直接強制重新整理頁面，免按鍵盤快捷鍵">
+      🔄 重新整理
+    </button>
+    <span style="color:#94A3B8;">產線相容：Centimani 1.5.3 ~ 2.0</span>
   </div>
 </div>
 
@@ -28,7 +37,19 @@
   <!-- ======================== 右側主工作區域 ======================== -->
   <div class="main-content">
 
-  <!-- ======================== 總覽首頁（橫向手風琴展開卡） ======================== -->
+<!-- 全螢幕遮罩防呆層：解析中全介面鎖定 -->
+<div id="globalParsingOverlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); z-index:999999; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+  <div style="background:#FFFFFF; border:2px solid #2563EB; border-radius:12px; padding:24px 32px; box-shadow:0 20px 50px rgba(0,0,0,0.5); text-align:center; max-width:90vw; width:480px;">
+    <div style="font-size:38px; margin-bottom:10px; animation:spinLoading 1.5s linear infinite;">⏳</div>
+    <div id="overlayLoadingTitle" style="font-size:16px; font-weight:800; color:#0F172A; margin-bottom:8px;">正在解析 Excel 腳本...</div>
+    <div id="overlayLoadingTimer" class="mono" style="font-size:13px; color:#2563EB; font-weight:700; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:6px 12px; margin-bottom:12px;">已耗時 0.0 秒</div>
+    <div style="font-size:12.5px; color:#64748B;">大型多站點腳本解析約需 5~12 秒，解析期間全功能按鍵已自動防誤觸鎖定，請稍候...</div>
+  </div>
+</div>
+<style>
+@keyframes spinLoading { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+  <div id="loadingTimerBar" style="display:none; align-items:center; gap:10px; background:#EFF6FF; border:1.5px solid #3B82F6; color:#1E3A8A; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-weight:700; font-size:13.5px;"></div>
   <div id="panelHome" style="display:block;">
     <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
@@ -73,8 +94,8 @@
             <li>34 款儀器人機、跳轉、通訊與全域微調</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn btn-primary-green" style="padding:6px 12px; font-size:12.5px;">🆕 建立新母體</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">✏️ 編修既有腳本</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;">✏️ 編修既有腳本 (常用)</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">🆕 建立新母體</button>
           </div>
         </div>
       </div>
@@ -214,9 +235,6 @@
       </div>
     </div>
 
-    <!-- 讀取耗時提示列（超過 3 秒顯示即時耗時與預計提示） -->
-    <div id="loadingTimerBar" style="display:none; align-items:center; gap:10px; background:#EFF6FF; border:1.5px solid #3B82F6; color:#1E3A8A; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-weight:700; font-size:13.5px;"></div>
-
     <!-- 整包資料夾批次掃描結果總表 -->
     <div id="batchFolderBox" style="display:none; border:1.5px solid #38BDF8; border-radius:8px; padding:12px 14px; background:#F0F9FF; margin-bottom:12px;"></div>
 
@@ -248,13 +266,14 @@
       <h3 style="margin:0 0 8px 0; color:var(--slate-900);">🛠️ 系統抓到的問題與自動修補對策（存檔時自動套用）：</h3>
       <div id="issueItems" style="font-size:13.5px; line-height:1.6;"></div>
     </div>
+  </div> <!-- 關閉 panelAudit 容器，讓後續 Modal 成為全域頂層對話框 -->
 
-    <!-- 彈出式 Title 區塊跳轉編輯器 Modal -->
-    <div id="jumpEditorModal" class="modal-backdrop">
+  <!-- ======================== 共用 Modal：🔀 彈出式 Title 區塊跳轉編輯器 Modal ======================== -->
+  <div id="jumpEditorModal" class="modal-backdrop">
       <div class="modal-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
           <div style="font-weight:700; font-size:15px;">🔀 Title 區塊跳轉編輯器（打勾設定 PASS / FAIL / 重試點）</div>
-          <button onclick="closeJumpEditorModal()" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+          <button onclick="closeJumpEditorModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;" title="放棄並關閉跳轉編輯視窗">✕ 關閉</button>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:10px 16px; background:#EFF6FF; border-bottom:1px solid #CBD5E1;">
           <label style="font-weight:700; color:#1E3A8A; font-size:13.5px;">工作表：
@@ -322,7 +341,7 @@
       <div class="modal-panel" style="max-width:640px;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
           <div style="font-weight:700; font-size:15px;">➕ 插入獨立 Title 儀器範本（含整塊亮黃底標記）</div>
-          <button onclick="closeInsertInstModal()" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+          <button onclick="closeInsertInstModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;" title="放棄並關閉插入儀器視窗">✕ 關閉</button>
         </div>
         <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
           <div style="background:#FEF08A; color:#7F1D1D; padding:7px 10px; border-radius:5px; font-weight:700; font-size:12.5px;">
@@ -334,16 +353,6 @@
           <label style="font-weight:700; color:#0F172A;">2. 插入位置（於此 Title 區塊之後，且永遠在 Phase 97 之前）：
             <select id="iiAfterBlkSel" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
           </label>
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 10px;">
-            <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:5px;">⚡ 常用儀器快選（點選直接進入儀器介紹與互動人機設定）：</div>
-            <div style="display:flex; flex-wrap:wrap; gap:5px;">
-              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'NI6008-1');" class="btn" style="padding:3px 9px; font-size:12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">⚡ NI-6008 / 6009</button>
-              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'IPOWER2401');" class="btn" style="padding:3px 9px; font-size:12px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">🔌 iPower 電源</button>
-              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'Agilent34401A');" class="btn" style="padding:3px 9px; font-size:12px; background:#DCFCE7; color:#166534; border-color:#4ADE80;">📏 34401A / MDA2700</button>
-              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'FeasaLED');" class="btn" style="padding:3px 9px; font-size:12px; background:#F3E8FF; color:#6B21A8; border-color:#C084FC;">💡 Feasa LED</button>
-              <button onclick="closeInsertInstModal(); openInstIntroPage('audit', 'InstIQApiA');" class="btn" style="padding:3px 9px; font-size:12px; background:#DBEAFE; color:#1E40AF; border-color:#60A5FA;">📡 IQxel RF</button>
-            </div>
-          </div>
           <div style="display:flex; gap:10px;">
             <label style="flex:1; font-weight:700; color:#0F172A;">3A. 依功能分類：
               <select id="iiCatSel" onchange="iiOnCategoryChange()" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
@@ -374,14 +383,13 @@
         </div>
       </div>
     </div>
-  </div>
 
   <!-- ======================== 共用 Modal：🌐 SFIS / iPLAS 開關與廠區 IP 設定 ======================== -->
   <div id="sfisIplasModal" class="modal-backdrop">
     <div class="modal-panel" style="max-width:640px;">
       <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
         <div style="font-weight:700; font-size:15px;">🌐 SFIS / iPLAS 開關與廠區 IP 設定（寫入 System.ini）</div>
-        <button onclick="document.getElementById('sfisIplasModal').classList.remove('open')" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+        <button onclick="document.getElementById('sfisIplasModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;" title="關閉 SFIS / iPLAS 設定視窗">✕ 關閉</button>
       </div>
       <div style="padding:14px 16px; display:flex; flex-direction:column; gap:12px; font-size:13.5px;">
         <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:6px; padding:10px 12px;">
@@ -452,7 +460,7 @@
     <div class="modal-panel" style="max-width:560px;">
       <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
         <div style="font-weight:700; font-size:15px;">🔌 通訊設定（修改 UART COM Port / UART 批次轉 SSH）</div>
-        <button onclick="document.getElementById('commModal').classList.remove('open')" style="background:transparent; border:1px solid #94A3B8; color:#FFFFFF; border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:700;">✕ 關閉</button>
+        <button onclick="document.getElementById('commModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;" title="關閉通訊設定視窗">✕ 關閉</button>
       </div>
       <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
@@ -817,20 +825,20 @@
 
   <!-- ======================== 書籤三：4 步驟精靈式母體產生器 ======================== -->
   <div id="panelGen" style="display:none;">
-    <!-- 02 頂部雙書籤切換列（首次建立新母體 vs 既有腳本無限次編修） -->
+    <!-- 02 頂部雙書籤切換列（既有腳本無限次編修 vs 首次建立新母體） -->
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
       <div class="source-mode-bar">
-        <button id="btnGenModeCreate" class="source-mode-tab active" onclick="switchGenSubMode('create')">
-          🆕 書籤一：首次建立新母體 (0 → 1)
+        <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">
+          ✏️ 書籤一：既有腳本編修與加儀器 (1 → N)
         </button>
-        <button id="btnGenModeEdit" class="source-mode-tab" onclick="switchGenSubMode('edit')">
-          ✏️ 書籤二：既有腳本編修與加儀器 (1 → N)
+        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">
+          🆕 書籤二：首次建立新母體 (0 → 1)
         </button>
       </div>
-      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 專案初期用書籤一建母體，日常新增儀器 / 改跳轉 / 調通訊請用書籤二</span>
+      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 日常新增儀器 / 改跳轉 / 調通訊 / 排序請用書籤一；專案初期從零建母體用書籤二</span>
     </div>
 
-    <div id="genModeCreate">
+    <div id="genModeCreate" style="display:none;">
     <!-- 頂部步驟導覽列 -->
     <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
       <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -912,17 +920,9 @@
       <div style="font-weight:700; font-size:13.5px; color:#334155; margin-bottom:6px;">① 標準測試流程骨架（純流程控制 / 治具 / 韌體 / SFIS / 收尾）：</div>
       <div id="blockCheckGrid" class="block-grid"></div>
 
-      <!-- 整合後：所有儀器測項統一由此選用（快速按鈕 + 全 34 款分類選單） -->
+      <!-- 整合後：所有儀器測項統一由此選用（全 34 款分類選單） -->
       <div style="margin-top:14px; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">② 測試儀器與量測項目選用（已整合 NI-6009 / iPower / 電表 / FeasaLED / IQxel，點選即進入介紹與人機設定）：</div>
-        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #CBD5E1;">
-          <span style="font-size:12.5px; font-weight:700; color:#475569; align-self:center;">常用儀器快選：</span>
-          <button onclick="openInstIntroPage('gen', 'NI6008-1')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">⚡ NI-6008 / 6009 電壓量測</button>
-          <button onclick="openInstIntroPage('gen', 'IPOWER2401')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">🔌 iPower 程控電源開關</button>
-          <button onclick="openInstIntroPage('gen', 'Agilent34401A')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DCFCE7; color:#166534; border-color:#4ADE80;">📏 34401A / MDA2700 電表</button>
-          <button onclick="openInstIntroPage('gen', 'FeasaLED')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#F3E8FF; color:#6B21A8; border-color:#C084FC;">💡 Feasa LED 色彩亮度</button>
-          <button onclick="openInstIntroPage('gen', 'InstIQApiA')" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DBEAFE; color:#1E40AF; border-color:#60A5FA;">📡 IQxel Wi-Fi RF 測試</button>
-        </div>
+        <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">② 測試儀器與量測項目選用（全 34 款人機與測項）：</div>
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
           <label style="flex:1; min-width:170px; font-weight:700; font-size:12.5px; color:#334155;">功能分類：
             <select id="genInstCatSel" onchange="genOnCategoryChange()" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
@@ -978,16 +978,17 @@
     </div>
     </div><!-- /genModeCreate -->
 
-    <!-- 書籤二：既有腳本編修與加儀器 (1 → N) -->
-    <div id="genModeEdit" style="display:none;">
+    <!-- 書籤一：既有腳本編修與加儀器 (1 → N) -->
+    <div id="genModeEdit" style="display:block;">
       <!-- ① 目標檔案列 -->
+      <input type="file" id="localExcelPickerInput" accept=".xlsx" style="display:none;" onchange="uploadExcelForEditor(this)">
       <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-primary-blue" onclick="pickExcelForEditor()">
+            <button class="btn btn-primary-blue" onclick="document.getElementById('localExcelPickerInput').click()">
               📂 選擇要編修的 TestFlow.xlsx
             </button>
-            <span style="font-size:12.5px; color:#475569;">（若剛在「01 腳本健檢」載入過，會自動帶入目前檔案）</span>
+            <span style="font-size:12.5px; color:#475569;">（點擊直接跳出本機選檔視窗，選取後即刻載入進入編修畫面）</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <button id="btnEditorBackAudit" class="btn" style="display:none; background:#F1F5F9; color:#334155; border-color:#94A3B8;" onclick="switchTab('audit')">
@@ -1007,11 +1008,27 @@
       </div>
 
       <!-- 未載入檔案時的引導卡片 -->
-      <div id="editorEmptyHint" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:28px 20px; text-align:center; color:#475569;">
-        <div style="font-size:30px; margin-bottom:6px;">✏️</div>
-        <div style="font-weight:700; font-size:15.5px; color:#0F172A; margin-bottom:6px;">請先選擇一份既有的 TestFlow.xlsx 開始編修</div>
-        <div style="font-size:13.5px; margin-bottom:14px;">載入後即可無限次插入 34 款儀器人機、調整 PASS/FAIL 跳轉、切換 SFIS/iPLAS、修改 COM / 轉 SSH 與全域微調，原檔保持不動，匯出時產出 *_FIXED.xlsx。</div>
-        <button class="btn btn-primary-blue" style="padding:8px 18px; font-size:14px;" onclick="pickExcelForEditor()">📂 選擇要編修的 TestFlow.xlsx</button>
+      <div id="editorEmptyHint" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:24px 20px; text-align:center; color:#475569;">
+        <div style="font-size:32px; margin-bottom:6px;">✏️</div>
+        <div style="font-weight:800; font-size:16px; color:#0F172A; margin-bottom:6px;">選擇一份既有的 TestFlow.xlsx 開始編修</div>
+        <div style="font-size:13.5px; margin-bottom:16px; color:#475569;">請選擇要載入的測試腳本，選取後將直接載入進入「A. 測試站流程與儀器編修」。</div>
+        
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+          <button class="btn btn-primary-blue" style="padding:10px 24px; font-size:14px; font-weight:800; box-shadow:0 4px 10px rgba(37,99,235,0.25);" onclick="document.getElementById('localExcelPickerInput').click()">
+            📂 點此選取本機 TestFlow.xlsx 檔案
+          </button>
+        </div>
+
+        <!-- 最近使用的 TestFlow 腳本快速點選卡區 -->
+        <div id="editorRecentFilesContainer" style="max-width:760px; margin:0 auto; text-align:left; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:13px; font-weight:800; color:#1E293B;">⚡ 最近編修腳本快速載入：</span>
+            <span style="font-size:11.5px; color:#64748B;">點擊右側按鈕即刻開啟</span>
+          </div>
+          <div id="editorRecentFilesList" style="display:flex; flex-direction:column; gap:6px;">
+            <div style="font-size:12px; color:#94A3B8; text-align:center; padding:10px;">正在偵測最近腳本...</div>
+          </div>
+        </div>
       </div>
 
       <!-- 載入檔案後的編修工作區 -->
@@ -1069,7 +1086,7 @@
             💡 <b>安全存檔機制：</b>所有編修先暫存於記憶體，匯出時產出同目錄 <code>*_FIXED.xlsx</code>（新增區塊亮黃底標記）並自動更新 <code>System.ini</code> Checksum，原始檔案保持不動。
           </div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btnExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
+            <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
               🧪 匯出「無硬體試跑版」
             </button>
             <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:13.5px;" onclick="applyFixAndExport(false)">
@@ -1160,26 +1177,37 @@
 </div>
 </div> <!-- 關閉 app-body 容器 -->
 
-<!-- ======================== 共用 Modal：🧱 積木式 Phase / Title 拖拉排序器 ======================== -->
-<div id="modalBlockSorter" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9999; align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#FFFFFF; width:960px; max-width:96vw; max-height:90vh; border-radius:12px; box-shadow:0 20px 45px rgba(15,23,42,0.32); display:flex; flex-direction:column; overflow:hidden; border:1.5px solid #334155;">
-    <div style="background:#0F172A; color:#FFFFFF; padding:12px 18px; display:flex; align-items:center; justify-content:space-between;">
-      <div style="font-weight:700; font-size:15.5px;">🧱 積木式 Phase / Title 區塊拖拉排序器（自動檢查順序與 $變數 相依）</div>
-      <button onclick="closeBlockSorterModal()" class="btn" style="background:#1E293B; color:#F8FAFC; border-color:#475569; padding:4px 12px;">✕ 關閉</button>
+<!-- ======================== 共用 Modal：🧱 積木式 Phase 抽卡牌桌工作台 (左右雙欄 ｜ 支援折疊全景大牌桌) ======================== -->
+<div id="modalBlockSorter" class="modal-backdrop">
+  <div class="modal-panel" style="max-width:1260px; width:95vw; max-height:92vh; border:2px solid #16A34A; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden; display:flex; flex-direction:column; padding:0; background:#FFFFFF;">
+    <div style="background:#0F172A; color:#FFFFFF; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">🧱</span>
+        <div style="font-weight:800; font-size:15.5px; letter-spacing:0.3px;">Phase 積木流程編排工作台（左欄：極簡抽卡牌桌 ｜ 右欄：指令與參數檢視終端）</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" id="btnBsApplyAndOpenTop" class="btn btn-primary-green" style="padding:6px 18px; font-size:13.5px; font-weight:800; cursor:pointer;" onclick="bsApplyAndOpenExcel()" title="將新排序寫入 Excel 並自動開啟檢視">
+          🚀 套用排序、自動修復並開啟 Excel 檢視
+        </button>
+        <button onclick="closeBlockSorterModal()" class="btn btn-modal-close" style="padding:6px 16px; font-size:13px;" title="放棄未儲存之排序並關閉視窗">
+          ✕ 關閉
+        </button>
+      </div>
     </div>
 
-    <div style="padding:14px 18px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; flex:1;">
+    <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px; flex:1; overflow:hidden;">
       <!-- 頂部控制列 -->
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px;">
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <label style="font-weight:700; font-size:13.5px; color:#0F172A;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:8px 12px; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label style="font-weight:700; font-size:13px; color:#0F172A;">
             工作表：
-            <select id="bsSheetSel" onchange="bsLoadSheetBlocks()" style="padding:5px 10px; border:1px solid #94A3B8; border-radius:5px; font-weight:700;"></select>
+            <select id="bsSheetSel" onchange="bsLoadSheetBlocks()" style="padding:4px 10px; border:1px solid #94A3B8; border-radius:5px; font-weight:700;"></select>
           </label>
-          <button type="button" class="btn" style="background:#FEF08A; color:#0F172A; border-color:#CA8A04; font-weight:800; padding:5px 12px; font-size:12.5px;" onclick="bsAutoSortByPhase()">
+          <input type="text" id="bsSearchInput" oninput="bsFilterCards()" placeholder="🔍 搜尋 Title 或指令關鍵字..." style="padding:4px 10px; border:1px solid #94A3B8; border-radius:6px; font-size:12.5px; width:200px;">
+          <button type="button" class="btn" style="background:#FEF08A; color:#0F172A; border-color:#CA8A04; font-weight:800; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="bsAutoSortByPhase()">
             🔢 依 Phase 號碼自動排序
           </button>
-          <button type="button" class="btn" style="background:#FFFFFF; color:#334155; border-color:#CBD5E1; padding:5px 10px; font-size:12.5px;" onclick="bsResetOrder()">
+          <button type="button" class="btn" style="background:#FFFFFF; color:#334155; border-color:#CBD5E1; padding:4px 10px; font-size:12px; cursor:pointer;" onclick="bsResetOrder()">
             ↩️ 還原原始順序
           </button>
         </div>
@@ -1189,28 +1217,94 @@
         </label>
       </div>
 
-      <!-- 即時檢查橫幅 -->
-      <div id="bsLiveStatusBox" style="border:1.5px solid #22C55E; background:#F0FDF4; color:#14532D; border-radius:8px; padding:9px 12px; font-size:13px;"></div>
+      <!-- 左右雙欄工作台 (支援折疊切換全景大牌桌或全景指令終端，高度充實彈性撐滿) -->
+      <div id="bsSplitWorkbench" style="display:flex; gap:12px; flex:1; min-height:480px; overflow:hidden; position:relative;">
+        
+        <!-- 左欄：極簡抽卡牌桌區 (可折疊) -->
+        <div id="bsDeckPane" style="flex:1 1 50%; min-width:320px; display:flex; flex-direction:column; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:10px; overflow:hidden; transition:all 0.2s ease;">
+          <div style="padding:7px 12px; background:#E2E8F0; font-size:12.5px; font-weight:800; color:#1E293B; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span>🃏 流程抽卡牌桌</span>
+              <span id="bsCardCountBadge" style="font-size:11.5px; font-weight:700; color:#475569;"></span>
+            </div>
+            <!-- 縮放密度切換、拖曳模式切換與全景大牌桌開關 -->
+            <div style="display:inline-flex; align-items:center; gap:3px;">
+              <span style="font-size:11px; color:#64748B; font-weight:700;">密度:</span>
+              <button type="button" class="btn" id="bsZoomAuto" onclick="bsSetCardZoom('auto')" style="padding:1px 6px; font-size:11px; background:#16A34A; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;">自動</button>
+              <button type="button" class="btn" id="bsZoomSmall" onclick="bsSetCardZoom('small')" style="padding:1px 6px; font-size:11px; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="適合 30~50 個 Phase">緊湊(50步)</button>
+              <button type="button" class="btn" id="bsZoomNorm" onclick="bsSetCardZoom('norm')" style="padding:1px 6px; font-size:11px; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="適合 10~25 個 Phase">標準</button>
+              
+              <div style="display:inline-flex; align-items:center; gap:2px; margin-left:6px; border-left:1px solid #94A3B8; padding-left:6px;">
+                <span style="font-size:11px; color:#64748B; font-weight:700;">拖曳:</span>
+                <button type="button" class="btn" id="bsDragModeSwap" onclick="bsSetDragMode('swap')" style="padding:1px 6px; font-size:11px; background:#2563EB; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;" title="碰牌直接對調：拖拉碰到目標卡片立即交換順序">🔀 碰牌對調</button>
+                <button type="button" class="btn" id="bsDragModeInsert" onclick="bsSetDragMode('insert')" style="padding:1px 6px; font-size:11px; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="插牌移位：插入目標卡片前方或後方">📌 插牌移位</button>
+              </div>
 
-      <div style="font-size:12.5px; color:#475569;">
-        💡 <b>操作方式：</b>按住積木左側「☰」即可用滑鼠<b>上下拖拉調整順序</b>（或點右側 ▲ / ▼ 微調）。每個積木包含其 Title 與底下所有子步驟，整塊搬移不會破壞內部的 <code>2:XX</code> / <code>4:P,F</code> 跳轉。
+              <button type="button" class="btn" id="bsBtnCollapseRight" onclick="bsToggleRightPane()" style="padding:1px 8px; font-size:11px; background:#0F172A; color:#F8FAFC; border:none; border-radius:3px; font-weight:800; margin-left:6px;" title="折疊右欄，全景展開大牌桌">⛶ 全螢幕大牌桌</button>
+            </div>
+          </div>
+          <!-- 抽卡牌桌容器 (網格排列，滑鼠移入自動浮出放大) -->
+          <div id="bsBlockList" class="bs-deck-container" style="flex:1; overflow-y:auto;"></div>
+        </div>
+
+        <!-- 右欄：選中積木之 Command │ Send 指令終端檢視器與錯誤診斷 (可折疊) -->
+        <div id="bsRightDetailPane" style="flex:1 1 50%; min-width:320px; display:flex; flex-direction:column; background:#0F172A; border-radius:10px; border:1.5px solid #334155; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.25); transition:all 0.2s ease;">
+          <!-- 右欄頂部：流程錯誤與變數相依性即時警告欄 -->
+          <div id="bsRightIssuesBox" style="background:#1E293B; border-bottom:1px solid #334155; padding:8px 14px; font-size:12px; flex-shrink:0;"></div>
+          <!-- 頂部資訊摘要 -->
+          <div id="bsDetailHeader" style="background:#1E293B; border-bottom:1px solid #334155; padding:8px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;"></div>
+          <!-- 指令表格 -->
+          <div id="bsDetailTableWrap" style="flex:1; overflow-y:auto;"></div>
+        </div>
+
       </div>
-
-      <!-- 積木拖拉清單 -->
-      <div id="bsBlockList" style="display:flex; flex-direction:column; gap:7px; max-height:420px; overflow-y:auto; padding:4px 2px;"></div>
     </div>
 
-    <div style="padding:12px 18px; background:#F8FAFC; border-top:1px solid #CBD5E1; display:flex; justify-content:flex-end; gap:10px;">
-      <button type="button" class="btn" style="background:#FFFFFF; color:#334155; border-color:#CBD5E1;" onclick="closeBlockSorterModal()">取消</button>
-      <button type="button" class="btn btn-primary-green" style="padding:8px 18px; font-size:14px;" onclick="bsApplyReorder()">✓ 套用順序並自動重跑健檢</button>
+    <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; flex-shrink:0;">
+      <span style="font-size:12px; color:#64748B;">💡 提示：可直接修改卡片上的 Phase 數字插隊；滑鼠碰觸卡片下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕大牌桌」可折疊右欄。</span>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-modal-close" style="padding:7px 18px; font-size:13px;" onclick="closeBlockSorterModal()" title="關閉 Phase 積木排序工作台">關閉</button>
+        <button type="button" id="btnBsApplyAndOpen" class="btn btn-primary-green" style="padding:7px 22px; font-size:13.5px; font-weight:800; cursor:pointer;" onclick="bsApplyAndOpenExcel()" title="套用目前積木順序，產出修復檔並自動於 Excel 開啟">
+          🚀 套用排序、自動修復並開啟 Excel 檢視
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== 網頁內建檔案瀏覽選取對話框 (解決 Windows 背景死鎖) ======================== -->
+<div id="modalFolderBrowser" class="modal-backdrop" style="display:none; z-index:99999;">
+  <div class="modal-box" style="width:720px; max-width:95vw; max-height:85vh; display:flex; flex-direction:column; background:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 20px 40px rgba(15,23,42,0.3);">
+    <div style="background:#0F172A; color:#F8FAFC; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-weight:800; font-size:15px; display:flex; align-items:center; gap:8px;">
+        <span>🗂️</span>
+        <span>瀏覽本機資料夾選取 TestFlow.xlsx</span>
+      </div>
+      <button type="button" onclick="closeFolderBrowserModal()" class="btn btn-modal-close" style="padding:3px 10px; font-size:12px;" title="關閉目錄瀏覽視窗">✕ 關閉</button>
+    </div>
+    
+    <!-- 路徑導覽列 -->
+    <div style="background:#F1F5F9; border-bottom:1px solid #CBD5E1; padding:8px 14px; display:flex; align-items:center; gap:8px;">
+      <button type="button" id="fbBtnParent" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700;" onclick="fbGoParent()">⬆ 回上一層</button>
+      <span id="fbCurrentPathText" class="mono" style="font-size:12px; color:#1E293B; font-weight:700; flex:1; word-break:break-all;"></span>
+    </div>
+
+    <!-- 檔案與資料夾列表區 -->
+    <div id="fbListContainer" style="flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:6px; min-height:260px;">
+      <div style="text-align:center; color:#94A3B8; padding:30px;">正在讀取資料夾內容...</div>
+    </div>
+
+    <div style="background:#F8FAFC; border-top:1px solid #CBD5E1; padding:10px 16px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12px; color:#64748B;">點擊資料夾可進入，點擊 Excel 檔案即刻載入編修。</span>
+      <button type="button" class="btn btn-modal-close" onclick="closeFolderBrowserModal()" style="padding:5px 16px; font-size:12.5px;" title="關閉目錄瀏覽視窗">關閉</button>
     </div>
   </div>
 </div>
 
 <script src="/js/inst_hmi.js"></script>
 <script src="/js/audit_editors.js"></script>
-<script src="/js/flow_guide.js"></script>
-<script src="/js/block_sorter.js"></script>
+<script src="/js/flow_guide.js?v=2.9.0"></script>
+<script src="/js/block_sorter.js?v=2.9.0"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -1235,6 +1329,13 @@ function toggleLeftSidebar() {
 
 function switchTab(tab) {
   CURRENT_TAB = tab;
+
+  // 切換分頁時自動收合並隱藏積木排序器，並平滑回到頁面頂部
+  if (typeof closeBlockSorterModal === 'function') {
+    closeBlockSorterModal();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
   document.getElementById('panelHome').style.display = (tab === 'home') ? 'block' : 'none';
   document.getElementById('panelAudit').style.display = (tab === 'audit') ? 'block' : 'none';
   document.getElementById('panelDiagnose').style.display = (tab === 'diagnose') ? 'block' : 'none';
@@ -2174,7 +2275,7 @@ async function pickTicFileNative() {
   searchTicLive();
 }
 
-let GEN_SUB_MODE = 'create';
+let GEN_SUB_MODE = 'edit';
 
 function switchGenSubMode(mode) {
   GEN_SUB_MODE = (mode === 'edit') ? 'edit' : 'create';
@@ -2192,12 +2293,14 @@ function switchGenSubMode(mode) {
 function openCurrentAuditInEditor() {
   switchTab('gen');
   switchGenSubMode('edit');
+  syncEditorView();
 }
 
 async function pickExcelForEditor() {
   await pickExcelNative();
   switchTab('gen');
   switchGenSubMode('edit');
+  syncEditorView();
 }
 
 function onEditorSheetChange() {
@@ -2245,10 +2348,179 @@ function syncEditorView() {
   }
 }
 
+function renderRecentFilesList(files) {
+  const container = document.getElementById('editorRecentFilesList');
+  if (!container) return;
+  if (!files || files.length === 0) {
+    container.innerHTML = `<div style="font-size:12px; color:#94A3B8; text-align:center; padding:10px;">目前未找到最近編修之 TestFlow.xlsx 檔案</div>`;
+    return;
+  }
+  container.innerHTML = files.map(f => `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
+      <div style="display:flex; flex-direction:column; overflow:hidden;">
+        <span style="font-weight:700; font-size:13px; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${f.path}">📄 ${f.name}</span>
+        <span style="font-size:11px; color:#64748B; font-family:Consolas, monospace;">[${f.folder}] ${f.size_kb} KB</span>
+      </div>
+      <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:12px; white-space:nowrap; font-weight:700;" onclick="quickLoadFileFromRecent('${encodeURIComponent(f.path)}')">
+        ⚡ 立即載入編修
+      </button>
+    </div>
+  `).join('');
+}
+
+async function quickLoadFileFromRecent(encPath) {
+  await loadSpecificFile(encPath);
+  switchTab('gen');
+  switchGenSubMode('edit');
+  syncEditorView();
+}
+
+// ----------------- 內建網頁資料夾導覽選取器 (100% 免卡死) -----------------
+let FB_CURRENT_DIR = '';
+let FB_PARENT_DIR = '';
+
+async function openFolderBrowserModal(targetDir = '') {
+  const modal = document.getElementById('modalFolderBrowser');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+  }
+  await fbLoadDir(targetDir);
+}
+
+function closeFolderBrowserModal() {
+  const modal = document.getElementById('modalFolderBrowser');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+  }
+}
+
+async function fbLoadDir(dirPath = '') {
+  const listEl = document.getElementById('fbListContainer');
+  const pathEl = document.getElementById('fbCurrentPathText');
+  const pBtn = document.getElementById('fbBtnParent');
+  if (listEl) listEl.innerHTML = `<div style="text-align:center; color:#94A3B8; padding:30px;">正在讀取資料夾內容...</div>`;
+
+  try {
+    const res = await fetch('/api/browse_dir?dir=' + encodeURIComponent(dirPath));
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      if (listEl) listEl.innerHTML = `<div style="color:#DC2626; padding:20px;">無法讀取該目錄內容</div>`;
+      return;
+    }
+    FB_CURRENT_DIR = data.current_dir;
+    FB_PARENT_DIR = data.parent_dir;
+
+    if (pathEl) pathEl.textContent = FB_CURRENT_DIR;
+    if (pBtn) pBtn.disabled = !FB_PARENT_DIR;
+
+    let itemsHtml = '';
+    // 渲染子資料夾
+    (data.folders || []).forEach(f => {
+      itemsHtml += `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; cursor:pointer;" onclick="fbLoadDir('${encodeURIComponent(f.path)}')">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">📁</span>
+            <span style="font-weight:700; font-size:13px; color:#1E3A8A;">${f.name}</span>
+          </div>
+          <span style="font-size:11.5px; color:#64748B;">進入資料夾 ▶</span>
+        </div>
+      `;
+    });
+
+    // 渲染 Excel 檔案
+    (data.files || []).forEach(f => {
+      itemsHtml += `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#FFFFFF; border:1.5px solid #C4B5FD; border-radius:6px; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+            <span style="font-size:16px;">📄</span>
+            <div style="display:flex; flex-direction:column; overflow:hidden;">
+              <span style="font-weight:800; font-size:13px; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${f.name}</span>
+              <span style="font-size:11px; color:#64748B; font-family:Consolas, monospace;">${f.size_kb} KB</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary-blue" style="padding:4px 14px; font-size:12px; font-weight:700; white-space:nowrap;" onclick="fbSelectFile('${encodeURIComponent(f.path)}')">
+            ⚡ 選取並載入編修
+          </button>
+        </div>
+      `;
+    });
+
+    if (!itemsHtml) {
+      itemsHtml = `<div style="text-align:center; color:#94A3B8; padding:30px;">此資料夾內沒有子目錄或 .xlsx 檔案</div>`;
+    }
+    if (listEl) listEl.innerHTML = itemsHtml;
+  } catch (err) {
+    if (listEl) listEl.innerHTML = `<div style="color:#DC2626; padding:20px;">讀取發生錯誤：${err}</div>`;
+  }
+}
+
+function fbGoParent() {
+  if (FB_PARENT_DIR) {
+    fbLoadDir(FB_PARENT_DIR);
+  }
+}
+
+async function fbSelectFile(encPath) {
+  closeFolderBrowserModal();
+  await loadSpecificFile(encPath);
+  switchTab('gen');
+  switchGenSubMode('edit');
+  syncEditorView();
+}
+
+async function uploadExcelForEditor(inputEl) {
+  if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+  const file = inputEl.files[0];
+  const formData = new FormData();
+  formData.append('excel_file', file);
+  try {
+    const data = await withLoadingTimer('正在直接上傳並解析 Excel 腳本', async () => {
+      const res = await fetch('/api/upload_and_audit', {
+        method: 'POST',
+        body: formData
+      });
+      return await res.json();
+    });
+    if (data.status !== 'ok') {
+      alert(data.message || '上傳解析失敗');
+      return;
+    }
+    STATE.selectedPath = data.file_path;
+    STATE.workspace = data.workspace;
+    STATE.report = data.report;
+    STATE.pendingInserts = [];
+    STATE.isnInfo = data.isn_info || null;
+    STATE.activeSheetFilter = 'ALL';
+    STATE.showNormalJumps = false;
+    STATE.userChoices = {};
+    (STATE.report.choice_cards || []).forEach(c => {
+      STATE.userChoices[c.card_id] = c.recommended_value;
+    });
+    if (data.recent_files) {
+      STATE.recentFiles = data.recent_files;
+      renderRecentFilesList(data.recent_files);
+    }
+    switchTab('gen');
+    switchGenSubMode('edit');
+    syncEditorView();
+  } catch (err) {
+    console.error('uploadExcelForEditor error:', err);
+    alert('上傳 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
+  } finally {
+    inputEl.value = '';
+  }
+}
+
 async function initPage() {
   const res = await fetch('/api/init');
   const data = await res.json();
   STATE.blocks = data.blocks || [];
+  if (data.recent_files) {
+    STATE.recentFiles = data.recent_files;
+    renderRecentFilesList(data.recent_files);
+  }
   if (data.settings && typeof applyLoadedSettings === 'function') {
     applyLoadedSettings(data.settings);
   }
@@ -2350,19 +2622,35 @@ function renderBlockChecklist() {
 
 async function withLoadingTimer(label, asyncFn) {
   const bar = document.getElementById('loadingTimerBar');
+  const overlay = document.getElementById('globalParsingOverlay');
+  const overTitle = document.getElementById('overlayLoadingTitle');
+  const overTimer = document.getElementById('overlayLoadingTimer');
   const startMs = Date.now();
+
+  // 立即禁止所有使用者操作與按鍵點擊
+  if (overlay) {
+    if (overTitle) overTitle.textContent = `⏳ ${label}...`;
+    if (overTimer) overTimer.textContent = '已耗時 0.0 秒';
+    overlay.style.display = 'flex';
+  }
+  document.body.style.pointerEvents = 'none';
+
   let timerId = setInterval(() => {
     const sec = (Date.now() - startMs) / 1000;
-    if (sec >= 3.0) {
+    if (overTimer) overTimer.textContent = `已耗時 ${sec.toFixed(1)} 秒（防誤觸鎖定中）`;
+    if (sec >= 3.0 && bar) {
       bar.style.display = 'flex';
       bar.innerHTML = `⏳ ${label}（已耗時 <span class="mono">${sec.toFixed(1)} 秒</span>，大型多測試站腳本解析約需 5~12 秒，請稍候...）`;
     }
-  }, 150);
+  }, 120);
+
   try {
     return await asyncFn();
   } finally {
     clearInterval(timerId);
-    bar.style.display = 'none';
+    if (bar) bar.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.pointerEvents = 'auto';
   }
 }
 
@@ -2375,6 +2663,7 @@ async function pickExcelNative() {
       return await res.json();
     });
     if (data.status === 'cancel') {
+      alert('已取消選取檔案。若未看見 Windows 檔案選擇對話框，請直接點擊下方「⚡ 快速一鍵載入最近腳本」或「⚡ 網頁直接上傳載入」。');
       return;
     }
     if (data.status !== 'ok') {
@@ -2393,22 +2682,35 @@ async function pickExcelNative() {
     (STATE.report.choice_cards || []).forEach(c => {
       STATE.userChoices[c.card_id] = c.recommended_value;
     });
+    if (data.recent_files) {
+      STATE.recentFiles = data.recent_files;
+      renderRecentFilesList(data.recent_files);
+    }
 
     document.getElementById('pickedPathText').textContent = data.file_path;
     document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
     document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
     document.getElementById('btnExportFixed').style.display = 'inline-flex';
-    document.getElementById('btnExportDry').style.display = 'inline-flex';
-    document.getElementById('btnOpenInsertInstModal').style.display = 'inline-flex';
-    document.getElementById('btnOpenJumpModal').style.display = 'inline-flex';
-    document.getElementById('btnOpenSfisModal').style.display = 'inline-flex';
-    document.getElementById('btnOpenCommModal').style.display = 'inline-flex';
-    document.getElementById('btnOpenGlobalEditor').style.display = 'inline-flex';
+    const bEdDry = document.getElementById('btnEditorExportDry');
+    if (bEdDry) bEdDry.style.display = 'inline-flex';
+    const bInst = document.getElementById('btnOpenInsertInstModal');
+    if (bInst) bInst.style.display = 'inline-flex';
+    const bJump = document.getElementById('btnOpenJumpModal');
+    if (bJump) bJump.style.display = 'inline-flex';
+    const bSfis = document.getElementById('btnOpenSfisModal');
+    if (bSfis) bSfis.style.display = 'inline-flex';
+    const bComm = document.getElementById('btnOpenCommModal');
+    if (bComm) bComm.style.display = 'inline-flex';
+    const bGlob = document.getElementById('btnOpenGlobalEditor');
+    if (bGlob) bGlob.style.display = 'inline-flex';
     const geBox = document.getElementById('auditGlobalEditor');
     if (geBox) geBox.style.display = 'none';
     document.getElementById('toggleDetailBar').style.display = 'flex';
 
     renderAuditResults();
+  } catch (err) {
+    console.error('pickExcelNative error:', err);
+    alert('讀取 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
   } finally {
     STATE.isPickingFile = false;
   }
@@ -2521,14 +2823,20 @@ async function loadSpecificFile(encPath) {
   document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
   document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
   document.getElementById('btnExportFixed').style.display = 'inline-flex';
-  document.getElementById('btnExportDry').style.display = 'inline-flex';
-  document.getElementById('btnOpenInsertInstModal').style.display = 'inline-flex';
-  document.getElementById('btnOpenJumpModal').style.display = 'inline-flex';
-  document.getElementById('btnOpenSfisModal').style.display = 'inline-flex';
-  document.getElementById('btnOpenCommModal').style.display = 'inline-flex';
-  document.getElementById('btnOpenGlobalEditor').style.display = 'inline-flex';
-  const geBox = document.getElementById('auditGlobalEditor');
-  if (geBox) geBox.style.display = 'none';
+  const bEdDry2 = document.getElementById('btnEditorExportDry');
+  if (bEdDry2) bEdDry2.style.display = 'inline-flex';
+  const bInst2 = document.getElementById('btnOpenInsertInstModal');
+  if (bInst2) bInst2.style.display = 'inline-flex';
+  const bJump2 = document.getElementById('btnOpenJumpModal');
+  if (bJump2) bJump2.style.display = 'inline-flex';
+  const bSfis2 = document.getElementById('btnOpenSfisModal');
+  if (bSfis2) bSfis2.style.display = 'inline-flex';
+  const bComm2 = document.getElementById('btnOpenCommModal');
+  if (bComm2) bComm2.style.display = 'inline-flex';
+  const bGlob2 = document.getElementById('btnOpenGlobalEditor');
+  if (bGlob2) bGlob2.style.display = 'inline-flex';
+  const geBox2 = document.getElementById('auditGlobalEditor');
+  if (geBox2) geBox2.style.display = 'none';
   document.getElementById('toggleDetailBar').style.display = 'flex';
   renderAuditResults();
 }
@@ -2938,6 +3246,10 @@ async function reAuditWorkspace() {
     (STATE.report.choice_cards || []).forEach(c => {
       STATE.userChoices[c.card_id] = c.recommended_value;
     });
+    if (data.recent_files) {
+      STATE.recentFiles = data.recent_files;
+      renderRecentFilesList(data.recent_files);
+    }
     renderAuditResults();
   }
 }
@@ -3045,17 +3357,20 @@ function openJumpEditorModal(preferSheet, preferTitle) {
   }
   const sel = document.getElementById('jeSheetSel');
   sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+  const edSel = document.getElementById('editorSheetSel');
   if (preferSheet && JE.sheets[preferSheet]) {
     sel.value = preferSheet;
+  } else if (edSel && edSel.value && JE.sheets[edSel.value]) {
+    sel.value = edSel.value;
   } else if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && JE.sheets[STATE.activeSheetFilter]) {
     sel.value = STATE.activeSheetFilter;
   }
   jeOnSheetChange(preferTitle);
-  document.getElementById('jumpEditorModal').classList.add('open');
+  const jm = document.getElementById('jumpEditorModal'); if (jm) { jm.style.display = 'flex'; jm.classList.add('open'); }
 }
 
 async function closeJumpEditorModal() {
-  document.getElementById('jumpEditorModal').classList.remove('open');
+  const jm = document.getElementById('jumpEditorModal'); if (jm) { jm.style.display = 'none'; jm.classList.remove('open'); }
   await reAuditWorkspace();
 }
 
@@ -3336,15 +3651,20 @@ function _getInstDefaults(instObj) {
 
 async function _ensureInstCatalogLoaded() {
   if (!STATE.instCatalog) {
-    const res = await fetch('/api/instrument_catalog');
-    const data = await res.json();
-    STATE.instCatalog = data.instruments || [];
-    if (data.profiles && typeof INST_INTRO_PROFILES !== 'undefined') {
-      Object.keys(data.profiles).forEach(k => {
-        if (!k.startsWith('_')) {
-          INST_INTRO_PROFILES[k] = Object.assign({}, INST_INTRO_PROFILES[k] || {}, data.profiles[k]);
-        }
-      });
+    try {
+      const res = await fetch('/api/instrument_catalog');
+      const data = await res.json();
+      STATE.instCatalog = data.instruments || [];
+      if (data.profiles && typeof INST_INTRO_PROFILES !== 'undefined') {
+        Object.keys(data.profiles).forEach(k => {
+          if (!k.startsWith('_')) {
+            INST_INTRO_PROFILES[k] = Object.assign({}, INST_INTRO_PROFILES[k] || {}, data.profiles[k]);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('ensureInstCatalogLoaded failed:', err);
+      STATE.instCatalog = STATE.instCatalog || [];
     }
   }
 }
@@ -3397,15 +3717,22 @@ async function openInsertInstModal() {
   }
   const sSel = document.getElementById('iiSheetSel');
   sSel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
-  if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && STATE.workspace.stations[STATE.activeSheetFilter]) {
+  const edSel = document.getElementById('editorSheetSel');
+  if (edSel && edSel.value && STATE.workspace.stations[edSel.value]) {
+    sSel.value = edSel.value;
+  } else if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && STATE.workspace.stations[STATE.activeSheetFilter]) {
     sSel.value = STATE.activeSheetFilter;
   }
   iiOnSheetChange();
 
-  await _ensureInstCatalogLoaded();
+  try {
+    await _ensureInstCatalogLoaded();
+  } catch (err) {
+    console.warn('openInsertInstModal ensure catalog err:', err);
+  }
   _populateCategoryAndInst('iiCatSel', 'iiInstSel', 'iiTitleInput', 'iiDlInput', 'iiUlInput');
   iiUpdateNi6Hint();
-  document.getElementById('insertInstModal').classList.add('open');
+  const im = document.getElementById('insertInstModal'); if (im) { im.style.display = 'flex'; im.classList.add('open'); }
 }
 
 const HMI_SUPPORTED_INSTS = [
@@ -3437,7 +3764,7 @@ function iiOnInstChange() {
 }
 
 function closeInsertInstModal() {
-  document.getElementById('insertInstModal').classList.remove('open');
+  const im = document.getElementById('insertInstModal'); if (im) { im.style.display = 'none'; im.classList.remove('open'); }
 }
 
 function iiOnSheetChange() {
@@ -3925,6 +4252,10 @@ async function applyFixAndExport(dryRun) {
     (STATE.report.choice_cards || []).forEach(c => {
       STATE.userChoices[c.card_id] = c.recommended_value;
     });
+    if (data.recent_files) {
+      STATE.recentFiles = data.recent_files;
+      renderRecentFilesList(data.recent_files);
+    }
     document.getElementById('pickedPathText').textContent = data.excel_path;
     document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
     renderAuditResults();

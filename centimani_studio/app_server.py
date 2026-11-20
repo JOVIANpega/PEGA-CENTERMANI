@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import webbrowser
 import subprocess
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -91,58 +91,149 @@ def set_last_opened_dir(folder_path):
     save_app_settings({"last_dir": folder_path})
 
 
+def get_recent_excel_files(limit=8):
+    """取得最近目錄與預設專案資料夾內的 TestFlow Excel 檔案列表，供網頁免彈窗直接一鍵點擊載入"""
+    search_dirs = []
+    last_d = get_last_opened_dir()
+    if last_d and os.path.exists(last_d):
+        search_dirs.append(last_d)
+    default_temp = os.path.join(PROJECT_ROOT, "TEMP_SCRIPT")
+    if os.path.exists(default_temp) and default_temp not in search_dirs:
+        search_dirs.append(default_temp)
+    if os.path.exists(SCRIPTS_ROOT) and SCRIPTS_ROOT not in search_dirs:
+        search_dirs.append(SCRIPTS_ROOT)
+
+    files_list = []
+    seen_paths = set()
+    for d in search_dirs:
+        try:
+            for fname in os.listdir(d):
+                if fname.lower().endswith(".xlsx") and not fname.startswith("~"):
+                    full_p = os.path.join(d, fname)
+                    if full_p not in seen_paths and os.path.isfile(full_p):
+                        seen_paths.add(full_p)
+                        try:
+                            mtime = os.path.getmtime(full_p)
+                            size_kb = round(os.path.getsize(full_p) / 1024, 1)
+                            files_list.append({
+                                "name": fname,
+                                "path": full_p,
+                                "folder": os.path.basename(d),
+                                "size_kb": size_kb,
+                                "mtime": mtime
+                            })
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+    files_list.sort(key=lambda x: x["mtime"], reverse=True)
+    return files_list[:limit]
+
+
 _PICK_LOCK = None
 
 
 def pick_file_native(file_types=None, title="選擇要檢查與修復的 Centimani Excel 腳本"):
-    global _PICK_LOCK
-    import threading
-    if _PICK_LOCK is None:
-        _PICK_LOCK = threading.Lock()
-    if not _PICK_LOCK.acquire(blocking=False):
-        return ""
+    init_dir = get_last_opened_dir()
+    child_code = """
+import sys, json, os
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    cfg = json.loads(sys.argv[1])
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    root.lift()
+    root.focus_force()
+    ft = []
+    if cfg.get('file_types'):
+        for desc, pat in cfg['file_types']:
+            ft.append((desc, pat))
+    else:
+        ft.append(('Excel 活頁簿 (*.xlsx)', '*.xlsx'))
+        ft.append(('所有檔案 (*.*)', '*.*'))
+    
+    path = filedialog.askopenfilename(
+        title=cfg.get('title', '選擇檔案'),
+        initialdir=cfg.get('init_dir', ''),
+        filetypes=ft
+    )
+    root.destroy()
+    if path:
+        sys.stdout.write(path)
+except Exception as e:
+    sys.stderr.write(str(e))
+"""
+    cfg_data = {
+        "title": title,
+        "init_dir": init_dir,
+        "file_types": file_types or []
+    }
     try:
-        import tkinter as tk
-        from tkinter import filedialog
-        init_dir = get_last_opened_dir()
-        root = tk.Tk()
-        root.withdraw()
-        root.wm_attributes("-topmost", 1)
-        types = file_types or [("Excel 活頁簿", "*.xlsx *.XLSX")]
-        file_path = filedialog.askopenfilename(
-            title=title,
-            initialdir=init_dir,
-            filetypes=types
+        proc = subprocess.run(
+            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=180
         )
-        root.destroy()
-        if file_path:
-            set_last_opened_dir(os.path.dirname(os.path.abspath(file_path)))
-        return file_path
-    finally:
-        _PICK_LOCK.release()
+        selected = proc.stdout.strip()
+        if selected and os.path.exists(selected):
+            set_last_opened_dir(os.path.dirname(os.path.abspath(selected)))
+            return selected
+        return ""
+    except Exception as e:
+        print(f"[pick_file_native error] {e}")
+        return ""
 
 
 def pick_folder_native(title="選擇要批次掃描的 Centimani 專案資料夾"):
-    global _PICK_LOCK
-    import threading
-    if _PICK_LOCK is None:
-        _PICK_LOCK = threading.Lock()
-    if not _PICK_LOCK.acquire(blocking=False):
-        return ""
+    init_dir = get_last_opened_dir()
+    child_code = """
+import sys, json, os
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    cfg = json.loads(sys.argv[1])
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    root.lift()
+    root.focus_force()
+    path = filedialog.askdirectory(
+        title=cfg.get('title', '選擇資料夾'),
+        initialdir=cfg.get('init_dir', '')
+    )
+    root.destroy()
+    if path:
+        sys.stdout.write(path)
+except Exception as e:
+    sys.stderr.write(str(e))
+"""
+    cfg_data = {
+        "title": title,
+        "init_dir": init_dir
+    }
     try:
-        import tkinter as tk
-        from tkinter import filedialog
-        init_dir = get_last_opened_dir()
-        root = tk.Tk()
-        root.withdraw()
-        root.wm_attributes("-topmost", 1)
-        folder_path = filedialog.askdirectory(title=title, initialdir=init_dir)
-        root.destroy()
-        if folder_path:
-            set_last_opened_dir(os.path.abspath(folder_path))
-        return folder_path
-    finally:
-        _PICK_LOCK.release()
+        proc = subprocess.run(
+            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=180
+        )
+        selected = proc.stdout.strip()
+        if selected and os.path.exists(selected):
+            set_last_opened_dir(selected)
+            return selected
+        return ""
+    except Exception as e:
+        print(f"[pick_folder_native error] {e}")
+        return ""
 
 
 def _is_scannable_testflow(fname):
@@ -531,12 +622,15 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         pass
 
     def _send_json(self, data, status=200):
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception:
+            pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -583,8 +677,50 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self._send_json({
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
+                "recent_files": get_recent_excel_files(),
                 "tic_info": get_active_tic_info(),
                 "settings": get_app_settings()
+            })
+        elif parsed.path == "/api/recent_files":
+            self._send_json({
+                "status": "ok",
+                "recent_files": get_recent_excel_files()
+            })
+        elif parsed.path == "/api/browse_dir":
+            qs = parse_qs(parsed.query)
+            target_d = qs.get("dir", [""])[0]
+            if not target_d or not os.path.exists(target_d):
+                target_d = get_last_opened_dir()
+            target_d = os.path.abspath(target_d)
+
+            parent_d = os.path.dirname(target_d) if os.path.dirname(target_d) != target_d else ""
+            folders = []
+            files = []
+            try:
+                for item in os.listdir(target_d):
+                    full_p = os.path.join(target_d, item)
+                    if os.path.isdir(full_p):
+                        if not item.startswith("."):
+                            folders.append({"name": item, "path": full_p})
+                    elif os.path.isfile(full_p):
+                        if item.lower().endswith(".xlsx") and not item.startswith("~"):
+                            try:
+                                sz = round(os.path.getsize(full_p) / 1024, 1)
+                                mtime = os.path.getmtime(full_p)
+                                files.append({"name": item, "path": full_p, "size_kb": sz, "mtime": mtime})
+                            except Exception:
+                                pass
+                folders.sort(key=lambda x: x["name"].lower())
+                files.sort(key=lambda x: x["mtime"], reverse=True)
+            except Exception as e:
+                pass
+
+            self._send_json({
+                "status": "ok",
+                "current_dir": target_d,
+                "parent_dir": parent_d,
+                "folders": folders,
+                "files": files
             })
         elif parsed.path == "/api/get_settings":
             self._send_json({"status": "ok", "settings": get_app_settings()})
@@ -626,6 +762,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "file_path": selected_path,
                 "workspace": ws,
                 "report": rep,
+                "recent_files": get_recent_excel_files(),
                 "isn_info": extract_isn_info(ws)
             })
         elif parsed.path == "/api/load_specific_file":
@@ -634,6 +771,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             if not selected_path or not os.path.exists(selected_path):
                 self._send_json({"status": "error", "message": "找不到指定檔案"}, 404)
                 return
+            set_last_opened_dir(os.path.dirname(os.path.abspath(selected_path)))
             ws = import_excel_to_workspace(selected_path)
             rep = audit_workspace(ws)
             self._send_json({
@@ -641,6 +779,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "file_path": selected_path,
                 "workspace": ws,
                 "report": rep,
+                "recent_files": get_recent_excel_files(),
                 "isn_info": extract_isn_info(ws)
             })
         elif parsed.path == "/api/pick_folder_and_scan":
@@ -718,6 +857,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "file_path": temp_path,
                     "workspace": ws,
                     "report": rep,
+                    "recent_files": get_recent_excel_files(),
                     "isn_info": extract_isn_info(ws)
                 })
             else:
@@ -913,7 +1053,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/get_station_blocks":
-                from centimani_studio.core.block_sorter import (
+                from core.block_sorter import (
                     extract_station_blocks,
                     serialize_blocks_for_ui,
                     check_var_dependencies,
@@ -930,7 +1070,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/reorder_station_blocks":
-                from centimani_studio.core.block_sorter import reorder_station_blocks
+                from core.block_sorter import reorder_station_blocks
                 ws = payload.get("workspace", {})
                 sheet_name = payload.get("sheet_name", "")
                 new_order = payload.get("new_order_indices", [])
@@ -950,6 +1090,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 ws = payload.get("workspace", {})
                 user_choices = payload.get("user_choices", {})
                 dry_run = payload.get("dry_run", False)
+                active_sheet = payload.get("active_sheet", "")
+                open_excel = payload.get("open_excel", False)
 
                 src_file = ws.get("source_file", "")
                 if not src_file or not os.path.exists(src_file):
@@ -975,7 +1117,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 # Export DIRECTLY to the original file directory!
                 out_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
-                export_workspace_to_excel(ws_to_export, out_xlsx_path)
+                export_workspace_to_excel(ws_to_export, out_xlsx_path, active_sheet=active_sheet)
 
                 # Sync and generate INIs in the original directory (preserving original SFIS keys)
                 sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, fixed_xlsx_name, orig_dir)
@@ -984,6 +1126,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 chk = generate_official_checksum(out_xlsx_path, sys_ini)
 
                 open_folder_in_explorer(orig_dir)
+                if open_excel and os.path.exists(out_xlsx_path):
+                    try:
+                        os.startfile(os.path.normpath(out_xlsx_path))
+                    except Exception as _oe:
+                        print(f"Warning: failed to launch excel: {_oe}")
 
                 ws_re = import_excel_to_workspace(out_xlsx_path)
                 rep_re = audit_workspace(ws_re)
@@ -1193,7 +1340,7 @@ def launch_fullscreen_browser(url):
 
 
 def run_server(port=8765):
-    server = HTTPServer(("127.0.0.1", port), StudioRequestHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
     print(f"Centimani Studio V2.4 Server running at {url}")
     launch_fullscreen_browser(url)

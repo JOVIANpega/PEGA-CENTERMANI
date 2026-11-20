@@ -753,7 +753,7 @@ def audit_workspace(workspace):
                 jump_summaries.append(js)
 
     # Check Phase order regression across all stations
-    from centimani_studio.core.block_sorter import find_phase_order_issues
+    from .block_sorter import find_phase_order_issues
     phase_order_issues, phase_order_warns = find_phase_order_issues(workspace)
     warnings.extend(phase_order_warns)
 

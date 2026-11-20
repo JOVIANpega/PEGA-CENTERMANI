@@ -40,9 +40,10 @@ def _extract_used_vars(row):
 
 def extract_station_blocks(rows):
     """
-    Group a station's rows into contiguous Title/Phase blocks.
-    A new block starts whenever a row has a non-empty Title or non-empty Phase
-    (or at row 0).
+    Group a station's rows into contiguous Phase blocks.
+    A new block starts at row 0, or whenever Phase column has an explicit non-empty value
+    that differs from the current block's Phase.
+    Rows with empty Phase remain inside their parent Phase block.
     """
     if not rows:
         return []
@@ -52,7 +53,10 @@ def extract_station_blocks(rows):
     for idx, row in enumerate(rows):
         phase_str = str(row.get("Phase") or "").strip()
         title_str = str(row.get("Title") or "").strip()
-        is_header = (idx == 0) or bool(title_str) or bool(phase_str)
+
+        # A block starts at row 0, or whenever Phase column has a non-empty value
+        # that transitions to a new Phase
+        is_header = (idx == 0) or (bool(phase_str) and (cur is None or phase_str != cur.get("phase")))
         if is_header:
             if cur is not None:
                 raw_blocks.append(cur)
@@ -66,6 +70,11 @@ def extract_station_blocks(rows):
             }
         else:
             cur["rows"].append(row)
+            # If current block's title is generic or empty, and this row has a title, adopt it
+            if not cur.get("title") or cur.get("title").startswith("Phase ") or cur.get("title").startswith("區塊 #"):
+                if title_str:
+                    cur["title"] = title_str
+
     if cur is not None:
         raw_blocks.append(cur)
 
@@ -84,13 +93,13 @@ def extract_station_blocks(rows):
             produced |= r_prod
 
         pnum = b["phase_num"]
-        is_teardown = (pnum is not None and pnum >= 97)
+        is_teardown = (pnum is not None and pnum >= 95)
         out_of_order = False
         order_reason = ""
         if pnum is not None:
             if seen_teardown and not is_teardown:
                 out_of_order = True
-                order_reason = f"Phase {pnum} 位於收尾區 Phase 97 之後"
+                order_reason = f"Phase {pnum} 位於收尾固定區 Phase >= 95 之後"
             elif not is_teardown and prev_phase is not None and pnum < prev_phase:
                 out_of_order = True
                 order_reason = f"Phase {pnum} 倒退小於前方 Phase {prev_phase}"
@@ -117,7 +126,18 @@ def extract_station_blocks(rows):
 
 
 def serialize_blocks_for_ui(blocks):
-    return [{k: v for k, v in b.items() if k != "_rows"} for b in blocks]
+    out = []
+    for b in blocks:
+        item = {k: v for k, v in b.items() if k != "_rows"}
+        item["steps"] = [
+            {
+                "Command": str(r.get("Command") or "").strip(),
+                "Send": str(r.get("Send") or "").strip(),
+            }
+            for r in b.get("_rows", [])
+        ]
+        out.append(item)
+    return out
 
 
 def check_var_dependencies(blocks):

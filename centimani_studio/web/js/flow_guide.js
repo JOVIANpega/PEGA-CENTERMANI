@@ -281,7 +281,29 @@ function applyLoadedSettings(s) {
   APP_SETTINGS = Object.assign({}, APP_SETTINGS, s);
   try { localStorage.setItem('centimani_app_settings', JSON.stringify(APP_SETTINGS)); } catch (e) {}
   const fs = parseInt(APP_SETTINGS.intro_font_size, 10) || 15;
+  document.documentElement.style.fontSize = fs + 'px';
   document.body.style.fontSize = fs + 'px';
+
+  // 根據字型層級動態調整標題與各層級比例 (最高 19px)
+  let h1Size = '22px';
+  let h2Size = '19px';
+  let h3Size = '17px';
+  let subSize = '13.5px';
+  if (fs === 13) {
+    h1Size = '19px';
+    h2Size = '17px';
+    h3Size = '15px';
+    subSize = '12px';
+  } else if (fs === 17) {
+    h1Size = '24px';
+    h2Size = '19px';
+    h3Size = '18px';
+    subSize = '15px';
+  }
+  document.documentElement.style.setProperty('--app-font-size', fs + 'px');
+  document.documentElement.style.setProperty('--app-h2-size', h2Size);
+  document.documentElement.style.setProperty('--app-sub-size', subSize);
+
   if (typeof setIntroFontSize === 'function') {
     setIntroFontSize(fs);
   }

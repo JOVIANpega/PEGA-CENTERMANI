@@ -259,9 +259,9 @@
     color: var(--slate-900);
     font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--app-font-size, 14px);
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -270,6 +270,8 @@
   .btn:hover {
     background: #E2E8F0;
     border-color: #94A3B8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
   }
   .btn-primary-blue {
     background: #DBEAFE;
@@ -302,6 +304,34 @@
     background: #FEF3C7;
     color: #78350F;
     border-color: #F59E0B;
+  }
+  .btn-jump:hover {
+    background: #FDE68A;
+    border-color: #D97706;
+  }
+
+  /* 關閉按鍵統一醒目紅底白字 (高辨識度安全關閉規範) */
+  .btn-modal-close,
+  .btn-close-danger {
+    background: #DC2626 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #B91C1C !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25) !important;
+    transition: all 0.16s ease !important;
+  }
+  .btn-modal-close:hover,
+  .btn-close-danger:hover {
+    background: #EF4444 !important;
+    border-color: #991B1B !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.4) !important;
+  }
+  .btn-modal-close:active,
+  .btn-close-danger:active {
+    background: #B91C1C !important;
+    transform: translateY(0) !important;
   }
   .btn-jump:hover {
     background: #FDE68A;
@@ -373,7 +403,7 @@
     padding: 18px;
   }
   .modal-backdrop.open {
-    display: flex;
+    display: flex !important;
   }
   .modal-panel {
     background: #FFFFFF;
@@ -1086,4 +1116,327 @@ button:not(:disabled):hover {
   background: #F8FAFC !important;
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* =========================================================================
+   Phase 積木極簡抽卡牌桌 (Minimalist Poker Deck Sorter)
+   ========================================================================= */
+.bs-deck-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--bs-card-w, 105px), 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.bs-poker-mini-card {
+  width: var(--bs-card-w, 105px);
+  min-height: var(--bs-card-h, 110px);
+  background: #FFFFFF;
+  border: 1.5px solid #16A34A;
+  border-radius: 8px;
+  padding: 8px 6px 20px 6px;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+}
+
+/* 滑鼠碰觸：微浮起抽卡感，放大 1.15 倍 */
+.bs-poker-mini-card:hover {
+  transform: translateY(-8px) scale(1.15);
+  z-index: 20;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.2), 0 0 0 2px #16A34A !important;
+  border-color: #15803D !important;
+}
+
+.bs-poker-mini-card:active {
+  cursor: grabbing;
+}
+
+/* 選取中狀態：亮起高光綠底與金邊光圈 */
+.bs-poker-mini-card.active {
+  border-color: #16A34A !important;
+  background: #F0FDF4 !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.35), 0 8px 18px rgba(15, 23, 42, 0.14) !important;
+}
+
+.bs-poker-mini-card.conflict {
+  border-color: #DC2626 !important;
+  background: #FEF2F2 !important;
+}
+
+.bs-poker-mini-card.teardown {
+  border-color: #94A3B8 !important;
+  background: #F1F5F9 !important;
+  color: #64748B !important;
+  filter: grayscale(100%);
+  opacity: 0.72;
+  cursor: not-allowed !important;
+}
+.bs-poker-mini-card.teardown:hover {
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08) !important;
+  border-color: #94A3B8 !important;
+}
+.bs-poker-mini-card.teardown * {
+  cursor: not-allowed !important;
+}
+
+/* 拖曳中卡片 */
+.bs-poker-mini-card.is-dragging {
+  opacity: 0.25 !important;
+  transform: scale(0.9) !important;
+  box-shadow: none !important;
+}
+
+/* 子元件允許滑鼠抓取拖曳與點擊 */
+.bs-poker-mini-card * {
+  user-select: none;
+}
+
+/* 碰牌直接對調目標 (Swap Target) */
+.bs-poker-mini-card.drop-target-swap {
+  outline: 3px solid #2563EB !important;
+  background: #EFF6FF !important;
+  transform: translateY(-8px) scale(1.15) !important;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.4), 0 0 0 3px #60A5FA !important;
+  z-index: 25 !important;
+}
+
+.bs-poker-mini-card.drop-target-swap::after {
+  content: "🔀 碰牌對調";
+  position: absolute;
+  top: -14px;
+  right: -8px;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 30;
+  letter-spacing: 0.3px;
+}
+
+/* 插牌移位落點目標 (Insert Before / After) */
+.bs-poker-mini-card.drop-target-before {
+  border-left: 5px solid #2563EB !important;
+  box-shadow: -4px 0 0 2px rgba(37, 99, 235, 0.5) !important;
+}
+
+.bs-poker-mini-card.drop-target-after {
+  border-right: 5px solid #2563EB !important;
+  box-shadow: 4px 0 0 2px rgba(37, 99, 235, 0.5) !important;
+}
+
+/* Phase 數字直接輸入框 (方案 A 融入方法一) */
+.bs-phase-direct-input {
+  width: 32px;
+  height: 18px;
+  text-align: center;
+  font-family: Consolas, monospace;
+  font-weight: 800;
+  font-size: 11px;
+  color: #15803D;
+  background: #FFFFFF;
+  border: 1px solid #86EFAC;
+  border-radius: 4px;
+  padding: 0;
+  outline: none;
+  transition: all 0.15s ease;
+}
+.bs-phase-direct-input:hover,
+.bs-phase-direct-input:focus {
+  border-color: #16A34A;
+  background: #DCFCE7;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+}
+
+/* 底座隱形懸停條：平時半透明/隱藏，滑鼠懸停 (Hover) 時向上浮出 */
+.bs-card-hover-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: rgba(248, 250, 252, 0.94);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid #E2E8F0;
+  border-radius: 0 0 7px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.bs-poker-mini-card:hover .bs-card-hover-drawer {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.bs-card-hover-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 800;
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.bs-card-hover-btn:hover:not(:disabled) {
+  background: #E0F2FE;
+  color: #0369A1;
+  border-color: #38BDF8;
+  transform: scale(1.1);
+}
+.bs-card-hover-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* 步驟步數膠囊標籤 */
+.bs-card-steps-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: Consolas, monospace;
+  border: 1px solid #86EFAC;
+  white-space: nowrap;
+}
+
+/* 拖曳或調整順序成功後之動態高亮脈衝動畫 (雙色反饋：藍/琥珀金互換) */
+@keyframes bsCardSwapGlowA {
+  0% {
+    transform: translateY(-8px) scale(1.12);
+    box-shadow: 0 0 0 4px #2563EB, 0 14px 28px rgba(37, 99, 235, 0.45);
+    border-color: #1D4ED8 !important;
+    background: #EFF6FF !important;
+  }
+  50% {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 0 0 3px #60A5FA, 0 8px 18px rgba(37, 99, 235, 0.35);
+    background: #F0F9FF !important;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+}
+
+@keyframes bsCardSwapGlowB {
+  0% {
+    transform: translateY(-8px) scale(1.12);
+    box-shadow: 0 0 0 4px #D97706, 0 14px 28px rgba(217, 119, 6, 0.45);
+    border-color: #B45309 !important;
+    background: #FEF3C7 !important;
+  }
+  50% {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 0 0 3px #FBBF24, 0 8px 18px rgba(217, 119, 6, 0.35);
+    background: #FFFBEB !important;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+}
+
+.bs-poker-mini-card.just-swapped-a {
+  animation: bsCardSwapGlowA 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 28 !important;
+}
+
+.bs-poker-mini-card.just-swapped-a::before {
+  content: "🔀 移入此處";
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  z-index: 35;
+  letter-spacing: 0.3px;
+  animation: bsBadgeFadeOut 1.8s ease-in-out forwards;
+}
+
+.bs-poker-mini-card.just-swapped-b {
+  animation: bsCardSwapGlowB 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 28 !important;
+}
+
+.bs-poker-mini-card.just-swapped-b::before {
+  content: "🔀 對調至此";
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  background: #D97706;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
+  z-index: 35;
+  letter-spacing: 0.3px;
+  animation: bsBadgeFadeOut 1.8s ease-in-out forwards;
+}
+
+@keyframes bsBadgeFadeOut {
+  0% { opacity: 0; transform: scale(0.7); }
+  15% { opacity: 1; transform: scale(1.05); }
+  25% { opacity: 1; transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.bs-card-phase-badge {
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: #166534;
+  letter-spacing: 0.2px;
+}
+
+.bs-card-title-label {
+  font-weight: 800;
+  font-size: 12px;
+  color: #0F172A;
+  word-break: break-word;
+  line-height: 1.25;
+  margin: 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

@@ -152,7 +152,7 @@ class TestCentimaniStudioCore(unittest.TestCase):
         self.assertIn("DUTIP_1=192.168.50.10", glb_txt)
 
     def test_phase_order_detection_and_block_sorter(self):
-        from centimani_studio.core.block_sorter import (
+        from core.block_sorter import (
             extract_station_blocks,
             reorder_station_blocks,
         )
@@ -184,6 +184,15 @@ class TestCentimaniStudioCore(unittest.TestCase):
         res_bad = reorder_station_blocks(ws, st, [1, 2, 0, 3, 4], auto_renumber_phase=True)
         self.assertEqual(len(res_bad["dep_warnings"]), 1)
         self.assertIn("$sEth_MAC", res_bad["dep_warnings"][0])
+
+
+        # Test active_sheet setting in export_workspace_to_excel
+        import openpyxl, tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_test_xlsx = os.path.join(tmp_dir, "test_active_sheet.xlsx")
+            export_workspace_to_excel(ws, out_test_xlsx, active_sheet="MB")
+            wb_check = openpyxl.load_workbook(out_test_xlsx)
+            self.assertEqual(wb_check.active.title, "MB")
 
 
 if __name__ == "__main__":
