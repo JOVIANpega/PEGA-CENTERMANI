@@ -134,6 +134,53 @@ def get_recent_excel_files(limit=8):
 _PICK_LOCK = None
 
 
+def _run_tk_dialog(child_code, cfg_data):
+    # If running inside PyInstaller bundle, sys.executable is the .exe itself,
+    # so we should invoke a standalone tkinter dialog in-process or via python if available
+    if getattr(sys, "frozen", False):
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            root.lift()
+            root.focus_force()
+            res = ""
+            if "file_types" in cfg_data:
+                ft = cfg_data.get("file_types") or [("Excel 活頁簿 (*.xlsx)", "*.xlsx"), ("所有檔案 (*.*)", "*.*")]
+                res = filedialog.askopenfilename(
+                    title=cfg_data.get("title", "選擇檔案"),
+                    initialdir=cfg_data.get("init_dir", ""),
+                    filetypes=ft
+                )
+            else:
+                res = filedialog.askdirectory(
+                    title=cfg_data.get("title", "選擇資料夾"),
+                    initialdir=cfg_data.get("init_dir", "")
+                )
+            root.destroy()
+            return (res or "").strip()
+        except Exception as e:
+            print(f"[_run_tk_dialog in-process error] {e}")
+            return ""
+
+    # Normal python mode: run isolated child process to avoid any UI thread contention
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=180
+        )
+        return proc.stdout.strip()
+    except Exception as e:
+        print(f"[_run_tk_dialog subprocess error] {e}")
+        return ""
+
+
 def pick_file_native(file_types=None, title="選擇要檢查與修復的 Centimani Excel 腳本"):
     init_dir = get_last_opened_dir()
     child_code = """
@@ -171,23 +218,11 @@ except Exception as e:
         "init_dir": init_dir,
         "file_types": file_types or []
     }
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=180
-        )
-        selected = proc.stdout.strip()
-        if selected and os.path.exists(selected):
-            set_last_opened_dir(os.path.dirname(os.path.abspath(selected)))
-            return selected
-        return ""
-    except Exception as e:
-        print(f"[pick_file_native error] {e}")
-        return ""
+    selected = _run_tk_dialog(child_code, cfg_data)
+    if selected and os.path.exists(selected):
+        set_last_opened_dir(os.path.dirname(os.path.abspath(selected)))
+        return selected
+    return ""
 
 
 def pick_folder_native(title="選擇要批次掃描的 Centimani 專案資料夾"):
@@ -217,23 +252,11 @@ except Exception as e:
         "title": title,
         "init_dir": init_dir
     }
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=180
-        )
-        selected = proc.stdout.strip()
-        if selected and os.path.exists(selected):
-            set_last_opened_dir(selected)
-            return selected
-        return ""
-    except Exception as e:
-        print(f"[pick_folder_native error] {e}")
-        return ""
+    selected = _run_tk_dialog(child_code, cfg_data)
+    if selected and os.path.exists(selected):
+        set_last_opened_dir(selected)
+        return selected
+    return ""
 
 
 def _is_scannable_testflow(fname):
