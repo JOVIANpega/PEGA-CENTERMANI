@@ -1065,8 +1065,16 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/insert_instrument_block":
-                ws = payload.get("workspace", {})
-                sheet_name = payload.get("sheet_name", "")
+                ws = payload.get("workspace")
+                if not ws or not isinstance(ws, dict):
+                    # 若前端未載入任何腳本直接插入儀器，後台自動提供 Golden Mother 避免 NoneType 例外
+                    ws = get_golden_mother("INST_PROJECT", "MB")
+                sheet_name = payload.get("sheet_name") or ""
+                if not sheet_name or sheet_name not in ws.get("stations", {}):
+                    avail = list(ws.get("stations", {}).keys())
+                    sheet_name = avail[0] if avail else "MB"
+                    if sheet_name not in ws.get("stations", {}):
+                        ws.setdefault("stations", {})[sheet_name] = []
                 inst_name = payload.get("inst_name", "")
                 title_name = payload.get("title_name", "")
                 after_block_idx = int(payload.get("after_block_idx", -1))
@@ -1088,10 +1096,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/insert_ni6009_block":
-                ws = payload.get("workspace", {})
+                ws = payload.get("workspace")
+                if not ws or not isinstance(ws, dict):
+                    ws = get_golden_mother("NI6009_PROJECT", "MB")
+                sheet_name = payload.get("sheet_name") or ""
+                if not sheet_name or sheet_name not in ws.get("stations", {}):
+                    avail = list(ws.get("stations", {}).keys())
+                    sheet_name = avail[0] if avail else "MB"
+                    if sheet_name not in ws.get("stations", {}):
+                        ws.setdefault("stations", {})[sheet_name] = []
                 added = insert_ni6009_block(
                     ws,
-                    sheet_name=payload.get("sheet_name", ""),
+                    sheet_name=sheet_name,
                     mode=payload.get("mode", "RSE"),
                     sample_ms=str(payload.get("sample_ms", "1000")),
                     dev_id=str(payload.get("dev_id", "Dev1")),
@@ -1109,10 +1125,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if parsed.path == "/api/insert_rf_iqxel_block":
-                ws = payload.get("workspace", {})
+                ws = payload.get("workspace")
+                if not ws or not isinstance(ws, dict):
+                    ws = get_golden_mother("RF_PROJECT", "MB")
+                sheet_name = payload.get("sheet_name") or ""
+                if not sheet_name or sheet_name not in ws.get("stations", {}):
+                    avail = list(ws.get("stations", {}).keys())
+                    sheet_name = avail[0] if avail else "MB"
+                    if sheet_name not in ws.get("stations", {}):
+                        ws.setdefault("stations", {})[sheet_name] = []
                 added = insert_rf_iqxel_block(
                     ws,
-                    sheet_name=payload.get("sheet_name", ""),
+                    sheet_name=sheet_name,
                     inst_name=str(payload.get("inst_name", "InstIQApiA")),
                     title_name=str(payload.get("title_name", "WIFI RF Test")),
                     settings_str=str(payload.get("settings_str", "")),
@@ -1477,10 +1501,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 })
 
             elif parsed.path == "/api/generate_inst_template_standalone":
-                inst_name = str(payload.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
-                title_name = str(payload.get("title_name", "")).strip() or f"Test_{inst_name}"
-                dl_val = str(payload.get("dl_val", "")).strip()
-                ul_val = str(payload.get("ul_val", "")).strip()
+                items = payload.get("items")
+                if not items or not isinstance(items, list):
+                    inst_name = str(payload.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                    title_name = str(payload.get("title_name", "")).strip() or f"Test_{inst_name}"
+                    dl_val = str(payload.get("dl_val", "")).strip()
+                    ul_val = str(payload.get("ul_val", "")).strip()
+                    items = [{"inst_name": inst_name, "title_name": title_name, "dl_val": dl_val, "ul_val": ul_val}]
+
                 proj_name = str(payload.get("project_name", "INST_MOTHER")).strip() or "INST_MOTHER"
                 st_name = str(payload.get("station_name", "MB")).strip() or "MB"
 
@@ -1504,21 +1532,27 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 ws["stations"] = {st_name: init_steps}
 
-                # 3. 載入目標儀器測項至前置路由之後、Phase 97 收尾之前
-                insert_instrument_title_block(
-                    ws, st_name, inst_name, title_name,
-                    after_block_idx=0,
-                    dl_val=dl_val,
-                    ul_val=ul_val
-                )
+                # 3. 連續載入目標儀器測項（支援同一款儀器連續插入多筆不同測項）
+                for idx_item, it in enumerate(items):
+                    i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                    t_name = str(it.get("title_name", "")).strip() or f"Test_{i_name}_{idx_item + 1}"
+                    d_val = str(it.get("dl_val", "")).strip()
+                    u_val = str(it.get("ul_val", "")).strip()
+                    insert_instrument_title_block(
+                        ws, st_name, i_name, t_name,
+                        after_block_idx=idx_item,  # 依序排在前置路由與上一個測項之後
+                        dl_val=d_val,
+                        ul_val=u_val
+                    )
 
                 # 4. 全自動檢查與錯誤修復 (Auto Audit & Repair)
                 audit_rep = audit_workspace(ws)
                 auto_fix_workspace(ws)
 
                 # 5. 輸出 Excel 與 INI，自動寫入 Checksum
-                xlsx_name = f"{proj_name}_{inst_name}_{st_name}.xlsx"
-                folder_label = f"InstTemplate_{inst_name}_{st_name}"
+                lead_inst = items[0].get("inst_name", "INST") if items else "INST"
+                xlsx_name = f"{proj_name}_{lead_inst}_{st_name}.xlsx"
+                folder_label = f"InstTemplate_{lead_inst}_{st_name}"
                 target_dir = os.path.join(OUTPUT_ROOT, folder_label, "System")
                 os.makedirs(target_dir, exist_ok=True)
                 for old_f in os.listdir(target_dir):
@@ -1542,8 +1576,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "status": "ok",
                     "output_dir": target_dir,
                     "excel_path": out_xlsx,
-                    "inst_name": inst_name,
-                    "title_name": title_name,
+                    "inst_name": lead_inst,
+                    "total_items": len(items),
                     "audit_report": audit_rep
                 })
             else:

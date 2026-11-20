@@ -1137,6 +1137,16 @@
             </label>
             <button onclick="tab3OpenIntro()" class="btn" style="padding:7px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC; font-weight:700;">📖 儀器規格介紹</button>
             <button id="btnTab3Hmi" onclick="tab3OpenHmi()" class="btn" style="padding:7px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;">🔌 互動人機設定</button>
+            <button onclick="tab3AddItemToQueue()" class="btn" style="padding:7px 14px; background:#EFF6FF; color:#1E40AF; border-color:#93C5FD; font-weight:700;" title="將目前設定的測項加入排隊清單，可連續加入多個測項">➕ 加入連續測項清單</button>
+          </div>
+
+          <!-- 待連續產生測項清單 -->
+          <div id="tab3QueueContainer" style="margin-top:14px; display:none; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:10px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-weight:700; font-size:13px; color:#1E293B;">📋 已排隊之連續測項清單（可連續追加同款或多款儀器測項）：</span>
+              <button onclick="tab3ClearQueue()" class="btn" style="padding:2px 8px; font-size:11.5px; background:#F1F5F9; color:#475569;">🧹 清空清單</button>
+            </div>
+            <div id="tab3QueueList" style="display:flex; flex-direction:column; gap:6px;"></div>
           </div>
         </div>
 
@@ -1144,7 +1154,7 @@
           <div>
             <div style="font-weight:700; font-size:13.5px; color:#0F172A;">✨ 自動生成流程保障：</div>
             <div style="font-size:12.5px; color:#64748B; margin-top:2px;">
-              點擊上方或右方綠色按鈕後，後台將自動以 Golden Mother 建立全新腳本，自動掛載前置路由與 Phase 97 收尾保護，載入您選定的儀器並執行全自動語法與邏輯檢查，產出後立即置頂開啟 Excel。
+              點擊上方或右方綠色按鈕後，後台將自動以 Golden Mother 建立全新腳本，自動掛載前置路由與 Phase 97 收尾保護，載入您選定的所有連續測項，執行全自動語法與邏輯檢查，產出後立即置頂開啟 Excel。
             </div>
           </div>
           <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800; font-size:14px;">
@@ -2404,11 +2414,69 @@ async function syncTab3View() {
   _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
 }
 
-async function tab3GenerateStandalone() {
+let TAB3_QUEUE = [];
+
+function tab3AddItemToQueue() {
   const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
-  const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}`;
+  const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}_${TAB3_QUEUE.length + 1}`;
   const dlVal = (document.getElementById('tab3DlInput') || {}).value.trim();
   const ulVal = (document.getElementById('tab3UlInput') || {}).value.trim();
+
+  TAB3_QUEUE.push({
+    inst_name: instName,
+    title_name: titleName,
+    dl_val: dlVal,
+    ul_val: ulVal
+  });
+  renderTab3Queue();
+  // 提示使用者已加入，並建議下一個測項名稱
+  const tInput = document.getElementById('tab3TitleInput');
+  if (tInput) tInput.value = `Test_${instName}_${TAB3_QUEUE.length + 1}`;
+}
+
+function tab3RemoveQueueItem(idx) {
+  TAB3_QUEUE.splice(idx, 1);
+  renderTab3Queue();
+}
+
+function tab3ClearQueue() {
+  TAB3_QUEUE = [];
+  renderTab3Queue();
+}
+
+function renderTab3Queue() {
+  const c = document.getElementById('tab3QueueContainer');
+  const l = document.getElementById('tab3QueueList');
+  if (!c || !l) return;
+  if (TAB3_QUEUE.length === 0) {
+    c.style.display = 'none';
+    l.innerHTML = '';
+    return;
+  }
+  c.style.display = 'block';
+  l.innerHTML = TAB3_QUEUE.map((it, idx) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:4px; padding:5px 10px; font-size:12.5px;">
+      <div>
+        <span style="font-weight:700; color:#1E40AF;">#${idx + 1} [${it.inst_name}]</span>
+        <span style="margin-left:6px; color:#0F172A; font-weight:700;">${it.title_name}</span>
+        <span class="mono" style="margin-left:8px; color:#64748B;">(DL=${it.dl_val || '-'}, UL=${it.ul_val || '-'})</span>
+      </div>
+      <button onclick="tab3RemoveQueueItem(${idx})" class="btn" style="padding:1px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none; border-radius:3px;">✕ 移除</button>
+    </div>
+  `).join('');
+}
+
+async function tab3GenerateStandalone() {
+  let itemsToInsert = [];
+  if (TAB3_QUEUE.length > 0) {
+    itemsToInsert = [...TAB3_QUEUE];
+  } else {
+    const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+    const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}`;
+    const dlVal = (document.getElementById('tab3DlInput') || {}).value.trim();
+    const ulVal = (document.getElementById('tab3UlInput') || {}).value.trim();
+    itemsToInsert.push({ inst_name: instName, title_name: titleName, dl_val: dlVal, ul_val: ulVal });
+  }
 
   // 顯示進度指示
   const outBox = document.getElementById('tab3OutputBox');
@@ -2419,7 +2487,7 @@ async function tab3GenerateStandalone() {
     outBox.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px; color:#1E3A8A; font-weight:700;">
         <span style="font-size:18px; animation:spinLoading 1.5s linear infinite;">⏳</span>
-        <span>正在以 Golden Mother 母體自動產生腳本範本、掛載儀器 [${instName}]、執行全自動體檢與修復...</span>
+        <span>正在以 Golden Mother 母體自動產生腳本範本、依序連續掛載 ${itemsToInsert.length} 項測項、執行全自動體檢與修復...</span>
       </div>
     `;
   }
@@ -2429,10 +2497,7 @@ async function tab3GenerateStandalone() {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        inst_name: instName,
-        title_name: titleName,
-        dl_val: dlVal,
-        ul_val: ulVal,
+        items: itemsToInsert,
         project_name: 'INST_MOTHER',
         station_name: 'MB'
       })
@@ -2449,13 +2514,13 @@ async function tab3GenerateStandalone() {
       outBox.style.borderColor = '#86EFAC';
       outBox.innerHTML = `
         <div style="font-size:14px; color:#166534; font-weight:800; margin-bottom:6px;">
-          🎉 成功以母體自動產出儀器測試範本，並已自動開啟 Excel 與目標資料夾！
+          🎉 成功以母體自動產出儀器測試範本（共連續插入 ${data.total_items || itemsToInsert.length} 項測項），並已自動開啟 Excel 與目標資料夾！
         </div>
         <div style="font-size:12.5px; color:#334155; line-height:1.6;">
-          • <b>儀器項目：</b><span class="mono">${data.inst_name}</span> (Title: ${data.title_name})<br>
+          • <b>儀器項目：</b><span class="mono">${data.inst_name}</span> (共 ${data.total_items || itemsToInsert.length} 測項)<br>
           • <b>輸出目錄：</b><span class="mono">${data.output_dir}</span><br>
           • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
-          • <b>腳本體檢：</b><span style="color:#15803D; font-weight:700;">✅ 自動防呆檢查通過 (已補齊 16 欄邊界、前置路由、Phase 97 結束碼與 Checksum)</span>
+          • <b>腳本體檢：</b><span style="color:#15803D; font-weight:700;">✅ 自動防呆檢查通過 (已補齊 16 欄邊界、連續 Phase 順編、前置路由、Phase 97 結束碼與 Checksum)</span>
         </div>
       `;
     }
