@@ -15,3 +15,8 @@ Centimani_1.5.3_sample/
 SCRIPTS/
 DOC/
 完整知識庫文件清單/
+
+build/
+dist/
+*.spec
+TEMP_SCRIPT/
