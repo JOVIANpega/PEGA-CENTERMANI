@@ -382,9 +382,31 @@ def launch_excel_file_async(file_path):
 
     import threading, time, ctypes
     def _open_task():
-        norm_p = os.path.normpath(file_path)
+        norm_p = os.path.abspath(file_path)
 
-        # Candidate executable paths (Direct EXE launch reliably handles /dde zombie processes)
+        # Attempt 1: Direct COM automation (100% guarantees Visible=True, Workbooks.Open, and HWND foreground)
+        try:
+            import win32com.client
+            user32 = ctypes.windll.user32
+            try:
+                user32.AllowSetForegroundWindow(-1)
+            except Exception:
+                pass
+            xl = win32com.client.Dispatch("Excel.Application")
+            xl.Visible = True
+            xl.Workbooks.Open(norm_p)
+            try:
+                h = xl.Hwnd
+                user32.ShowWindow(h, 9)  # SW_RESTORE
+                user32.ShowWindow(h, 3)  # SW_MAXIMIZE
+                user32.SetForegroundWindow(h)
+            except Exception:
+                pass
+            return
+        except Exception as e_com:
+            print(f"[launch_excel_file_async] COM launch failed, fallback to EXE: {e_com}")
+
+        # Attempt 2: Direct EXCEL.EXE execution with target path
         excel_candidates = [
             r"C:\Program Files\Microsoft Office\Office16\EXCEL.EXE",
             r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
@@ -402,7 +424,6 @@ def launch_excel_file_async(file_path):
             pass
 
         launched = False
-        # Attempt 1: Direct EXCEL.EXE execution with target path
         for exe in excel_candidates:
             if os.path.exists(exe):
                 try:
@@ -412,7 +433,7 @@ def launch_excel_file_async(file_path):
                 except Exception as e:
                     print(f"[launch_excel_file_async] direct excel spawn failed: {e}")
 
-        # Attempt 2: os.startfile fallback
+        # Attempt 3: os.startfile fallback
         if not launched:
             try:
                 os.startfile(norm_p)
@@ -420,40 +441,12 @@ def launch_excel_file_async(file_path):
             except Exception as e:
                 print(f"[launch_excel_file_async] os.startfile failed: {e}")
 
-        # Attempt 3: cmd start fallback
+        # Attempt 4: cmd start fallback
         if not launched:
             try:
                 subprocess.Popen(f'start "" "{norm_p}"', shell=True)
             except Exception as e:
                 print(f"[launch_excel_file_async] cmd start failed: {e}")
-
-        # Bring Excel window to foreground
-        time.sleep(1.0)
-        try:
-            user32 = ctypes.windll.user32
-            user32.AllowSetForegroundWindow(-1)
-            target_fname = os.path.basename(norm_p).lower()
-            matched_hwnds = []
-
-            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-            def _cb(hwnd, lparam):
-                if user32.IsWindowVisible(hwnd):
-                    buf_cls = ctypes.create_unicode_buffer(64)
-                    user32.GetClassNameW(hwnd, buf_cls, 64)
-                    if buf_cls.value == "XLMAIN":
-                        buf_txt = ctypes.create_unicode_buffer(256)
-                        user32.GetWindowTextW(hwnd, buf_txt, 256)
-                        if target_fname in buf_txt.value.lower() or "excel" in buf_txt.value.lower():
-                            matched_hwnds.append(hwnd)
-                return True
-
-            user32.EnumWindows(WNDENUMPROC(_cb), 0)
-            if matched_hwnds:
-                h = matched_hwnds[0]
-                user32.ShowWindow(h, 9)  # SW_RESTORE
-                user32.SetForegroundWindow(h)
-        except Exception:
-            pass
 
     threading.Thread(target=_open_task, daemon=True).start()
 
