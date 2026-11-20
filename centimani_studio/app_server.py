@@ -925,9 +925,20 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if not content:
                     content = raw_bytes.decode("latin-1", errors="replace")
 
+                # Cache uploaded log to a temporary file so '🔄 重新解析本檔' works seamlessly!
+                scratch_dir = os.path.join(BASE_DIR, "uploaded_temp")
+                os.makedirs(scratch_dir, exist_ok=True)
+                cached_log_path = os.path.join(scratch_dir, "last_uploaded_log.log")
+                try:
+                    with open(cached_log_path, "wb") as f_cache:
+                        f_cache.write(raw_bytes)
+                except Exception:
+                    pass
+
                 res = analyze_centimani_log(content)
                 self._send_json({
                     "status": "ok",
+                    "file_path": cached_log_path,
                     "file_size_kb": round(len(raw_bytes) / 1024, 2),
                     "log_snippet": content[:1200] if len(content) > 1200 else content,
                     "result": res

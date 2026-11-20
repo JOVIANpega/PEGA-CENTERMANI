@@ -49,8 +49,11 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
     ws.row_dimensions[1].height = 28
     center_cols = {1, 2, 8, 9, 13, 14, 16} if is_station else {1}
 
+    # Bounded column count prevents openpyxl from hanging on sparse/unbounded sheets (e.g. max_col=16384)
+    max_c = min(ws.max_column or 1, 16 if is_station else 30)
+
     curr_phase_str = ""
-    for r_idx, row in enumerate(ws.iter_rows(), start=1):
+    for r_idx, row in enumerate(ws.iter_rows(max_col=max_c), start=1):
         if r_idx > 1:
             max_lines = 1
             for cell in row:
@@ -91,12 +94,13 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
                     cmt.height = 120
                     cell.comment = cmt
 
-    # Auto-adjust column widths based on text length
-    for col in ws.columns:
+    # Auto-adjust column widths based on text length (bounded by max_c)
+    for col_idx in range(1, max_c + 1):
+        col_letter = get_column_letter(col_idx)
         max_len = 0
-        col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            val_str = str(cell.value or "")
+        for r in range(1, min(ws.max_row + 1, 250)):
+            cell_val = ws.cell(row=r, column=col_idx).value
+            val_str = str(cell_val or "")
             for line in val_str.split("\n"):
                 if len(line) > max_len:
                     max_len = len(line)
@@ -347,7 +351,7 @@ def import_excel_to_workspace(xlsx_path):
     def read_table_sheet(sheet_name, default_headers):
         if sheet_name not in wb.sheetnames:
             return []
-        rows = list(wb[sheet_name].iter_rows(values_only=True))
+        rows = list(wb[sheet_name].iter_rows(max_col=20, values_only=True))
         if not rows:
             return []
         raw_h = [str(c).strip() if c is not None else f"Col_{i}" for i, c in enumerate(rows[0])]
@@ -375,7 +379,7 @@ def import_excel_to_workspace(xlsx_path):
     for s_name in wb.sheetnames:
         if s_name in ["Properties", "DUTs", "Switch", "Instrument", "PathLoss"]:
             continue
-        rows = list(wb[s_name].iter_rows(values_only=True))
+        rows = list(wb[s_name].iter_rows(max_col=17, values_only=True))
         if not rows:
             continue
         headers = [str(c).strip() if c is not None else "" for c in rows[0][:17]]
