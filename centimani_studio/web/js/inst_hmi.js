@@ -235,10 +235,10 @@ INST_INTRO_PROFILES['XelM8-B'] = Object.assign({}, INST_INTRO_PROFILES['InstIQAp
 INST_INTRO_PROFILES['MT8870A'] = Object.assign({}, INST_INTRO_PROFILES['InstIQApiA'], { img: '/images/MT8870A.png' });
 
 function setIntroFontSize(sz) {
-  const valid = [13, 15, 17].includes(sz) ? sz : 15;
+  const valid = [13, 15, 17, 19].includes(sz) ? sz : 15;
   INTRO_STATE.fontSize = valid;
   localStorage.setItem('centimani_intro_font_size', String(valid));
-  [13, 15, 17].forEach(s => {
+  [13, 15, 17, 19].forEach(s => {
     ['introFs' + s, 'hmiFs' + s].forEach(bid => {
       const btn = document.getElementById(bid);
       if (!btn) return;
@@ -256,6 +256,7 @@ function setIntroFontSize(sz) {
     });
   });
   document.body.style.fontSize = valid + 'px';
+  document.documentElement.style.setProperty('--app-font-size', valid + 'px');
   document.querySelectorAll('.intro-scalable-text, .flow-guide-desc').forEach(el => {
     el.style.fontSize = valid + 'px';
   });

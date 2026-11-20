@@ -376,26 +376,20 @@ def open_folder_in_explorer(folder_path):
 
 
 def launch_excel_file_async(file_path):
-    """Reliably launches Excel for the given file in background without blocking server HTTP thread."""
+    """Reliably launches Excel for the given file in background and brings window to front."""
     if not file_path or not os.path.exists(file_path):
         return
 
-    import threading
+    import threading, time, ctypes
     def _open_task():
         norm_p = os.path.normpath(file_path)
-        # Attempt 1: os.startfile
-        try:
-            os.startfile(norm_p)
-            return
-        except Exception as e1:
-            print(f"[launch_excel_file_async] os.startfile failed: {e1}")
 
-        # Attempt 2: Direct EXCEL.EXE execution via App Paths / default paths
+        # Candidate executable paths (Direct EXE launch reliably handles /dde zombie processes)
         excel_candidates = [
-            r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
-            r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE",
             r"C:\Program Files\Microsoft Office\Office16\EXCEL.EXE",
+            r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
             r"C:\Program Files (x86)\Microsoft Office\Office16\EXCEL.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE",
             r"C:\Program Files\Microsoft Office\Office15\EXCEL.EXE",
         ]
         try:
@@ -407,19 +401,59 @@ def launch_excel_file_async(file_path):
         except Exception:
             pass
 
+        launched = False
+        # Attempt 1: Direct EXCEL.EXE execution with target path
         for exe in excel_candidates:
             if os.path.exists(exe):
                 try:
                     subprocess.Popen([exe, norm_p])
-                    return
-                except Exception as e2:
-                    print(f"[launch_excel_file_async] direct excel spawn failed: {e2}")
+                    launched = True
+                    break
+                except Exception as e:
+                    print(f"[launch_excel_file_async] direct excel spawn failed: {e}")
+
+        # Attempt 2: os.startfile fallback
+        if not launched:
+            try:
+                os.startfile(norm_p)
+                launched = True
+            except Exception as e:
+                print(f"[launch_excel_file_async] os.startfile failed: {e}")
 
         # Attempt 3: cmd start fallback
+        if not launched:
+            try:
+                subprocess.Popen(f'start "" "{norm_p}"', shell=True)
+            except Exception as e:
+                print(f"[launch_excel_file_async] cmd start failed: {e}")
+
+        # Bring Excel window to foreground
+        time.sleep(1.0)
         try:
-            subprocess.Popen(f'start "" "{norm_p}"', shell=True)
-        except Exception as e3:
-            print(f"[launch_excel_file_async] cmd start failed: {e3}")
+            user32 = ctypes.windll.user32
+            user32.AllowSetForegroundWindow(-1)
+            target_fname = os.path.basename(norm_p).lower()
+            matched_hwnds = []
+
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+            def _cb(hwnd, lparam):
+                if user32.IsWindowVisible(hwnd):
+                    buf_cls = ctypes.create_unicode_buffer(64)
+                    user32.GetClassNameW(hwnd, buf_cls, 64)
+                    if buf_cls.value == "XLMAIN":
+                        buf_txt = ctypes.create_unicode_buffer(256)
+                        user32.GetWindowTextW(hwnd, buf_txt, 256)
+                        if target_fname in buf_txt.value.lower() or "excel" in buf_txt.value.lower():
+                            matched_hwnds.append(hwnd)
+                return True
+
+            user32.EnumWindows(WNDENUMPROC(_cb), 0)
+            if matched_hwnds:
+                h = matched_hwnds[0]
+                user32.ShowWindow(h, 9)  # SW_RESTORE
+                user32.SetForegroundWindow(h)
+        except Exception:
+            pass
 
     threading.Thread(target=_open_task, daemon=True).start()
 

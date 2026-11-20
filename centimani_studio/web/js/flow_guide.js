@@ -284,7 +284,7 @@ function applyLoadedSettings(s) {
   document.documentElement.style.fontSize = fs + 'px';
   document.body.style.fontSize = fs + 'px';
 
-  // 根據字型層級動態調整標題與各層級比例 (最高 19px)
+  // 根據字型層級動態調整標題與各層級比例 (最高 19px 內文，標題相應縮放)
   let h1Size = '22px';
   let h2Size = '19px';
   let h3Size = '17px';
@@ -296,13 +296,19 @@ function applyLoadedSettings(s) {
     subSize = '12px';
   } else if (fs === 17) {
     h1Size = '24px';
-    h2Size = '19px';
+    h2Size = '20px';
     h3Size = '18px';
     subSize = '15px';
+  } else if (fs === 19) {
+    h1Size = '26px';
+    h2Size = '22px';
+    h3Size = '20px';
+    subSize = '16.5px';
   }
   document.documentElement.style.setProperty('--app-font-size', fs + 'px');
   document.documentElement.style.setProperty('--app-h2-size', h2Size);
   document.documentElement.style.setProperty('--app-sub-size', subSize);
+  document.body.style.fontSize = fs + 'px';
 
   if (typeof setIntroFontSize === 'function') {
     setIntroFontSize(fs);
@@ -559,6 +565,7 @@ function renderSettingsPanel() {
             <button onclick="saveAppSettings({intro_font_size:13}); applyLoadedSettings({intro_font_size:13}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===13?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">小 (13px)</button>
             <button onclick="saveAppSettings({intro_font_size:15}); applyLoadedSettings({intro_font_size:15}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===15?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">中 (15px)</button>
             <button onclick="saveAppSettings({intro_font_size:17}); applyLoadedSettings({intro_font_size:17}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===17?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">大 (17px)</button>
+            <button onclick="saveAppSettings({intro_font_size:19}); applyLoadedSettings({intro_font_size:19}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===19?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">特大 (19px)</button>
           </div>
         </div>
       </div>
