@@ -73,11 +73,11 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-green',
     btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
-      { num: '①', title: '書籤一：建新母體', jumpIdx: 0, items: ['專案 / ISN / 廠區設定', '4 步精靈從 0 → 1 建檔'] },
-      { num: '②', title: '骨架與 34 款儀器', jumpIdx: 3, items: ['7 大標準流程積木', '快選儀器進入互動人機'] },
-      { num: '③', title: '書籤二：既有編修', jumpIdx: 11, items: ['載入既有 TestFlow.xlsx', '無限次 1 → N 編修維護'] },
-      { num: '④', title: '插儀器 / 跳轉 / 通訊', jumpIdx: 12, items: ['34 款儀器 & RGB 多色', '視覺化跳轉與全域微調'] },
-      { num: '⑤', title: '安全暫存與匯出', jumpIdx: 19, items: ['原 Excel 保持不動', '產出試跑版或 *_FIXED'] }
+      { num: '①', title: '書籤一：既有編修', jumpIdx: 11, items: ['載入既有 TestFlow.xlsx', '無限次 1 → N 編修維護'] },
+      { num: '②', title: '插儀器 / 跳轉 / 通訊', jumpIdx: 12, items: ['34 款儀器 & 人機', '視覺化跳轉與全域微調'] },
+      { num: '③', title: '安全暫存與匯出', jumpIdx: 19, items: ['原 Excel 保持不動', '產出試跑版或 *_FIXED'] },
+      { num: '④', title: '書籤二：建新母體', jumpIdx: 0, items: ['專案 / ISN / 廠區設定', '4 步精靈從 0 → 1 建檔'] },
+      { num: '⑤', title: '骨架與 34 款儀器', jumpIdx: 3, items: ['標準流程積木', '快選儀器進入互動人機'] }
     ],
     detailedSteps: [
       {
