@@ -29,6 +29,17 @@
     flex-direction: column;
     overflow: hidden;
   }
+  /* 全站字體等比縮放聯動規則 (當使用者調整 FONT 大小時全面繼承) */
+  .workspace, .main-layout, #editorWorkspaceBody, #panelAudit, #panelGen, #panelDiagnose, #panelTic, #panelSettings, .action-bar, .modal-panel {
+    font-size: var(--app-font-size, 15px);
+  }
+  .btn {
+    font-size: calc(var(--app-font-size, 15px) * 0.95);
+  }
+  input, select, textarea {
+    font-size: calc(var(--app-font-size, 15px) * 0.93);
+    font-family: inherit;
+  }
   h1, h2, h3, h4, strong, th, .bold-title {
     font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
     font-weight: 700;
