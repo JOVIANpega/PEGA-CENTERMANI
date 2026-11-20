@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v2.9.7</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v2.9.8</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -837,13 +837,16 @@
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
       <div class="source-mode-bar">
         <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">
-          ✏️ 書籤一：既有腳本編修與加儀器 (1 → N)
+          ✏️ 書籤一：既有腳本編修 (1 → N)
         </button>
         <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">
           🆕 書籤二：首次建立新母體 (0 → 1)
         </button>
+        <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">
+          🔌 書籤三：插入儀器範本 (34 款人機)
+        </button>
       </div>
-      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 日常新增儀器 / 改跳轉 / 調通訊 / 排序請用書籤一；專案初期從零建母體用書籤二</span>
+      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 日常排流程/改跳轉/調通訊用書籤一；建母體用書籤二；插入新測項/儀器用書籤三</span>
     </div>
 
     <div id="genModeCreate" style="display:none;">
@@ -1050,13 +1053,10 @@
               </label>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btnOpenInsertInstModal" class="btn" style="flex:1 1 165px; justify-content:center; padding:9px 10px; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openInsertInstModal()">
-                ➕ 插入儀器範本 (34 款人機)
-              </button>
-              <button id="btnOpenJumpModal" class="btn btn-jump" style="flex:1 1 155px; justify-content:center; padding:9px 10px;" onclick="openJumpEditorModal()">
+              <button id="btnOpenJumpModal" class="btn btn-jump" style="flex:1 1 155px; justify-content:center; padding:10px 12px; font-size:13.5px;" onclick="openJumpEditorModal()">
                 🔀 編輯跳轉 (PASS/FAIL)
               </button>
-              <button id="btnOpenBlockSorter" class="btn" style="flex:1 1 175px; justify-content:center; padding:9px 10px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700;" onclick="openBlockSorterModal()">
+              <button id="btnOpenBlockSorter" class="btn" style="flex:1 1 175px; justify-content:center; padding:10px 12px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700; font-size:13.5px;" onclick="openBlockSorterModal()">
                 🧱 積木順序排序 (拖拉 Phase)
               </button>
             </div>
@@ -1101,6 +1101,64 @@
         </div>
       </div>
     </div><!-- /genModeEdit -->
+
+    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機) -->
+    <div id="genModeInst" style="display:none;">
+      <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:18px 20px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0 0 4px 0; color:#4C1D95; font-size:17px;">🔌 書籤三：插入獨立儀器範本與互動人機 (34 款)</h3>
+            <div style="font-size:13px; color:#64748B;">安全插入規則：以獨立 Title 區塊插入指定位置，自動掛載至 Instrument 表，不破壞既有 4:P,F 跳轉。</div>
+          </div>
+          <button onclick="openInsertInstModal()" class="btn btn-primary-blue" style="padding:8px 18px; font-weight:800; font-size:13.5px;">
+            ➕ 開啟彈窗式精準插入器
+          </button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:16px;">
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
+            <label style="font-weight:700; color:#0F172A; display:block; margin-bottom:4px;">1. 目標測試站工作表：</label>
+            <select id="tab3SheetSel" onchange="tab3OnSheetChange()" class="mono" style="width:100%; padding:6px 8px; border:1px solid #94A3B8; border-radius:5px; font-weight:700;"></select>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
+            <label style="font-weight:700; color:#0F172A; display:block; margin-bottom:4px;">2. 插入位置（此 Title 之後、Phase 97 之前）：</label>
+            <select id="tab3AfterBlkSel" style="width:100%; padding:6px 8px; border:1px solid #94A3B8; border-radius:5px;"></select>
+          </div>
+        </div>
+
+        <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:14px; margin-bottom:14px;">
+          <div style="font-weight:800; color:#5B21B6; margin-bottom:10px;">3. 選擇要插入的儀器與測項規格：</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+            <label style="flex:1; min-width:160px; font-weight:700; font-size:12.5px; color:#334155;">功能分類：
+              <select id="tab3CatSel" onchange="tab3OnCatChange()" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+            </label>
+            <label style="flex:1.2; min-width:180px; font-weight:700; font-size:12.5px; color:#334155;">儀器名稱：
+              <select id="tab3InstSel" onchange="tab3OnInstChange()" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px;"></select>
+            </label>
+            <label style="flex:1.4; min-width:180px; font-weight:700; font-size:12.5px; color:#334155;">測項名稱 (Title)：
+              <input id="tab3TitleInput" type="text" placeholder="例如：Measure 3.3V Rail" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+            <label style="width:90px; font-weight:700; font-size:12.5px; color:#334155;">下限 DL：
+              <input id="tab3DlInput" type="text" placeholder="3.15" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+            <label style="width:90px; font-weight:700; font-size:12.5px; color:#334155;">上限 UL：
+              <input id="tab3UlInput" type="text" placeholder="3.45" class="mono" style="width:100%; margin-top:3px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
+            </label>
+            <button onclick="tab3OpenIntro()" class="btn" style="padding:7px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC;">📖 儀器介紹</button>
+            <button id="btnTab3Hmi" onclick="tab3OpenHmi()" class="btn" style="padding:7px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">🔌 互動人機設定</button>
+            <button onclick="tab3ConfirmInsert()" class="btn btn-primary-green" style="padding:7px 16px; font-weight:800;">✨ 立即插入新區塊</button>
+          </div>
+        </div>
+
+        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <span style="font-size:12.5px; color:#64748B;">💡 插入後會暫存於記憶體，隨時可切換回「書籤一」檢視、排序或點擊右方匯出產出正式腳本。</span>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-dry" style="padding:7px 14px; font-size:13px;" onclick="applyFixAndExport(true)">🧪 匯出「無硬體試跑版」</button>
+            <button class="btn btn-primary-green" style="padding:7px 16px; font-size:13px; font-weight:800;" onclick="applyFixAndExport(false)">💾 寫入並匯出 (*_FIXED.xlsx)</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /genModeInst -->
   </div>
 
   <!-- ======================== 書籤四：TestID / Error Code 速查與精準套用 ======================== -->
@@ -2324,16 +2382,125 @@ async function pickTicFileNative() {
 let GEN_SUB_MODE = 'edit';
 
 function switchGenSubMode(mode) {
-  GEN_SUB_MODE = (mode === 'edit') ? 'edit' : 'create';
+  GEN_SUB_MODE = ['edit', 'create', 'inst'].includes(mode) ? mode : 'edit';
   const cBox = document.getElementById('genModeCreate');
   const eBox = document.getElementById('genModeEdit');
+  const iBox = document.getElementById('genModeInst');
   const cBtn = document.getElementById('btnGenModeCreate');
   const eBtn = document.getElementById('btnGenModeEdit');
+  const iBtn = document.getElementById('btnGenModeInst');
+
   if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
+  if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
+
   if (cBtn) cBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'create' ? ' active' : '');
   if (eBtn) eBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'edit' ? ' active' : '');
+  if (iBtn) iBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'inst' ? ' active' : '');
+
   if (GEN_SUB_MODE === 'edit') syncEditorView();
+  if (GEN_SUB_MODE === 'inst') syncTab3View();
+}
+
+async function syncTab3View() {
+  if (!STATE.workspace) {
+    alert('尚未載入任何 TestFlow 腳本，請先於「書籤一」載入要編修的 Excel 檔案！');
+    switchGenSubMode('edit');
+    return;
+  }
+  const stNames = Object.keys(STATE.workspace.stations || {});
+  const sSel = document.getElementById('tab3SheetSel');
+  if (sSel && stNames.length > 0) {
+    sSel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+    const edSel = document.getElementById('editorSheetSel');
+    if (edSel && edSel.value && stNames.includes(edSel.value)) sSel.value = edSel.value;
+  }
+  tab3OnSheetChange();
+  try {
+    await _ensureInstCatalogLoaded();
+  } catch (err) {}
+  _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
+}
+
+function tab3OnSheetChange() {
+  const sSel = document.getElementById('tab3SheetSel');
+  const blkSel = document.getElementById('tab3AfterBlkSel');
+  if (!sSel || !blkSel || !STATE.workspace) return;
+  const sheet = sSel.value;
+  const rows = (STATE.workspace.stations || {})[sheet] || [];
+  const blks = _extractStationTitleBlocks(rows);
+  blkSel.innerHTML = blks.map(b => `<option value="${b.idx}">${b.label}</option>`).join('');
+}
+
+function tab3OnCatChange() {
+  const cat = (document.getElementById('tab3CatSel') || {}).value;
+  const instSel = document.getElementById('tab3InstSel');
+  if (!instSel || !STATE.instrumentCatalog) return;
+  const list = STATE.instrumentCatalog.filter(i => !cat || i.Category === cat);
+  instSel.innerHTML = list.map(i => `<option value="${i.Name}">${i.Name} (${i.Desc || ''})</option>`).join('');
+  tab3OnInstChange();
+}
+
+function tab3OnInstChange() {
+  const instName = (document.getElementById('tab3InstSel') || {}).value;
+  const tInput = document.getElementById('tab3TitleInput');
+  const dlInput = document.getElementById('tab3DlInput');
+  const ulInput = document.getElementById('tab3UlInput');
+  const item = (STATE.instrumentCatalog || []).find(i => i.Name === instName);
+  if (item) {
+    if (tInput) tInput.value = item.DefaultTitle || `Test ${item.Name}`;
+    if (dlInput) dlInput.value = item.DefaultDL || '';
+    if (ulInput) ulInput.value = item.DefaultUL || '';
+  }
+}
+
+function tab3OpenIntro() {
+  const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  openInstIntroPage('audit', inst);
+}
+
+function tab3OpenHmi() {
+  const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  openInstIntroPage('audit', inst);
+}
+
+async function tab3ConfirmInsert() {
+  if (!STATE.workspace) return;
+  const sheet = document.getElementById('tab3SheetSel').value;
+  const afterIdx = parseInt(document.getElementById('tab3AfterBlkSel').value, 10);
+  const instName = document.getElementById('tab3InstSel').value;
+  const titleName = document.getElementById('tab3TitleInput').value.trim() || `Test ${instName}`;
+  const dlVal = document.getElementById('tab3DlInput').value.trim();
+  const ulVal = document.getElementById('tab3UlInput').value.trim();
+
+  const res = await fetch('/api/insert_instrument_block', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      workspace: STATE.workspace,
+      sheet_name: sheet,
+      inst_name: instName,
+      title_name: titleName,
+      after_block_idx: afterIdx,
+      dl_val: dlVal,
+      ul_val: ulVal
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '插入失敗');
+    return;
+  }
+  STATE.workspace = data.workspace;
+  STATE.report = data.report;
+  STATE.pendingInserts = STATE.pendingInserts || [];
+  STATE.pendingInserts.push({
+    sheet: sheet,
+    inst: instName,
+    summary: `${titleName} (DL=${dlVal||'-'}, UL=${ulVal||'-'})`
+  });
+  alert(`🎉 成功插入獨立 Title「${titleName}」至工作表 [${sheet}]！\n\n已暫存於記憶體，可切換回書籤一檢視排程，或點擊匯出存檔。`);
+  switchGenSubMode('edit');
 }
 
 function openCurrentAuditInEditor() {

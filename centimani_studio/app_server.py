@@ -985,12 +985,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     self._send_json({"status": "error", "message": "未收到上傳的 Excel 檔案"}, 400)
                     return
                 file_bytes = file_items[0]
-                # Save to a temporary or scratch file to inspect
+                # Save to a temporary or scratch file to inspect (with unique timestamp / fallback if locked)
                 scratch_dir = os.path.join(BASE_DIR, "uploaded_temp")
                 os.makedirs(scratch_dir, exist_ok=True)
                 temp_path = os.path.join(scratch_dir, "temp_uploaded.xlsx")
-                with open(temp_path, "wb") as f:
-                    f.write(file_bytes)
+                try:
+                    with open(temp_path, "wb") as f:
+                        f.write(file_bytes)
+                except (PermissionError, IOError):
+                    import time
+                    temp_path = os.path.join(scratch_dir, f"temp_uploaded_{time.strftime('%H%M%S')}.xlsx")
+                    with open(temp_path, "wb") as f:
+                        f.write(file_bytes)
 
                 ws = import_excel_to_workspace(temp_path)
                 rep = audit_workspace(ws)
