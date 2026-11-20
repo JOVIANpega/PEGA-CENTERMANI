@@ -1115,30 +1115,45 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 fixed_logs = auto_fix_workspace(ws_to_export, user_choices=user_choices)
 
-                # Export DIRECTLY to the original file directory!
+                # Export to the original file directory with file lock conflict protection!
                 out_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
-                export_workspace_to_excel(ws_to_export, out_xlsx_path, active_sheet=active_sheet)
+                
+                # Check if file is currently open / locked by Excel
+                target_xlsx_path = out_xlsx_path
+                try:
+                    if os.path.exists(target_xlsx_path):
+                        # Test write access
+                        with open(target_xlsx_path, "a+"):
+                            pass
+                except (PermissionError, IOError):
+                    import time
+                    timestamp = time.strftime("%H%M%S")
+                    fixed_xlsx_name = f"{base_name}_FIXED_{timestamp}.xlsx"
+                    target_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
+                    print(f"[File Lock Protection] {out_xlsx_path} is locked by Excel. Saving to {target_xlsx_path} instead.")
+
+                export_workspace_to_excel(ws_to_export, target_xlsx_path, active_sheet=active_sheet)
 
                 # Sync and generate INIs in the original directory (preserving original SFIS keys)
                 sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, fixed_xlsx_name, orig_dir)
 
                 # Compute official Checksum and write to System.ini
-                chk = generate_official_checksum(out_xlsx_path, sys_ini)
+                chk = generate_official_checksum(target_xlsx_path, sys_ini)
 
                 open_folder_in_explorer(orig_dir)
-                if open_excel and os.path.exists(out_xlsx_path):
+                if open_excel and os.path.exists(target_xlsx_path):
                     try:
-                        os.startfile(os.path.normpath(out_xlsx_path))
+                        os.startfile(os.path.normpath(target_xlsx_path))
                     except Exception as _oe:
                         print(f"Warning: failed to launch excel: {_oe}")
 
-                ws_re = import_excel_to_workspace(out_xlsx_path)
+                ws_re = import_excel_to_workspace(target_xlsx_path)
                 rep_re = audit_workspace(ws_re)
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
-                    "excel_path": out_xlsx_path,
+                    "excel_path": target_xlsx_path,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
