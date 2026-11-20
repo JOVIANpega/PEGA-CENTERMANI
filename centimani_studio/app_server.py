@@ -322,61 +322,38 @@ def _scan_project_folder(root_dir):
 
 
 def open_folder_in_explorer(folder_path):
+    """Reliably opens folder in Windows Explorer using Shell.Application and explorer.exe fallback."""
     try:
-        if not os.path.exists(folder_path):
+        if not folder_path or not os.path.exists(folder_path):
             return
         norm_path = os.path.normpath(folder_path)
-        import ctypes, threading, time
-        try:
-            ctypes.windll.user32.AllowSetForegroundWindow(-1)
-        except Exception:
-            pass
-        subprocess.Popen(["explorer", norm_path])
 
-        def _bring_to_center_front():
-            time.sleep(0.55)
+        import threading, time
+        def _task():
+            opened = False
+            # Method 1: Shell.Application COM Explore (fastest and cleanest in Windows 10/11)
             try:
-                user32 = ctypes.windll.user32
-                folder_name = os.path.basename(norm_path).lower()
-                parent_name = os.path.basename(os.path.dirname(norm_path)).lower()
-                matched_hwnds = []
+                import win32com.client
+                shell = win32com.client.Dispatch("Shell.Application")
+                shell.Explore(norm_path)
+                opened = True
+            except Exception as e:
+                print(f"[open_folder_in_explorer] Shell.Explore failed: {e}")
 
-                WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-                def _cb(hwnd, lparam):
-                    if user32.IsWindowVisible(hwnd):
-                        buf_cls = ctypes.create_unicode_buffer(64)
-                        user32.GetClassNameW(hwnd, buf_cls, 64)
-                        if buf_cls.value == "CabinetWClass":
-                            buf_txt = ctypes.create_unicode_buffer(256)
-                            user32.GetWindowTextW(hwnd, buf_txt, 256)
-                            title_l = buf_txt.value.lower()
-                            if folder_name in title_l or (parent_name and parent_name in title_l):
-                                matched_hwnds.append(hwnd)
-                    return True
+            # Method 2: Process execution fallback
+            if not opened:
+                try:
+                    subprocess.Popen(["explorer.exe", norm_path])
+                except Exception as e:
+                    print(f"[open_folder_in_explorer] Popen explorer.exe failed: {e}")
 
-                user32.EnumWindows(WNDENUMPROC(_cb), 0)
-                if matched_hwnds:
-                    hwnd = matched_hwnds[0]
-                    user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-                    sw = user32.GetSystemMetrics(0)
-                    sh = user32.GetSystemMetrics(1)
-                    w, h = min(980, int(sw * 0.72)), min(640, int(sh * 0.72))
-                    x, y = max(0, (sw - w) // 2), max(0, (sh - h) // 2)
-                    user32.MoveWindow(hwnd, x, y, w, h, True)
-                    # Toggle TopMost briefly to bypass Windows foreground lock safely
-                    user32.SetWindowPos(hwnd, -1, x, y, w, h, 0x0001 | 0x0040)
-                    user32.SetWindowPos(hwnd, -2, x, y, w, h, 0x0001 | 0x0040)
-                    user32.SetForegroundWindow(hwnd)
-            except Exception:
-                pass
-
-        threading.Thread(target=_bring_to_center_front, daemon=True).start()
-    except Exception:
-        pass
+        threading.Thread(target=_task, daemon=True).start()
+    except Exception as e:
+        print(f"[open_folder_in_explorer] error: {e}")
 
 
 def launch_excel_file_async(file_path):
-    """Reliably launches Excel for the given file in background and brings window to front."""
+    """Reliably launches Excel for the given file using Shell.Open, win32com, and startfile."""
     if not file_path or not os.path.exists(file_path):
         return
 
@@ -384,69 +361,43 @@ def launch_excel_file_async(file_path):
     def _open_task():
         norm_p = os.path.abspath(file_path)
 
-        # Attempt 1: Direct COM automation (100% guarantees Visible=True, Workbooks.Open, and HWND foreground)
+        # Attempt 1: Shell.Application Open (native Windows shell invocation)
         try:
             import win32com.client
-            user32 = ctypes.windll.user32
-            try:
-                user32.AllowSetForegroundWindow(-1)
-            except Exception:
-                pass
+            shell = win32com.client.Dispatch("Shell.Application")
+            shell.Open(norm_p)
+            return
+        except Exception as e_sh:
+            print(f"[launch_excel_file_async] Shell.Open failed: {e_sh}")
+
+        # Attempt 2: os.startfile (Windows standard shell verb execution)
+        try:
+            os.startfile(norm_p)
+            return
+        except Exception as e_sf:
+            print(f"[launch_excel_file_async] os.startfile failed: {e_sf}")
+
+        # Attempt 3: cmd start fallback
+        try:
+            subprocess.Popen(f'start "" "{norm_p}"', shell=True)
+            return
+        except Exception as e_cmd:
+            print(f"[launch_excel_file_async] cmd start failed: {e_cmd}")
+
+        # Attempt 4: win32com Excel.Application Automation
+        try:
+            import win32com.client
             xl = win32com.client.Dispatch("Excel.Application")
             xl.Visible = True
-            xl.Workbooks.Open(norm_p)
-            try:
-                h = xl.Hwnd
-                user32.ShowWindow(h, 9)  # SW_RESTORE
-                user32.ShowWindow(h, 3)  # SW_MAXIMIZE
-                user32.SetForegroundWindow(h)
-            except Exception:
-                pass
-            return
+            xl.UserControl = True
+            wb = xl.Workbooks.Open(norm_p)
+            for w in xl.Windows:
+                w.Visible = True
+                w.WindowState = -4137
         except Exception as e_com:
-            print(f"[launch_excel_file_async] COM launch failed, fallback to EXE: {e_com}")
+            print(f"[launch_excel_file_async] win32com fallback failed: {e_com}")
 
-        # Attempt 2: Direct EXCEL.EXE execution with target path
-        excel_candidates = [
-            r"C:\Program Files\Microsoft Office\Office16\EXCEL.EXE",
-            r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
-            r"C:\Program Files (x86)\Microsoft Office\Office16\EXCEL.EXE",
-            r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE",
-            r"C:\Program Files\Microsoft Office\Office15\EXCEL.EXE",
-        ]
-        try:
-            import winreg
-            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\excel.exe") as key:
-                val, _ = winreg.QueryValueEx(key, "")
-                if val and os.path.exists(val):
-                    excel_candidates.insert(0, val)
-        except Exception:
-            pass
-
-        launched = False
-        for exe in excel_candidates:
-            if os.path.exists(exe):
-                try:
-                    subprocess.Popen([exe, norm_p])
-                    launched = True
-                    break
-                except Exception as e:
-                    print(f"[launch_excel_file_async] direct excel spawn failed: {e}")
-
-        # Attempt 3: os.startfile fallback
-        if not launched:
-            try:
-                os.startfile(norm_p)
-                launched = True
-            except Exception as e:
-                print(f"[launch_excel_file_async] os.startfile failed: {e}")
-
-        # Attempt 4: cmd start fallback
-        if not launched:
-            try:
-                subprocess.Popen(f'start "" "{norm_p}"', shell=True)
-            except Exception as e:
-                print(f"[launch_excel_file_async] cmd start failed: {e}")
+    threading.Thread(target=_open_task, daemon=True).start()
 
     threading.Thread(target=_open_task, daemon=True).start()
 
@@ -1481,19 +1432,20 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         pass
 
                 out_xlsx = os.path.join(target_dir, xlsx_name)
-                export_workspace_to_excel(ws, out_xlsx)
-                sys_ini, glb_ini = sync_and_generate_inis(ws, xlsx_name, target_dir)
+                actual_xlsx = export_workspace_to_excel(ws, out_xlsx)
+                actual_xlsx_name = os.path.basename(actual_xlsx)
+                sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
                 chk = "已自動寫入 [Checksum]"
 
                 if get_app_settings().get("auto_open_folder", True):
                     open_folder_in_explorer(target_dir)
 
-                launch_excel_file_async(out_xlsx)
+                launch_excel_file_async(actual_xlsx)
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
-                    "excel_path": out_xlsx,
+                    "excel_path": actual_xlsx,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
@@ -1562,20 +1514,21 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         pass
 
                 out_xlsx = os.path.join(target_dir, xlsx_name)
-                export_workspace_to_excel(ws, out_xlsx)
-                sys_ini, glb_ini = sync_and_generate_inis(ws, xlsx_name, target_dir)
-                generate_official_checksum(out_xlsx, sys_ini)
+                actual_xlsx = export_workspace_to_excel(ws, out_xlsx)
+                actual_xlsx_name = os.path.basename(actual_xlsx)
+                sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
+                generate_official_checksum(actual_xlsx, sys_ini)
 
                 # 6. 自動開啟目標目錄與喚醒 Excel 給使用者檢視
                 if get_app_settings().get("auto_open_folder", True):
                     open_folder_in_explorer(target_dir)
 
-                launch_excel_file_async(out_xlsx)
+                launch_excel_file_async(actual_xlsx)
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
-                    "excel_path": out_xlsx,
+                    "excel_path": actual_xlsx,
                     "inst_name": lead_inst,
                     "total_items": len(items),
                     "audit_report": audit_rep

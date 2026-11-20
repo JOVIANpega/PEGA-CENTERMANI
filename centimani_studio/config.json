@@ -6,7 +6,8 @@
   "tic_generic_only": false,
   "intro_font_size": 17,
   "skip_guides": {
-    "gen": true
+    "gen": true,
+    "tic": true
   },
   "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\SCRIPTS"
 }

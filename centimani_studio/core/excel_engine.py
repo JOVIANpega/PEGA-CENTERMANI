@@ -311,8 +311,22 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     if active_sheet and active_sheet in wb.sheetnames:
         wb.active = wb[active_sheet]
 
-    wb.save(output_excel_path)
-    return output_excel_path
+    # 防禦性存檔：若檔案被 Excel 鎖定引發 PermissionError，自動以時間戳備援檔名保存
+    actual_output_path = output_excel_path
+    try:
+        wb.save(output_excel_path)
+    except (PermissionError, IOError) as pe:
+        import datetime
+        ts = datetime.datetime.now().strftime("%H%M%S")
+        dir_name = os.path.dirname(output_excel_path)
+        base_name = os.path.basename(output_excel_path)
+        name_no_ext, ext = os.path.splitext(base_name)
+        fallback_path = os.path.join(dir_name, f"{name_no_ext}_{ts}{ext}")
+        print(f"[export_workspace_to_excel] {output_excel_path} locked ({pe}), saving to fallback: {fallback_path}")
+        wb.save(fallback_path)
+        actual_output_path = fallback_path
+
+    return actual_output_path
 
 
 def import_excel_to_workspace(xlsx_path):
