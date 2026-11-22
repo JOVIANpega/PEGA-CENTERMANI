@@ -940,8 +940,8 @@ async function confirmInstHmi() {
     };
     if (s.targetMode === 'tab3') {
       closeInstHmi();
-      if (typeof tab3GenerateStandalone === 'function') {
-        await tab3GenerateStandalone({
+      if (typeof tab3SaveHmiItemFromModal === 'function') {
+        await tab3SaveHmiItemFromModal({
           inst_name: s.instName,
           title_name: rfPayload.title_name,
           rf_block: rfPayload
@@ -991,8 +991,8 @@ async function confirmInstHmi() {
 
   if (s.targetMode === 'tab3') {
     closeInstHmi();
-    if (typeof tab3GenerateStandalone === 'function') {
-      await tab3GenerateStandalone({
+    if (typeof tab3SaveHmiItemFromModal === 'function') {
+      await tab3SaveHmiItemFromModal({
         inst_name: s.instName,
         title_name: cleanTitle,
         dl_val: dl,

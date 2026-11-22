@@ -664,20 +664,10 @@ function _renderSystemIniFullPageHtml(ws) {
         </details>
       </div>
 
-      <!-- 3. 常用站別路由、專案名、廠區代碼與重測次數（直接顯示） -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
-        ${mkSysText('SFIS', 'SFIS_TSP', 'SFIS 站別路由碼', 115)}
-        ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 125)}
-        <div style="background:${siteMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <div>
-            <div style="font-weight:800; font-size:12.5px; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
-            <div class="mono" style="font-size:11px; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
-          </div>
-          <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
-            style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
-            ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
-          </select>
-        </div>
+      <!-- 3. 常用站別路由、專案名與重測次數（直接顯示） -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+        ${mkSysText('SFIS', 'SFIS_TSP', 'SFIS 站別路由碼', 120)}
+        ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 130)}
         <div style="background:${retryMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${retryMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div>
             <div style="font-weight:800; font-size:12.5px; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
@@ -689,6 +679,31 @@ function _renderSystemIniFullPageHtml(ws) {
           </select>
         </div>
       </div>
+
+      <!-- 4. 說明書細項分類摺疊引導區（平時免動，需要改細項再點開） -->
+      <details ${siteMod ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
+        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#334155;">
+          📖 進階細項：iPLAS 廠區代碼、CSV 報表與測試代碼表設定（點此依說明書分類微調）
+        </summary>
+        <div style="font-size:12px; color:#64748B; margin:6px 0 10px 0;">
+          💡 說明書補充：一般只需在上方切換「出廠廠區」與「重測次數」；若需單獨調整 iPLAS 廠區簡碼、關閉 CSV 報表或指定 TestItemCode 檔名，可在此修改。
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
+          <div style="background:${siteMod ? '#FEF9C3' : '#FFFFFF'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div>
+              <div style="font-weight:800; font-size:12.5px; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
+              <div class="mono" style="font-size:11px; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
+            </div>
+            <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
+              style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
+              ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
+            </select>
+          </div>
+          ${sys.CSVReport_Enable !== undefined ? mkSysCheckbox('CSVReport_Enable', '自動產出 CSV 報表', '勾選=每次測試自動產生 CSV 數據檔') : ''}
+          ${sys.IpFinder_Enable !== undefined ? mkSysCheckbox('IpFinder_Enable', 'IpFinder 自動搜尋', '勾選=自動掃描區域網路待測物 IP') : ''}
+          ${sys.TestItemCodeFile !== undefined ? mkSysText('System', 'TestItemCodeFile', '官方測項代碼表檔名', 165) : ''}
+        </div>
+      </details>
 
       ${_buildChangeConfirmBoxHtml(sEntries, ws)}
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
