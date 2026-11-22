@@ -49,13 +49,16 @@ def run_all_verifications():
     print("🚀 Centimani Studio 全功能端到端自動驗收系統 (E2E Automated Verification)")
     print("=" * 78)
 
-    # 測試期間攔截紀錄「自動開資料夾」與「自動開 Excel」的呼叫路徑，證明後端確實有觸發且不干擾螢幕
+    # 測試期間攔截紀錄「自動開資料夾」、「自動開 Excel」與「自動開 INI」的呼叫路徑，證明後端確實有觸發且不干擾螢幕
     opened_folders = []
     launched_excels = []
+    launched_inis = []
     orig_open_folder = app_server.open_folder_in_explorer
     orig_launch_excel = app_server.launch_excel_file_async
+    orig_launch_ini = app_server.launch_ini_file_async
     app_server.open_folder_in_explorer = lambda p: opened_folders.append(p)
     app_server.launch_excel_file_async = lambda p: launched_excels.append(p)
+    app_server.launch_ini_file_async = lambda p: launched_inis.append(p)
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), app_server.StudioRequestHandler)
     port = server.server_port
@@ -166,10 +169,24 @@ def run_all_verifications():
             ws_et = wb_chk[target_sheet]
             blue_cells = sum(
                 1 for r in range(2, ws_et.max_row + 1)
-                if "BAE6FD" in str(ws_et.cell(row=r, column=2).fill.start_color.rgb or "")
+                if "E8F4FD" in str(ws_et.cell(row=r, column=2).fill.start_color.rgb or "")
             )
-            check(blue_cells > 0, "剛修改順序的 Phase 區塊已標上『淡藍色高亮底色 (#BAE6FD)』", f"共 {blue_cells} 列標註淡藍色")
+            check(blue_cells > 0, "剛修改順序的 Phase 區塊已標上『更柔和的淡藍色高亮底色 (#E8F4FD)』", f"共 {blue_cells} 列標註淡藍色")
             wb_chk.close()
+
+            # 驗證 INI 左右對照後獨立存檔並直接彈出 INI (不開 Excel)
+            opened_folders.clear()
+            launched_excels.clear()
+            launched_inis.clear()
+            ws["global_ini"]["Settings"]["DUT_UR1"] = "COM18"
+            ws["global_ini"]["Settings"]["DUTIP_1"] = "192.168.11.200"
+            ini_res = post_json("/api/save_and_open_ini", {
+                "file_path": test_zebra,
+                "workspace": ws,
+                "open_target": "global",
+            })
+            check(ini_res["status"] == "ok" and os.path.exists(ini_res["global_ini_path"]), "INI 修改後獨立存檔成功產出 Global.ini & System.ini", ini_res["global_ini_path"])
+            check(len(launched_inis) == 1 and len(launched_excels) == 0, "INI 存檔後直接彈出剛剛改的 Global.ini (不會誤彈出 Excel)", os.path.basename(launched_inis[0][0]))
 
         # ---------------------------------------------------------------------
         # 2. 書籤三：插入儀器範本 (34 款人機) — 直接生成 & 互動人機介面確認後自動生成
@@ -287,6 +304,10 @@ def run_all_verifications():
         # ---------------------------------------------------------------------
         print("\n▶ [驗收 5/5] 產線 Log 診斷分析與 5,203 筆 TestID 智慧搜尋")
         init_res = get_json("/api/init")
+        cat_res = get_json("/api/instrument_catalog")
+        rf_set = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
+        rf_insts = [i["Name"] for i in cat_res.get("instruments", []) if i.get("Name") in rf_set]
+        check(len(rf_insts) == 8, "書籤三下拉選單『RF 無線 / 功率計 / 切換』分類 8 款標準儀器清單完整對應", f"共 {len(rf_insts)} 款: {', '.join(rf_insts[:5])}...")
         check(init_res["tic_info"]["count"] > 5000, "官方 Test Item Code V2.04 代碼庫已完整載入", f"共 {init_res['tic_info']['count']} 筆")
         tic_res = get_json("/api/search_test_id?q=voltage&limit=5")
         check(len(tic_res["items"]) > 0, "TestID 關鍵字智慧搜尋正常運作", f"首筆推薦: {tic_res['items'][0]['test_id']}")
@@ -299,6 +320,7 @@ def run_all_verifications():
         server.shutdown()
         app_server.open_folder_in_explorer = orig_open_folder
         app_server.launch_excel_file_async = orig_launch_excel
+        app_server.launch_ini_file_async = orig_launch_ini
 
 
 if __name__ == "__main__":

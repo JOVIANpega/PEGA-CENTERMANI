@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.2</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.3</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1085,17 +1085,20 @@
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
 
-        <!-- ⑤ 產出確認列 -->
+        <!-- ⑤ 產出確認列（單一明確出口：可選擇「僅存 INI 並彈出 INI」或「匯出 Excel *_FIXED.xlsx」） -->
         <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <div style="font-size:13px; color:#475569;">
-            💡 <b>安全存檔機制：</b>所有編修先暫存於記憶體，匯出時產出同目錄 <code>*_FIXED.xlsx</code>（新增區塊亮黃底標記）並自動更新 <code>System.ini</code> Checksum，原始檔案保持不動。
+            💡 <b>安全存檔機制：</b>若只改了 COM / IP / SFIS 設定，可點「<b>🆚 左右對照並存檔彈出 INI</b>」；若改了測試步驟或積木順序，請點「<b>💾 寫入並匯出 Excel (*_FIXED.xlsx)</b>」。
           </div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btnEditorOpenIniDiff" class="btn" style="padding:8px 14px; font-size:13.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;" onclick="toggleGlobalEditorPanel('ini_diff')">
+              🆚 左右對照並存檔彈出 INI
+            </button>
             <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
               🧪 匯出「無硬體試跑版」
             </button>
             <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:13.5px;" onclick="applyFixAndExport(false)">
-              💾 寫入並匯出 (*_FIXED.xlsx)
+              💾 寫入並匯出 Excel (*_FIXED.xlsx)
             </button>
           </div>
         </div>
@@ -1363,10 +1366,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.5.2"></script>
-<script src="/js/audit_editors.js?v=0.5.2"></script>
-<script src="/js/flow_guide.js?v=0.5.2"></script>
-<script src="/js/block_sorter.js?v=0.5.2"></script>
+<script src="/js/inst_hmi.js?v=0.5.3"></script>
+<script src="/js/audit_editors.js?v=0.5.3"></script>
+<script src="/js/flow_guide.js?v=0.5.3"></script>
+<script src="/js/block_sorter.js?v=0.5.3"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2412,6 +2415,7 @@ async function syncTab3View() {
     await _ensureInstCatalogLoaded();
   } catch (err) {}
   _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
+  tab3UpdateHmiBtn();
 }
 
 let TAB3_QUEUE = [];
@@ -2535,24 +2539,25 @@ async function tab3GenerateStandalone(extraHmiItem = null) {
 }
 
 function tab3OnCatChange() {
-  const cat = (document.getElementById('tab3CatSel') || {}).value;
-  const instSel = document.getElementById('tab3InstSel');
-  if (!instSel || !STATE.instrumentCatalog) return;
-  const list = STATE.instrumentCatalog.filter(i => !cat || i.Category === cat);
-  instSel.innerHTML = list.map(i => `<option value="${i.Name}">${i.Name} (${i.Desc || ''})</option>`).join('');
-  tab3OnInstChange();
+  _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
+  tab3UpdateHmiBtn();
 }
 
 function tab3OnInstChange() {
-  const instName = (document.getElementById('tab3InstSel') || {}).value;
-  const tInput = document.getElementById('tab3TitleInput');
-  const dlInput = document.getElementById('tab3DlInput');
-  const ulInput = document.getElementById('tab3UlInput');
-  const item = (STATE.instrumentCatalog || []).find(i => i.Name === instName);
-  if (item) {
-    if (tInput) tInput.value = item.DefaultTitle || `Test ${item.Name}`;
-    if (dlInput) dlInput.value = item.DefaultDL || '';
-    if (ulInput) ulInput.value = item.DefaultUL || '';
+  _applyInstDefaults('tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
+  tab3UpdateHmiBtn();
+}
+
+function tab3UpdateHmiBtn() {
+  const btn = document.getElementById('btnTab3Hmi');
+  const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  if (!btn) return;
+  if (inst === 'NI6008-1') {
+    btn.innerHTML = '🔌 NI-6008/6009 圖解接線設定';
+  } else if (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(inst)) {
+    btn.innerHTML = `🎛️ ${inst} 互動人機設定`;
+  } else {
+    btn.innerHTML = '📖 檢視規格並設定';
   }
 }
 
@@ -2814,6 +2819,7 @@ async function uploadExcelForEditor(inputEl) {
     }
     STATE.selectedPath = data.file_path;
     STATE.workspace = data.workspace;
+    if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
     STATE.report = data.report;
     STATE.pendingInserts = [];
     STATE.isnInfo = data.isn_info || null;
@@ -2998,6 +3004,7 @@ async function pickExcelNative() {
 
     STATE.selectedPath = data.file_path;
     STATE.workspace = data.workspace;
+    if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
     STATE.report = data.report;
     STATE.pendingInserts = [];
     STATE.isnInfo = data.isn_info || null;
@@ -3135,6 +3142,7 @@ async function loadSpecificFile(encPath) {
   }
   STATE.selectedPath = data.file_path;
   STATE.workspace = data.workspace;
+  if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
   STATE.report = data.report;
   STATE.pendingInserts = [];
   STATE.isnInfo = data.isn_info || null;
@@ -3268,16 +3276,21 @@ function renderAuditResults() {
   const pendings = STATE.pendingInserts || [];
   if (pendingBar) {
     if (pendings.length > 0) {
+      const hasIniChange = pendings.some(p => /ini|SFIS|COM|IP|線上微調/i.test(`${p.sheet} ${p.inst} ${p.summary}`));
       pendingBar.style.display = 'block';
       pendingBar.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <div style="font-weight:700; font-size:14px; color:#1E3A8A;">📝 本次已暫存 ${pendings.length} 項設定（尚未寫入硬碟！原 Excel 保持不動，請點右側按鈕匯出 *_FIXED.xlsx）</div>
+            <div style="font-weight:700; font-size:14px; color:#1E3A8A;">📝 本次已暫存 ${pendings.length} 項設定（尚未寫入硬碟！請選擇下方「儲存並彈出 INI」或「寫入並匯出 Excel (*_FIXED.xlsx)」）</div>
             <div style="font-size:12.5px; color:#1E40AF; margin-top:4px;">
               ${pendings.map((p, i) => `<div>• [${i + 1}] <span class="mono" style="font-weight:700;">${p.sheet}</span> → <b>${p.inst}</b>：${p.summary}</div>`).join('')}
             </div>
           </div>
-          <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:7px 14px; font-size:13.5px;">💾 立即匯出並驗證 (*_FIXED.xlsx)</button>
+          ${hasIniChange ? `
+            <button onclick="toggleGlobalEditorPanel('ini_diff')" class="btn" style="padding:6px 14px; font-size:13px; background:#0284C7; color:#FFFFFF; border:none; font-weight:700;">
+              🆚 開啟左右視窗對照並存檔彈出 INI ▶
+            </button>
+          ` : ''}
         </div>
       `;
     } else {
@@ -5223,6 +5236,9 @@ function confirmSfisIplasModal() {
       summary: `SFIS=${patch.SFIS_Enable==='1'?'ON':'OFF'}, iPLAS=${patch.iPLAS_Enable==='1'?'ON':'OFF'} (${patch.iPLAS_Site})`
     });
     renderAuditResults();
+    if (typeof toggleGlobalEditorPanel === 'function') {
+      toggleGlobalEditorPanel('ini_diff');
+    }
   }
   document.getElementById('sfisIplasModal').classList.remove('open');
 }
@@ -5278,7 +5294,9 @@ async function confirmCommModal() {
   });
   document.getElementById('commModal').classList.remove('open');
   renderAuditResults();
-  alert(`已套用通訊設定！${convSsh ? `共將 ${data.converted_rows} 列 UART 指令轉為 SSH。` : ''}\n請點擊「💾 立即匯出並驗證」寫入 Global.ini / *_FIXED.xlsx。`);
+  if (typeof toggleGlobalEditorPanel === 'function') {
+    toggleGlobalEditorPanel('ini_diff');
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

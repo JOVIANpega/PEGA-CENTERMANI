@@ -1,6 +1,122 @@
 // Task-Oriented Semantic Global Config Editor for Script Doctor
 // Filters out unused variables/instruments and splits composite strings into plain-language fields.
 let AUDIT_GLOBAL_TAB = 'station_isn';
+let INI_DIFF_FILTER_CHANGED_ONLY = false;
+
+function snapshotOriginalInis(ws) {
+  if (!ws) return;
+  STATE.origGlobalIni = JSON.parse(JSON.stringify(ws.global_ini || { Settings: {}, Scripts: {} }));
+  STATE.origSystemIni = JSON.parse(JSON.stringify(ws.system_ini || {}));
+}
+
+function _ensureIniSnapshots(ws) {
+  if (!ws) return;
+  if (!STATE.origGlobalIni) {
+    STATE.origGlobalIni = JSON.parse(JSON.stringify(ws.global_ini || { Settings: {}, Scripts: {} }));
+  }
+  if (!STATE.origSystemIni) {
+    STATE.origSystemIni = JSON.parse(JSON.stringify(ws.system_ini || {}));
+  }
+}
+
+function toggleIniDiffFilter(onlyChanged) {
+  INI_DIFF_FILTER_CHANGED_ONLY = Boolean(onlyChanged);
+  renderGlobalEditorPanel();
+}
+
+function _collectIniDiffEntries(origObj, currObj, fileLabel) {
+  const sections = Array.from(new Set([
+    ...Object.keys(origObj || {}),
+    ...Object.keys(currObj || {})
+  ]));
+  const entries = [];
+  sections.forEach(sec => {
+    const oSec = (origObj && origObj[sec]) || {};
+    const cSec = (currObj && currObj[sec]) || {};
+    if (typeof oSec !== 'object' || typeof cSec !== 'object') return;
+    const keys = Array.from(new Set([...Object.keys(oSec), ...Object.keys(cSec)]));
+    keys.forEach(k => {
+      const oldVal = oSec[k] !== undefined ? String(oSec[k]) : null;
+      const newVal = cSec[k] !== undefined ? String(cSec[k]) : null;
+      const isAdded = (oldVal === null && newVal !== null);
+      const isModified = (oldVal !== null && newVal !== null && oldVal !== newVal);
+      const isChanged = isAdded || isModified;
+      entries.push({
+        file: fileLabel,
+        section: sec,
+        key: k,
+        oldVal: oldVal === null ? '(原本無此項)' : oldVal,
+        newVal: newVal === null ? '' : newVal,
+        isAdded,
+        isModified,
+        isChanged
+      });
+    });
+  });
+  // 將有異動的項目排在最上方，方便一眼核對
+  entries.sort((a, b) => (b.isChanged ? 1 : 0) - (a.isChanged ? 1 : 0));
+  return entries;
+}
+
+function updateIniFromDiffView(fileLabel, sec, key, val) {
+  if (!STATE.workspace) return;
+  if (fileLabel === 'Global.ini') {
+    STATE.workspace.global_ini = STATE.workspace.global_ini || {};
+    STATE.workspace.global_ini[sec] = STATE.workspace.global_ini[sec] || {};
+    STATE.workspace.global_ini[sec][key] = val;
+  } else {
+    STATE.workspace.system_ini = STATE.workspace.system_ini || {};
+    STATE.workspace.system_ini[sec] = STATE.workspace.system_ini[sec] || {};
+    STATE.workspace.system_ini[sec][key] = val;
+  }
+  renderGlobalEditorPanel();
+}
+
+async function saveAndOpenModifiedIni(targetMode) {
+  if (!STATE.workspace) {
+    alert('請先載入腳本！');
+    return;
+  }
+  _ensureIniSnapshots(STATE.workspace);
+  const gEntries = _collectIniDiffEntries(STATE.origGlobalIni, STATE.workspace.global_ini, 'Global.ini');
+  const sEntries = _collectIniDiffEntries(STATE.origSystemIni, STATE.workspace.system_ini, 'System.ini');
+  const gChanged = gEntries.filter(e => e.isChanged).length;
+  const sChanged = sEntries.filter(e => e.isChanged).length;
+
+  let openTarget = targetMode || 'auto';
+  if (openTarget === 'auto') {
+    if (gChanged > 0 && sChanged > 0) openTarget = 'both';
+    else if (sChanged > 0 && gChanged === 0) openTarget = 'system';
+    else openTarget = 'global';
+  }
+
+  const res = await fetch('/api/save_and_open_ini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      file_path: STATE.selectedPath || '',
+      workspace: STATE.workspace,
+      open_target: openTarget
+    })
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert(data.message || '儲存 INI 失敗');
+    return;
+  }
+  // 更新快照基準或保留對照並顯示成功橫幅
+  const banner = document.getElementById('iniSaveResultBanner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.innerHTML = `
+      <div style="font-weight:800; color:#14532D; font-size:13.5px;">🎉 已成功寫入 INI 設定檔並直接彈出 Notepad 檢視（未開啟 Excel）！</div>
+      <div class="mono" style="font-size:12px; color:#166534; margin-top:4px; word-break:break-all;">
+        • Global.ini：${_escAttr(data.global_ini_path)}<br>
+        • System.ini：${_escAttr(data.system_ini_path)}
+      </div>
+    `;
+  }
+}
 
 function toggleGlobalEditorPanel(forceTab) {
   const box = document.getElementById('auditGlobalEditor');
@@ -250,7 +366,7 @@ function renderGlobalEditorPanel() {
         </table>
       </div>
     `;
-  } else {
+  } else if (AUDIT_GLOBAL_TAB === 'inst_com') {
     // Tab 3: Used Instruments & Used Global.ini COM/HW vars (with unused collapsed)
     const isInstUsed = (inst) => {
       const m = String(inst['Mount'] || '').trim();
@@ -331,7 +447,97 @@ function renderGlobalEditorPanel() {
         ` : ''}
       </div>
     `;
+  } else if (AUDIT_GLOBAL_TAB === 'ini_diff') {
+    _ensureIniSnapshots(ws);
+    const gEntries = _collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini');
+    const sEntries = _collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini');
+    const allEntries = [...gEntries, ...sEntries];
+    const changedCount = allEntries.filter(e => e.isChanged).length;
+    const shownEntries = INI_DIFF_FILTER_CHANGED_ONLY ? allEntries.filter(e => e.isChanged) : allEntries;
+
+    const leftRows = shownEntries.map(e => {
+      const rowBg = e.isChanged ? '#FEF2F2' : '#FFFFFF';
+      const valCol = e.isChanged ? '#DC2626' : '#334155';
+      return `
+        <tr style="background:${rowBg};">
+          <td class="mono" style="font-size:11.5px; color:#64748B;">${_escAttr(e.file)}</td>
+          <td class="mono" style="font-size:12px; font-weight:700; color:#1E293B;">[${_escAttr(e.section)}] ${_escAttr(e.key)}</td>
+          <td class="mono" style="font-size:12px; color:${valCol}; ${e.isChanged ? 'font-weight:700; text-decoration:line-through;' : ''}">${_escAttr(e.oldVal)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const rightRows = shownEntries.map(e => {
+      const rowBg = e.isChanged ? '#ECFDF5' : '#FFFFFF';
+      const badge = e.isAdded
+        ? '<span style="background:#0284C7;color:#FFF;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px;">✨新增</span>'
+        : (e.isModified ? '<span style="background:#16A34A;color:#FFF;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px;">✏️已改</span>' : '');
+      return `
+        <tr style="background:${rowBg};">
+          <td class="mono" style="font-size:11.5px; color:#64748B;">${_escAttr(e.file)}</td>
+          <td class="mono" style="font-size:12px; font-weight:700; color:#1E293B;">[${_escAttr(e.section)}] ${_escAttr(e.key)} ${badge}</td>
+          <td>
+            <input value="${_escAttr(e.newVal)}"
+              onchange="updateIniFromDiffView('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}',this.value)"
+              class="mono"
+              style="width:100%; padding:3px 6px; font-size:12px; box-sizing:border-box; border:1px solid ${e.isChanged ? '#16A34A' : '#CBD5E1'}; background:${e.isChanged ? '#DCFCE7' : '#FFFFFF'}; font-weight:${e.isChanged ? '700' : '400'}; color:#0F172A; border-radius:4px;">
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    bodyHtml = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:10px 14px;">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-weight:800; font-size:13.5px; color:#14532D;">🆚 INI 修改前後左右對照視窗（目前已修改 <span style="color:#DC2626; font-size:15px;">${changedCount}</span> 項設定）</span>
+          <button onclick="toggleIniDiffFilter(true)" class="btn" style="padding:3px 10px; font-size:12px; ${INI_DIFF_FILTER_CHANGED_ONLY ? 'background:#16A34A;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">🔍 只看已修改項 (${changedCount})</button>
+          <button onclick="toggleIniDiffFilter(false)" class="btn" style="padding:3px 10px; font-size:12px; ${!INI_DIFF_FILTER_CHANGED_ONLY ? 'background:#2563EB;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">📋 顯示全部 (${allEntries.length})</button>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="saveAndOpenModifiedIni('auto')" class="btn btn-primary-green" style="padding:6px 16px; font-size:13px; font-weight:800; box-shadow:0 2px 6px rgba(22,163,74,0.25);">
+            💾 存檔並彈出剛剛改的 INI (免開 Excel)
+          </button>
+          <button onclick="saveAndOpenModifiedIni('global')" class="btn" style="padding:5px 11px; font-size:12px; background:#EFF6FF; color:#1E40AF; border:1px solid #93C5FD; font-weight:700;">
+            📄 存檔並彈出 Global.ini
+          </button>
+          <button onclick="saveAndOpenModifiedIni('system')" class="btn" style="padding:5px 11px; font-size:12px; background:#EFF6FF; color:#1E40AF; border:1px solid #93C5FD; font-weight:700;">
+            ⚙️ 存檔並彈出 System.ini
+          </button>
+        </div>
+      </div>
+      <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:8px 12px; margin-bottom:10px;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="border:1.5px solid #FCA5A5; border-radius:8px; overflow:hidden; background:#FFFFFF;">
+          <div style="background:#FEF2F2; padding:7px 12px; font-weight:800; font-size:13px; color:#991B1B; border-bottom:1px solid #FCA5A5;">
+            ⬅️ 左視窗：修改前（原始 Global.ini / System.ini）
+          </div>
+          <div style="max-height:360px; overflow:auto;">
+            <table class="meas-table" style="margin:0;">
+              <thead><tr><th>檔案</th><th>[區段] 參數名稱</th><th>原始設定值</th></tr></thead>
+              <tbody>${leftRows || '<tr><td colspan="3" style="text-align:center;color:#64748B;padding:18px;">目前尚無任何異動項目</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+        <div style="border:1.5px solid #86EFAC; border-radius:8px; overflow:hidden; background:#FFFFFF;">
+          <div style="background:#DCFCE7; padding:7px 12px; font-weight:800; font-size:13px; color:#14532D; border-bottom:1px solid #86EFAC;">
+            ➡️ 右視窗：修改後（最新設定值，可直接於右側欄位微調）
+          </div>
+          <div style="max-height:360px; overflow:auto;">
+            <table class="meas-table" style="margin:0;">
+              <thead><tr><th>檔案</th><th>[區段] 參數名稱</th><th>修改後設定值（可編輯）</th></tr></thead>
+              <tbody>${rightRows || '<tr><td colspan="3" style="text-align:center;color:#64748B;padding:18px;">目前尚無任何異動項目</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
   }
+
+  _ensureIniSnapshots(ws);
+  const totalIniChanges = [
+    ..._collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini'),
+    ..._collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini')
+  ].filter(e => e.isChanged).length;
 
   box.innerHTML = `
     <div style="background:#FFFFFF; border:1.5px solid #3B82F6; border-radius:8px; padding:12px 14px; margin-bottom:12px;">
@@ -341,9 +547,11 @@ function renderGlobalEditorPanel() {
           ${tabBtn('station_isn', `📋 站別開關與 ISN (${duts.length})`)}
           ${tabBtn('net_ip', '🌐 網路 IP / Ping / Port')}
           ${tabBtn('inst_com', '🔌 儀器掛載與 COM Port')}
+          ${tabBtn('ini_diff', `🆚 INI 左右對照與存檔彈出 (${totalIniChanges})`)}
         </div>
         <div style="display:flex; gap:8px;">
-          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用微調並重跑健檢</button>
+          <button onclick="saveAndOpenModifiedIni('auto')" class="btn btn-primary-green" style="padding:5px 14px; font-size:13px; font-weight:800;">💾 存檔並彈出 INI</button>
+          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用微調並看左右對照</button>
           <button onclick="toggleGlobalEditorPanel()" class="btn" style="padding:5px 10px; font-size:13px; background:#E2E8F0; color:#334155;">收合 ▲</button>
         </div>
       </div>
@@ -437,12 +645,13 @@ async function applyGlobalEditorAndReaudit() {
   STATE.report = data.report;
   if (data.isn_info) STATE.isnInfo = data.isn_info;
   STATE.pendingInserts = STATE.pendingInserts || [];
-  const labelMap = { station_isn: '站別開關與 ISN', net_ip: '網路 IP / Ping / Port', inst_com: '儀器掛載與 COM Port' };
+  const labelMap = { station_isn: '站別開關與 ISN', net_ip: '網路 IP / Ping / Port', inst_com: '儀器掛載與 COM Port', ini_diff: 'INI 左右對照微調' };
   STATE.pendingInserts.push({
     sheet: labelMap[AUDIT_GLOBAL_TAB] || '全域設定',
-    inst: '線上微調',
-    summary: '已套用微調並完成即時覆檢（請匯出 *_FIXED.xlsx 寫入檔案）'
+    inst: 'Global.ini / 線上微調',
+    summary: '已套用微調並完成即時覆檢（可於左右視窗核對 INI 並直接存檔彈出 INI，或匯出 *_FIXED.xlsx）'
   });
+  AUDIT_GLOBAL_TAB = 'ini_diff';
+  renderGlobalEditorPanel();
   renderAuditResults();
-  alert('✔ 已套用微調並完成即時覆檢！請確認下方檢查結果，或點擊「💾 立即匯出並驗證」。');
 }

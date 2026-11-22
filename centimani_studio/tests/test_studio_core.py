@@ -229,9 +229,9 @@ class TestCentimaniStudioCore(unittest.TestCase):
             self.assertEqual(wb_check.active.title, "MB")
             self.assertTrue(wb_check["MB"].views.sheetView[0].tabSelected)
             self.assertFalse(wb_check["Properties"].views.sheetView[0].tabSelected)
-            # Reordered Phase blocks (rows 4, 5, 6 in Excel) should have light-blue fill (BAE6FD)
+            # Reordered Phase blocks (rows 4, 5, 6 in Excel) should have lighter pastel-blue fill (E8F4FD)
             fill_r4 = wb_check["MB"].cell(row=4, column=2).fill.start_color.rgb
-            self.assertIn("BAE6FD", str(fill_r4))
+            self.assertIn("E8F4FD", str(fill_r4))
             wb_check.close()
 
 

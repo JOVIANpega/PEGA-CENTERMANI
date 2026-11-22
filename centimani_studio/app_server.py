@@ -574,6 +574,30 @@ def launch_excel_file_async(file_path):
     threading.Thread(target=_open_task, daemon=True).start()
 
 
+def launch_ini_file_async(ini_paths):
+    """Launches Windows Notepad for the given INI file(s) and raises the window above fullscreen Chrome."""
+    if isinstance(ini_paths, str):
+        ini_paths = [ini_paths]
+    valid_paths = [os.path.abspath(p) for p in (ini_paths or []) if p and os.path.exists(p)]
+    if not valid_paths:
+        return
+
+    def _task():
+        for p in valid_paths:
+            try:
+                subprocess.Popen(["notepad.exe", p])
+            except Exception:
+                try:
+                    os.startfile(p)
+                except Exception:
+                    pass
+        last_name = os.path.basename(valid_paths[-1])
+        if not _bring_window_to_front("Notepad", last_name, max_wait_sec=2.5, maximize=False):
+            _bring_window_to_front("Notepad", "", max_wait_sec=1.0, maximize=False)
+
+    threading.Thread(target=_task, daemon=True).start()
+
+
 def extract_isn_info(ws):
     """Extracts the configured ISN barcode digit length and rule from DUTs ScanBarcode."""
     import re
@@ -1504,6 +1528,43 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "report": rep_re
                 })
 
+            elif parsed.path == "/api/save_and_open_ini":
+                ws = payload.get("workspace", {})
+                open_target = str(payload.get("open_target", "global")).lower()
+                src_file = ws.get("source_file", "")
+                if not src_file or not os.path.exists(src_file) or "uploaded_temp" in os.path.abspath(src_file):
+                    st_first = list(ws.get("stations", {}).keys())[0] if ws.get("stations") else "MB"
+                    proj_first = ws.get("project_name", "Centimani") or "Centimani"
+                    orig_dir = os.path.join(OUTPUT_ROOT, f"{proj_first}_{st_first}_Fixed", "System")
+                    os.makedirs(orig_dir, exist_ok=True)
+                    xlsx_name = f"{proj_first}_TestFlow_{st_first}.xlsx"
+                else:
+                    orig_dir = os.path.dirname(os.path.abspath(src_file))
+                    xlsx_name = os.path.basename(src_file)
+
+                sys_ini, glb_ini = sync_and_generate_inis(ws, xlsx_name, orig_dir)
+                to_open = []
+                if open_target == "system":
+                    to_open = [sys_ini]
+                elif open_target == "both":
+                    to_open = [glb_ini, sys_ini]
+                else:
+                    to_open = [glb_ini]
+
+                launch_ini_file_async(to_open)
+                rep_re = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "output_dir": orig_dir,
+                    "global_ini": glb_ini,
+                    "global_ini_path": glb_ini,
+                    "system_ini": sys_ini,
+                    "system_ini_path": sys_ini,
+                    "opened_files": to_open,
+                    "workspace": ws,
+                    "report": rep_re,
+                })
+
             elif parsed.path == "/api/open_excel_file":
                 fpath = payload.get("file_path", "")
                 if not fpath or not os.path.exists(fpath):
@@ -1807,7 +1868,7 @@ def launch_fullscreen_browser(url):
 def run_server(port=8765):
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.5.2) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.5.3) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

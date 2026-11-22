@@ -25,14 +25,14 @@ FONT_BODY = Font(name="Calibri", size=11, bold=False, color="000000")
 FONT_HEADER = Font(name="Calibri", size=11, bold=True, color="000000")
 FONT_SKIP = Font(name="Calibri", size=11, italic=True, color="7F7F7F")
 FONT_FIXED = Font(name="Calibri", size=11, bold=True, color="7F1D1D")
-FONT_REORDERED = Font(name="Calibri", size=11, bold=True, color="0C4A6E")
+FONT_REORDERED = Font(name="Calibri", size=11, bold=False, color="0F172A")
 
 FILL_HEADER = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
 FILL_PHASE0 = PatternFill(start_color="F2F8FD", end_color="F2F8FD", fill_type="solid")
 FILL_PHASE97 = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 FILL_SKIP = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 FILL_FIXED_CELL = PatternFill(start_color="FEF08A", end_color="FEF08A", fill_type="solid")
-FILL_REORDERED_CELL = PatternFill(start_color="BAE6FD", end_color="BAE6FD", fill_type="solid")
+FILL_REORDERED_CELL = PatternFill(start_color="E8F4FD", end_color="E8F4FD", fill_type="solid")
 
 BORDER_THIN = Border(
     left=Side(style="thin", color="64748B"),
