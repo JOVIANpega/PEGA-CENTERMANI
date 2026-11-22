@@ -99,6 +99,11 @@ function bsApplyCardDimensions() {
     }
   }
 
+  const rootFontPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-font-size')) || 15;
+  const fontScale = Math.max(1, rootFontPx / 15);
+  cardW = Math.round(cardW * fontScale);
+  cardH = Math.round(cardH * fontScale);
+
   listEl.style.setProperty('--bs-card-w', `${cardW}px`);
   listEl.style.setProperty('--bs-card-h', `${cardH}px`);
 }
