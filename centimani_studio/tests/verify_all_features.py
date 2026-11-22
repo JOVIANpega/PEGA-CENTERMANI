@@ -188,6 +188,13 @@ def run_all_verifications():
             check(ini_res["status"] == "ok" and os.path.exists(ini_res["global_ini_path"]), "INI 修改後獨立存檔成功產出 Global.ini & System.ini", ini_res["global_ini_path"])
             check(len(launched_inis) == 1 and len(launched_excels) == 0, "INI 存檔後直接彈出剛剛改的 Global.ini (不會誤彈出 Excel)", os.path.basename(launched_inis[0][0]))
 
+            # 驗證修改 ISN 條碼為 3 碼 ({ ISN,3,[0-9A-Z] }) 後覆檢與匯出不會跳回 15 碼
+            for d_item in ws.get("duts", []):
+                scan_k = next((k for k in d_item.keys() if k.lower().startswith("scanbarcode")), "ScanBarcode( {Name,Lengh,Pattern} )")
+                d_item[scan_k] = "{ ISN,3,[0-9A-Z] }"
+            reaudit_res = post_json("/api/re_audit", {"workspace": ws})
+            check(reaudit_res["status"] == "ok" and reaudit_res.get("isn_info", {}).get("isn_length") == 3, "ISN 條碼改為 3 碼後即時覆檢成功識別為 3 碼", str(reaudit_res.get("isn_info")))
+
         # ---------------------------------------------------------------------
         # 2. 書籤三：插入儀器範本 (34 款人機) — 直接生成 & 互動人機介面確認後自動生成
         # ---------------------------------------------------------------------

@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.7</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.8</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -43,7 +43,7 @@
     <div style="font-size:38px; margin-bottom:10px; animation:spinLoading 1.5s linear infinite;">⏳</div>
     <div id="overlayLoadingTitle" style="font-size:16px; font-weight:800; color:#0F172A; margin-bottom:8px;">正在解析 Excel 腳本...</div>
     <div id="overlayLoadingTimer" class="mono" style="font-size:13px; color:#2563EB; font-weight:700; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:6px 12px; margin-bottom:12px;">已耗時 0.0 秒</div>
-    <div style="font-size:12.5px; color:#64748B;">大型多站點腳本解析約需 5~12 秒，解析期間全功能按鍵已自動防誤觸鎖定，請稍候...</div>
+    <div id="overlayLoadingSub" style="font-size:12.5px; color:#64748B;">大型多站點腳本解析約需 5~12 秒，處理期間全功能按鍵已自動防誤觸鎖定，請稍候...</div>
   </div>
 </div>
 <style>
@@ -1363,10 +1363,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.5.7"></script>
-<script src="/js/audit_editors.js?v=0.5.7"></script>
-<script src="/js/flow_guide.js?v=0.5.7"></script>
-<script src="/js/block_sorter.js?v=0.5.7"></script>
+<script src="/js/inst_hmi.js?v=0.5.8"></script>
+<script src="/js/audit_editors.js?v=0.5.8"></script>
+<script src="/js/flow_guide.js?v=0.5.8"></script>
+<script src="/js/block_sorter.js?v=0.5.8"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2498,16 +2498,23 @@ async function tab3GenerateStandalone(extraHmiItem = null) {
   }
 
   try {
-    const res = await fetch('/api/generate_inst_template_standalone', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        items: itemsToInsert,
-        project_name: 'INST_MOTHER',
-        station_name: 'MB'
-      })
-    });
-    const data = await res.json();
+    const data = await withLoadingTimer(
+      `正在匯出母體範本（共 ${itemsToInsert.length} 項測項）並喚醒開啟 Excel`,
+      async () => {
+        const res = await fetch('/api/generate_inst_template_standalone', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            items: itemsToInsert,
+            project_name: 'INST_MOTHER',
+            station_name: 'MB'
+          })
+        });
+        return await res.json();
+      },
+      1200,
+      '正在寫入 16 欄母體 Excel、執行全自動語法體檢、計算 Checksum 並置頂開啟 Excel 視窗...'
+    );
     if (data.status !== 'ok') {
       alert('產生失敗：' + (data.message || '未知錯誤'));
       if (outBox) outBox.style.display = 'none';
@@ -2948,17 +2955,20 @@ function renderBlockChecklist() {
   });
 }
 
-async function withLoadingTimer(label, asyncFn) {
+async function withLoadingTimer(label, asyncFn, minDurationMs = 0, subText = '') {
   const bar = document.getElementById('loadingTimerBar');
   const overlay = document.getElementById('globalParsingOverlay');
   const overTitle = document.getElementById('overlayLoadingTitle');
   const overTimer = document.getElementById('overlayLoadingTimer');
+  const overSub = document.getElementById('overlayLoadingSub');
   const startMs = Date.now();
+  const defaultSub = '處理期間全功能按鍵已自動防誤觸鎖定，請稍候...';
 
   // 立即禁止所有使用者操作與按鍵點擊
   if (overlay) {
     if (overTitle) overTitle.textContent = `⏳ ${label}...`;
-    if (overTimer) overTimer.textContent = '已耗時 0.0 秒';
+    if (overTimer) overTimer.textContent = '已耗時 0.0 秒（防誤觸鎖定中）';
+    if (overSub) overSub.textContent = subText || defaultSub;
     overlay.style.display = 'flex';
   }
   document.body.style.pointerEvents = 'none';
@@ -2968,12 +2978,17 @@ async function withLoadingTimer(label, asyncFn) {
     if (overTimer) overTimer.textContent = `已耗時 ${sec.toFixed(1)} 秒（防誤觸鎖定中）`;
     if (sec >= 3.0 && bar) {
       bar.style.display = 'flex';
-      bar.innerHTML = `⏳ ${label}（已耗時 <span class="mono">${sec.toFixed(1)} 秒</span>，大型多測試站腳本解析約需 5~12 秒，請稍候...）`;
+      bar.innerHTML = `⏳ ${label}（已耗時 <span class="mono">${sec.toFixed(1)} 秒</span>，請稍候...）`;
     }
-  }, 120);
+  }, 100);
 
   try {
-    return await asyncFn();
+    const result = await asyncFn();
+    const elapsed = Date.now() - startMs;
+    if (minDurationMs > elapsed) {
+      await new Promise(r => setTimeout(r, minDurationMs - elapsed));
+    }
+    return result;
   } finally {
     clearInterval(timerId);
     if (bar) bar.style.display = 'none';
@@ -4595,12 +4610,19 @@ async function ni6ConfirmSubmit() {
 
 async function openCurrentExcelFile() {
   if (!STATE.selectedPath) return;
-  const res = await fetch('/api/open_excel_file', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({file_path: STATE.selectedPath})
-  });
-  const data = await res.json();
+  const data = await withLoadingTimer(
+    '正在喚醒並置頂開啟目前 Excel 檔案',
+    async () => {
+      const res = await fetch('/api/open_excel_file', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({file_path: STATE.selectedPath})
+      });
+      return await res.json();
+    },
+    1000,
+    '正在呼叫 Windows Excel 並將視窗拉至桌面最上層，請稍候...'
+  );
   if (data.status !== 'ok') {
     alert(data.message || '無法開啟 Excel 檔案');
   }
@@ -4613,20 +4635,25 @@ async function applyFixAndExport(dryRun) {
     || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
     || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
-  const data = await withLoadingTimer('正在修復、簽章並重新檢查匯出檔', async () => {
-    const res = await fetch('/api/fix_and_export_in_place', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        workspace: STATE.workspace,
-        user_choices: STATE.userChoices,
-        dry_run: dryRun,
-        active_sheet: targetSheet,
-        open_excel: true
-      })
-    });
-    return await res.json();
-  });
+  const data = await withLoadingTimer(
+    dryRun ? '正在匯出「無硬體試跑版」Excel 並喚醒視窗' : '正在寫入匯出 *_FIXED.xlsx、簽章並喚醒開啟 Excel',
+    async () => {
+      const res = await fetch('/api/fix_and_export_in_place', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          workspace: STATE.workspace,
+          user_choices: STATE.userChoices,
+          dry_run: dryRun,
+          active_sheet: targetSheet,
+          open_excel: true
+        })
+      });
+      return await res.json();
+    },
+    1200,
+    '正在寫入 Excel 高亮標記、自動計算 System.ini 64 碼 Checksum 並置頂開啟 Excel 視窗...'
+  );
   if (data.status !== 'ok') {
     alert('修復匯出失敗：' + (data.message || ''));
     return;
@@ -5129,37 +5156,44 @@ async function generateNewMother(dryRun) {
   const isnLen = Math.max(1, parseInt(document.getElementById('genIsnLen').value || '3', 10));
   const isnPat = document.getElementById('genIsnPattern').value || '[0-9A-Z]';
 
-  const res = await fetch('/api/generate_new_standalone', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      project_name: proj,
-      station_name: st,
-      dut_count: dutCount,
-      block_ids: STATE.selectedBlockIds,
-      custom_inst_blocks: STATE.genCustomInsts || [],
-      ni6009_blocks: STATE.genNi6009Blocks || [],
-      rf_blocks: STATE.genRfBlocks || [],
-      system_ini_overrides: STATE.genSystemIni || {},
-      dry_run: dryRun,
-      testid_overrides: MOTHER_TESTID_OVERRIDES,
-      wizard_config: {
-        isn_length: isnLen,
-        isn_pattern: isnPat,
-        volt_rails: WIZ_VOLT_RAILS,
-        fw_config: WIZ_FW,
-        python_config: WIZ_PY,
-        ping_config: WIZ_PING,
-        wifi_config: WIZ_WIFI,
-        fixture_config: WIZ_FIXTURE,
-        ipower_config: WIZ_IPOWER,
-        diff_volt_config: WIZ_DIFF_VOLT,
-        led_config: WIZ_LED,
-        sfis_config: WIZ_SFIS
-      }
-    })
-  });
-  const data = await res.json();
+  const data = await withLoadingTimer(
+    dryRun ? '正在匯出全新母體「無硬體試跑版」並開啟 Excel' : '正在匯出全新 16 欄母體腳本、簽章並開啟 Excel',
+    async () => {
+      const res = await fetch('/api/generate_new_standalone', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          project_name: proj,
+          station_name: st,
+          dut_count: dutCount,
+          block_ids: STATE.selectedBlockIds,
+          custom_inst_blocks: STATE.genCustomInsts || [],
+          ni6009_blocks: STATE.genNi6009Blocks || [],
+          rf_blocks: STATE.genRfBlocks || [],
+          system_ini_overrides: STATE.genSystemIni || {},
+          dry_run: dryRun,
+          testid_overrides: MOTHER_TESTID_OVERRIDES,
+          wizard_config: {
+            isn_length: isnLen,
+            isn_pattern: isnPat,
+            volt_rails: WIZ_VOLT_RAILS,
+            fw_config: WIZ_FW,
+            python_config: WIZ_PY,
+            ping_config: WIZ_PING,
+            wifi_config: WIZ_WIFI,
+            fixture_config: WIZ_FIXTURE,
+            ipower_config: WIZ_IPOWER,
+            diff_volt_config: WIZ_DIFF_VOLT,
+            led_config: WIZ_LED,
+            sfis_config: WIZ_SFIS
+          }
+        })
+      });
+      return await res.json();
+    },
+    1200,
+    '正在建立母體 Excel、生成 System.ini / Global.ini、計算 Checksum 並置頂開啟 Excel 視窗...'
+  );
   if (data.status !== 'ok') {
     alert('產生失敗：' + (data.message || ''));
     return;

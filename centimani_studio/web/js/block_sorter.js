@@ -806,38 +806,48 @@ async function bsApplyAndOpenExcel() {
   setBusy(true);
 
   try {
-    // 步驟 1：套用 Phase 順序重排與自動順編
-    const resReorder = await fetch('/api/reorder_station_blocks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workspace: STATE.workspace,
-        sheet_name: BS_STATE.sheetName,
-        new_order_indices: newOrder,
-        auto_renumber_phase: autoRenum
-      })
-    });
-    const dataReorder = await resReorder.json();
-    if (dataReorder.status !== 'ok') {
-      alert(dataReorder.message || '套用積木順序失敗');
-      setBusy(false);
-      return;
-    }
-    STATE.workspace = dataReorder.workspace;
+    const runExportFlow = async () => {
+      // 步驟 1：套用 Phase 順序重排與自動順編
+      const resReorder = await fetch('/api/reorder_station_blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace: STATE.workspace,
+          sheet_name: BS_STATE.sheetName,
+          new_order_indices: newOrder,
+          auto_renumber_phase: autoRenum
+        })
+      });
+      const dataReorder = await resReorder.json();
+      if (dataReorder.status !== 'ok') {
+        throw new Error(dataReorder.message || '套用積木順序失敗');
+      }
+      STATE.workspace = dataReorder.workspace;
 
-    // 步驟 2：執行全盤自動健檢修復，並輸出至原目錄 *_FIXED.xlsx，自動鎖定當前 sheet 並啟動 Excel 程式
-    const resFix = await fetch('/api/fix_and_export_in_place', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workspace: STATE.workspace,
-        user_choices: STATE.userChoices || {},
-        dry_run: false,
-        active_sheet: BS_STATE.sheetName,
-        open_excel: true
-      })
-    });
-    const dataFix = await resFix.json();
+      // 步驟 2：執行全盤自動健檢修復，並輸出至原目錄 *_FIXED.xlsx，自動鎖定當前 sheet 並啟動 Excel 程式
+      const resFix = await fetch('/api/fix_and_export_in_place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace: STATE.workspace,
+          user_choices: STATE.userChoices || {},
+          dry_run: false,
+          active_sheet: BS_STATE.sheetName,
+          open_excel: true
+        })
+      });
+      return await resFix.json();
+    };
+
+    const dataFix = (typeof withLoadingTimer === 'function')
+      ? await withLoadingTimer(
+          `正在套用 [${BS_STATE.sheetName}] Phase 排序、標記淡藍底色並喚醒開啟 Excel`,
+          runExportFlow,
+          1200,
+          '正在重排 Phase 積木順序、標記柔和淡藍底色 (#E8F4FD)、重算 Checksum 並置頂開啟 Excel 視窗...'
+        )
+      : await runExportFlow();
+
     if (dataFix.status !== 'ok') {
       alert(dataFix.message || '自動修復與匯出 Excel 失敗');
       setBusy(false);
@@ -852,7 +862,7 @@ async function bsApplyAndOpenExcel() {
     const fixedCount = (dataFix.fixed_logs || []).length;
     alert(
       `🎉 順序套用與腳本修復成功！\n\n` +
-      `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}（修改過順序/Phase 的區塊已標上「淡藍色底色 #BAE6FD」）。\n` +
+      `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}（修改過順序/Phase 的區塊已標上「柔和淡藍色底色 #E8F4FD」）。\n` +
       `2. 腳本邏輯自動修復完成：共修正 ${fixedCount} 處潛在問題（自動修復儲存格已標上「亮黃色底色 #FEF08A」）。\n` +
       `3. 已生成標準檔案並自動以 Excel 開啟於 [${BS_STATE.sheetName}] 工作表：\n` +
       `   ${dataFix.excel_path}`

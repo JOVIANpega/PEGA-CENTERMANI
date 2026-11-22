@@ -85,6 +85,8 @@ function snapshotOriginalInis(ws) {
   _normalizeSystemIni(ws);
   STATE.origGlobalIni = JSON.parse(JSON.stringify(ws.global_ini || { Settings: {}, Scripts: {} }));
   STATE.origSystemIni = JSON.parse(JSON.stringify(ws.system_ini || {}));
+  STATE.lastIsnLen = null;
+  STATE.lastIsnPat = null;
   INI_AI_INTENT = 'core';
   INI_AI_LAST_MSG = '';
   INI_AI_RECENT_KEYS.clear();
@@ -938,16 +940,28 @@ async function saveAndOpenModifiedIni(targetMode) {
     else openTarget = 'global';
   }
 
-  const res = await fetch('/api/save_and_open_ini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file_path: STATE.selectedPath || '',
-      workspace: STATE.workspace,
-      open_target: openTarget
-    })
-  });
-  const data = await res.json();
+  const runSaveIni = async () => {
+    const res = await fetch('/api/save_and_open_ini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_path: STATE.selectedPath || '',
+        workspace: STATE.workspace,
+        open_target: openTarget
+      })
+    });
+    return await res.json();
+  };
+
+  const data = (typeof withLoadingTimer === 'function')
+    ? await withLoadingTimer(
+        '正在寫入 INI 設定檔並喚醒開啟記事本視窗',
+        runSaveIni,
+        1100,
+        '正在同步更新 Global.ini 與 System.ini 並將記事本 (Notepad) 拉至桌面最上層...'
+      )
+    : await runSaveIni();
+
   if (data.status !== 'ok') {
     alert(data.message || '儲存 INI 失敗');
     return;
@@ -1028,19 +1042,33 @@ function _collectUsedVarsAndInstruments(ws) {
 
 function _parseScanBarcode(raw) {
   const s = String(raw || '').trim();
-  if (!s) return { simple: true, name: 'ISN', len: '15', pat: '[0-9]' };
+  const defLen = (STATE && STATE.lastIsnLen) ? String(STATE.lastIsnLen) : '15';
+  const defPat = (STATE && STATE.lastIsnPat) ? String(STATE.lastIsnPat) : '[0-9]';
+  if (!s) return { simple: true, name: 'ISN', len: defLen, pat: defPat };
   if (s.includes(';')) return { simple: false, raw: s };
   const m = s.match(/^\{\s*([^,]+)\s*,\s*(\d+)\s*,\s*([^}]+?)\s*\}$/);
   if (!m) return { simple: false, raw: s };
   return { simple: true, name: m[1].trim(), len: m[2].trim(), pat: m[3].trim() };
 }
 
-function _updateScanBarcodeField(dutIdx, scanKey, field, val) {
+function _updateScanBarcodeField(dutIdx, scanKey, field, val, rerender = false) {
   const d = STATE.workspace.duts[dutIdx];
+  if (!d) return;
   const parsed = _parseScanBarcode(d[scanKey]);
   if (!parsed.simple) return;
-  parsed[field] = val;
+  parsed[field] = String(val).trim();
   d[scanKey] = `{ ${parsed.name},${parsed.len},${parsed.pat} }`;
+  if (field === 'len') {
+    STATE.lastIsnLen = parsed.len;
+    const topLenEl = document.getElementById('geIsnLen');
+    if (topLenEl && topLenEl.value !== parsed.len) topLenEl.value = parsed.len;
+  } else if (field === 'pat') {
+    STATE.lastIsnPat = parsed.pat;
+    const topPatEl = document.getElementById('geIsnPat');
+    if (topPatEl && topPatEl.value !== parsed.pat) topPatEl.value = parsed.pat;
+  }
+  _recordPendingIniNotice(`Excel DUTs 條碼規則已改為: ${d[scanKey]}`);
+  if (rerender) renderGlobalEditorPanel();
 }
 
 function _parseConn1(raw) {
@@ -1088,17 +1116,33 @@ function renderGlobalEditorPanel() {
   if (AUDIT_GLOBAL_TAB === 'ini_diff') {
     bodyHtml = _renderSmartIniNotepadHtml(ws, usedVars);
   } else if (AUDIT_GLOBAL_TAB === 'station_isn') {
+    let topIsnLen = STATE.lastIsnLen || '15';
+    let topIsnPat = STATE.lastIsnPat || '[0-9]';
+    if (duts.length > 0) {
+      const k0 = _findKeyByPrefix(duts[0], 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
+      const sb0 = _parseScanBarcode(duts[0][k0]);
+      if (sb0.simple) {
+        topIsnLen = sb0.len;
+        topIsnPat = sb0.pat;
+        STATE.lastIsnLen = topIsnLen;
+        STATE.lastIsnPat = topIsnPat;
+      }
+    }
+
     const rowsHtml = duts.map((d, i) => {
-      const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode({Name,Length,Pattern})');
+      const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
       const loadVal = String(d['Load'] || '').trim();
       const isEnabled = loadVal !== '' && loadVal.toLowerCase() !== 'false' && loadVal !== '0';
       const sb = _parseScanBarcode(d[scanKey]);
+      if (!String(d[scanKey] || '').trim() && sb.simple) {
+        d[scanKey] = `{ ${sb.name},${sb.len},${sb.pat} }`;
+      }
       const patPresets = ['[0-9]', '[0-9A-Z]', '[0-9A-Za-z]'];
       const sbHtml = sb.simple ? `
         <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-          <input value="${_escAttr(sb.name)}" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value)" class="mono" style="width:58px;padding:4px;font-size:12px;" title="條碼名稱">
-          <input type="number" min="1" max="64" value="${_escAttr(sb.len)}" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value)" class="mono" style="width:52px;padding:4px;font-size:12px;" title="位數"> 碼
-          <select onchange="if(this.value!=='__CUSTOM__'){_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','pat',this.value);renderGlobalEditorPanel();}" class="mono" style="padding:4px;font-size:12px;">
+          <input value="${_escAttr(sb.name)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,true)" class="mono" style="width:58px;padding:4px;font-size:12px;" title="條碼名稱">
+          <input type="number" min="1" max="64" value="${_escAttr(sb.len)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,true)" class="mono" style="width:56px;padding:4px;font-size:12.5px;font-weight:800;color:#1E3A8A;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:4px;" title="直接輸入條碼位數即刻生效"> 碼
+          <select onchange="if(this.value!=='__CUSTOM__'){_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','pat',this.value,true);}" class="mono" style="padding:4px;font-size:12px;">
             <option value="[0-9]" ${sb.pat==='[0-9]'?'selected':''}>純數字 [0-9]</option>
             <option value="[0-9A-Z]" ${sb.pat==='[0-9A-Z]'?'selected':''}>大寫英數 [0-9A-Z]</option>
             <option value="[0-9A-Za-z]" ${sb.pat==='[0-9A-Za-z]'?'selected':''}>大小寫 [0-9A-Za-z]</option>
@@ -1126,14 +1170,16 @@ function renderGlobalEditorPanel() {
     bodyHtml = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; padding:8px 10px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px;">
-          <span style="font-weight:700; color:#1E3A8A;">🔢 快速批量設定 ISN 條碼：</span>
-          <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="15" class="mono" style="width:54px;padding:3px 5px;"></label>
-          <label>規則 <select id="geIsnPat" class="mono" style="padding:3px 5px;">
-            <option value="[0-9]">[0-9]（純數字）</option>
-            <option value="[0-9A-Z]">[0-9A-Z]（大寫英數字）</option>
-            <option value="[0-9A-Za-z]">[0-9A-Za-z]（大小寫英數字）</option>
+          <span style="font-weight:700; color:#1E3A8A;">🔢 快速批量設定 ISN 條碼（目前為 <span style="color:#DC2626;font-size:14px;">${_escAttr(topIsnLen)}</span> 碼）：</span>
+          <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="${_escAttr(topIsnLen)}" oninput="batchApplyDutIsn(false)" onchange="batchApplyDutIsn(true)" class="mono" style="width:58px;padding:3px 6px;font-weight:800;color:#1E3A8A;"></label>
+          <label>規則 <select id="geIsnPat" onchange="batchApplyDutIsn(true)" class="mono" style="padding:3px 5px;">
+            <option value="[0-9]" ${topIsnPat==='[0-9]'?'selected':''}>[0-9]（純數字）</option>
+            <option value="[0-9A-Z]" ${topIsnPat==='[0-9A-Z]'?'selected':''}>[0-9A-Z]（大寫英數字）</option>
+            <option value="[0-9A-Za-z]" ${topIsnPat==='[0-9A-Za-z]'?'selected':''}>[0-9A-Za-z]（大小寫英數字）</option>
           </select></label>
-          <button onclick="batchApplyDutIsn()" class="btn btn-primary-blue" style="padding:3px 10px; font-size:12px;">套用至所有站別</button>
+          <button onclick="batchApplyDutIsn(true)" class="btn btn-primary-blue" style="padding:3px 10px; font-size:12px;">套用至所有站別</button>
+          <button onclick="setQuickDutIsn(3, '[0-9A-Z]')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#FEF9C3; color:#854D0E; border:1px solid #EAB308; font-weight:800;">⚡ 一鍵設 3 碼 (調試)</button>
+          <button onclick="setQuickDutIsn(15, '[0-9A-Z]')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; font-weight:700;">⚡ 一鍵設 15 碼 (量產)</button>
         </div>
         <button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:4px 10px; font-size:12.5px;">+ 新增站別列</button>
       </div>
@@ -1321,15 +1367,34 @@ function addGlobalIniVar() {
   setGlobalIniValueLive(sec.trim(), k.trim(), v, true);
 }
 
-function batchApplyDutIsn() {
-  const len = Math.max(1, parseInt(document.getElementById('geIsnLen').value || '15', 10));
-  const pat = document.getElementById('geIsnPat').value || '[0-9]';
-  const rule = `{ ISN,${len},${pat} }`;
+function setQuickDutIsn(len, pat) {
+  STATE.lastIsnLen = String(len);
+  STATE.lastIsnPat = String(pat || '[0-9A-Z]');
+  const rule = `{ ISN,${STATE.lastIsnLen},${STATE.lastIsnPat} }`;
   (STATE.workspace.duts || []).forEach(d => {
-    const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode({Name,Length,Pattern})');
+    const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
     d[scanKey] = rule;
   });
+  _recordPendingIniNotice(`已將所有站別 ISN 條碼設為 ${STATE.lastIsnLen} 碼 (${rule})`);
   renderGlobalEditorPanel();
+}
+
+function batchApplyDutIsn(rerender = true) {
+  const lenEl = document.getElementById('geIsnLen');
+  const patEl = document.getElementById('geIsnPat');
+  const rawLen = lenEl ? lenEl.value.trim() : '';
+  if (!rawLen) return;
+  const len = Math.max(1, parseInt(rawLen, 10) || 15);
+  const pat = (patEl && patEl.value) || STATE.lastIsnPat || '[0-9]';
+  STATE.lastIsnLen = String(len);
+  STATE.lastIsnPat = pat;
+  const rule = `{ ISN,${len},${pat} }`;
+  (STATE.workspace.duts || []).forEach(d => {
+    const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
+    d[scanKey] = rule;
+  });
+  _recordPendingIniNotice(`已將所有站別 ISN 條碼設為 ${len} 碼 (${rule})`);
+  if (rerender) renderGlobalEditorPanel();
 }
 
 function updatePingStepSend(sheetName, idx, newVal) {
@@ -1346,12 +1411,21 @@ function updatePingStepSend(sheetName, idx, newVal) {
 
 async function applyGlobalEditorAndReaudit() {
   if (!STATE.workspace) return;
-  const res = await fetch('/api/re_audit', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ workspace: STATE.workspace })
-  });
-  const data = await res.json();
+  // 若使用者在 ISN 分頁直接按右上角「套用 Excel 表格微調」，先確保頂部輸入框與列資料已同步
+  if (AUDIT_GLOBAL_TAB === 'station_isn') {
+    batchApplyDutIsn(false);
+  }
+  const runReaudit = async () => {
+    const res = await fetch('/api/re_audit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ workspace: STATE.workspace })
+    });
+    return await res.json();
+  };
+  const data = (typeof withLoadingTimer === 'function')
+    ? await withLoadingTimer('正在套用 Excel 站別 / ISN 條碼設定並重新體檢', runReaudit, 700)
+    : await runReaudit();
   if (data.status !== 'ok') {
     alert(data.message || '覆檢失敗');
     return;
@@ -1363,7 +1437,7 @@ async function applyGlobalEditorAndReaudit() {
   STATE.pendingInserts.push({
     sheet: labelMap[AUDIT_GLOBAL_TAB] || '全域設定',
     inst: 'Excel 全域微調',
-    summary: '已套用 Excel 全域微調並完成即時覆檢（請點擊底部「💾 寫入並匯出 Excel (*_FIXED.xlsx)」）'
+    summary: `已套用 Excel 全域微調（ISN 條碼：${STATE.lastIsnLen || 15} 碼；請點擊底部「💾 寫入並匯出 Excel (*_FIXED.xlsx)」寫入檔案）`
   });
   renderGlobalEditorPanel();
   renderAuditResults();

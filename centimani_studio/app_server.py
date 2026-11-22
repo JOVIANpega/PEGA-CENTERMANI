@@ -605,7 +605,7 @@ def extract_isn_info(ws):
         for k, v in dut.items():
             if "ScanBarcode" in str(k) and v:
                 raw = str(v).strip()
-                m = re.search(r"\{ISN\s*,\s*(\d+)\s*,\s*([^}]+)\}", raw, re.IGNORECASE)
+                m = re.search(r"\{\s*ISN\s*,\s*(\d+)\s*,\s*([^}]+)\}", raw, re.IGNORECASE)
                 if m:
                     return {"isn_length": int(m.group(1)), "scan_rule": raw}
                 m2 = re.search(r"\{[^,]+\s*,\s*(\d+)\s*,", raw)
@@ -1868,7 +1868,7 @@ def launch_fullscreen_browser(url):
 def run_server(port=8765):
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.5.7) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.5.8) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
