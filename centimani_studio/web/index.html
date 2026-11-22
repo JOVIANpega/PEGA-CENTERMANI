@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.7.0</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.7.1</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1447,10 +1447,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.7.0"></script>
-<script src="/js/audit_editors.js?v=0.7.0"></script>
-<script src="/js/flow_guide.js?v=0.7.0"></script>
-<script src="/js/block_sorter.js?v=0.7.0"></script>
+<script src="/js/inst_hmi.js?v=0.7.1"></script>
+<script src="/js/audit_editors.js?v=0.7.1"></script>
+<script src="/js/flow_guide.js?v=0.7.1"></script>
+<script src="/js/block_sorter.js?v=0.7.1"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2550,7 +2550,7 @@ function switchGenSubMode(mode) {
 
 let TAB3_QUEUE = [];
 let TAB3_STEP = 1;
-let TAB3_CAT_FILTER = 'ALL';
+let TAB3_CAT_FILTER = null;
 let TAB3_DRAG_PAYLOAD = null; // { type: 'catalog', name } | { type: 'track', idx }
 let TAB3_ACTIVE_EDIT_IDX = -1;
 
@@ -2705,18 +2705,23 @@ function tab3RenderCatalogDeck() {
   }
 
   if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
-    const pills = [{ id: 'ALL', label: `全部 (${catalog.length})` }, ...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label }))];
+    const pills = [...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label })), { id: 'ALL', label: `全部展開 (${catalog.length})` }];
     pillsEl.innerHTML = pills.map(p => `
-      <button onclick="TAB3_CAT_FILTER='${p.id}'; tab3RenderCatalogDeck();" class="btn"
-        style="padding:4px 10px; font-size:12px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
-        ${p.label}
+      <button onclick="TAB3_CAT_FILTER=(TAB3_CAT_FILTER==='${p.id}'?null:'${p.id}'); tab3RenderCatalogDeck();" class="btn"
+        style="padding:5px 12px; font-size:12.5px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
+        ${TAB3_CAT_FILTER === p.id ? '▾ ' : '▸ '}${p.label}
       </button>
     `).join('');
   }
 
   const q = ((document.getElementById('tab3DeckSearch') || {}).value || '').trim().toLowerCase();
+  if (!TAB3_CAT_FILTER && !q) {
+    deckEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#64748B; padding:14px; font-size:13px; background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:8px;">👆 請點擊上方任一分類膠囊（例如：<b>量測電壓 / 電流</b> 或 <b>RF 無線</b>）展開該類儀器積木，或直接於右側搜尋名稱。</div>';
+    return;
+  }
+
   let filtered = catalog;
-  if (TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
+  if (TAB3_CAT_FILTER && TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
     const catObj = INST_CATEGORIES.find(c => c.id === TAB3_CAT_FILTER);
     if (catObj) filtered = filtered.filter(i => catObj.names.includes(i.Name));
   }
