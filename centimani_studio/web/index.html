@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.8</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.9</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1066,14 +1066,14 @@
           <div style="background:#FFFFFF; border:1.5px solid #93C5FD; border-top:4px solid #2563EB; border-radius:10px; padding:14px 16px;">
             <div style="font-weight:800; font-size:15px; color:#1E3A8A; margin-bottom:10px;">B. 全域環境與通訊設定 (INI / DUTs)</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 160px; justify-content:center; padding:9px 10px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="toggleGlobalEditorPanel('ini_diff', 'sfis')">
-                🌐 我想改 SFIS / iPLAS
+              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 160px; justify-content:center; padding:9px 10px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="toggleGlobalEditorPanel('ini_diff')">
+                🌐 SFIS / iPLAS 與廠區設定
               </button>
-              <button id="btnOpenCommModal" class="btn" style="flex:1 1 190px; justify-content:center; padding:9px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="toggleGlobalEditorPanel('ini_diff', 'com')">
-                🔌 我想改 COM / IP 通訊
+              <button id="btnOpenCommModal" class="btn" style="flex:1 1 190px; justify-content:center; padding:9px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="toggleGlobalEditorPanel('ini_diff')">
+                🔌 COM Port / IP / 槽位開關
               </button>
-              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 240px; justify-content:center; padding:9px 10px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel('ini_diff', 'core')">
-                ⚙️ INI 智慧記事本 / 站別條碼
+              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 240px; justify-content:center; padding:9px 10px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel('station_isn')">
+                🔢 站別開關與 ISN 條碼位數
               </button>
             </div>
           </div>
@@ -1363,10 +1363,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.5.8"></script>
-<script src="/js/audit_editors.js?v=0.5.8"></script>
-<script src="/js/flow_guide.js?v=0.5.8"></script>
-<script src="/js/block_sorter.js?v=0.5.8"></script>
+<script src="/js/inst_hmi.js?v=0.5.9"></script>
+<script src="/js/audit_editors.js?v=0.5.9"></script>
+<script src="/js/flow_guide.js?v=0.5.9"></script>
+<script src="/js/block_sorter.js?v=0.5.9"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
