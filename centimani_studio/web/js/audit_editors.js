@@ -1,16 +1,52 @@
-// Task-Oriented Semantic Global Config Editor for Script Doctor
-// Filters out unused variables/instruments and splits composite strings into plain-language fields.
-let AUDIT_GLOBAL_TAB = 'station_isn';
-let INI_DIFF_FILTER_CHANGED_ONLY = false;
+// Task-Oriented Semantic Global Config Editor & Side-by-Side Live INI Workbench (Plan A)
+// Left Panel: Intuitive Controls (SFIS/iPLAS switches + Script's Active COM/IP/Hardware vars)
+// Right Panel: Live Synchronized Before -> After (舊值 ➔ 新值) Diff + Real INI File Highlighted Preview + One-Click Save & Pop Up INI
+
+let AUDIT_GLOBAL_TAB = 'ini_diff';
+let INI_PREVIEW_FILE_TAB = 'auto'; // 'auto' | 'Global.ini' | 'System.ini'
+
+const DEFAULT_SYSTEM_INI_TEMPLATE = {
+  SFIS_Enable: '0',
+  SFIS_LinkIPLAS: '0',
+  SFIS_TSP: 'PEGA,2',
+  SFIS_WebLink: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx',
+  iPLAS_Enable: '0',
+  iPLAS_Site: 'DC',
+  iPLAS_ProjectName: 'PEGA_PROJECT',
+  DebugMode: '1',
+  RetryCount: '3',
+  CSVReport_Enable: '1',
+  IpFinder_Enable: '0'
+};
+
+function _normalizeSystemIni(ws) {
+  if (!ws) return {};
+  ws.system_ini = ws.system_ini || {};
+  const proj = ws.project_name || 'PEGA_PROJECT';
+  const defaults = Object.assign({}, DEFAULT_SYSTEM_INI_TEMPLATE, {
+    SFIS_TSP: (proj.slice(0, 6) || 'PEGA') + ',2',
+    iPLAS_ProjectName: proj
+  });
+  Object.keys(defaults).forEach(k => {
+    if (ws.system_ini[k] === undefined || ws.system_ini[k] === null) {
+      ws.system_ini[k] = defaults[k];
+    } else {
+      ws.system_ini[k] = String(ws.system_ini[k]);
+    }
+  });
+  return ws.system_ini;
+}
 
 function snapshotOriginalInis(ws) {
   if (!ws) return;
+  _normalizeSystemIni(ws);
   STATE.origGlobalIni = JSON.parse(JSON.stringify(ws.global_ini || { Settings: {}, Scripts: {} }));
   STATE.origSystemIni = JSON.parse(JSON.stringify(ws.system_ini || {}));
 }
 
 function _ensureIniSnapshots(ws) {
   if (!ws) return;
+  _normalizeSystemIni(ws);
   if (!STATE.origGlobalIni) {
     STATE.origGlobalIni = JSON.parse(JSON.stringify(ws.global_ini || { Settings: {}, Scripts: {} }));
   }
@@ -19,57 +55,330 @@ function _ensureIniSnapshots(ws) {
   }
 }
 
-function toggleIniDiffFilter(onlyChanged) {
-  INI_DIFF_FILTER_CHANGED_ONLY = Boolean(onlyChanged);
-  renderGlobalEditorPanel();
+function _getSystemIniSection(key) {
+  if (/^SFIS_/i.test(key)) return 'SFIS';
+  if (/^iPLAS_/i.test(key)) return 'iPLAS';
+  if (/^CSVReport_/i.test(key)) return 'CSVReport';
+  if (/^IpFinder_/i.test(key)) return 'IpFinder';
+  return 'System';
+}
+
+function _describeSystemKey(k) {
+  const map = {
+    SFIS_Enable: 'SFIS 產線過站總開關',
+    SFIS_LinkIPLAS: 'SFIS 連動上傳 iPLAS',
+    SFIS_TSP: 'SFIS 站別與路由代碼',
+    SFIS_WebLink: 'SFIS WebService 網址',
+    iPLAS_Enable: 'iPLAS 數據上傳開關',
+    iPLAS_Site: 'iPLAS 廠區代碼',
+    iPLAS_ProjectName: 'iPLAS 專案名稱',
+    DebugMode: '除錯模式 (1=免簽章, 0=量產)',
+    RetryCount: '測項失敗自動重測次數',
+    CSVReport_Enable: '自動產出 CSV 報表',
+    IpFinder_Enable: 'IpFinder 自動搜尋開關',
+    TestItemCodeFile: '官方測項代碼表檔名'
+  };
+  return map[k] || 'System.ini 系統參數';
+}
+
+function _describeGlobalVar(k) {
+  if (/^PCIP_/i.test(k)) return '電腦端網卡 IP';
+  if (/^DUTIP_/i.test(k)) return '待測物 DUT 連線 IP';
+  if (/^GoldenIP/i.test(k)) return 'Golden 伺服器 IP';
+  if (/^DUT_UR/i.test(k)) return '待測物 UART COM Port';
+  if (/^PCUART_fixture/i.test(k)) return '氣動治具控制 COM Port';
+  if (/^PCUART/i.test(k)) return '電腦端序列埠 COM Port';
+  if (/^DAQ_/i.test(k)) return 'NI-6008/6009 裝置代號';
+  if (/^LED_AZ/i.test(k)) return 'FeasaLED 分析儀 COM Port';
+  if (/^LED_Light/i.test(k)) return 'FeasaLED 光纖通道號';
+  if (/^DUT_Login/i.test(k)) return 'SSH / Console 登入帳號';
+  if (/^LOAD_/i.test(k)) return '多槽位啟用開關 (true/false)';
+  if (/^DEVID_/i.test(k)) return 'SFIS 機台設備編號';
+  if (/^FW_VERSION/i.test(k)) return '目標韌體版本號';
+  if (/^Boot_Delay/i.test(k)) return '開機等待延遲 (ms)';
+  return '腳本自訂變數';
 }
 
 function _collectIniDiffEntries(origObj, currObj, fileLabel) {
-  const sections = Array.from(new Set([
-    ...Object.keys(origObj || {}),
-    ...Object.keys(currObj || {})
-  ]));
   const entries = [];
-  sections.forEach(sec => {
-    const oSec = (origObj && origObj[sec]) || {};
-    const cSec = (currObj && currObj[sec]) || {};
-    if (typeof oSec !== 'object' || typeof cSec !== 'object') return;
-    const keys = Array.from(new Set([...Object.keys(oSec), ...Object.keys(cSec)]));
+  if (fileLabel === 'System.ini') {
+    const oFlat = origObj || {};
+    const cFlat = currObj || {};
+    const keys = Array.from(new Set([...Object.keys(oFlat), ...Object.keys(cFlat)]));
     keys.forEach(k => {
-      const oldVal = oSec[k] !== undefined ? String(oSec[k]) : null;
-      const newVal = cSec[k] !== undefined ? String(cSec[k]) : null;
+      if (typeof cFlat[k] === 'object' && cFlat[k] !== null) return;
+      const oldVal = oFlat[k] !== undefined ? String(oFlat[k]) : null;
+      const newVal = cFlat[k] !== undefined ? String(cFlat[k]) : null;
       const isAdded = (oldVal === null && newVal !== null);
       const isModified = (oldVal !== null && newVal !== null && oldVal !== newVal);
       const isChanged = isAdded || isModified;
       entries.push({
-        file: fileLabel,
-        section: sec,
+        file: 'System.ini',
+        section: _getSystemIniSection(k),
         key: k,
-        oldVal: oldVal === null ? '(原本無此項)' : oldVal,
+        desc: _describeSystemKey(k),
+        oldVal: oldVal === null ? '(新增)' : oldVal,
         newVal: newVal === null ? '' : newVal,
         isAdded,
         isModified,
         isChanged
       });
     });
-  });
-  // 將有異動的項目排在最上方，方便一眼核對
-  entries.sort((a, b) => (b.isChanged ? 1 : 0) - (a.isChanged ? 1 : 0));
+  } else {
+    const sections = Array.from(new Set([
+      ...Object.keys(origObj || {}),
+      ...Object.keys(currObj || {})
+    ]));
+    sections.forEach(sec => {
+      const oSec = (origObj && origObj[sec]) || {};
+      const cSec = (currObj && currObj[sec]) || {};
+      if (typeof oSec !== 'object' || typeof cSec !== 'object') return;
+      const keys = Array.from(new Set([...Object.keys(oSec), ...Object.keys(cSec)]));
+      keys.forEach(k => {
+        const oldVal = oSec[k] !== undefined ? String(oSec[k]) : null;
+        const newVal = cSec[k] !== undefined ? String(cSec[k]) : null;
+        const isAdded = (oldVal === null && newVal !== null);
+        const isModified = (oldVal !== null && newVal !== null && oldVal !== newVal);
+        const isChanged = isAdded || isModified;
+        entries.push({
+          file: 'Global.ini',
+          section: sec,
+          key: k,
+          desc: _describeGlobalVar(k),
+          oldVal: oldVal === null ? '(新增)' : oldVal,
+          newVal: newVal === null ? '' : newVal,
+          isAdded,
+          isModified,
+          isChanged
+        });
+      });
+    });
+  }
   return entries;
 }
 
-function updateIniFromDiffView(fileLabel, sec, key, val) {
-  if (!STATE.workspace) return;
-  if (fileLabel === 'Global.ini') {
-    STATE.workspace.global_ini = STATE.workspace.global_ini || {};
-    STATE.workspace.global_ini[sec] = STATE.workspace.global_ini[sec] || {};
-    STATE.workspace.global_ini[sec][key] = val;
+function _recordPendingIniNotice(summaryText) {
+  STATE.pendingInserts = STATE.pendingInserts || [];
+  const existing = STATE.pendingInserts.find(p => p.inst === 'INI 設定微調');
+  if (existing) {
+    existing.summary = summaryText;
   } else {
-    STATE.workspace.system_ini = STATE.workspace.system_ini || {};
-    STATE.workspace.system_ini[sec] = STATE.workspace.system_ini[sec] || {};
-    STATE.workspace.system_ini[sec][key] = val;
+    STATE.pendingInserts.push({
+      sheet: 'Global.ini / System.ini',
+      inst: 'INI 設定微調',
+      summary: summaryText
+    });
+  }
+  if (typeof updatePendingBar === 'function') updatePendingBar();
+}
+
+function setSystemIniValueLive(key, val) {
+  if (!STATE.workspace) return;
+  _ensureIniSnapshots(STATE.workspace);
+  STATE.workspace.system_ini[key] = String(val);
+  INI_PREVIEW_FILE_TAB = 'System.ini';
+  _recordPendingIniNotice(`System.ini: ${key}=${val}`);
+  renderGlobalEditorPanel();
+}
+
+function setGlobalIniValueLive(sec, key, val, rerenderFull = true) {
+  if (!STATE.workspace) return;
+  _ensureIniSnapshots(STATE.workspace);
+  STATE.workspace.global_ini = STATE.workspace.global_ini || { Settings: {}, Scripts: {} };
+  STATE.workspace.global_ini[sec] = STATE.workspace.global_ini[sec] || {};
+  STATE.workspace.global_ini[sec][key] = String(val);
+  INI_PREVIEW_FILE_TAB = 'Global.ini';
+  _recordPendingIniNotice(`Global.ini [${sec}] ${key}=${val}`);
+  if (rerenderFull) {
+    renderGlobalEditorPanel();
+  } else {
+    _refreshIniRightPaneOnly();
+  }
+}
+
+function revertSingleIniKey(fileLabel, sec, key) {
+  if (!STATE.workspace) return;
+  _ensureIniSnapshots(STATE.workspace);
+  if (fileLabel === 'System.ini') {
+    if (STATE.origSystemIni && STATE.origSystemIni[key] !== undefined) {
+      STATE.workspace.system_ini[key] = STATE.origSystemIni[key];
+    }
+  } else {
+    if (STATE.origGlobalIni && STATE.origGlobalIni[sec] && STATE.origGlobalIni[sec][key] !== undefined) {
+      STATE.workspace.global_ini[sec][key] = STATE.origGlobalIni[sec][key];
+    } else if (STATE.workspace.global_ini && STATE.workspace.global_ini[sec]) {
+      delete STATE.workspace.global_ini[sec][key];
+    }
   }
   renderGlobalEditorPanel();
+}
+
+function revertAllIniChanges() {
+  if (!STATE.workspace) return;
+  _ensureIniSnapshots(STATE.workspace);
+  STATE.workspace.global_ini = JSON.parse(JSON.stringify(STATE.origGlobalIni));
+  STATE.workspace.system_ini = JSON.parse(JSON.stringify(STATE.origSystemIni));
+  renderGlobalEditorPanel();
+}
+
+function switchIniPreviewFileTab(tab) {
+  INI_PREVIEW_FILE_TAB = tab;
+  _refreshIniRightPaneOnly();
+}
+
+function _buildRightPaneHtml(ws) {
+  _ensureIniSnapshots(ws);
+  const gEntries = _collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini');
+  const sEntries = _collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini');
+  const gChanged = gEntries.filter(e => e.isChanged);
+  const sChanged = sEntries.filter(e => e.isChanged);
+  const allChanged = [...sChanged, ...gChanged];
+
+  let activeFile = INI_PREVIEW_FILE_TAB;
+  if (activeFile === 'auto') {
+    activeFile = (sChanged.length > 0 && gChanged.length === 0) ? 'System.ini' : 'Global.ini';
+  }
+
+  // 1. 上半部：本次已修改項目一覽表（同一列嚴格對齊：參數名 | 舊值 ➔ 新值 | 還原）
+  let diffSummaryHtml = '';
+  if (allChanged.length === 0) {
+    diffSummaryHtml = `
+      <div style="background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:8px; padding:14px 16px; color:#475569; font-size:12.5px; line-height:1.6;">
+        💡 <b>目前尚無任何異動項目。</b><br>
+        請直接在左側面板切換 <b>SFIS / iPLAS 開關</b> 或修改 <b>COM Port / IP 位址</b>，此處會即時以「<span style="color:#DC2626;text-decoration:line-through;">修改前舊值</span> ➔ <span style="color:#15803D;font-weight:700;">修改後新值</span>」逐列對齊呈現！
+      </div>
+    `;
+  } else {
+    const rows = allChanged.map(e => `
+      <tr style="background:#F0FDF4; border-bottom:1px solid #BBF7D0;">
+        <td style="padding:6px 8px;">
+          <span style="background:${e.file === 'System.ini' ? '#EDE9FE' : '#DBEAFE'}; color:${e.file === 'System.ini' ? '#5B21B6' : '#1E40AF'}; font-weight:800; font-size:11px; padding:1px 6px; border-radius:4px;" class="mono">${_escAttr(e.file)}</span>
+          <span class="mono" style="font-weight:800; font-size:12.5px; color:#0F172A; margin-left:4px;">${_escAttr(e.key)}</span>
+          <div style="font-size:11.5px; color:#475569; margin-top:2px;">${_escAttr(e.desc)}</div>
+        </td>
+        <td style="padding:6px 8px; white-space:nowrap;">
+          <span class="mono" style="background:#FEE2E2; color:#B91C1C; padding:2px 7px; border-radius:4px; text-decoration:line-through; font-size:12px;">${_escAttr(e.oldVal)}</span>
+          <span style="margin:0 6px; font-weight:900; color:#16A34A;">➔</span>
+          <span class="mono" style="background:#DCFCE7; color:#15803D; border:1px solid #86EFAC; padding:2px 8px; border-radius:4px; font-weight:800; font-size:12.5px;">${_escAttr(e.newVal)}</span>
+        </td>
+        <td style="padding:6px 8px; text-align:right; width:56px;">
+          <button onclick="revertSingleIniKey('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}')" class="btn" style="padding:2px 8px; font-size:11.5px; background:#FFFFFF; color:#475569; border:1px solid #CBD5E1;" title="還原此項為原始設定值">↩ 還原</button>
+        </td>
+      </tr>
+    `).join('');
+
+    diffSummaryHtml = `
+      <div style="border:1.5px solid #22C55E; border-radius:8px; overflow:hidden; background:#FFFFFF;">
+        <div style="background:#DCFCE7; padding:7px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #86EFAC;">
+          <span style="font-weight:800; font-size:13px; color:#14532D;">✨ 本次已修改項目對照（共 ${allChanged.length} 項：舊值 ➔ 新值）</span>
+          <button onclick="revertAllIniChanges()" class="btn" style="padding:2px 10px; font-size:11.5px; background:#FFFFFF; color:#B91C1C; border:1px solid #FCA5A5; font-weight:700;">↩ 全部還原</button>
+        </div>
+        <div style="max-height:175px; overflow:auto;">
+          <table style="width:100%; border-collapse:collapse;">
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. 下半部：真實 INI 檔案全文預覽（有改的那幾行自動亮綠底高亮＋顯示舊值）
+  const { usedVars } = _collectUsedVarsAndInstruments(ws);
+  let previewLinesHtml = '';
+  if (activeFile === 'System.ini') {
+    const sectionsOrder = ['System', 'SFIS', 'iPLAS', 'CSVReport', 'IpFinder'];
+    sectionsOrder.forEach(sec => {
+      const secItems = sEntries.filter(e => e.section === sec);
+      if (secItems.length === 0) return;
+      previewLinesHtml += `<div style="color:#0369A1; font-weight:800; margin-top:6px;">[${_escAttr(sec)}]</div>`;
+      secItems.forEach(e => {
+        if (e.isChanged) {
+          previewLinesHtml += `
+            <div style="background:#DCFCE7; border-left:3.5px solid #16A34A; padding:2px 8px; margin:2px 0; border-radius:3px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+              <span><b style="color:#0F172A;">${_escAttr(e.key)}</b>=<b style="color:#15803D;">${_escAttr(e.newVal)}</b></span>
+              <span style="font-size:11.5px; color:#B91C1C; font-weight:700;">⬅ 原本: ${_escAttr(e.oldVal)}（${_escAttr(e.desc)}）</span>
+            </div>
+          `;
+        } else {
+          previewLinesHtml += `<div style="padding:1px 8px; color:#334155;"><span>${_escAttr(e.key)}=${_escAttr(e.newVal)}</span> <span style="color:#94A3B8; font-size:11px;">// ${_escAttr(e.desc)}</span></div>`;
+        }
+      });
+    });
+  } else {
+    ['Settings', 'Scripts'].forEach(sec => {
+      const secItems = gEntries.filter(e => e.section === sec);
+      if (secItems.length === 0) return;
+      // 優先把「已修改」與「本腳本實際使用」的變數排在前面
+      secItems.sort((a, b) => {
+        const scoreA = (a.isChanged ? 10 : 0) + (usedVars.has(a.key) ? 5 : 0);
+        const scoreB = (b.isChanged ? 10 : 0) + (usedVars.has(b.key) ? 5 : 0);
+        return scoreB - scoreA;
+      });
+      previewLinesHtml += `<div style="color:#0369A1; font-weight:800; margin-top:6px;">[${_escAttr(sec)}]</div>`;
+      secItems.forEach(e => {
+        const isUsed = usedVars.has(e.key) || /^(DUT_UR1|DUTIP_1|PCIP_1|DAQ_1|LED_AZ1|LOAD_1|DEVID_1|FW_VERSION)$/i.test(e.key);
+        if (e.isChanged) {
+          previewLinesHtml += `
+            <div style="background:#DCFCE7; border-left:3.5px solid #16A34A; padding:2px 8px; margin:2px 0; border-radius:3px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+              <span><b style="color:#0F172A;">${_escAttr(e.key)}</b>=<b style="color:#15803D;">${_escAttr(e.newVal)}</b></span>
+              <span style="font-size:11.5px; color:#B91C1C; font-weight:700;">⬅ 原本: ${_escAttr(e.oldVal)}（${_escAttr(e.desc)}）</span>
+            </div>
+          `;
+        } else if (isUsed) {
+          previewLinesHtml += `<div style="padding:1px 8px; color:#1E293B;"><span>${_escAttr(e.key)}=${_escAttr(e.newVal)}</span> <span style="color:#64748B; font-size:11px;">// ${_escAttr(e.desc)}</span></div>`;
+        } else {
+          previewLinesHtml += `<div style="padding:1px 8px; color:#94A3B8; font-size:11.5px;"><span>${_escAttr(e.key)}=${_escAttr(e.newVal)}</span></div>`;
+        }
+      });
+    });
+  }
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:10px; height:100%;">
+      ${diffSummaryHtml}
+      <div style="border:1px solid #CBD5E1; border-radius:8px; overflow:hidden; background:#FFFFFF; flex:1; display:flex; flex-direction:column;">
+        <div style="background:#F1F5F9; padding:6px 10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <span style="font-weight:800; font-size:12.5px; color:#1E293B;">📄 真實 INI 檔案預覽（綠底為本次修改行）</span>
+          <div style="display:flex; gap:4px;">
+            <button onclick="switchIniPreviewFileTab('Global.ini')" class="btn" style="padding:2px 10px; font-size:12px; ${activeFile === 'Global.ini' ? 'background:#2563EB;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">
+              Global.ini ${gChanged.length > 0 ? `(${gChanged.length} 改)` : ''}
+            </button>
+            <button onclick="switchIniPreviewFileTab('System.ini')" class="btn" style="padding:2px 10px; font-size:12px; ${activeFile === 'System.ini' ? 'background:#2563EB;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">
+              System.ini ${sChanged.length > 0 ? `(${sChanged.length} 改)` : ''}
+            </button>
+          </div>
+        </div>
+        <div class="mono" style="padding:8px 10px; font-size:12px; line-height:1.55; max-height:220px; overflow:auto; background:#FAFAFA;">
+          ${previewLinesHtml}
+        </div>
+      </div>
+      <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:8px 12px;"></div>
+      <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <button onclick="saveAndOpenModifiedIni('global')" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E40AF; border:1px solid #93C5FD; font-weight:700;">📄 存檔並開 Global.ini</button>
+          <button onclick="saveAndOpenModifiedIni('system')" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#5B21B6; border:1px solid #C4B5FD; font-weight:700;">⚙️ 存檔並開 System.ini</button>
+        </div>
+        <button onclick="saveAndOpenModifiedIni('auto')" class="btn btn-primary-green" style="padding:7px 18px; font-size:13.5px; font-weight:800; box-shadow:0 2px 6px rgba(22,163,74,0.25);">
+          💾 確認存檔並立即彈出剛剛改的 INI
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function _refreshIniRightPaneOnly() {
+  const pane = document.getElementById('iniLiveRightPane');
+  if (pane && STATE.workspace) {
+    pane.innerHTML = _buildRightPaneHtml(STATE.workspace);
+  }
+  const badge = document.getElementById('iniTabDiffCountBadge');
+  if (badge && STATE.workspace) {
+    const total = [
+      ..._collectIniDiffEntries(STATE.origGlobalIni, STATE.workspace.global_ini, 'Global.ini'),
+      ..._collectIniDiffEntries(STATE.origSystemIni, STATE.workspace.system_ini, 'System.ini')
+    ].filter(e => e.isChanged).length;
+    badge.textContent = `(${total})`;
+  }
 }
 
 async function saveAndOpenModifiedIni(targetMode) {
@@ -104,13 +413,12 @@ async function saveAndOpenModifiedIni(targetMode) {
     alert(data.message || '儲存 INI 失敗');
     return;
   }
-  // 更新快照基準或保留對照並顯示成功橫幅
   const banner = document.getElementById('iniSaveResultBanner');
   if (banner) {
     banner.style.display = 'block';
     banner.innerHTML = `
-      <div style="font-weight:800; color:#14532D; font-size:13.5px;">🎉 已成功寫入 INI 設定檔並直接彈出 Notepad 檢視（未開啟 Excel）！</div>
-      <div class="mono" style="font-size:12px; color:#166534; margin-top:4px; word-break:break-all;">
+      <div style="font-weight:800; color:#14532D; font-size:13px;">🎉 已成功寫入硬碟並直接以記事本 (Notepad) 彈出剛剛修改的 INI 檔！</div>
+      <div class="mono" style="font-size:11.5px; color:#166534; margin-top:3px; word-break:break-all;">
         • Global.ini：${_escAttr(data.global_ini_path)}<br>
         • System.ini：${_escAttr(data.system_ini_path)}
       </div>
@@ -195,7 +503,6 @@ function _updateScanBarcodeField(dutIdx, scanKey, field, val) {
 
 function _parseConn1(raw) {
   const s = String(raw || '').trim();
-  // Match "UDP","LAN","*$(PCIP_1),192.168.100.10,2345,0,10000"
   const m = s.match(/^"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]*)"$/);
   if (!m) return { structured: false, raw: s };
   const parts = m[3].split(',');
@@ -214,41 +521,135 @@ function _updateConn1Field(dutIdx, connKey, field, val) {
   d[connKey] = `"${p.proto}","${p.cname}","${connStr}"`;
 }
 
-function _describeGlobalVar(k) {
-  if (/^PCIP_/i.test(k)) return 'PC 端網卡 IP';
-  if (/^DUTIP_/i.test(k)) return '待測板 DUT IP';
-  if (/^GoldenIP/i.test(k)) return '黃金機台 / 伺服器 IP';
-  if (/^DUT_UR/i.test(k)) return '待測板 UART COM Port';
-  if (/^PCUART_fixture/i.test(k)) return '治具氣動控制 COM Port';
-  if (/^PCUART/i.test(k)) return 'PC 端序列埠 COM Port';
-  if (/^DAQ_/i.test(k)) return 'NI-6008 / 6009 裝置代碼';
-  if (/^LED_AZ/i.test(k)) return 'FeasaLED COM Port';
-  if (/^LED_Light/i.test(k)) return 'FeasaLED 通道編號';
-  if (/^DUT_Login/i.test(k)) return 'SSH / Console 登入帳號';
-  if (/^LOAD_/i.test(k)) return '槽位載入開關';
-  if (/^DEVID_/i.test(k)) return 'SFIS 機台設備編號';
-  if (/^FW_VERSION/i.test(k)) return '目標韌體版本號';
-  return '腳本自訂變數';
-}
-
 function renderGlobalEditorPanel() {
   const box = document.getElementById('auditGlobalEditor');
   if (!box || !STATE.workspace) return;
   const ws = STATE.workspace;
+  _ensureIniSnapshots(ws);
   const duts = ws.duts || [];
   const insts = ws.instruments || [];
   const gSettings = (ws.global_ini && ws.global_ini.Settings) || {};
   const gScripts = (ws.global_ini && ws.global_ini.Scripts) || {};
+  const sysIni = ws.system_ini || {};
   const stationNames = Object.keys(ws.stations || {});
   const { usedVars, usedInstRefs } = _collectUsedVarsAndInstruments(ws);
 
-  const tabBtn = (id, label) => {
+  const tabBtn = (id, labelHtml) => {
     const active = AUDIT_GLOBAL_TAB === id;
-    return `<button onclick="switchGlobalEditorTab('${id}')" class="btn" style="padding:5px 12px; font-size:13px; ${active ? 'background:#2563EB;color:#FFFFFF;border-color:#1D4ED8;font-weight:700;' : 'background:#FFFFFF;color:#334155;border-color:#CBD5E1;'}">${label}</button>`;
+    return `<button onclick="switchGlobalEditorTab('${id}')" class="btn" style="padding:5px 12px; font-size:13px; ${active ? 'background:#2563EB;color:#FFFFFF;border-color:#1D4ED8;font-weight:700;' : 'background:#FFFFFF;color:#334155;border-color:#CBD5E1;'}">${labelHtml}</button>`;
   };
 
   let bodyHtml = '';
-  if (AUDIT_GLOBAL_TAB === 'station_isn') {
+  if (AUDIT_GLOBAL_TAB === 'ini_diff') {
+    // ================= 方案 A：左邊直覺設定面板 + 右邊真實 INI 即時對照與存檔彈出 =================
+    const mkSysToggle = (key, label, onText = '🟢 開啟 (1)', offText = '⚪ 關閉 (0)') => {
+      const curVal = String(sysIni[key] !== undefined ? sysIni[key] : '0').trim();
+      const origVal = String((STATE.origSystemIni || {})[key] !== undefined ? STATE.origSystemIni[key] : curVal).trim();
+      const isOn = curVal === '1' || curVal.toLowerCase() === 'true';
+      const isMod = curVal !== origVal;
+      return `
+        <div style="background:${isMod ? '#F0FDF4' : '#F8FAFC'}; border:1px solid ${isMod ? '#22C55E' : '#CBD5E1'}; border-radius:6px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <div style="font-weight:700; font-size:12.5px; color:#0F172A;">${label} ${isMod ? '<span style="color:#16A34A;font-size:11px;">✏️已改</span>' : ''}</div>
+            <div class="mono" style="font-size:11px; color:#64748B;">[System.ini] ${key}</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button onclick="setSystemIniValueLive('${key}','1')" class="btn" style="padding:3px 9px; font-size:11.5px; ${isOn ? 'background:#16A34A;color:#FFF;font-weight:800;border-color:#15803D;' : 'background:#FFF;color:#64748B;'}">${onText}</button>
+            <button onclick="setSystemIniValueLive('${key}','0')" class="btn" style="padding:3px 9px; font-size:11.5px; ${!isOn ? 'background:#334155;color:#FFF;font-weight:800;border-color:#1E293B;' : 'background:#FFF;color:#64748B;'}">${offText}</button>
+          </div>
+        </div>
+      `;
+    };
+
+    const mkSysInput = (key, label, widthPx = 120) => {
+      const curVal = String(sysIni[key] !== undefined ? sysIni[key] : '');
+      const origVal = String((STATE.origSystemIni || {})[key] !== undefined ? STATE.origSystemIni[key] : curVal);
+      const isMod = curVal !== origVal;
+      return `
+        <div style="background:${isMod ? '#F0FDF4' : '#F8FAFC'}; border:1px solid ${isMod ? '#22C55E' : '#CBD5E1'}; border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <div style="font-weight:700; font-size:12px; color:#0F172A;">${label}</div>
+            <div class="mono" style="font-size:11px; color:#64748B;">${key}</div>
+          </div>
+          <input value="${_escAttr(curVal)}" oninput="setSystemIniValueLive('${key}',this.value)" class="mono"
+            style="width:${widthPx}px; padding:4px 7px; font-size:12px; border:1px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFF'}; border-radius:4px; font-weight:${isMod ? '700' : '400'};">
+        </div>
+      `;
+    };
+
+    // 篩選本腳本實際用到的 Global.ini 變數 + 已修改的變數 + 核心通訊變數
+    const gEntries = _collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini');
+    const activeGlobalEntries = [];
+    const idleGlobalEntries = [];
+    gEntries.forEach(e => {
+      const isCore = usedVars.has(e.key) || /^(DUT_UR1|DUTIP_1|PCIP_1|DAQ_1|LED_AZ1|LED_Light1|LOAD_1|DEVID_1|FW_VERSION)$/i.test(e.key);
+      if (e.isChanged || isCore) activeGlobalEntries.push(e);
+      else idleGlobalEntries.push(e);
+    });
+
+    const mkGlobalRow = (e) => `
+      <tr style="background:${e.isChanged ? '#F0FDF4' : '#FFFFFF'};">
+        <td style="font-size:12px; color:#334155; padding:5px 8px;">
+          <div style="font-weight:700; color:#0F172A;">${_escAttr(e.desc)}</div>
+          <div class="mono" style="font-size:11px; color:#1E40AF;">[${_escAttr(e.section)}] ${_escAttr(e.key)}</div>
+        </td>
+        <td style="padding:5px 8px;">
+          <input value="${_escAttr(e.newVal)}"
+            oninput="setGlobalIniValueLive('${_escAttr(e.section)}','${_escAttr(e.key)}',this.value,false)"
+            onchange="setGlobalIniValueLive('${_escAttr(e.section)}','${_escAttr(e.key)}',this.value,true)"
+            class="mono"
+            style="width:100%; padding:4px 7px; font-size:12.5px; box-sizing:border-box; border:1px solid ${e.isChanged ? '#16A34A' : '#94A3B8'}; background:${e.isChanged ? '#DCFCE7' : '#FFFFFF'}; font-weight:${e.isChanged ? '700' : '400'}; border-radius:4px;">
+        </td>
+      </tr>
+    `;
+
+    bodyHtml = `
+      <div style="display:grid; grid-template-columns: 1.05fr 1fr; gap:14px; align-items:start;">
+        <!-- ⬅️ 左視窗：直覺控制面板 -->
+        <div style="border:1.5px solid #93C5FD; border-radius:8px; background:#FFFFFF; overflow:hidden;">
+          <div style="background:#EFF6FF; padding:8px 12px; border-bottom:1px solid #93C5FD; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:800; font-size:13.5px; color:#1E3A8A;">⬅️ 左視窗：直覺調整設定（點擊開關或輸入即刻連動右側）</span>
+            <button onclick="addGlobalIniVar()" class="btn" style="padding:2px 9px; font-size:11.5px; background:#FFFFFF; color:#1E40AF; border:1px solid #60A5FA; font-weight:700;">+ 新增變數</button>
+          </div>
+          <div style="padding:10px 12px; max-height:480px; overflow:auto; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-weight:800; font-size:12.5px; color:#475569; border-bottom:1px solid #E2E8F0; padding-bottom:4px;">
+              🌐 1. System.ini 產線過站與系統開關
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              ${mkSysToggle('SFIS_Enable', 'SFIS 過站總開關')}
+              ${mkSysToggle('SFIS_LinkIPLAS', 'SFIS 連動 iPLAS')}
+              ${mkSysToggle('iPLAS_Enable', 'iPLAS 資料上傳')}
+              ${mkSysToggle('DebugMode', '除錯模式 (免簽章)', '🟢 調試 (1)', '🔒 量產 (0)')}
+              ${mkSysInput('SFIS_TSP', 'SFIS 站別路由碼', 110)}
+              ${mkSysInput('iPLAS_Site', 'iPLAS 廠區代碼', 85)}
+            </div>
+
+            <div style="font-weight:800; font-size:12.5px; color:#475569; border-bottom:1px solid #E2E8F0; padding-bottom:4px; margin-top:4px;">
+              🔌 2. Global.ini 本腳本實際使用之 COM / IP / 硬體參數（共 ${activeGlobalEntries.length} 項）
+            </div>
+            <table class="meas-table" style="margin:0;">
+              <thead><tr><th style="width:48%;">參數用途與名稱</th><th>目前設定值（直接輸入即同步預覽）</th></tr></thead>
+              <tbody>${activeGlobalEntries.map(mkGlobalRow).join('')}</tbody>
+            </table>
+
+            ${idleGlobalEntries.length > 0 ? `
+              <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
+                <summary style="cursor:pointer; font-weight:700; font-size:12px; color:#64748B;">📦 展開其餘未引用的備用 Global.ini 變數（共 ${idleGlobalEntries.length} 項，預設收合防干擾）</summary>
+                <table class="meas-table" style="margin-top:6px;">
+                  <tbody>${idleGlobalEntries.map(mkGlobalRow).join('')}</tbody>
+                </table>
+              </details>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- ➡️ 右視窗：即時修改前後對照 & 真實 INI 預覽 & 一鍵存檔彈出 -->
+        <div id="iniLiveRightPane">
+          ${_buildRightPaneHtml(ws)}
+        </div>
+      </div>
+    `;
+  } else if (AUDIT_GLOBAL_TAB === 'station_isn') {
     const rowsHtml = duts.map((d, i) => {
       const scanKey = _findKeyByPrefix(d, 'ScanBarcode', 'ScanBarcode({Name,Length,Pattern})');
       const loadVal = String(d['Load'] || '').trim();
@@ -311,7 +712,7 @@ function renderGlobalEditorPanel() {
       <tr>
         <td style="font-size:12.5px; color:#334155;">${_describeGlobalVar(k)}</td>
         <td class="mono" style="font-weight:700; color:#1E3A8A;">${_escAttr(k)}</td>
-        <td><input value="${_escAttr(gSettings[k])}" onchange="STATE.workspace.global_ini['Settings']['${_escAttr(k)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:12.5px;box-sizing:border-box;"></td>
+        <td><input value="${_escAttr(gSettings[k])}" onchange="setGlobalIniValueLive('Settings','${_escAttr(k)}',this.value)" class="mono" style="width:100%;padding:4px;font-size:12.5px;box-sizing:border-box;"></td>
       </tr>
     `).join('');
 
@@ -367,7 +768,6 @@ function renderGlobalEditorPanel() {
       </div>
     `;
   } else if (AUDIT_GLOBAL_TAB === 'inst_com') {
-    // Tab 3: Used Instruments & Used Global.ini COM/HW vars (with unused collapsed)
     const isInstUsed = (inst) => {
       const m = String(inst['Mount'] || '').trim();
       const nm = String(inst['Name'] || '').trim().toLowerCase();
@@ -399,141 +799,26 @@ function renderGlobalEditorPanel() {
       </tr>
     `;
 
-    const hwKeysSettings = Object.keys(gSettings).filter(k => !/IP/i.test(k) && (usedVars.has(k) || /^(DUT_UR1|DAQ_1|LED_AZ1)$/i.test(k)));
-    const hwKeysScripts = Object.keys(gScripts).filter(k => usedVars.has(k) || /^(FW_VERSION)$/i.test(k));
-    const unusedKeysSettings = Object.keys(gSettings).filter(k => !/IP/i.test(k) && !hwKeysSettings.includes(k));
-
-    const kvRow = (sec, k, val) => `
-      <tr>
-        <td style="font-size:12px; color:#475569;">${_describeGlobalVar(k)}</td>
-        <td class="mono" style="font-weight:700; color:#1E3A8A;">[${sec}] ${k}</td>
-        <td><input value="${_escAttr(val)}" onchange="STATE.workspace.global_ini['${sec}']['${_escAttr(k)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:12px;box-sizing:border-box;"></td>
-      </tr>
-    `;
-
     bodyHtml = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-        <span style="font-size:12.5px; color:#475569;">僅顯示本腳本<b>實際使用中</b>的儀器（${activeInsts.length} 台）與 <b>COM / 硬體變數</b>（${hwKeysSettings.length + hwKeysScripts.length} 項）。</span>
-        <button onclick="addGlobalIniVar()" class="btn btn-primary-green" style="padding:3px 10px; font-size:12px;">+ 新增 Global.ini 變數</button>
-      </div>
+      <div style="font-size:12.5px; color:#475569; margin-bottom:8px;">顯示本腳本 Excel <b>Instrument 工作表</b>實際掛載使用中的儀器（${activeInsts.length} 台）。</div>
       <div style="overflow:auto; max-height:360px; display:flex; flex-direction:column; gap:10px;">
-        <table class="meas-table">
-          <thead><tr><th>用途說明</th><th>Global.ini 變數</th><th>設定值</th></tr></thead>
-          <tbody>
-            ${hwKeysSettings.map(k => kvRow('Settings', k, gSettings[k])).join('')}
-            ${hwKeysScripts.map(k => kvRow('Scripts', k, gScripts[k])).join('')}
-          </tbody>
-        </table>
         <table class="meas-table">
           <thead><tr><th>Mount (掛載站別)</th><th>儀器名稱</th><th>Settings (IP / COM / GPIB)</th><th>Functions</th><th>Version</th></tr></thead>
           <tbody>${activeInsts.map(renderInstRow).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748B;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
         </table>
         ${idleInsts.length > 0 ? `
           <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
-            <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#475569;">📦 顯示其餘未使用的型錄儀器（共 ${idleInsts.length} 台）</summary>
+            <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
             <table class="meas-table" style="margin-top:6px;">
               <thead><tr><th>Mount</th><th>儀器名稱</th><th>Settings</th><th>Functions</th><th>Version</th></tr></thead>
               <tbody>${idleInsts.map(renderInstRow).join('')}</tbody>
             </table>
           </details>
         ` : ''}
-        ${unusedKeysSettings.length > 0 ? `
-          <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
-            <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#475569;">🧩 顯示其餘未引用的 Global.ini 變數（共 ${unusedKeysSettings.length} 項）</summary>
-            <table class="meas-table" style="margin-top:6px;">
-              <tbody>${unusedKeysSettings.map(k => kvRow('Settings', k, gSettings[k])).join('')}</tbody>
-            </table>
-          </details>
-        ` : ''}
-      </div>
-    `;
-  } else if (AUDIT_GLOBAL_TAB === 'ini_diff') {
-    _ensureIniSnapshots(ws);
-    const gEntries = _collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini');
-    const sEntries = _collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini');
-    const allEntries = [...gEntries, ...sEntries];
-    const changedCount = allEntries.filter(e => e.isChanged).length;
-    const shownEntries = INI_DIFF_FILTER_CHANGED_ONLY ? allEntries.filter(e => e.isChanged) : allEntries;
-
-    const leftRows = shownEntries.map(e => {
-      const rowBg = e.isChanged ? '#FEF2F2' : '#FFFFFF';
-      const valCol = e.isChanged ? '#DC2626' : '#334155';
-      return `
-        <tr style="background:${rowBg};">
-          <td class="mono" style="font-size:11.5px; color:#64748B;">${_escAttr(e.file)}</td>
-          <td class="mono" style="font-size:12px; font-weight:700; color:#1E293B;">[${_escAttr(e.section)}] ${_escAttr(e.key)}</td>
-          <td class="mono" style="font-size:12px; color:${valCol}; ${e.isChanged ? 'font-weight:700; text-decoration:line-through;' : ''}">${_escAttr(e.oldVal)}</td>
-        </tr>
-      `;
-    }).join('');
-
-    const rightRows = shownEntries.map(e => {
-      const rowBg = e.isChanged ? '#ECFDF5' : '#FFFFFF';
-      const badge = e.isAdded
-        ? '<span style="background:#0284C7;color:#FFF;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px;">✨新增</span>'
-        : (e.isModified ? '<span style="background:#16A34A;color:#FFF;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px;">✏️已改</span>' : '');
-      return `
-        <tr style="background:${rowBg};">
-          <td class="mono" style="font-size:11.5px; color:#64748B;">${_escAttr(e.file)}</td>
-          <td class="mono" style="font-size:12px; font-weight:700; color:#1E293B;">[${_escAttr(e.section)}] ${_escAttr(e.key)} ${badge}</td>
-          <td>
-            <input value="${_escAttr(e.newVal)}"
-              onchange="updateIniFromDiffView('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}',this.value)"
-              class="mono"
-              style="width:100%; padding:3px 6px; font-size:12px; box-sizing:border-box; border:1px solid ${e.isChanged ? '#16A34A' : '#CBD5E1'}; background:${e.isChanged ? '#DCFCE7' : '#FFFFFF'}; font-weight:${e.isChanged ? '700' : '400'}; color:#0F172A; border-radius:4px;">
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    bodyHtml = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:10px 14px;">
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <span style="font-weight:800; font-size:13.5px; color:#14532D;">🆚 INI 修改前後左右對照視窗（目前已修改 <span style="color:#DC2626; font-size:15px;">${changedCount}</span> 項設定）</span>
-          <button onclick="toggleIniDiffFilter(true)" class="btn" style="padding:3px 10px; font-size:12px; ${INI_DIFF_FILTER_CHANGED_ONLY ? 'background:#16A34A;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">🔍 只看已修改項 (${changedCount})</button>
-          <button onclick="toggleIniDiffFilter(false)" class="btn" style="padding:3px 10px; font-size:12px; ${!INI_DIFF_FILTER_CHANGED_ONLY ? 'background:#2563EB;color:#FFF;font-weight:700;' : 'background:#FFF;color:#334155;'}">📋 顯示全部 (${allEntries.length})</button>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button onclick="saveAndOpenModifiedIni('auto')" class="btn btn-primary-green" style="padding:6px 16px; font-size:13px; font-weight:800; box-shadow:0 2px 6px rgba(22,163,74,0.25);">
-            💾 存檔並彈出剛剛改的 INI (免開 Excel)
-          </button>
-          <button onclick="saveAndOpenModifiedIni('global')" class="btn" style="padding:5px 11px; font-size:12px; background:#EFF6FF; color:#1E40AF; border:1px solid #93C5FD; font-weight:700;">
-            📄 存檔並彈出 Global.ini
-          </button>
-          <button onclick="saveAndOpenModifiedIni('system')" class="btn" style="padding:5px 11px; font-size:12px; background:#EFF6FF; color:#1E40AF; border:1px solid #93C5FD; font-weight:700;">
-            ⚙️ 存檔並彈出 System.ini
-          </button>
-        </div>
-      </div>
-      <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:8px 12px; margin-bottom:10px;"></div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div style="border:1.5px solid #FCA5A5; border-radius:8px; overflow:hidden; background:#FFFFFF;">
-          <div style="background:#FEF2F2; padding:7px 12px; font-weight:800; font-size:13px; color:#991B1B; border-bottom:1px solid #FCA5A5;">
-            ⬅️ 左視窗：修改前（原始 Global.ini / System.ini）
-          </div>
-          <div style="max-height:360px; overflow:auto;">
-            <table class="meas-table" style="margin:0;">
-              <thead><tr><th>檔案</th><th>[區段] 參數名稱</th><th>原始設定值</th></tr></thead>
-              <tbody>${leftRows || '<tr><td colspan="3" style="text-align:center;color:#64748B;padding:18px;">目前尚無任何異動項目</td></tr>'}</tbody>
-            </table>
-          </div>
-        </div>
-        <div style="border:1.5px solid #86EFAC; border-radius:8px; overflow:hidden; background:#FFFFFF;">
-          <div style="background:#DCFCE7; padding:7px 12px; font-weight:800; font-size:13px; color:#14532D; border-bottom:1px solid #86EFAC;">
-            ➡️ 右視窗：修改後（最新設定值，可直接於右側欄位微調）
-          </div>
-          <div style="max-height:360px; overflow:auto;">
-            <table class="meas-table" style="margin:0;">
-              <thead><tr><th>檔案</th><th>[區段] 參數名稱</th><th>修改後設定值（可編輯）</th></tr></thead>
-              <tbody>${rightRows || '<tr><td colspan="3" style="text-align:center;color:#64748B;padding:18px;">目前尚無任何異動項目</td></tr>'}</tbody>
-            </table>
-          </div>
-        </div>
       </div>
     `;
   }
 
-  _ensureIniSnapshots(ws);
   const totalIniChanges = [
     ..._collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini'),
     ..._collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini')
@@ -543,15 +828,14 @@ function renderGlobalEditorPanel() {
     <div style="background:#FFFFFF; border:1.5px solid #3B82F6; border-radius:8px; padding:12px 14px; margin-bottom:12px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #E2E8F0;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span style="font-weight:700; font-size:14.5px; color:#0F172A;">⚙️ 全域設定微調區</span>
-          ${tabBtn('station_isn', `📋 站別開關與 ISN (${duts.length})`)}
-          ${tabBtn('net_ip', '🌐 網路 IP / Ping / Port')}
-          ${tabBtn('inst_com', '🔌 儀器掛載與 COM Port')}
-          ${tabBtn('ini_diff', `🆚 INI 左右對照與存檔彈出 (${totalIniChanges})`)}
+          <span style="font-weight:700; font-size:14.5px; color:#0F172A;">⚙️ 全域與 INI 設定工作台</span>
+          ${tabBtn('ini_diff', `🆚 INI 左改右看對照與存檔 <span id="iniTabDiffCountBadge">(${totalIniChanges})</span>`)}
+          ${tabBtn('station_isn', `📋 Excel 站別與 ISN 條碼 (${duts.length})`)}
+          ${tabBtn('net_ip', '🌐 Excel 網路 IP / Ping')}
+          ${tabBtn('inst_com', '🔌 Excel 儀器掛載表')}
         </div>
         <div style="display:flex; gap:8px;">
-          <button onclick="saveAndOpenModifiedIni('auto')" class="btn btn-primary-green" style="padding:5px 14px; font-size:13px; font-weight:800;">💾 存檔並彈出 INI</button>
-          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用微調並看左右對照</button>
+          ${AUDIT_GLOBAL_TAB !== 'ini_diff' ? `<button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用 Excel 表格微調</button>` : ''}
           <button onclick="toggleGlobalEditorPanel()" class="btn" style="padding:5px 10px; font-size:13px; background:#E2E8F0; color:#334155;">收合 ▲</button>
         </div>
       </div>
@@ -602,9 +886,7 @@ function addGlobalIniVar() {
   if (!k || !k.trim()) return;
   const v = prompt(`請輸入 ${k.trim()} 的設定值：`, '');
   if (v === null) return;
-  STATE.workspace.global_ini = STATE.workspace.global_ini || { Settings: {}, Scripts: {} };
-  STATE.workspace.global_ini[sec.trim()][k.trim()] = v;
-  renderGlobalEditorPanel();
+  setGlobalIniValueLive(sec.trim(), k.trim(), v, true);
 }
 
 function batchApplyDutIsn() {
@@ -648,10 +930,9 @@ async function applyGlobalEditorAndReaudit() {
   const labelMap = { station_isn: '站別開關與 ISN', net_ip: '網路 IP / Ping / Port', inst_com: '儀器掛載與 COM Port', ini_diff: 'INI 左右對照微調' };
   STATE.pendingInserts.push({
     sheet: labelMap[AUDIT_GLOBAL_TAB] || '全域設定',
-    inst: 'Global.ini / 線上微調',
-    summary: '已套用微調並完成即時覆檢（可於左右視窗核對 INI 並直接存檔彈出 INI，或匯出 *_FIXED.xlsx）'
+    inst: 'Excel 全域微調',
+    summary: '已套用 Excel 全域微調並完成即時覆檢（請點擊底部「💾 寫入並匯出 Excel (*_FIXED.xlsx)」）'
   });
-  AUDIT_GLOBAL_TAB = 'ini_diff';
   renderGlobalEditorPanel();
   renderAuditResults();
 }

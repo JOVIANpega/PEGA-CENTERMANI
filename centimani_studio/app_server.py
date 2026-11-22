@@ -1868,7 +1868,7 @@ def launch_fullscreen_browser(url):
 def run_server(port=8765):
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.5.3) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.5.4) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

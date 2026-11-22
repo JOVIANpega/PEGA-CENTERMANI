@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.3</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.4</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1366,10 +1366,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.5.3"></script>
-<script src="/js/audit_editors.js?v=0.5.3"></script>
-<script src="/js/flow_guide.js?v=0.5.3"></script>
-<script src="/js/block_sorter.js?v=0.5.3"></script>
+<script src="/js/inst_hmi.js?v=0.5.4"></script>
+<script src="/js/audit_editors.js?v=0.5.4"></script>
+<script src="/js/flow_guide.js?v=0.5.4"></script>
+<script src="/js/block_sorter.js?v=0.5.4"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -5228,6 +5228,7 @@ function confirmSfisIplasModal() {
       badge.innerHTML = `🌐 <b>System.ini 連線：</b>SFIS：<span class="mono">${patch.SFIS_Enable==='1'?'ON (1)':'OFF (0)'}</span> ｜ iPLAS：<span class="mono">${patch.iPLAS_Enable==='1'?'ON (1)':'OFF (0)'}</span> ｜ Site：<span class="mono">${patch.iPLAS_Site}</span>`;
     }
   } else if (STATE.workspace) {
+    if (typeof _ensureIniSnapshots === 'function') _ensureIniSnapshots(STATE.workspace);
     STATE.workspace.system_ini = Object.assign(STATE.workspace.system_ini || {}, patch);
     STATE.pendingInserts = STATE.pendingInserts || [];
     STATE.pendingInserts.push({
@@ -5237,6 +5238,7 @@ function confirmSfisIplasModal() {
     });
     renderAuditResults();
     if (typeof toggleGlobalEditorPanel === 'function') {
+      INI_PREVIEW_FILE_TAB = 'System.ini';
       toggleGlobalEditorPanel('ini_diff');
     }
   }
@@ -5261,6 +5263,7 @@ function openCommModal() {
 }
 
 async function confirmCommModal() {
+  if (STATE.workspace && typeof _ensureIniSnapshots === 'function') _ensureIniSnapshots(STATE.workspace);
   const dutUr1 = document.getElementById('cmDutUr1').value.trim();
   const dutIp1 = document.getElementById('cmDutIp1').value.trim();
   const dutLogin = document.getElementById('cmDutLogin').value.trim();
@@ -5295,6 +5298,7 @@ async function confirmCommModal() {
   document.getElementById('commModal').classList.remove('open');
   renderAuditResults();
   if (typeof toggleGlobalEditorPanel === 'function') {
+    INI_PREVIEW_FILE_TAB = 'Global.ini';
     toggleGlobalEditorPanel('ini_diff');
   }
 }

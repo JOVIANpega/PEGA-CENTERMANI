@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Centimani Studio V2.4 (Build v0.5.3) - 智慧腳本健檢修復與母體產生工作台
+title Centimani Studio V2.4 (Build v0.5.4)
 cd /d "%~dp0centimani_studio"
-powershell -NoProfile -Command "$c = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue; if ($c) { $c.OwningProcess | Select-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }; Get-Process -Name 'EXCEL*' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -eq 0 } | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }"
-start "" python app_server.py
+powershell -NoProfile -Command " = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue; if () { .OwningProcess | Select-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }; Get-Process -Name 'EXCEL*' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -eq 0 } | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }"
+start "" python "%~dp0centimani_studio\app_server.py"
