@@ -698,8 +698,7 @@ function _renderSystemIniFullPageHtml(ws) {
       ${_buildChangeConfirmBoxHtml(sEntries, ws)}
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:13.5px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
+      <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px; padding-top:6px; border-top:1px solid #E2E8F0;">
         <button onclick="saveAndOpenModifiedIni('system')" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 存檔並直接彈出 System.ini 記事本
         </button>
@@ -726,12 +725,12 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     const checked = (cur === 'true' || cur === '1');
     const isMod = (cur !== orig);
     return `
-      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:6px; border:1.5px solid ${isMod ? '#EAB308' : (checked ? '#60A5FA' : '#CBD5E1')}; background:${isMod ? '#FEF9C3' : (checked ? '#EFF6FF' : '#F8FAFC')}; font-weight:800; font-size:13px; color:#0F172A; user-select:none;">
+      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; border:1.5px solid ${isMod ? '#EAB308' : (checked ? '#2563EB' : '#CBD5E1')}; background:${isMod ? '#FEF9C3' : (checked ? '#DBEAFE' : '#FFFFFF')}; font-weight:800; font-size:13px; color:${checked ? '#1E3A8A' : '#64748B'}; user-select:none;">
         <input type="checkbox" ${checked ? 'checked' : ''}
           onchange="setGlobalIniValueLive('Settings', '${key}', this.checked ? 'true' : 'false', true)"
           style="width:16px; height:16px; cursor:pointer; accent-color:#2563EB;">
-        <span>${slotIdx} 號槽 (${key}=${checked ? 'true' : 'false'})</span>
-        ${isMod ? `<span style="background:#FEF08A; color:#854D0E; font-size:10.5px; padding:0 4px; border-radius:3px;">原本:${orig}</span>` : ''}
+        <span>${slotIdx} 號槽 ${checked ? '啟用' : '停用'}</span>
+        ${isMod ? `<span style="background:#FDE047; color:#854D0E; font-size:10.5px; padding:0 5px; border-radius:999px;">已改</span>` : ''}
       </label>
     `;
   };
@@ -796,16 +795,18 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     const orig = String(origObj[key] !== undefined ? origObj[key] : cur).trim();
     const isMod = (cur !== orig);
     return `
-      <div style="background:${isMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <div style="min-width:0; flex:1;">
-          <div style="font-weight:800; font-size:12.5px; color:#0F172A; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
-            <span>${label}</span>
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:11px; padding:0 5px; border-radius:4px; text-decoration:line-through;">原本: ${_escAttr(orig)}</span>` : ''}
-          </div>
-          <div class="mono" style="font-size:11px; color:#1E40AF;">[${sec}] ${key}</div>
+      <div style="background:${isMod ? '#FEFCE8' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:8px; padding:9px 12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          <span style="font-weight:800; font-size:13px; color:#0F172A;">${label}</span>
+          ${isMod
+            ? `<span style="background:#FEF08A; color:#854D0E; font-size:11px; font-weight:700; padding:1px 6px; border-radius:999px; white-space:nowrap;" title="原本值: ${_escAttr(orig)}">已修改 (原: ${_escAttr(orig)})</span>`
+            : `<span class="mono" style="font-size:11px; color:#64748B;">${_escAttr(key)}</span>`
+          }
         </div>
-        <input value="${_escAttr(cur)}" onchange="setGlobalIniValueLive('${_escAttr(sec)}', '${_escAttr(key)}', this.value, true)" class="mono"
-          style="width:${widthPx}px; padding:5px 8px; font-size:13px; font-weight:${isMod ? '800' : '600'}; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input value="${_escAttr(cur)}" onchange="setGlobalIniValueLive('${_escAttr(sec)}', '${_escAttr(key)}', this.value, true)" class="mono"
+            style="flex:1; min-width:0; padding:5px 9px; font-size:13px; font-weight:${isMod ? '800' : '600'}; border-radius:6px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
+        </div>
       </div>
     `;
   };
@@ -885,8 +886,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
       ${_buildChangeConfirmBoxHtml(gEntries, ws)}
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:13.5px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
+      <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px; padding-top:6px; border-top:1px solid #E2E8F0;">
         <button onclick="saveAndOpenModifiedIni('global')" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 存檔並直接彈出 Global.ini 記事本
         </button>
@@ -1056,13 +1056,6 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
           ` : ''}
         </div>
       </details>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:13.5px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
-        <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
-          💾 寫入並匯出 Excel (*_FIXED.xlsx)
-        </button>
-      </div>
     </div>
   `;
 }
@@ -1336,6 +1329,14 @@ function renderGlobalEditorPanel() {
       ${innerHtml}
     </div>
   `;
+
+  const expBar = document.getElementById('editorExportBar');
+  if (expBar) {
+    const hasPendingExcel = (STATE.pendingInserts || []).some(p => p.inst !== 'INI 設定微調') || ((ws._modified_cells || []).length > 0);
+    const showExportBar = (AUDIT_GLOBAL_TAB === 'station_isn' || AUDIT_GLOBAL_TAB === 'inst_com')
+      || (AUDIT_GLOBAL_TAB === 'hub' && hasPendingExcel);
+    expBar.style.display = showExportBar ? 'flex' : 'none';
+  }
 }
 
 function toggleDutLoadState(idx) {

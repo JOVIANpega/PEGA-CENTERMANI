@@ -307,13 +307,16 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
             for d in workspace.get("duts", []):
                 ws_duts.append([d.get(h, "") or None for h in headers_to_write])
 
-        for st_name, steps in workspace.get("stations", {}).items():
+        # Write or update Station sheets (16 columns including TestID) in In-Place mode
+        STATION_TAB_COLORS = ["2563EB", "16A34A", "D97706", "7C3AED", "0891B2", "DB2777", "DC2626", "0D9488"]
+        for st_idx, (st_name, steps) in enumerate(workspace.get("stations", {}).items()):
             if st_name in wb.sheetnames:
                 idx_pos = wb.sheetnames.index(st_name)
                 wb.remove(wb[st_name])
                 ws_st = wb.create_sheet(title=st_name, index=idx_pos)
             else:
                 ws_st = wb.create_sheet(title=st_name)
+            ws_st.sheet_properties.tabColor = STATION_TAB_COLORS[st_idx % len(STATION_TAB_COLORS)]
 
             total_steps = len(steps)
             st_headers = [f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:]
@@ -407,8 +410,10 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     apply_sheet_formatting(ws_inst, is_station=False)
 
     # 5. Station Sheets (16 columns including TestID)
-    for st_name, steps in workspace.get("stations", {}).items():
+    STATION_TAB_COLORS = ["2563EB", "16A34A", "D97706", "7C3AED", "0891B2", "DB2777", "DC2626", "0D9488"]
+    for st_idx, (st_name, steps) in enumerate(workspace.get("stations", {}).items()):
         ws_st = wb.create_sheet(title=st_name)
+        ws_st.sheet_properties.tabColor = STATION_TAB_COLORS[st_idx % len(STATION_TAB_COLORS)]
         total_steps = len(steps)
         st_headers = [f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:]
         ws_st.append(st_headers)

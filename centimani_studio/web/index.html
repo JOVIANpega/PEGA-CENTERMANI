@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.4</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.5</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -304,14 +304,24 @@
           <button onclick="jeApplyTemplateIfElse()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#DCFCE7; color:#15803D; border-color:#4ADE80;">🔀 雙分支分流 (自動補 PASS 末行跳出)</button>
           <button onclick="jeApplyTemplateRetry()" class="btn" style="padding:4px 10px; font-size:12.5px; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;">↩ 區間重試 (2:XX + 補次數)</button>
           <details style="margin-left:auto; font-size:12.5px;">
-            <summary style="cursor:pointer; font-weight:700; color:#1E3A8A; background:#DBEAFE; border:1px solid #60A5FA; border-radius:4px; padding:3px 10px;">📖 ExecMode 選用速查表 (0~9)</summary>
-            <div style="margin-top:6px; padding:8px 12px; background:#FFFFFF; border:1px solid #94A3B8; border-radius:6px; color:#334155; line-height:1.55;">
-              <b>0 (一般)</b>：正常執行一次　|　<b>1 (單步重試)</b>：該步失敗直接原地重試<br>
-              <b>2:XX (重試回跳)</b>：失敗跳回同 Title 步號 XX　|　<b>3 (忽略續跑)</b>：失敗仍繼續（<code>:ReleaseDevice</code> / <code>:Disconnect</code> 必用）<br>
-              <b>4:P,F (條件分支)</b>：PASS 跳 P、FAIL 跳 F　|　<b>5 (失敗才跑)</b>：前方失敗時才執行　|　<b>6 (略過)</b>：Skip 不執行<br>
-              <b>7 (校正)</b>：<code>7:Step,timeout</code>　|　<b>8 (SFIS執行)</b>：啟用 SFIS 時執行　|　<b>9 (SFIS重試)</b>：啟用 SFIS 時失敗重試
+            <summary style="cursor:pointer; font-weight:800; color:#1E3A8A; background:#DBEAFE; border:1.5px solid #60A5FA; border-radius:6px; padding:4px 12px;">📖 ExecMode 選用速查表 (0~9)</summary>
+            <div style="margin-top:8px; padding:10px 12px; background:#FFFFFF; border:1.5px solid #93C5FD; border-radius:8px; box-shadow:0 6px 18px rgba(15,23,42,0.12); display:grid; grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); gap:7px; min-width:560px; max-width:740px;">
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px;"><span class="mono" style="background:#64748B;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">0</span><span><b>一般</b>：正常執行一次</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px;"><span class="mono" style="background:#0284C7;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">1</span><span><b>單步重試</b>：該步失敗直接原地重試</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px;"><span class="mono" style="background:#7C3AED;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">2:XX</span><span><b>重試回跳</b>：失敗跳回同 Title 步號 XX</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px;"><span class="mono" style="background:#D97706;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">3</span><span><b>忽略續跑</b>：失敗仍繼續（<code>:ReleaseDevice</code> 必用）</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;"><span class="mono" style="background:#16A34A;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">4:P,F</span><span><b>條件分支</b>：PASS 跳 P、FAIL 跳 F（如 SKU 分流）</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFF1F2; border:1px solid #FECDD3; border-radius:6px;"><span class="mono" style="background:#E11D48;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">5</span><span><b>失敗才跑</b>：前方失敗時才執行</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px;"><span class="mono" style="background:#475569;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">6</span><span><b>略過</b>：Skip 不執行</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:6px;"><span class="mono" style="background:#0D9488;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">7</span><span><b>校正</b>：<code>7:Step,timeout</code></span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4F46E5;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">8</span><span><b>SFIS 執行</b>：啟用 SFIS 時才執行</span></div>
+              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4338CA;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11.5px;">9</span><span><b>SFIS 重試</b>：啟用 SFIS 時失敗重試</span></div>
             </div>
           </details>
+        </div>
+        <!-- 常見跳轉範例（SKU 分流示範） -->
+        <div style="padding:6px 16px; background:#FFFBEB; border-bottom:1px solid #FDE68A; font-size:12px; color:#78350F; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span>💡 <b>最常見跳轉範例（SKU 分流）：</b>步驟 <code class="mono" style="background:#FEF3C7;padding:1px 5px;border-radius:3px;">000</code> 讀取 SKU 設 <code class="mono" style="background:#DCFCE7;color:#166534;font-weight:800;padding:1px 5px;border-radius:3px;">4:1,3</code> → <b>PASS</b> 跳第 <b>1</b> 步執行 SKU-A（末行設 <code class="mono">4:End,End</code> 跳出），<b>FAIL</b> 跳第 <b>3</b> 步執行 SKU-B。</span>
         </div>
         <div style="flex:1; overflow:auto; padding:10px 16px;">
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -1057,9 +1067,9 @@
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
 
         <!-- ⑤ 產出確認列 -->
-        <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div id="editorExportBar" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <div style="font-size:13px; color:#475569;">
-            💡 <b>安全存檔機制：</b>所有 Excel 流程編修先暫存於記憶體，點擊右側按鈕匯出同目錄 <code>*_FIXED.xlsx</code>（新增/修改區塊自動高亮標記）並更新 Checksum。
+            ✅ <b>安全自動體檢存檔：</b>匯出時會<b>自動檢查並修復錯誤</b>（Index 順編、缺漏 TestID、安全收尾與更新 Checksum），不需手動擔心格式問題。
           </div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
@@ -1334,10 +1344,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.6.4"></script>
-<script src="/js/audit_editors.js?v=0.6.4"></script>
-<script src="/js/flow_guide.js?v=0.6.4"></script>
-<script src="/js/block_sorter.js?v=0.6.4"></script>
+<script src="/js/inst_hmi.js?v=0.6.5"></script>
+<script src="/js/audit_editors.js?v=0.6.5"></script>
+<script src="/js/flow_guide.js?v=0.6.5"></script>
+<script src="/js/block_sorter.js?v=0.6.5"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
