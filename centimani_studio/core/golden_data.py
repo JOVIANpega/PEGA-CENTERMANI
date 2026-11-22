@@ -386,9 +386,11 @@ STANDARD_BLOCKS = [
 _CACHED_VALID_TEST_IDS = None
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _PROJECT_ROOT = os.path.dirname(_BASE_DIR)
+_TIC_CACHE_FILE = os.path.join(_BASE_DIR, ".tic_cache.json")
+
 
 def get_valid_test_ids(scripts_root=None):
-    """Loads all valid 7-character TestIDs from Test Item Code V2.04+ Excel files."""
+    """Loads all valid 6/7-character TestIDs from the cached Test Item Code V2.04+ catalog (fast <0.02s)."""
     global _CACHED_VALID_TEST_IDS
     if _CACHED_VALID_TEST_IDS is not None:
         return _CACHED_VALID_TEST_IDS
@@ -402,30 +404,10 @@ def get_valid_test_ids(scripts_root=None):
         "WFOT024", "WFOT030", "WFOT034", "WFOT036", "IOLE015"
     }
     try:
-        search_roots = []
-        if scripts_root and os.path.exists(scripts_root):
-            search_roots.append(scripts_root)
-        for cand_root in (
-            os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample"),
-            os.path.join(_PROJECT_ROOT, "SCRIPTS"),
-            r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS",
-        ):
-            if os.path.exists(cand_root) and cand_root not in search_roots:
-                search_roots.append(cand_root)
-        tic_files = []
-        for sr in search_roots:
-            tic_files.extend(glob.glob(os.path.join(sr, "**", "*Test Item Code V2*.xlsx"), recursive=True))
-        for tf in tic_files[:2]:
-            wb = openpyxl.load_workbook(tf, read_only=True, data_only=True)
-            for s in wb.sheetnames:
-                ws = wb[s]
-                for r in ws.iter_rows(values_only=True):
-                    for cell in r[:5]:
-                        if cell and isinstance(cell, str):
-                            c_str = cell.strip().upper()
-                            if len(c_str) in [6, 7] and c_str.isalnum():
-                                valid_ids.add(c_str)
-            wb.close()
+        for item in get_tic_catalog():
+            tid = str(item.get("test_id", "")).strip().upper()
+            if len(tid) in (6, 7) and tid.isalnum():
+                valid_ids.add(tid)
     except Exception:
         pass
 
@@ -487,6 +469,18 @@ def get_tic_catalog():
         _ACTIVE_TIC_PATH = tic_path
 
     if tic_path:
+        import json
+        try:
+            cur_mtime = os.path.getmtime(tic_path)
+            if os.path.exists(_TIC_CACHE_FILE):
+                with open(_TIC_CACHE_FILE, "r", encoding="utf-8") as cf:
+                    cached = json.load(cf)
+                if cached.get("path") == tic_path and cached.get("mtime") == cur_mtime and cached.get("catalog"):
+                    _CACHED_TIC_CATALOG = cached["catalog"]
+                    return _CACHED_TIC_CATALOG
+        except Exception:
+            cur_mtime = 0
+
         try:
             wb = openpyxl.load_workbook(tic_path, read_only=True, data_only=True)
             ws = wb["Test Item All"] if "Test Item All" in wb.sheetnames else wb.active
@@ -528,6 +522,12 @@ def get_tic_catalog():
                     "is_generic": not is_proj_specific,
                 })
             wb.close()
+            if catalog:
+                try:
+                    with open(_TIC_CACHE_FILE, "w", encoding="utf-8") as cf:
+                        json.dump({"path": tic_path, "mtime": cur_mtime, "catalog": catalog}, cf, ensure_ascii=False)
+                except Exception:
+                    pass
         except Exception:
             pass
 
