@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.9</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.7.0</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1256,6 +1256,16 @@
           📂 更換 Test Item Code 檔案
         </button>
       </div>
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:12px; font-weight:700; color:#64748B;">🔥 常用快搜：</span>
+        <button class="filter-pill" onclick="quickSearchTic('電壓')">⚡ 電壓/電源</button>
+        <button class="filter-pill" onclick="quickSearchTic('WiFi')">📡 WiFi/RF</button>
+        <button class="filter-pill" onclick="quickSearchTic('Bluetooth')">📶 藍牙/BT</button>
+        <button class="filter-pill" onclick="quickSearchTic('LED')">💡 LED</button>
+        <button class="filter-pill" onclick="quickSearchTic('UART')">🔌 UART/SSH</button>
+        <button class="filter-pill" onclick="quickSearchTic('SFIS')">🏭 SFIS</button>
+        <button class="filter-pill" onclick="quickSearchTic('Sensor')">📷 Sensor</button>
+      </div>
       <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#475569; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:4px 10px;">
         <span style="font-weight:700; white-space:nowrap;">📄 目前代碼庫檔案：</span>
         <span id="ticActiveFileText" class="mono" style="color:#0F172A; font-weight:700; word-break:break-all;">載入中...</span>
@@ -1437,10 +1447,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.6.9"></script>
-<script src="/js/audit_editors.js?v=0.6.9"></script>
-<script src="/js/flow_guide.js?v=0.6.9"></script>
-<script src="/js/block_sorter.js?v=0.6.9"></script>
+<script src="/js/inst_hmi.js?v=0.7.0"></script>
+<script src="/js/audit_editors.js?v=0.7.0"></script>
+<script src="/js/flow_guide.js?v=0.7.0"></script>
+<script src="/js/block_sorter.js?v=0.7.0"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2156,6 +2166,14 @@ function updateGenCustomTicBadge() {
 }
 
 let _ticSearchTimer = null;
+function quickSearchTic(kw) {
+  const inp = document.getElementById('ticSearchInput');
+  if (inp) {
+    inp.value = kw;
+    searchTicLive();
+  }
+}
+
 function searchTicLive() {
   clearTimeout(_ticSearchTimer);
   _ticSearchTimer = setTimeout(async () => {
@@ -2187,9 +2205,8 @@ function searchTicLive() {
         <td style="white-space:nowrap;">${tag}</td>
         <td><div><b>${it.desc_en || ''}</b></div><div style="color:#64748B; font-size:11.5px;">${it.desc_cn || ''}</div></td>
         <td style="white-space:nowrap;" onclick="event.stopPropagation()">
-          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="copyTicCode('${it.test_id}', this)">複製 ID</button>
-          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="copyTicTwoCols(${idx}, this)">雙欄複製</button>
-          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="pinTicItem(${idx})">📌</button>
+          <button class="btn" style="padding:2px 8px; font-size:11.5px; background:#F8FAFC;" onclick="copyTicCode('${it.test_id}', this)" title="複製 TestID">📋 複製</button>
+          <button class="btn" style="padding:2px 6px; font-size:11.5px;" onclick="pinTicItem(${idx})" title="釘選至上方常用列">📌</button>
         </td>
       </tr>`;
     });
@@ -2213,12 +2230,16 @@ function renderSelectedTicBanner() {
     return;
   }
   const it = SELECTED_TIC_ITEM;
+  const selIdx = LAST_TIC_RESULTS.findIndex(x => x.test_id === it.test_id);
   banner.style.background = '#EFF6FF';
   banner.style.borderColor = '#3B82F6';
   banner.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
       <span>已選定：<b class="mono" style="color:#1D4ED8; font-size:14.5px;">${it.test_id}</b>（Error Code: <b class="mono" style="color:#B91C1D;">${it.error_code || '-'}</b>）</span>
-      <span style="font-size:12px; color:#475569;">點擊下方任一列的「⬅️ 套用」即可填入</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        ${selIdx >= 0 ? `<button class="btn" style="padding:2px 8px; font-size:11.5px; background:#FFFFFF;" onclick="copyTicTwoCols(${selIdx}, this)">📋 雙欄複製貼 Excel</button>` : ''}
+        <span style="font-size:12px; color:#475569;">點擊下方「⬅️ 套用」即可填入</span>
+      </div>
     </div>
     <div style="margin-top:4px; color:#0F172A;"><b>${it.desc_en || ''}</b> <span style="color:#475569;">— ${it.desc_cn || ''}</span></div>
   `;
@@ -2304,36 +2325,58 @@ function renderTicTargetList() {
       box.innerHTML = '<div style="color:#64748B; padding:12px;">目前「母體產生」尚未勾選任何積木。</div>';
       return;
     }
-    let html = '<table class="meas-table"><thead><tr><th>積木 / 步驟</th><th>Description</th><th>TestID</th><th>套用</th></tr></thead><tbody>';
-    let rowCount = 0;
-    selectedBlks.forEach(blk => {
+    let groupsHtml = '';
+    let totalSteps = 0;
+    selectedBlks.forEach((blk, bIdx) => {
+      const matchedSteps = [];
       (blk.steps || []).forEach((st, stIdx) => {
         const send = String(st.Send || '').trim();
         const desc = String(st.Description || '').trim();
         const tid = String(st.TestID || '').trim();
         if (!tid && !send.includes(':CheckLimit') && !st.Validation) return;
-        rowCount++;
+        matchedSteps.push({ st, stIdx, send, desc, tid });
+      });
+      if (!matchedSteps.length) return;
+      totalSteps += matchedSteps.length;
+      const hasMissing = matchedSteps.some(x => !x.tid);
+      const rowsHtml = matchedSteps.map(({ stIdx, send, desc, tid }) => {
         const key = `${blk.block_id}::${stIdx}`;
         const ov = MOTHER_TESTID_OVERRIDES[key];
         const curTid = (ov && ov.test_id) ? ov.test_id : tid;
         const curDesc = (ov && ov.description) ? ov.description : desc;
         const badge = ov ? '<span class="badge badge-pass" style="font-size:10px;">已改</span>' : '';
-        html += `<tr>
-          <td><div style="font-weight:700; color:#0F172A;">${blk.name || blk.block_id}</div><div class="mono" style="font-size:11px; color:#64748B;">${send || '(step)'}</div></td>
+        return `<tr>
+          <td><div class="mono" style="font-size:11.5px; color:#0F172A; font-weight:700;">${send || '(step)'}</div></td>
           <td>${curDesc}</td>
-          <td class="mono" style="font-weight:700; color:#1D4ED8;">${curTid} ${badge}</td>
+          <td class="mono" style="font-weight:700; color:${curTid ? '#1D4ED8' : '#DC2626'};">${curTid || '(缺漏)'} ${badge}</td>
           <td style="white-space:nowrap;">
             <button class="btn btn-primary-blue" style="padding:2px 8px; font-size:11.5px;" onclick="applyTicToMotherStep('${blk.block_id}', ${stIdx})">⬅️ 套用</button>
             ${ov ? `<button class="btn" style="padding:2px 6px; font-size:11px;" onclick="resetMotherStepTic('${blk.block_id}', ${stIdx})">還原</button>` : ''}
           </td>
         </tr>`;
-      });
+      }).join('');
+      groupsHtml += `
+        <details ${hasMissing || bIdx === 0 ? 'open' : ''} style="border:1px solid #CBD5E1; border-radius:6px; margin-bottom:6px; background:#F8FAFC;">
+          <summary style="cursor:pointer; padding:6px 10px; font-weight:800; font-size:12.5px; color:#0F172A; display:flex; justify-content:space-between; align-items:center;">
+            <span>🧩 ${blk.name || blk.block_id}</span>
+            <span style="font-size:11.5px; color:${hasMissing ? '#DC2626' : '#64748B'};">${matchedSteps.length} 步${hasMissing ? '（含缺漏碼）' : ''}</span>
+          </summary>
+          <table class="meas-table" style="margin:0; background:#FFFFFF;">
+            <thead><tr><th>Send 指令</th><th>Description</th><th>TestID</th><th>套用</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </details>
+      `;
     });
-    html += '</tbody></table>';
-    box.innerHTML = rowCount ? html : '<div style="color:#64748B; padding:12px;">已勾選的積木中沒有含 TestID 的步驟。</div>';
+    box.innerHTML = totalSteps ? groupsHtml : '<div style="color:#64748B; padding:12px;">已勾選的積木中沒有含 TestID 的步驟。</div>';
   } else {
     if (!STATE.workspace) {
-      box.innerHTML = '<div style="color:#64748B; padding:12px;">尚未載入 Excel 檔案。請點擊上方「📂 選擇 Excel 檔案」，或先在「腳本健檢」載入檔案。</div>';
+      box.innerHTML = `
+        <div style="text-align:center; padding:22px 14px; background:#F8FAFC; border:1.5px dashed #94A3B8; border-radius:8px;">
+          <div style="color:#475569; font-size:13px; margin-bottom:10px;">尚未載入任何 <code>TestFlow.xlsx</code> 檔案</div>
+          <button class="btn btn-primary-blue" style="padding:7px 16px; font-size:13px; font-weight:800;" onclick="pickExcelFromTic()">📂 立即選擇要填入 TestID 的 TestFlow.xlsx</button>
+        </div>
+      `;
       document.getElementById('btnTicSaveExcel').style.display = 'none';
       return;
     }
