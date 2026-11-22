@@ -302,7 +302,7 @@ def run_all_verifications():
         # ---------------------------------------------------------------------
         # 5. 產線 Log 診斷分析 & 5,203 筆 Test Item Code 智慧搜尋
         # ---------------------------------------------------------------------
-        print("\n▶ [驗收 5/5] 產線 Log 診斷分析與 5,203 筆 TestID 智慧搜尋")
+        print("\n▶ [驗收 5/6] 產線 Log 診斷分析與 5,203 筆 TestID 智慧搜尋")
         init_res = get_json("/api/init")
         cat_res = get_json("/api/instrument_catalog")
         rf_set = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
@@ -311,6 +311,53 @@ def run_all_verifications():
         check(init_res["tic_info"]["count"] > 5000, "官方 Test Item Code V2.04 代碼庫已完整載入", f"共 {init_res['tic_info']['count']} 筆")
         tic_res = get_json("/api/search_test_id?q=voltage&limit=5")
         check(len(tic_res["items"]) > 0, "TestID 關鍵字智慧搜尋正常運作", f"首筆推薦: {tic_res['items'][0]['test_id']}")
+
+        # ---------------------------------------------------------------------
+        # 6. 未來 AI 防迴歸守門員：前端 JS 語法靜態掃描、兩階段 AI INI 對照與版本一致性檢查
+        # ---------------------------------------------------------------------
+        print("\n▶ [驗收 6/6] 未來 AI 修改防迴歸守門員 (前端 JS 語法檢查 / 版本號同步 / 批次檔 CRLF 防呆)")
+        import re
+        import subprocess
+        web_dir = os.path.join(STUDIO_DIR, "web")
+        index_html = open(os.path.join(web_dir, "index.html"), "r", encoding="utf-8").read()
+        audit_js = open(os.path.join(web_dir, "js", "audit_editors.js"), "r", encoding="utf-8").read()
+
+        # 6A: 檢查兩階段 INI 編輯 + AI 修改總結報告核心函式完整性
+        for fn_name in ("_renderIniStage1EditHtml", "_renderIniStage2ReviewHtml", "_explainChangeByAi", "saveAndOpenModifiedIni"):
+            check(fn_name in audit_js, f"兩階段 INI 差異反白與 AI 報告核心函式存在: {fn_name}()")
+
+        # 6B: 若系統安裝有 Node.js，自動對所有前端 JS 與 index.html 內嵌腳本執行 `node --check` 語法編譯檢查
+        node_exe = shutil.which("node")
+        if node_exe:
+            js_files = [os.path.join(web_dir, "js", f) for f in os.listdir(os.path.join(web_dir, "js")) if f.endswith(".js")]
+            for jf in js_files:
+                proc = subprocess.run([node_exe, "--check", jf], capture_output=True, text=True)
+                check(proc.returncode == 0, f"前端 JS 語法 0 錯誤 ({os.path.basename(jf)})", proc.stderr.strip())
+            # 抽取 index.html 內嵌 <script> 區塊進行語法檢查
+            inline_scripts = re.findall(r"<script>([\s\S]*?)</script>", index_html)
+            if inline_scripts:
+                with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8", delete=False) as tf:
+                    tf.write("\n".join(inline_scripts))
+                    tmp_js = tf.name
+                try:
+                    proc = subprocess.run([node_exe, "--check", tmp_js], capture_output=True, text=True)
+                    check(proc.returncode == 0, "index.html 內嵌 JavaScript 語法 0 錯誤", proc.stderr.strip())
+                finally:
+                    if os.path.exists(tmp_js):
+                        os.remove(tmp_js)
+
+        # 6C: 檢查前後端 Build 版本號與快取參數同步
+        m_badge = re.search(r"Build v(\d+\.\d+\.\d+)", index_html)
+        server_py = open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
+        m_srv = re.search(r"Build v(\d+\.\d+\.\d+)", server_py)
+        check(bool(m_badge and m_srv and m_badge.group(1) == m_srv.group(1)), "前端畫面與後端伺服器 Build 版本號完全同步", f"Build v{m_badge.group(1) if m_badge else '?'}")
+
+        # 6D: 檢查根目錄 .bat 批次檔皆為標準 Windows CRLF 換行 (防止 cmd.exe chcp 65001 位移錯誤)
+        for bat_name in ("啟動_Centimani腳本工具.bat", "一鍵全功能自動驗收.bat"):
+            bat_p = os.path.join(PROJECT_ROOT, bat_name)
+            if os.path.exists(bat_p):
+                raw_b = open(bat_p, "rb").read()
+                check(b"\r\n" in raw_b and b"\n" not in raw_b.replace(b"\r\n", b""), f"批次檔 [{bat_name}] 為標準 CRLF 換行格式")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
