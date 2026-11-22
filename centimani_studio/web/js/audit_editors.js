@@ -5,6 +5,7 @@
 // - One-click "💾 存檔並直接彈出剛剛改的 INI 記事本" with locked countdown timer overlay.
 
 let AUDIT_GLOBAL_TAB = 'ini_diff';
+let INI_OPEN_CARD = null; // null (收合列表) | 'system' (展開 System.ini) | 'global' (展開 Global.ini)
 
 const SFIS_FACTORY_PRESETS = [
   {
@@ -368,6 +369,11 @@ function _renderIniStage2ReviewHtml(ws) {
   return _renderOnePageIniPanelHtml(ws, usedVars);
 }
 
+function toggleIniAccordionCard(cardName) {
+  INI_OPEN_CARD = (INI_OPEN_CARD === cardName) ? null : cardName;
+  renderGlobalEditorPanel();
+}
+
 function _renderOnePageIniPanelHtml(ws, usedVars) {
   const sys = ws.system_ini || {};
   const gSet = (ws.global_ini && ws.global_ini.Settings) || {};
@@ -574,17 +580,86 @@ function _renderOnePageIniPanelHtml(ws, usedVars) {
     `;
   }
 
+  const sysModCount = sEntries.filter(e => e.isChanged).length;
+  const glbModCount = gEntries.filter(e => e.isChanged).length;
+  const sysOpen = (INI_OPEN_CARD === 'system');
+  const glbOpen = (INI_OPEN_CARD === 'global');
+
+  const sysSummaryText = [
+    String(sys.DebugMode) === '1' ? 'Debug=1 (調試)' : 'Debug=0 (量產)',
+    `SFIS=${String(sys.SFIS_Enable) === '1' ? '開' : '關'}`,
+    `iPLAS=${String(sys.iPLAS_Enable) === '1' ? '開' : '關'}`,
+    `Site=${sys.iPLAS_Site || 'DC'}`
+  ].join(' ｜ ');
+
+  const glbSummaryText = [
+    `1號槽=${gSet.LOAD_1 || 'true'}`,
+    `DUT_UR1=${gSet.DUT_UR1 || 'COM4'}`,
+    `DUTIP=${gSet.DUTIP_1 || '192.168.11.143'}`,
+    gScr.FW_VERSION ? `FW=${gScr.FW_VERSION}` : ''
+  ].filter(Boolean).join(' ｜ ');
+
   return `
     <div style="display:flex; flex-direction:column; gap:12px;">
-      <!-- ==================== 區塊 1：System.ini 過站與廠區設定 ==================== -->
-      <div style="border:1.5px solid #C4B5FD; border-radius:8px; background:#FFFFFF; overflow:hidden;">
+      <!-- ==================== 兩張手風琴式卡牌 (預設收合，點一下再展開設定) ==================== -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(340px, 1fr)); gap:12px;">
+        <!-- 卡牌 1：System.ini -->
+        <div onclick="toggleIniAccordionCard('system')"
+          style="cursor:pointer; border:2px solid ${sysOpen ? '#7C3AED' : '#C4B5FD'}; border-top:4px solid #7C3AED; border-radius:10px; padding:12px 16px; background:${sysOpen ? '#F5F3FF' : '#FFFFFF'}; transition:all 0.15s ease; box-shadow:${sysOpen ? '0 4px 12px rgba(124,58,237,0.15)' : '0 1px 3px rgba(0,0,0,0.05)'};">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:20px;">🌐</span>
+              <div>
+                <div style="font-weight:900; font-size:14.5px; color:#4C1D95;">
+                  System.ini 常用設定
+                  ${sysModCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; font-size:11px; padding:1px 6px; border-radius:999px; margin-left:4px;">已改 ${sysModCount} 項</span>` : ''}
+                </div>
+                <div style="font-size:12px; color:#64748B; margin-top:2px;">過站開關、出廠廠區網址、專案路由與重測次數</div>
+              </div>
+            </div>
+            <span class="btn" style="padding:4px 10px; font-size:12px; font-weight:800; ${sysOpen ? 'background:#7C3AED;color:#FFF;border-color:#6D28D9;' : 'background:#F5F3FF;color:#5B21B6;border-color:#C4B5FD;'}">
+              ${sysOpen ? '收合 ▲' : '點此設定 ▼'}
+            </span>
+          </div>
+          <div class="mono" style="margin-top:8px; padding:5px 9px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:5px; font-size:11.5px; color:#334155;">
+            目前狀態：${_escAttr(sysSummaryText)}
+          </div>
+        </div>
+
+        <!-- 卡牌 2：Global.ini -->
+        <div onclick="toggleIniAccordionCard('global')"
+          style="cursor:pointer; border:2px solid ${glbOpen ? '#2563EB' : '#93C5FD'}; border-top:4px solid #2563EB; border-radius:10px; padding:12px 16px; background:${glbOpen ? '#EFF6FF' : '#FFFFFF'}; transition:all 0.15s ease; box-shadow:${glbOpen ? '0 4px 12px rgba(37,99,235,0.15)' : '0 1px 3px rgba(0,0,0,0.05)'};">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:20px;">🔌</span>
+              <div>
+                <div style="font-weight:900; font-size:14.5px; color:#1E3A8A;">
+                  Global.ini 常用設定
+                  ${glbModCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; font-size:11px; padding:1px 6px; border-radius:999px; margin-left:4px;">已改 ${glbModCount} 項</span>` : ''}
+                </div>
+                <div style="font-size:12px; color:#64748B; margin-top:2px;">槽位開關、COM Port、網卡 IP、機台編號與韌體版號</div>
+              </div>
+            </div>
+            <span class="btn" style="padding:4px 10px; font-size:12px; font-weight:800; ${glbOpen ? 'background:#2563EB;color:#FFF;border-color:#1D4ED8;' : 'background:#EFF6FF;color:#1E40AF;border-color:#93C5FD;'}">
+              ${glbOpen ? '收合 ▲' : '點此設定 ▼'}
+            </span>
+          </div>
+          <div class="mono" style="margin-top:8px; padding:5px 9px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:5px; font-size:11.5px; color:#334155;">
+            目前狀態：${_escAttr(glbSummaryText)}
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 展開區 1：System.ini 過站與廠區設定 ==================== -->
+      ${sysOpen ? `
+      <div style="border:1.5px solid #7C3AED; border-radius:8px; background:#FFFFFF; overflow:hidden;">
         <div style="background:#F5F3FF; padding:8px 14px; border-bottom:1px solid #C4B5FD; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <span style="font-weight:900; font-size:13.5px; color:#4C1D95;">
-            🌐 1. System.ini 過站開關與出廠廠區設定（打勾或下拉選好即可，設一次即固定）
+            🌐 System.ini 過站開關與出廠廠區設定
           </span>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button onclick="applyAiPresetBundle('eng_offline')" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#4C1D95; border:1px solid #A78BFA; font-weight:700;">🛠️ 一鍵設為：工程離線調試 (Debug=1, SFIS關)</button>
-            <button onclick="applyAiPresetBundle('mp_sfis_on')" class="btn" style="padding:3px 10px; font-size:12px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:700;">🏭 一鍵設為：正式量產過站 (Debug=0, SFIS開)</button>
+            <button onclick="applyAiPresetBundle('eng_offline')" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#4C1D95; border:1px solid #A78BFA; font-weight:700;">🛠️ 工程離線調試 (Debug=1, SFIS關)</button>
+            <button onclick="applyAiPresetBundle('mp_sfis_on')" class="btn" style="padding:3px 10px; font-size:12px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:700;">🏭 正式量產過站 (Debug=0, SFIS開)</button>
           </div>
         </div>
 
@@ -597,7 +672,7 @@ function _renderOnePageIniPanelHtml(ws, usedVars) {
             ${mkSysCheckbox('SFIS_LinkIPLAS', 'SFIS 連動 iPLAS (SFIS_LinkIPLAS)', '勾選=1 (SFIS 過站時同步連動 iPLAS)')}
           </div>
 
-          <!-- 廠區 SFIS_WebLink 下拉選單 (真實 System.ini 5 大廠區網址) -->
+          <!-- 廠區 SFIS_WebLink 下拉選單 -->
           <div style="background:${webLinkMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${webLinkMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; flex-direction:column; gap:6px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div style="font-weight:800; font-size:12.5px; color:#0F172A;">
@@ -643,12 +718,14 @@ function _renderOnePageIniPanelHtml(ws, usedVars) {
           </div>
         </div>
       </div>
+      ` : ''}
 
-      <!-- ==================== 區塊 2：Global.ini 治具通訊、槽位與版號設定 ==================== -->
-      <div style="border:1.5px solid #93C5FD; border-radius:8px; background:#FFFFFF; overflow:hidden;">
+      <!-- ==================== 展開區 2：Global.ini 治具通訊、槽位與版號設定 ==================== -->
+      ${glbOpen ? `
+      <div style="border:1.5px solid #2563EB; border-radius:8px; background:#FFFFFF; overflow:hidden;">
         <div style="background:#EFF6FF; padding:8px 14px; border-bottom:1px solid #93C5FD; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <span style="font-weight:900; font-size:13.5px; color:#1E3A8A;">
-            🔌 2. Global.ini 治具 COM Port、網卡 IP、槽位開關與韌體版號（架站或韌體進版時改一次）
+            🔌 Global.ini 治具 COM Port、網卡 IP、槽位開關與韌體版號
           </span>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button onclick="applyAiPresetBundle('sync_pc_ip')" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#1E40AF; border:1px solid #60A5FA; font-weight:700;">🔗 同步電腦 PCIP_1 與待測物同網段</button>
@@ -695,6 +772,7 @@ function _renderOnePageIniPanelHtml(ws, usedVars) {
           ` : ''}
         </div>
       </div>
+      ` : ''}
 
       <!-- ==================== 區塊 3：本次變更確認與存檔彈出 INI ==================== -->
       ${changeSummaryHtml}
@@ -948,7 +1026,7 @@ function renderGlobalEditorPanel() {
               ${isEnabled ? '🟢 啟用' : '⚪ 停用'}
             </button>
           </td>
-          <td><input value="${_escAttr(d['Station']||'')}" onchange="STATE.workspace.duts[${i}]['Station']=this.value" class="mono" style="width:130px;padding:4px;font-size:12px;"></td>
+          <td><input value="${_escAttr(d['Station']||'')}" onchange="onDutStationInputChange(${i}, this.value)" class="mono" style="width:140px;padding:4px;font-size:12px;" title="格式為「工作表名稱,槽位」，更改名稱可自動建立對應工作表"></td>
           <td><input value="${_escAttr(d['DUT Name']||'')}" onchange="STATE.workspace.duts[${i}]['DUT Name']=this.value" class="mono" style="width:155px;padding:4px;font-size:12px;"></td>
           <td>${sbHtml}</td>
           <td><input value="${_escAttr(d['SFIS_DeviceID']||'')}" onchange="STATE.workspace.duts[${i}]['SFIS_DeviceID']=this.value" class="mono" style="width:95px;padding:4px;font-size:12px;"></td>
@@ -958,24 +1036,24 @@ function renderGlobalEditorPanel() {
     }).join('');
 
     bodyHtml = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; padding:8px 10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; padding:8px 12px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px;">
-          <span style="font-weight:700; color:#1E3A8A;">🔢 快速批量設定 ISN 條碼（目前為 <span style="color:#DC2626;font-size:14px;">${_escAttr(topIsnLen)}</span> 碼）：</span>
-          <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="${_escAttr(topIsnLen)}" oninput="batchApplyDutIsn(false)" onchange="batchApplyDutIsn(true)" class="mono" style="width:58px;padding:3px 6px;font-weight:800;color:#1E3A8A;"></label>
-          <label>規則 <select id="geIsnPat" onchange="batchApplyDutIsn(true)" class="mono" style="padding:3px 5px;">
+          <span style="font-weight:800; color:#1E3A8A;">🔢 統一設定所有站別 ISN 條碼（目前 <span style="color:#DC2626;font-size:14px;">${_escAttr(topIsnLen)}</span> 碼）：</span>
+          <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="${_escAttr(topIsnLen)}" oninput="batchApplyDutIsn(false)" class="mono" style="width:58px;padding:4px 6px;font-weight:800;color:#1E3A8A;"></label>
+          <label>規則 <select id="geIsnPat" class="mono" style="padding:4px 6px;">
             <option value="[0-9]" ${topIsnPat==='[0-9]'?'selected':''}>[0-9]（純數字）</option>
             <option value="[0-9A-Z]" ${topIsnPat==='[0-9A-Z]'?'selected':''}>[0-9A-Z]（大寫英數字）</option>
             <option value="[0-9A-Za-z]" ${topIsnPat==='[0-9A-Za-z]'?'selected':''}>[0-9A-Za-z]（大小寫英數字）</option>
           </select></label>
-          <button onclick="batchApplyDutIsn(true)" class="btn btn-primary-blue" style="padding:3px 10px; font-size:12px;">套用至所有站別</button>
-          <button onclick="setQuickDutIsn(3, '[0-9A-Z]')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#FEF9C3; color:#854D0E; border:1px solid #EAB308; font-weight:800;">⚡ 一鍵設 3 碼 (調試)</button>
-          <button onclick="setQuickDutIsn(15, '[0-9A-Z]')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; font-weight:700;">⚡ 一鍵設 15 碼 (量產)</button>
+          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:12.5px; font-weight:800;">
+            ✔ 套用設定並更新體檢
+          </button>
         </div>
-        <button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:4px 10px; font-size:12.5px;">+ 新增站別列</button>
+        <button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:5px 12px; font-size:12.5px; font-weight:800;">+ 新增測試站 (同時建立 Excel 工作表)</button>
       </div>
       <div style="overflow:auto; max-height:360px;">
         <table class="meas-table">
-          <thead><tr><th>測試開關</th><th>站別 (Station)</th><th>DUT 名稱</th><th>條碼規則 (名稱 / 位數 / 格式)</th><th>SFIS 機台碼</th><th>刪</th></tr></thead>
+          <thead><tr><th>測試開關</th><th>站別工作表 (Station,槽位)</th><th>DUT 名稱</th><th>條碼規則 (名稱 / 位數 / 格式)</th><th>SFIS 機台碼</th><th>刪</th></tr></thead>
           <tbody>${rowsHtml || '<tr><td colspan="6" style="text-align:center;color:#64748B;">此工作簿沒有 DUTs 資料</td></tr>'}</tbody>
         </table>
       </div>
@@ -1042,7 +1120,7 @@ function renderGlobalEditorPanel() {
           ${tabBtn('inst_com', '🔌 Excel 儀器掛載表')}
         </div>
         <div style="display:flex; gap:8px;">
-          ${AUDIT_GLOBAL_TAB !== 'ini_diff' ? `<button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用 Excel 表格微調</button>` : ''}
+          ${AUDIT_GLOBAL_TAB === 'inst_com' ? `<button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px;">✔ 套用 Excel 表格微調</button>` : ''}
           <button onclick="toggleGlobalEditorPanel()" class="btn" style="padding:5px 10px; font-size:13px; background:#E2E8F0; color:#334155;">收合 ▲</button>
         </div>
       </div>
@@ -1059,21 +1137,59 @@ function toggleDutLoadState(idx) {
   renderGlobalEditorPanel();
 }
 
+function _ensureStationSheetExists(stName) {
+  if (!STATE.workspace || !stName) return;
+  const cleanName = String(stName).split(',')[0].trim();
+  if (!cleanName || cleanName.startsWith('*$(')) return;
+  STATE.workspace.stations = STATE.workspace.stations || {};
+  if (!STATE.workspace.stations[cleanName]) {
+    STATE.workspace.stations[cleanName] = [
+      { Index: '000', Phase: '0', Title: '0,PreTest Check Route,3', Marco: '', Instrument: '', Switch: '', Send: ':SFIS.CheckRoute', Reply: '0', EndPrompt: '', Ref: '', Validation: '', Prompt: '', Waiting: '', ExecMode: '8', Description: 'SFIS#-#Check Route', TestID: 'CACK088' },
+      { Index: '001', Phase: '1', Title: `0,${cleanName} Init Step,3`, Marco: '', Instrument: '', Switch: '', Send: ':Delay,"200"', Reply: '0', EndPrompt: '', Ref: '', Validation: '', Prompt: '', Waiting: '', ExecMode: '0', Description: `PC#-#${cleanName} Initial Delay`, TestID: 'OTFX054' },
+      { Index: '002', Phase: '97', Title: '1,End Test Safe Teardown,1', Marco: '', Instrument: '', Switch: '', Send: ':Disconnect,"UART"', Reply: '0', EndPrompt: '', Ref: '', Validation: '', Prompt: '', Waiting: '', ExecMode: '3', Description: 'PC#-#Disconnect DUT UART', TestID: 'B7PL025' }
+    ];
+    STATE.pendingInserts = STATE.pendingInserts || [];
+    if (!STATE.pendingInserts.some(p => p.sheet === cleanName && p.inst === '新增測試站')) {
+      STATE.pendingInserts.push({
+        sheet: cleanName,
+        inst: '新增測試站',
+        summary: `已建立新工作表 [${cleanName}]（匯出 *_FIXED.xlsx 時將自動產生此 Excel 分頁）`
+      });
+    }
+    if (typeof syncEditorView === 'function') syncEditorView();
+    if (typeof updatePendingBar === 'function') updatePendingBar();
+  }
+}
+
+function onDutStationInputChange(dutIdx, newVal) {
+  if (!STATE.workspace || !STATE.workspace.duts[dutIdx]) return;
+  STATE.workspace.duts[dutIdx]['Station'] = newVal;
+  const sheetName = String(newVal || '').split(',')[0].trim();
+  if (sheetName) {
+    _ensureStationSheetExists(sheetName);
+  }
+}
+
 function addNewDutRow() {
+  const rawName = prompt('請輸入要新增的測試站工作表名稱（例如 JOVIAN、FT2）：', 'JOVIAN');
+  if (rawName === null) return;
+  const stName = (rawName.split(',')[0] || '').trim() || `STATION_${(STATE.workspace.duts || []).length + 1}`;
   const duts = STATE.workspace.duts = STATE.workspace.duts || [];
   const sample = duts[0] || {};
-  const scanKey = _findKeyByPrefix(sample, 'ScanBarcode', 'ScanBarcode({Name,Length,Pattern})');
+  const scanKey = _findKeyByPrefix(sample, 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
   const connKey = _findKeyByPrefix(sample, 'Connection1', 'Connection1(Type,Name,ConnectString)');
+  const proj = (STATE.workspace && STATE.workspace.project_name) || 'PROJ';
   const newRow = {
     'Load': '*(Load_1)',
-    'DUT Name': 'PROJ$MB',
-    'Station': `MB,${duts.length + 1}`,
+    'DUT Name': `${proj}$${stName}`,
+    'Station': `${stName},${duts.length + 1}`,
     'Parameter': '*(PCIP_1),1',
     'SFIS_DeviceID': '*(DEVID_1)'
   };
-  newRow[scanKey] = '{ ISN,15,[0-9] }';
+  newRow[scanKey] = `{ ISN,${STATE.lastIsnLen || 15},${STATE.lastIsnPat || '[0-9A-Z]'} }`;
   newRow[connKey] = '"UDP","LAN","*(PCIP_1),192.168.100.10,2345,0,10000"';
   duts.push(newRow);
+  _ensureStationSheetExists(stName);
   renderGlobalEditorPanel();
 }
 

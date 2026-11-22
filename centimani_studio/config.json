@@ -4,10 +4,10 @@
   "auto_open_folder": true,
   "auto_checksum": true,
   "tic_generic_only": false,
-  "intro_font_size": 17,
+  "intro_font_size": 19,
   "skip_guides": {
     "gen": true,
     "tic": true
   },
-  "last_dir": "M:\\PYTHON\\PEGA-CENTERMANI\\SCRIPTS\\ZEBRA"
+  "last_dir": "M:\\PYTHON\\PEGA-CENTERMANI\\TEST_SECRIPT"
 }

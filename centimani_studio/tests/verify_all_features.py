@@ -195,6 +195,18 @@ def run_all_verifications():
             reaudit_res = post_json("/api/re_audit", {"workspace": ws})
             check(reaudit_res["status"] == "ok" and reaudit_res.get("isn_info", {}).get("isn_length") == 3, "ISN 條碼改為 3 碼後即時覆檢成功識別為 3 碼", str(reaudit_res.get("isn_info")))
 
+            # 驗證新增測試站 JOVIAN 後，匯出 *_FIXED.xlsx 確實會產生 JOVIAN 工作表分頁
+            ws["stations"]["JOVIAN"] = [
+                {"Index": "000", "Phase": "0", "Title": "0,PreTest Check Route,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SFIS.CheckRoute", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "8", "Description": "SFIS#-#Check Route", "TestID": "CACK088"},
+                {"Index": "001", "Phase": "97", "Title": "1,End Test Safe Teardown,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Disconnect DUT UART", "TestID": "B7PL025"},
+            ]
+            jovian_exp = post_json("/api/fix_and_export_in_place", {
+                "workspace": ws, "user_choices": {}, "dry_run": False, "active_sheet": "JOVIAN", "open_excel": True
+            })
+            wb_jov = openpyxl.load_workbook(jovian_exp["excel_path"])
+            check("JOVIAN" in wb_jov.sheetnames and wb_jov.active.title == "JOVIAN", "新增測試站 [JOVIAN] 後匯出 Excel 確實產生 JOVIAN 分頁並自動開啟該頁")
+            wb_jov.close()
+
         # ---------------------------------------------------------------------
         # 2. 書籤三：插入儀器範本 (34 款人機) — 直接生成 & 互動人機介面確認後自動生成
         # ---------------------------------------------------------------------
