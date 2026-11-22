@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.5</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.6</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -843,20 +843,81 @@
 
   <!-- ======================== 書籤三：4 步驟精靈式母體產生器 ======================== -->
   <div id="panelGen" style="display:none;">
-    <!-- 02 頂部雙書籤切換列（既有腳本無限次編修 vs 首次建立新母體） -->
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-      <div class="source-mode-bar">
-        <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">
-          ✏️ 書籤一：既有腳本編修 (1 → N)
-        </button>
-        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">
-          🆕 書籤二：首次建立新母體 (0 → 1)
-        </button>
-        <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">
-          🔌 書籤三：插入儀器範本 (34 款人機)
-        </button>
+    <!-- 02 入口：3 大模式水平手風琴（書籤一 / 二 / 三） -->
+    <div id="genModeHub" style="display:block; margin-bottom:14px;">
+      <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="font-weight:900; font-size:17px; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
+          <div style="font-size:13px; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區。</div>
+        </div>
       </div>
-      <span style="font-size:12.5px; color:#475569; font-weight:600;">💡 日常排流程/改跳轉/調通訊用書籤一；建母體用書籤二；插入新測項/儀器用書籤三</span>
+      <div class="acc-row" style="min-height:310px;">
+        <div id="genHubCard_edit" class="acc-card active" data-theme="blue" onmouseenter="setActiveGenHubCard('edit')" onclick="switchGenSubMode('edit')">
+          <div>
+            <div class="acc-num">01 / EDIT (1 → N)</div>
+            <div class="acc-icon">📝</div>
+            <div class="acc-title">書籤一：既有腳本編修</div>
+            <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與微調</div>
+          </div>
+          <div class="acc-body">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E3A8A; line-height:1.65;">
+              <li><b>5 合 1 快捷編修</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
+              <li><b>自動體檢存檔</b>：匯出 <code>*_FIXED.xlsx</code> 時自動順編與補齊安全收尾</li>
+              <li>支援直接開啟既有腳本或從健檢結果一鍵帶入</li>
+            </ul>
+            <button onclick="event.stopPropagation(); switchGenSubMode('edit');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:13px; font-weight:800;">📝 進入既有腳本編修 ▶</button>
+          </div>
+        </div>
+
+        <div id="genHubCard_create" class="acc-card" data-theme="green" onmouseenter="setActiveGenHubCard('create')" onclick="switchGenSubMode('create')">
+          <div>
+            <div class="acc-num">02 / CREATE (0 → 1)</div>
+            <div class="acc-icon">🌱</div>
+            <div class="acc-title">書籤二：首次建立新母體</div>
+            <div class="acc-sub">全新案子從零開始 4 步驟精靈建檔</div>
+          </div>
+          <div class="acc-body">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.65;">
+              <li>引導式 <b>4 步驟</b>：基本/ISN → 勾選測項 → 填參數 → 總覽產出</li>
+              <li>自動建立 Properties、DUTs、Switch、Instrument 與標準測試站</li>
+              <li>同時生成配套 <code>Global.ini</code> 與 <code>System.ini</code></li>
+            </ul>
+            <button onclick="event.stopPropagation(); switchGenSubMode('create');" class="btn btn-primary-green" style="padding:7px 14px; font-size:13px; font-weight:800;">🌱 進入建立新母體 ▶</button>
+          </div>
+        </div>
+
+        <div id="genHubCard_inst" class="acc-card" data-theme="amber" onmouseenter="setActiveGenHubCard('inst')" onclick="switchGenSubMode('inst')">
+          <div>
+            <div class="acc-num">03 / INSTRUMENTS (34 款)</div>
+            <div class="acc-icon">🧪</div>
+            <div class="acc-title">書籤三：插入儀器範本</div>
+            <div class="acc-sub">34 款標準儀器與互動人機免選檔生成</div>
+          </div>
+          <div class="acc-body">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.65;">
+              <li>免手動選 Excel，自動以母體生成標準儀器測試範本</li>
+              <li>內建 <b>NI-6009、FeasaLED、IQxel RF</b> 等視覺化人機面板</li>
+              <li>支援一次加入多台儀器並自動執行全盤體檢</li>
+            </ul>
+            <button onclick="event.stopPropagation(); switchGenSubMode('inst');" class="btn btn-jump" style="padding:7px 14px; font-size:13px; font-weight:800;">🧪 進入插入儀器範本 ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 進入子模式後的頂部返回與切換列 -->
+    <div id="genBackToModeHubBar" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:8px 12px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button onclick="switchGenSubMode('hub')" class="btn" style="padding:6px 14px; font-size:13px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 5px rgba(15,23,42,0.18);">
+          ⬅ 返回 3 大模式選擇
+        </button>
+        <span id="genCurrentModeTitle" style="font-weight:900; font-size:14.5px; color:#0F172A;"></span>
+      </div>
+      <div class="source-mode-bar" style="margin:0;">
+        <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 書籤一：既有編修</button>
+        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 書籤二：建立新母體</button>
+        <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 書籤三：儀器範本</button>
+      </div>
     </div>
 
     <div id="genModeCreate" style="display:none;">
@@ -1344,10 +1405,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.6.5"></script>
-<script src="/js/audit_editors.js?v=0.6.5"></script>
-<script src="/js/flow_guide.js?v=0.6.5"></script>
-<script src="/js/block_sorter.js?v=0.6.5"></script>
+<script src="/js/inst_hmi.js?v=0.6.6"></script>
+<script src="/js/audit_editors.js?v=0.6.6"></script>
+<script src="/js/flow_guide.js?v=0.6.6"></script>
+<script src="/js/block_sorter.js?v=0.6.6"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -1398,6 +1459,9 @@ function switchTab(tab) {
 
   if (tab === 'settings' && typeof renderSettingsPanel === 'function') {
     renderSettingsPanel();
+  }
+  if (tab === 'gen' && typeof switchGenSubMode === 'function') {
+    switchGenSubMode('hub');
   }
   if (tab === 'tic') {
     renderTicTargetList();
@@ -2364,10 +2428,20 @@ async function pickTicFileNative() {
   searchTicLive();
 }
 
-let GEN_SUB_MODE = 'edit';
+let GEN_SUB_MODE = 'hub';
+
+function setActiveGenHubCard(key) {
+  ['edit', 'create', 'inst'].forEach(k => {
+    const el = document.getElementById('genHubCard_' + k);
+    if (el) el.classList.toggle('active', k === key);
+  });
+}
 
 function switchGenSubMode(mode) {
-  GEN_SUB_MODE = ['edit', 'create', 'inst'].includes(mode) ? mode : 'edit';
+  GEN_SUB_MODE = ['hub', 'edit', 'create', 'inst'].includes(mode) ? mode : 'hub';
+  const hubBox = document.getElementById('genModeHub');
+  const backBar = document.getElementById('genBackToModeHubBar');
+  const modeTitleEl = document.getElementById('genCurrentModeTitle');
   const cBox = document.getElementById('genModeCreate');
   const eBox = document.getElementById('genModeEdit');
   const iBox = document.getElementById('genModeInst');
@@ -2375,15 +2449,27 @@ function switchGenSubMode(mode) {
   const eBtn = document.getElementById('btnGenModeEdit');
   const iBtn = document.getElementById('btnGenModeInst');
 
+  if (hubBox) hubBox.style.display = (GEN_SUB_MODE === 'hub') ? 'block' : 'none';
+  if (backBar) backBar.style.display = (GEN_SUB_MODE === 'hub') ? 'none' : 'flex';
   if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
   if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
+
+  const titleMap = {
+    edit: '📝 書籤一：既有腳本編修 (1 → N)',
+    create: '🌱 書籤二：首次建立新母體 (0 → 1)',
+    inst: '🧪 書籤三：插入儀器範本 (34 款人機)'
+  };
+  if (modeTitleEl) modeTitleEl.textContent = titleMap[GEN_SUB_MODE] || '';
 
   if (cBtn) cBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'create' ? ' active' : '');
   if (eBtn) eBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'edit' ? ' active' : '');
   if (iBtn) iBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'inst' ? ' active' : '');
 
-  if (GEN_SUB_MODE === 'edit') syncEditorView();
+  if (GEN_SUB_MODE === 'edit') {
+    if (typeof AUDIT_GLOBAL_TAB !== 'undefined') AUDIT_GLOBAL_TAB = 'hub';
+    syncEditorView();
+  }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
 }
 
