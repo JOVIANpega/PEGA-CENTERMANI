@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.5</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.6</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1066,14 +1066,14 @@
           <div style="background:#FFFFFF; border:1.5px solid #93C5FD; border-top:4px solid #2563EB; border-radius:10px; padding:14px 16px;">
             <div style="font-weight:800; font-size:15px; color:#1E3A8A; margin-bottom:10px;">B. 全域環境與通訊設定 (INI / DUTs)</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 160px; justify-content:center; padding:9px 10px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="openSfisIplasModal('audit')">
-                🌐 SFIS / iPLAS 開關
+              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 160px; justify-content:center; padding:9px 10px; background:#F0FDF4; color:#166534; border-color:#86EFAC;" onclick="toggleGlobalEditorPanel('ini_diff', 'sfis')">
+                🌐 我想改 SFIS / iPLAS
               </button>
-              <button id="btnOpenCommModal" class="btn" style="flex:1 1 190px; justify-content:center; padding:9px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCommModal()">
-                🔌 通訊設定 (改 COM / 轉 SSH)
+              <button id="btnOpenCommModal" class="btn" style="flex:1 1 190px; justify-content:center; padding:9px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="toggleGlobalEditorPanel('ini_diff', 'com')">
+                🔌 我想改 COM / IP 通訊
               </button>
-              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 240px; justify-content:center; padding:9px 10px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel()">
-                ⚙️ 微調 DUTs / Instrument / Global.ini
+              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 240px; justify-content:center; padding:9px 10px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;" onclick="toggleGlobalEditorPanel('ini_diff', 'core')">
+                ⚙️ INI 智慧記事本 / 站別條碼
               </button>
             </div>
           </div>
@@ -1085,15 +1085,12 @@
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
 
-        <!-- ⑤ 產出確認列（單一明確出口：可選擇「僅存 INI 並彈出 INI」或「匯出 Excel *_FIXED.xlsx」） -->
+        <!-- ⑤ 產出確認列 -->
         <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <div style="font-size:13px; color:#475569;">
-            💡 <b>安全存檔機制：</b>若只改了 COM / IP / SFIS 設定，可點「<b>🆚 左右對照並存檔彈出 INI</b>」；若改了測試步驟或積木順序，請點「<b>💾 寫入並匯出 Excel (*_FIXED.xlsx)</b>」。
+            💡 <b>安全存檔機制：</b>所有 Excel 流程編修先暫存於記憶體，點擊右側按鈕匯出同目錄 <code>*_FIXED.xlsx</code>（新增/修改區塊自動高亮標記）並更新 Checksum。
           </div>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btnEditorOpenIniDiff" class="btn" style="padding:8px 14px; font-size:13.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;" onclick="toggleGlobalEditorPanel('ini_diff', 'review')">
-              🆚 AI 差異對照並存檔彈出 INI
-            </button>
             <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
               🧪 匯出「無硬體試跑版」
             </button>
@@ -1366,10 +1363,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.5.5"></script>
-<script src="/js/audit_editors.js?v=0.5.5"></script>
-<script src="/js/flow_guide.js?v=0.5.5"></script>
-<script src="/js/block_sorter.js?v=0.5.5"></script>
+<script src="/js/inst_hmi.js?v=0.5.6"></script>
+<script src="/js/audit_editors.js?v=0.5.6"></script>
+<script src="/js/flow_guide.js?v=0.5.6"></script>
+<script src="/js/block_sorter.js?v=0.5.6"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
