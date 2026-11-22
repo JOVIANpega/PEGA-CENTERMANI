@@ -664,36 +664,31 @@ function _renderSystemIniFullPageHtml(ws) {
         </details>
       </div>
 
-      <!-- 3. 進階過站與重測參數（預設收合，有改自動展開） -->
-      <details ${advChanged ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#334155;">
-          🔧 進階過站與重測參數（路由碼 / 專案名 / 廠區代碼 / 重測次數，平時免動）
-        </summary>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:10px;">
-          ${mkSysText('SFIS', 'SFIS_TSP', 'SFIS 站別路由碼', 120)}
-          ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 130)}
-          <div style="background:${siteMod ? '#FEF9C3' : '#FFFFFF'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div>
-              <div style="font-weight:800; font-size:12.5px; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEE2E2;color:#B91C1C;font-size:11px;padding:0 4px;border-radius:3px;text-decoration:line-through;">原本:${_escAttr(origSite)}</span>` : ''}</div>
-              <div class="mono" style="font-size:11px; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
-            </div>
-            <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
-              style="width:100px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
-              ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
-            </select>
+      <!-- 3. 常用站別路由、專案名、廠區代碼與重測次數（直接顯示） -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+        ${mkSysText('SFIS', 'SFIS_TSP', 'SFIS 站別路由碼', 115)}
+        ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 125)}
+        <div style="background:${siteMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <div style="font-weight:800; font-size:12.5px; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
+            <div class="mono" style="font-size:11px; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
           </div>
-          <div style="background:${retryMod ? '#FEF9C3' : '#FFFFFF'}; border:1.5px solid ${retryMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div>
-              <div style="font-weight:800; font-size:12.5px; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEE2E2;color:#B91C1C;font-size:11px;padding:0 4px;border-radius:3px;text-decoration:line-through;">原本:${_escAttr(origRetry)}</span>` : ''}</div>
-              <div class="mono" style="font-size:11px; color:#5B21B6;">[System] RetryCount</div>
-            </div>
-            <select onchange="setSystemIniValueLive('RetryCount', this.value, true)" class="mono"
-              style="width:100px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${retryMod ? '#16A34A' : '#94A3B8'}; background:${retryMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
-              ${['0', '1', '2', '3', '4', '5'].map(r => `<option value="${r}" ${r === curRetry ? 'selected' : ''}>${r} 次</option>`).join('')}
-            </select>
-          </div>
+          <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
+            style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
+            ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
+          </select>
         </div>
-      </details>
+        <div style="background:${retryMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${retryMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <div style="font-weight:800; font-size:12.5px; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
+            <div class="mono" style="font-size:11px; color:#5B21B6;">[System] RetryCount</div>
+          </div>
+          <select onchange="setSystemIniValueLive('RetryCount', this.value, true)" class="mono"
+            style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${retryMod ? '#16A34A' : '#94A3B8'}; background:${retryMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
+            ${['0', '1', '2', '3', '4', '5'].map(r => `<option value="${r}" ${r === curRetry ? 'selected' : ''}>${r} 次</option>`).join('')}
+          </select>
+        </div>
+      </div>
 
       ${_buildChangeConfirmBoxHtml(sEntries, ws)}
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
@@ -819,7 +814,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     'DUT_UR1', 'PCUART_fixture', 'PCUART_fixture_1', 'LED_AZ1', 'DAQ_1',
     'PCIP_1', 'DUTIP_1', 'DEVID_1', 'DUT_Login'
   ]);
-  const comChanged = ['DUT_UR1', 'PCUART_fixture', 'PCUART_fixture_1', 'LED_AZ1', 'DAQ_1'].some(k =>
+  const auxComChanged = ['LED_AZ1', 'DAQ_1'].some(k =>
     gSet[k] !== undefined && String(gSet[k]) !== String(origSet[k] !== undefined ? origSet[k] : gSet[k])
   );
   const extraEntries = gEntries.filter(e =>
@@ -850,35 +845,40 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
         ${mkLoadSlotCheckbox(4)}
       </div>
 
-      <!-- 2. 最常改的核心 4 項：網路 IP、機台號、韌體版號 -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px;">
+      <!-- 2. 最常改的核心通訊與版號：DUT/PC IP + 常用雙 COM + 機台號 + 版號 -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
         ${mkGlobalText('Settings', 'DUTIP_1', '待測物連線 IP', 140)}
         ${mkGlobalText('Settings', 'PCIP_1', '電腦端網卡 IP', 140)}
+        ${mkComSelectField('DUT_UR1', '待測物序列埠 (DUT)')}
+        ${mkComSelectField('PCUART_fixture_1', '氣動治具控制埠')}
         ${mkGlobalText('Settings', 'DEVID_1', 'SFIS 機台編號', 125)}
         ${coreScriptKeys.map(k => mkGlobalText('Scripts', k, _describeGlobalVar(k), 150)).join('')}
       </div>
 
-      <!-- 3. 進階摺疊 1：硬體序列埠 & 治具 COM Port（需要換線/換 Port 時點開） -->
-      <details ${comChanged ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
+      <!-- 3. 進階摺疊 1：專用儀器埠 (FeasaLED / NI 電壓卡) -->
+      <details ${auxComChanged ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
         <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#1E3A8A;">
-          🔌 進階：硬體序列埠與治具 COM Port 設定（DUT UART / 氣動治具 / FeasaLED / 電壓卡，點此展開）
+          🎛️ 進階：光學與電壓卡硬體埠設定（FeasaLED / NI-6008 電壓卡，平時免動）
         </summary>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; margin-top:10px;">
-          ${mkComSelectField('DUT_UR1', '待測物序列埠 (DUT)')}
-          ${mkComSelectField('PCUART_fixture_1', '氣動治具控制埠')}
           ${mkComSelectField('LED_AZ1', 'FeasaLED 分析儀埠')}
           ${mkDaqSelectField('DAQ_1', 'NI-6008/6009 電壓卡')}
         </div>
       </details>
 
-      <!-- 4. 進階摺疊 2：腳本自訂變數與其餘少用參數 -->
+      <!-- 4. 進階摺疊 2：腳本自訂變數與其餘參數（含關鍵字搜尋） -->
       ${(otherScriptKeys.length > 0 || extraEntries.length > 0) ? `
         <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
           <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#64748B;">
-            📦 進階：腳本自訂變數與其餘參數（共 ${extraEntries.length} 項，平時免動）
+            📦 進階：腳本自訂變數與其餘參數（共 ${extraEntries.length} 項，點開可用關鍵字快速過濾）
           </summary>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; margin-top:10px;">
-            ${extraEntries.map(e => mkGlobalText(e.section, e.key, e.desc, 130)).join('')}
+          <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+            <input type="text" id="globalExtraFilterInput" placeholder="🔍 輸入變數名稱或關鍵字過濾（例如：Boot、SKU、capacity）..."
+              oninput="filterGlobalExtraVars(this.value)"
+              style="flex:1; max-width:420px; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:12.5px;">
+          </div>
+          <div id="globalExtraVarsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; margin-top:10px;">
+            ${extraEntries.map(e => `<div class="global-extra-var-item" data-search="${_escAttr((e.key + ' ' + e.desc).toLowerCase())}">${mkGlobalText(e.section, e.key, e.desc, 130)}</div>`).join('')}
           </div>
         </details>
       ` : ''}
@@ -1401,6 +1401,14 @@ function addNewDutRow() {
   duts.push(newRow);
   _ensureStationSheetExists(stName);
   renderGlobalEditorPanel();
+}
+
+function filterGlobalExtraVars(query) {
+  const q = String(query || '').trim().toLowerCase();
+  document.querySelectorAll('#globalExtraVarsGrid .global-extra-var-item').forEach(el => {
+    const hay = el.getAttribute('data-search') || '';
+    el.style.display = (!q || hay.includes(q)) ? 'block' : 'none';
+  });
 }
 
 function appendMountStation(instIdx, stName) {

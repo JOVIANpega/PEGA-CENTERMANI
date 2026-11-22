@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.6</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.7</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1144,64 +1144,96 @@
       </div>
     </div><!-- /genModeEdit -->
 
-    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 免選檔自動由母體生成範本) -->
+    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 積木拖曳 + 細部規格兩步驟生成) -->
     <div id="genModeInst" style="display:none;">
-      <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:18px 20px; margin-bottom:14px;">
+      <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:16px 20px; margin-bottom:14px;">
+        <!-- 頂部標題與步驟指示 -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div>
-            <h3 style="margin:0 0 4px 0; color:#4C1D95; font-size:17px;">🔌 書籤三：插入儀器範本 (34 款人機 - 免選檔自動生成)</h3>
-            <div style="font-size:13px; color:#64748B;">免選手動 Excel 檔案！系統自動以母體生成標準測試腳本範本，載入儀器測項後全自動體檢除錯，並即時產出 Excel 喚醒開啟給您檢視。</div>
+            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:17px;">🧪 書籤三：插入儀器範本 (34 款人機 - 積木拖曳版)</h3>
+            <div style="font-size:13px; color:#64748B;">① 從下方把儀器積木拖曳（或點擊 +）到上方軌道排好順序 → ② 進入細部規格與人機設定 → 自動生成母體 Excel。</div>
           </div>
-          <div style="display:flex; gap:8px;">
-            <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800; font-size:14px; box-shadow:0 2px 6px rgba(22,163,74,0.3);">
-              🚀 自動產生母體範本、載入儀器並開啟 Excel
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button id="tab3StepNav1" onclick="tab3GoStep(1)" class="source-mode-tab active" style="padding:5px 12px; font-size:12.5px;">① 挑選與排序儀器積木</button>
+            <span style="color:#94A3B8;">➔</span>
+            <button id="tab3StepNav2" onclick="tab3GoStep(2)" class="source-mode-tab" style="padding:5px 12px; font-size:12.5px;">② 細部規格與人機設定</button>
+          </div>
+        </div>
+
+        <!-- 隱藏相容欄位（供現有 HMI / 規格介紹連動） -->
+        <div style="display:none;">
+          <select id="tab3CatSel" onchange="tab3OnCatChange()"></select>
+          <select id="tab3InstSel" onchange="tab3OnInstChange()"></select>
+          <input id="tab3TitleInput" type="text">
+          <input id="tab3DlInput" type="text">
+          <input id="tab3UlInput" type="text">
+        </div>
+
+        <!-- ==================== STEP 1：上軌道 + 下積木庫 ==================== -->
+        <div id="tab3Step1Box">
+          <!-- 上方：已選測項軌道 (Drop Zone) -->
+          <div id="tab3DeckDropZone"
+            ondragover="event.preventDefault(); this.style.borderColor='#7C3AED'; this.style.background='#F5F3FF';"
+            ondragleave="this.style.borderColor='#A78BFA'; this.style.background='#FAF5FF';"
+            ondrop="tab3HandleDropToTrack(event); this.style.borderColor='#A78BFA'; this.style.background='#FAF5FF';"
+            style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:10px; padding:12px 14px; margin-bottom:14px; transition:all 0.15s;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <div style="font-weight:900; font-size:14px; color:#4C1D95;">
+                ✅ 已選測項軌道（依此順序寫入 Excel，<span id="tab3TrackCount">0</span> 項）
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button onclick="tab3ClearQueue()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#475569;">🧹 清空軌道</button>
+                <button onclick="tab3GoStep(2)" class="btn btn-primary-green" style="padding:6px 16px; font-size:13px; font-weight:800;">
+                  下一步：細部規格設定 ▶
+                </button>
+              </div>
+            </div>
+            <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; gap:8px; min-height:54px; align-items:center;">
+              <div style="color:#7C3AED; font-size:13px; font-weight:600; opacity:0.8;">👆 請從下方把常用的儀器積木拖曳到此處，或直接點擊卡片上的「＋ 加入」</div>
+            </div>
+          </div>
+
+          <!-- 下方：34 款儀器積木庫 -->
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:12px 14px;">
+            <!-- 最常用 Top 6 置頂列 -->
+            <div style="margin-bottom:10px;">
+              <div style="font-weight:800; font-size:13px; color:#B45309; margin-bottom:6px;">⭐ 最常用儀器（置頂快選，可直接拖曳或點 ＋ 加入）：</div>
+              <div id="tab3PopularCards" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+
+            <!-- 分類篩選與搜尋列 -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:8px; border-top:1px solid #E2E8F0; margin-bottom:10px;">
+              <div id="tab3CatPills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+              <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 34 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
+                style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:12.5px; min-width:220px;">
+            </div>
+
+            <!-- 全部 / 分類儀器積木網格 -->
+            <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(195px, 1fr)); gap:8px; max-height:330px; overflow-y:auto; padding-right:4px;"></div>
+          </div>
+        </div>
+
+        <!-- ==================== STEP 2：細部規格與人機設定 ==================== -->
+        <div id="tab3Step2Box" style="display:none;">
+          <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="font-weight:800; font-size:14px; color:#4C1D95;">
+              🎛️ 第二步：設定各儀器測項名稱、上下限 (DL/UL) 或開啟專屬互動人機
+            </div>
+            <button onclick="tab3GoStep(1)" class="btn" style="padding:6px 14px; font-size:13px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">
+              ⬅ 返回調整儀器積木
             </button>
           </div>
-        </div>
 
-        <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:16px; margin-bottom:16px;">
-          <div style="font-weight:800; color:#5B21B6; margin-bottom:12px; font-size:14.5px;">1. 選擇要載入的儀器與測項規格：</div>
-          <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
-            <label style="flex:1; min-width:160px; font-weight:700; font-size:13px; color:#334155;">功能分類：
-              <select id="tab3CatSel" onchange="tab3OnCatChange()" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px;"></select>
-            </label>
-            <label style="flex:1.2; min-width:190px; font-weight:700; font-size:13px; color:#334155;">儀器名稱 (34款標準型錄)：
-              <select id="tab3InstSel" onchange="tab3OnInstChange()" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; font-weight:700; color:#1E293B;"></select>
-            </label>
-            <label style="flex:1.4; min-width:200px; font-weight:700; font-size:13px; color:#334155;">測項名稱 (Title)：
-              <input id="tab3TitleInput" type="text" placeholder="例如：Measure 3.3V Rail" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-            </label>
-            <label style="width:95px; font-weight:700; font-size:13px; color:#334155;">下限 DL：
-              <input id="tab3DlInput" type="text" placeholder="3.15" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-            </label>
-            <label style="width:95px; font-weight:700; font-size:13px; color:#334155;">上限 UL：
-              <input id="tab3UlInput" type="text" placeholder="3.45" class="mono" style="width:100%; margin-top:4px; padding:7px 10px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-            </label>
-            <button onclick="tab3OpenIntro()" class="btn" style="padding:7px 12px; background:#F0FDF4; color:#166534; border-color:#86EFAC; font-weight:700;">📖 儀器規格介紹</button>
-            <button id="btnTab3Hmi" onclick="tab3OpenHmi()" class="btn" style="padding:7px 12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;">🔌 互動人機設定</button>
-            <button onclick="tab3AddItemToQueue()" class="btn" style="padding:7px 14px; background:#EFF6FF; color:#1E40AF; border-color:#93C5FD; font-weight:700;" title="將目前設定的測項加入排隊清單，可連續加入多個測項">➕ 加入連續測項清單</button>
-          </div>
+          <div id="tab3DetailCards" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
 
-          <!-- 待連續產生測項清單 -->
-          <div id="tab3QueueContainer" style="margin-top:14px; display:none; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:10px 14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <span style="font-weight:700; font-size:13px; color:#1E293B;">📋 已排隊之連續測項清單（可連續追加同款或多款儀器測項）：</span>
-              <button onclick="tab3ClearQueue()" class="btn" style="padding:2px 8px; font-size:11.5px; background:#F1F5F9; color:#475569;">🧹 清空清單</button>
+          <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="font-size:12.5px; color:#166534;">
+              ✨ <b>自動生成保障：</b>將以 Golden Mother 建立腳本、自動補齊前置路由與 Phase 97 收尾，並立即置頂開啟 Excel！
             </div>
-            <div id="tab3QueueList" style="display:flex; flex-direction:column; gap:6px;"></div>
+            <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:9px 22px; font-weight:900; font-size:14.5px; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+              🚀 立即生成母體並開啟 Excel
+            </button>
           </div>
-        </div>
-
-        <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:14px 18px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-          <div>
-            <div style="font-weight:700; font-size:13.5px; color:#0F172A;">✨ 自動生成流程保障：</div>
-            <div style="font-size:12.5px; color:#64748B; margin-top:2px;">
-              點擊上方或右方綠色按鈕後，後台將自動以 Golden Mother 建立全新腳本，自動掛載前置路由與 Phase 97 收尾保護，載入您選定的所有連續測項，執行全自動語法與邏輯檢查，產出後立即置頂開啟 Excel。
-            </div>
-          </div>
-          <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800; font-size:14px;">
-            🚀 立即生成並自動開啟 Excel
-          </button>
         </div>
 
         <!-- 產出狀態展示盒 -->
@@ -1405,10 +1437,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.6.6"></script>
-<script src="/js/audit_editors.js?v=0.6.6"></script>
-<script src="/js/flow_guide.js?v=0.6.6"></script>
-<script src="/js/block_sorter.js?v=0.6.6"></script>
+<script src="/js/inst_hmi.js?v=0.6.7"></script>
+<script src="/js/audit_editors.js?v=0.6.7"></script>
+<script src="/js/flow_guide.js?v=0.6.7"></script>
+<script src="/js/block_sorter.js?v=0.6.7"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2473,65 +2505,227 @@ function switchGenSubMode(mode) {
   if (GEN_SUB_MODE === 'inst') syncTab3View();
 }
 
+let TAB3_QUEUE = [];
+let TAB3_STEP = 1;
+let TAB3_CAT_FILTER = 'ALL';
+let TAB3_DRAG_PAYLOAD = null; // { type: 'catalog', name } | { type: 'track', idx }
+
 async function syncTab3View() {
-  // 書籤三：免選檔，由母體自動建立範本
   try {
     await _ensureInstCatalogLoaded();
   } catch (err) {}
   _populateCategoryAndInst('tab3CatSel', 'tab3InstSel', 'tab3TitleInput', 'tab3DlInput', 'tab3UlInput');
   tab3UpdateHmiBtn();
+  tab3GoStep(TAB3_STEP);
+  tab3RenderCatalogDeck();
+  renderTab3Queue();
 }
 
-let TAB3_QUEUE = [];
+function tab3GoStep(step) {
+  if (step === 2 && TAB3_QUEUE.length === 0) {
+    alert('請先從下方拖曳或點選至少 1 台儀器積木到上方軌道！');
+    return;
+  }
+  TAB3_STEP = (step === 2) ? 2 : 1;
+  const s1 = document.getElementById('tab3Step1Box');
+  const s2 = document.getElementById('tab3Step2Box');
+  const n1 = document.getElementById('tab3StepNav1');
+  const n2 = document.getElementById('tab3StepNav2');
+  if (s1) s1.style.display = (TAB3_STEP === 1) ? 'block' : 'none';
+  if (s2) s2.style.display = (TAB3_STEP === 2) ? 'block' : 'none';
+  if (n1) n1.className = 'source-mode-tab' + (TAB3_STEP === 1 ? ' active' : '');
+  if (n2) n2.className = 'source-mode-tab' + (TAB3_STEP === 2 ? ' active' : '');
+  if (TAB3_STEP === 2) tab3RenderDetailCards();
+}
 
-function tab3AddItemToQueue() {
-  const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
-  const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}_${TAB3_QUEUE.length + 1}`;
-  const dlVal = (document.getElementById('tab3DlInput') || {}).value.trim();
-  const ulVal = (document.getElementById('tab3UlInput') || {}).value.trim();
+function tab3AddInstBlock(instName) {
+  const cat = STATE.instCatalog || [];
+  const obj = cat.find(i => i.Name === instName) || { Name: instName };
+  const def = (typeof _getInstDefaults === 'function') ? _getInstDefaults(obj) : { title: `Test_${instName}`, dl: '', ul: '' };
+  const sameCount = TAB3_QUEUE.filter(x => x.inst_name === instName).length;
+  const titleName = sameCount > 0 ? `${def.title || instName}_${sameCount + 1}` : (def.title || `Test_${instName}`);
 
   TAB3_QUEUE.push({
     inst_name: instName,
     title_name: titleName,
-    dl_val: dlVal,
-    ul_val: ulVal
+    dl_val: String(def.dl || ''),
+    ul_val: String(def.ul || '')
   });
+  const iSel = document.getElementById('tab3InstSel');
+  if (iSel) iSel.value = instName;
   renderTab3Queue();
-  // 提示使用者已加入，並建議下一個測項名稱
-  const tInput = document.getElementById('tab3TitleInput');
-  if (tInput) tInput.value = `Test_${instName}_${TAB3_QUEUE.length + 1}`;
+}
+
+function tab3AddItemToQueue() {
+  const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  tab3AddInstBlock(instName);
 }
 
 function tab3RemoveQueueItem(idx) {
   TAB3_QUEUE.splice(idx, 1);
   renderTab3Queue();
+  if (TAB3_STEP === 2) {
+    if (TAB3_QUEUE.length === 0) tab3GoStep(1);
+    else tab3RenderDetailCards();
+  }
 }
 
 function tab3ClearQueue() {
   TAB3_QUEUE = [];
   renderTab3Queue();
+  if (TAB3_STEP === 2) tab3GoStep(1);
+}
+
+function tab3MoveQueueItem(fromIdx, toIdx) {
+  if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= TAB3_QUEUE.length || toIdx >= TAB3_QUEUE.length) return;
+  const [item] = TAB3_QUEUE.splice(fromIdx, 1);
+  TAB3_QUEUE.splice(toIdx, 0, item);
+  renderTab3Queue();
+}
+
+function tab3HandleDropToTrack(e, targetIdx = null) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!TAB3_DRAG_PAYLOAD) return;
+  if (TAB3_DRAG_PAYLOAD.type === 'catalog') {
+    tab3AddInstBlock(TAB3_DRAG_PAYLOAD.name);
+    if (targetIdx !== null && TAB3_QUEUE.length > 1) {
+      tab3MoveQueueItem(TAB3_QUEUE.length - 1, targetIdx);
+    }
+  } else if (TAB3_DRAG_PAYLOAD.type === 'track' && targetIdx !== null) {
+    tab3MoveQueueItem(TAB3_DRAG_PAYLOAD.idx, targetIdx);
+  }
+  TAB3_DRAG_PAYLOAD = null;
 }
 
 function renderTab3Queue() {
-  const c = document.getElementById('tab3QueueContainer');
   const l = document.getElementById('tab3QueueList');
-  if (!c || !l) return;
+  const cnt = document.getElementById('tab3TrackCount');
+  if (cnt) cnt.textContent = String(TAB3_QUEUE.length);
+  if (!l) return;
   if (TAB3_QUEUE.length === 0) {
-    c.style.display = 'none';
-    l.innerHTML = '';
+    l.innerHTML = `<div style="color:#7C3AED; font-size:13px; font-weight:600; opacity:0.8;">👆 請從下方把常用的儀器積木拖曳到此處，或直接點擊卡片上的「＋ 加入」</div>`;
     return;
   }
-  c.style.display = 'block';
   l.innerHTML = TAB3_QUEUE.map((it, idx) => `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:4px; padding:5px 10px; font-size:12.5px;">
+    <div draggable="true"
+      ondragstart="TAB3_DRAG_PAYLOAD={type:'track', idx:${idx}}; event.dataTransfer.effectAllowed='move';"
+      ondragover="event.preventDefault(); this.style.borderColor='#7C3AED';"
+      ondragleave="this.style.borderColor='#8B5CF6';"
+      ondrop="this.style.borderColor='#8B5CF6'; tab3HandleDropToTrack(event, ${idx});"
+      style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:2px solid #8B5CF6; border-radius:8px; padding:7px 11px; cursor:grab; box-shadow:0 2px 6px rgba(109,40,217,0.1);">
+      <span style="background:#7C3AED; color:#FFF; font-weight:900; font-size:11.5px; padding:2px 7px; border-radius:999px;">#${idx + 1}</span>
       <div>
-        <span style="font-weight:700; color:#1E40AF;">#${idx + 1} [${it.inst_name}]</span>
-        <span style="margin-left:6px; color:#0F172A; font-weight:700;">${it.title_name}</span>
-        <span class="mono" style="margin-left:8px; color:#64748B;">(DL=${it.dl_val || '-'}, UL=${it.ul_val || '-'})</span>
+        <div class="mono" style="font-weight:900; font-size:13px; color:#4C1D95;">${it.inst_name}</div>
+        <div style="font-size:11.5px; color:#475569; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${it.title_name}</div>
       </div>
-      <button onclick="tab3RemoveQueueItem(${idx})" class="btn" style="padding:1px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none; border-radius:3px;">✕ 移除</button>
+      <button onclick="tab3AddInstBlock('${it.inst_name}')" title="再複製加入一台" class="btn" style="padding:2px 6px; font-size:11px; background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE;">＋</button>
+      <button onclick="tab3RemoveQueueItem(${idx})" title="移除" class="btn" style="padding:2px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none;">✕</button>
     </div>
   `).join('');
+}
+
+function tab3RenderCatalogDeck() {
+  const popEl = document.getElementById('tab3PopularCards');
+  const pillsEl = document.getElementById('tab3CatPills');
+  const deckEl = document.getElementById('tab3CatalogDeck');
+  if (!deckEl) return;
+
+  const catalog = STATE.instCatalog || [];
+  const popularNames = ['NI6008-1', 'FeasaLED', 'InstIQApiA', 'iPower', 'Agilent34401A', 'Relay'];
+  const popularItems = popularNames.map(n => catalog.find(i => i.Name === n)).filter(Boolean);
+
+  if (popEl) {
+    popEl.innerHTML = popularItems.map(inst => `
+      <div draggable="true"
+        ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; event.dataTransfer.effectAllowed='copy';"
+        style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:6px 10px; cursor:grab;">
+        <div>
+          <div class="mono" style="font-weight:900; font-size:12.5px; color:#92400E;">⭐ ${inst.Name}</div>
+          <div style="font-size:11px; color:#78350F; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${inst.Desc || inst.Functions || ''}</div>
+        </div>
+        <button onclick="tab3AddInstBlock('${inst.Name}')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#F59E0B; color:#FFF; border:none; font-weight:800;">＋ 加入</button>
+      </div>
+    `).join('');
+  }
+
+  if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
+    const pills = [{ id: 'ALL', label: `全部 (${catalog.length})` }, ...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label }))];
+    pillsEl.innerHTML = pills.map(p => `
+      <button onclick="TAB3_CAT_FILTER='${p.id}'; tab3RenderCatalogDeck();" class="btn"
+        style="padding:4px 10px; font-size:12px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
+        ${p.label}
+      </button>
+    `).join('');
+  }
+
+  const q = ((document.getElementById('tab3DeckSearch') || {}).value || '').trim().toLowerCase();
+  let filtered = catalog;
+  if (TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
+    const catObj = INST_CATEGORIES.find(c => c.id === TAB3_CAT_FILTER);
+    if (catObj) filtered = filtered.filter(i => catObj.names.includes(i.Name));
+  }
+  if (q) {
+    filtered = filtered.filter(i =>
+      String(i.Name || '').toLowerCase().includes(q) ||
+      String(i.Desc || '').toLowerCase().includes(q) ||
+      String(i.Functions || '').toLowerCase().includes(q)
+    );
+  }
+
+  deckEl.innerHTML = filtered.map(inst => `
+    <div draggable="true"
+      ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; event.dataTransfer.effectAllowed='copy';"
+      style="background:#FFFFFF; border:1.5px solid #CBD5E1; border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px; cursor:grab;">
+      <div>
+        <div class="mono" style="font-weight:800; font-size:13px; color:#1E293B;">${inst.Name}</div>
+        <div style="font-size:11.5px; color:#64748B; line-height:1.35; margin-top:2px;">${inst.Desc || inst.Functions || ''}</div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+        <button onclick="openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:2px 7px; font-size:11px; background:#F8FAFC; color:#475569;">📖 簡介</button>
+        <button onclick="tab3AddInstBlock('${inst.Name}')" class="btn" style="padding:3px 10px; font-size:11.5px; background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD; font-weight:800;">＋ 加入</button>
+      </div>
+    </div>
+  `).join('') || '<div style="grid-column:1/-1; text-align:center; color:#64748B; padding:20px;">找不到符合關鍵字的儀器</div>';
+}
+
+function tab3RenderDetailCards() {
+  const box = document.getElementById('tab3DetailCards');
+  if (!box) return;
+  box.innerHTML = TAB3_QUEUE.map((it, idx) => {
+    const hasHmi = (it.inst_name === 'NI6008-1') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(it.inst_name));
+    return `
+      <div style="background:#FFFFFF; border:1.5px solid #CBD5E1; border-left:5px solid #7C3AED; border-radius:8px; padding:12px 14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; min-width:190px;">
+          <span style="background:#7C3AED; color:#FFF; font-weight:900; font-size:12px; padding:3px 9px; border-radius:999px;">#${idx + 1}</span>
+          <div>
+            <div class="mono" style="font-weight:900; font-size:14px; color:#4C1D95;">${it.inst_name}</div>
+            <div style="font-size:11.5px; color:#64748B;">可獨立調整測項名稱與上下限</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex:1; justify-content:flex-end;">
+          <label style="font-size:12px; font-weight:700; color:#334155;">測項名稱
+            <input type="text" value="${it.title_name.replace(/"/g, '&quot;')}" onchange="TAB3_QUEUE[${idx}].title_name=this.value" style="margin-left:4px; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; width:175px;">
+          </label>
+          <label style="font-size:12px; font-weight:700; color:#334155;">DL
+            <input type="text" value="${it.dl_val.replace(/"/g, '&quot;')}" onchange="TAB3_QUEUE[${idx}].dl_val=this.value" class="mono" style="margin-left:4px; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; width:72px;">
+          </label>
+          <label style="font-size:12px; font-weight:700; color:#334155;">UL
+            <input type="text" value="${it.ul_val.replace(/"/g, '&quot;')}" onchange="TAB3_QUEUE[${idx}].ul_val=this.value" class="mono" style="margin-left:4px; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; width:72px;">
+          </label>
+          ${hasHmi ? `<button onclick="tab3OpenHmiForInst('${it.inst_name}')" class="btn" style="padding:5px 10px; font-size:12px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:800;">🎛️ 互動人機</button>` : ''}
+          <button onclick="openInstIntroPage('tab3', '${it.inst_name}')" class="btn" style="padding:5px 9px; font-size:12px; background:#F8FAFC; color:#475569;">📖 規格</button>
+          <button onclick="tab3RemoveQueueItem(${idx})" class="btn" style="padding:5px 8px; font-size:12px; background:#FEE2E2; color:#991B1B; border:none;">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function tab3OpenHmiForInst(instName) {
+  const iSel = document.getElementById('tab3InstSel');
+  if (iSel) iSel.value = instName;
+  tab3OpenHmi();
 }
 
 async function tab3GenerateStandalone(extraHmiItem = null) {
