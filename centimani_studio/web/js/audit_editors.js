@@ -359,7 +359,7 @@ function _renderIniStage1EditHtml(ws, usedVars) { return _renderSystemIniFullPag
 function _renderIniStage2ReviewHtml(ws) { return _renderSystemIniFullPageHtml(ws); }
 
 function _setActiveHubCard(key) {
-  ['system', 'global', 'station_isn', 'inst_com'].forEach(k => {
+  ['flow', 'jump', 'system', 'global', 'station_isn'].forEach(k => {
     const el = document.getElementById('globalHubCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
@@ -404,7 +404,7 @@ function _buildChangeConfirmBoxHtml(entries, ws) {
 }
 
 // =========================================================================
-// 第一層：【4 張水平手風琴卡牌入口頁】（完全仿照首頁 .acc-row / .acc-card）
+// 第一層：【5 張水平手風琴卡牌入口頁】（完全仿照首頁 .acc-row / .acc-card）
 // =========================================================================
 function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const sys = ws.system_ini || {};
@@ -412,6 +412,13 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const gScr = (ws.global_ini && ws.global_ini.Scripts) || {};
   const duts = ws.duts || [];
   const insts = ws.instruments || [];
+  const stationKeys = Object.keys(ws.stations || {});
+  const selEl = document.getElementById('editorSheetSel');
+  const curStation = (selEl && selEl.value && ws.stations && ws.stations[selEl.value])
+    ? selEl.value
+    : (stationKeys[0] || '');
+  const curSteps = (curStation && ws.stations && ws.stations[curStation]) ? ws.stations[curStation] : [];
+  const curPhases = new Set(curSteps.map(s => String(s.Phase || '').trim()).filter(Boolean)).size;
 
   const sModCount = _collectIniDiffEntries(STATE.origSystemIni, ws.system_ini, 'System.ini').filter(e => e.isChanged).length;
   const gModCount = _collectIniDiffEntries(STATE.origGlobalIni, ws.global_ini, 'Global.ini').filter(e => e.isChanged).length;
@@ -436,38 +443,73 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   return `
     <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div>
-        <div style="font-weight:900; font-size:15.5px; color:#0F172A;">⚙️ 全域與 INI 設定入口（滑鼠移過預覽狀態，點擊卡片進入全頁面修改）</div>
-        <div style="font-size:12.5px; color:#64748B;">比照首頁手風琴式導覽：選擇要設定的項目後將進入專屬全寬頁面，不與其他設定混雜。</div>
+        <div style="font-weight:900; font-size:15.5px; color:#0F172A;">⚙️ 腳本編修 5 合 1 入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
+        <div style="font-size:12.5px; color:#64748B;">比照首頁手風琴式導覽：流程排序、跳轉重測與三大設定各自獨立，不與其他設定混雜。</div>
       </div>
-      <button onclick="toggleGlobalEditorPanel()" class="btn" style="padding:5px 12px; font-size:12.5px; background:#E2E8F0; color:#334155; font-weight:700;">收合入口 ▲</button>
     </div>
 
     <div class="acc-row" style="min-height:310px;">
-      <!-- 01 System.ini -->
-      <div id="globalHubCard_system" class="acc-card active" data-theme="indigo" onmouseenter="_setActiveHubCard('system')" onclick="switchGlobalEditorTab('system')">
+      <!-- 01 Flow Sort -->
+      <div id="globalHubCard_flow" class="acc-card active" data-theme="amber" onmouseenter="_setActiveHubCard('flow')" onclick="openBlockSorterModal()">
         <div>
-          <div class="acc-num">01 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${sModCount} 項</span>` : ''}</div>
-          <div class="acc-icon">🌐</div>
-          <div class="acc-title">System.ini 過站與廠區</div>
-          <div class="acc-sub">SFIS / iPLAS / DebugMode / 廠區網址</div>
+          <div class="acc-num">01 / FLOW SORT</div>
+          <div class="acc-icon">🧱</div>
+          <div class="acc-title">調整測試流程順序</div>
+          <div class="acc-sub">拖拉 Phase 積木順序 / 複製或刪除測項</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.65;">
+            <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
+            <li>包含步驟：共 <b>${curSteps.length} 步</b>（分成 <b>${curPhases} 個 Phase</b> 積木）</li>
+            <li>支援拖拉重新排序、整段複製或插入新測項</li>
+          </ul>
+          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:13px; font-weight:800;">🧱 進入積木排序 ▶</button>
+        </div>
+      </div>
+
+      <!-- 02 Jump & Retry -->
+      <div id="globalHubCard_jump" class="acc-card" data-theme="indigo" onmouseenter="_setActiveHubCard('jump')" onclick="openJumpEditorModal()">
+        <div>
+          <div class="acc-num">02 / JUMP &amp; RETRY</div>
+          <div class="acc-icon">🔀</div>
+          <div class="acc-title">調整跳轉與重測</div>
+          <div class="acc-sub">設定 PASS / FAIL 跳轉目標與重測行為</div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#312E81; line-height:1.65;">
+            <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
+            <li>可視覺化設定每一步的 <b>PASS / FAIL</b> 跳轉規則</li>
+            <li>避免手寫 Index 錯亂導致跳錯階段或無窮迴圈</li>
+          </ul>
+          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:13px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🔀 進入跳轉編輯 ▶</button>
+        </div>
+      </div>
+
+      <!-- 03 System.ini -->
+      <div id="globalHubCard_system" class="acc-card" data-theme="slate" onmouseenter="_setActiveHubCard('system')" onclick="switchGlobalEditorTab('system')">
+        <div>
+          <div class="acc-num">03 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${sModCount} 項</span>` : ''}</div>
+          <div class="acc-icon">🌐</div>
+          <div class="acc-title">廠區 / SFIS / 量產模式</div>
+          <div class="acc-sub">System.ini 過站開關與廠區伺服器網址</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E293B; line-height:1.65;">
             <li>除錯模式：<b class="mono">DebugMode = ${sys.DebugMode || '1'}</b> (${String(sys.DebugMode)==='1'?'免簽章調試':'正式量產'})</li>
             <li>過站上傳：<b>SFIS ${String(sys.SFIS_Enable)==='1'?'🟢 開':'⚪ 關'}</b> ｜ <b>iPLAS ${String(sys.iPLAS_Enable)==='1'?'🟢 開':'⚪ 關'}</b></li>
             <li>出廠廠區：<b class="mono">${_escAttr(factoryShort)}</b> ｜ 路由：<b class="mono">${_escAttr(sys.SFIS_TSP || '-')}</b></li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:13px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🌐 進入修改 System.ini ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:13px; background:#334155; color:#FFFFFF; border:none; font-weight:800;">🌐 進入修改 System.ini ▶</button>
         </div>
       </div>
 
-      <!-- 02 Global.ini -->
+      <!-- 04 Global.ini -->
       <div id="globalHubCard_global" class="acc-card" data-theme="blue" onmouseenter="_setActiveHubCard('global')" onclick="switchGlobalEditorTab('global')">
         <div>
-          <div class="acc-num">02 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${gModCount} 項</span>` : ''}</div>
+          <div class="acc-num">04 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${gModCount} 項</span>` : ''}</div>
           <div class="acc-icon">🔌</div>
-          <div class="acc-title">Global.ini 通訊與槽位</div>
-          <div class="acc-sub">COM Port / 網卡 IP / 槽位 / 韌體版號</div>
+          <div class="acc-title">COM / IP / 槽位 / 版號</div>
+          <div class="acc-sub">Global.ini 治具序列埠、網卡 IP 與韌體版號</div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E3A8A; line-height:1.65;">
@@ -480,39 +522,21 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         </div>
       </div>
 
-      <!-- 03 Excel Station & ISN -->
+      <!-- 05 Station, ISN & Instrument Mount -->
       <div id="globalHubCard_station_isn" class="acc-card" data-theme="green" onmouseenter="_setActiveHubCard('station_isn')" onclick="switchGlobalEditorTab('station_isn')">
         <div>
-          <div class="acc-num">03 / STATION &amp; ISN</div>
+          <div class="acc-num">05 / STATION &amp; INST</div>
           <div class="acc-icon">📋</div>
-          <div class="acc-title">Excel 站別與 ISN 條碼</div>
-          <div class="acc-sub">站別開關 / 新增測試站 / 條碼位數</div>
+          <div class="acc-title">站別 ISN 與儀器掛載</div>
+          <div class="acc-sub">站別開關 / 新增站 / 條碼位數 / 外部儀器</div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.65;">
-            <li>已定義站別：共 <b>${duts.length} 列</b>（含 ${Object.keys(ws.stations || {}).length} 個 Excel 分頁）</li>
+            <li>已定義站別：共 <b>${duts.length} 列</b>（含 ${stationKeys.length} 個 Excel 分頁）</li>
             <li>目前條碼位數：<b class="mono">${_escAttr(curIsnLen)} 碼</b>（支援一鍵統一修改）</li>
-            <li>支援<b>「+ 新增測試站」</b>並同步建立新 Excel 分頁</li>
+            <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（內附白話勾選掛載區）</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:13px; font-weight:800;">📋 進入設定站別與 ISN ▶</button>
-        </div>
-      </div>
-
-      <!-- 04 Excel Instrument Mount -->
-      <div id="globalHubCard_inst_com" class="acc-card" data-theme="amber" onmouseenter="_setActiveHubCard('inst_com')" onclick="switchGlobalEditorTab('inst_com')">
-        <div>
-          <div class="acc-num">04 / INSTRUMENT</div>
-          <div class="acc-icon">🎛️</div>
-          <div class="acc-title">Excel 儀器掛載表</div>
-          <div class="acc-sub">Mount 站別 / GPIB / IP / DLL 版本</div>
-        </div>
-        <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.65;">
-            <li>本腳本使用中儀器：共 <b>${activeInstCount} 台</b></li>
-            <li>完整 34 款型錄總數：<b>${insts.length} 台</b></li>
-            <li>可快速指定儀器 <code>Mount</code> 掛載站別與連線參數</li>
-          </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('inst_com');" class="btn btn-jump" style="padding:7px 14px; font-size:13px; font-weight:800;">🎛️ 進入修改儀器掛載表 ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:13px; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
         </div>
       </div>
     </div>
@@ -590,9 +614,9 @@ function _renderSystemIniFullPageHtml(ws) {
       <div style="background:#F5F3FF; border:1.5px solid #C4B5FD; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 4 格設定入口
+            ⬅ 返回 5 格設定入口
           </button>
-          <span style="font-weight:900; font-size:15.5px; color:#4C1D95;">🌐 01 / System.ini 過站開關與出廠廠區設定</span>
+          <span style="font-weight:900; font-size:15.5px; color:#4C1D95;">🌐 03 / System.ini 過站開關與出廠廠區設定</span>
           ${sChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800;">已改 ${sChangedCount} 項</span>` : ''}
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -789,9 +813,9 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
       <div style="background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 4 格設定入口
+            ⬅ 返回 5 格設定入口
           </button>
-          <span style="font-weight:900; font-size:15.5px; color:#1E3A8A;">🔌 02 / Global.ini 治具通訊、槽位開關與韌體版號設定</span>
+          <span style="font-weight:900; font-size:15.5px; color:#1E3A8A;">🔌 04 / Global.ini 治具通訊、槽位開關與韌體版號設定</span>
           ${gChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800;">已改 ${gChangedCount} 項</span>` : ''}
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -853,7 +877,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
 // =========================================================================
 // 第二層 C：全頁面修改 Excel 站別與 ISN 條碼 (範例 B)
 // =========================================================================
-function _renderStationIsnFullPageHtml(ws) {
+function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
   const duts = ws.duts || [];
   let topIsnLen = STATE.lastIsnLen || '15';
   let topIsnPat = STATE.lastIsnPat || '[0-9]';
@@ -906,15 +930,58 @@ function _renderStationIsnFullPageHtml(ws) {
     `;
   }).join('');
 
+  // 進階摺疊區：各測試站掛載的外部儀器與連線設定（白話版）
+  const insts = ws.instruments || [];
+  const stationNames = Object.keys(ws.stations || {});
+  const instRefs = usedInstRefs || new Set();
+  const isInstUsed = (inst) => {
+    const m = String(inst['Mount'] || '').trim();
+    const nm = String(inst['Name'] || '').trim().toLowerCase();
+    const fns = String(inst['Functions'] || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+    return Boolean(m) || instRefs.has(nm) || fns.some(f => instRefs.has(f));
+  };
+  const activeInsts = [];
+  const idleInsts = [];
+  insts.forEach((inst, idx) => {
+    if (isInstUsed(inst)) activeInsts.push({ inst, idx });
+    else idleInsts.push({ inst, idx });
+  });
+
+  const renderPlainInstRow = ({ inst, idx }) => {
+    const curMounted = String(inst['Mount'] || '').split(',').map(x => x.trim()).filter(Boolean);
+    const checksHtml = stationNames.map(sn => {
+      const isChecked = curMounted.includes(sn);
+      return `
+        <label style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:4px; border:1px solid ${isChecked ? '#4ADE80' : '#CBD5E1'}; background:${isChecked ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer; font-size:12px; font-weight:${isChecked ? '800' : '500'}; color:${isChecked ? '#14532D' : '#475569'};">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleInstMountStation(${idx}, '${_escAttr(sn)}', this.checked)" style="cursor:pointer; accent-color:#16A34A;">
+          <span>${_escAttr(sn)}</span>
+        </label>
+      `;
+    }).join('');
+    return `
+      <tr>
+        <td>
+          <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+            ${checksHtml || '<span style="color:#94A3B8;font-size:12px;">尚無測試站</span>'}
+          </div>
+        </td>
+        <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')}</td>
+        <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:245px;padding:4px;font-size:12px;" placeholder="例：192.168.100.254 或 COM Port"></td>
+        <td class="mono" style="font-size:12px;color:#475569;">${_escAttr(inst['Functions']||'')}</td>
+        <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${idx}]['Version']=this.value" class="mono" style="width:78px;padding:4px;font-size:12px;"></td>
+      </tr>
+    `;
+  };
+
   return `
     <div style="display:flex; flex-direction:column; gap:12px;">
       <!-- 頂部返回導覽列 -->
       <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 4 格設定入口
+            ⬅ 返回 5 格設定入口
           </button>
-          <span style="font-weight:900; font-size:15.5px; color:#14532D;">📋 03 / Excel 站別開關、新增測試站與 ISN 條碼設定</span>
+          <span style="font-weight:900; font-size:15.5px; color:#14532D;">📋 05 / Excel 站別開關、新增測試站與 ISN 條碼設定</span>
         </div>
         <button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:6px 14px; font-size:13px; font-weight:800;">
           + 新增測試站 (同時建立 Excel 工作表)
@@ -944,6 +1011,35 @@ function _renderStationIsnFullPageHtml(ws) {
           <tbody>${rowsHtml || '<tr><td colspan="6" style="text-align:center;color:#64748B;padding:20px;">此工作簿沒有 DUTs 資料</td></tr>'}</tbody>
         </table>
       </div>
+
+      <!-- 進階折疊：各測試站掛載的外部儀器與連線設定（白話版） -->
+      <details style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px;">
+        <summary style="cursor:pointer; font-weight:800; font-size:13.5px; color:#78350F;">
+          🔧 進階：各測試站掛載的外部儀器與連線設定（使用中 ${activeInsts.length} 台，點此展開微調）
+        </summary>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-size:12.5px; color:#92400E; background:#FEF3C7; padding:6px 10px; border-radius:6px;">
+            💡 <b>用處說明：</b>決定哪些外部儀器（如電源供應器、RF 分析儀、治具控制器）要在哪些測試站啟動與連線。不確定時保持預設即可。
+          </div>
+          <div style="overflow:auto; max-height:320px; border:1px solid #FDE68A; border-radius:6px; background:#FFFFFF;">
+            <table class="meas-table" style="margin:0;">
+              <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>功能</th><th>驅動版本</th></tr></thead>
+              <tbody>${activeInsts.map(renderPlainInstRow).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748B;padding:14px;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
+            </table>
+          </div>
+          ${idleInsts.length > 0 ? `
+            <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
+              <summary style="cursor:pointer; font-weight:700; font-size:12px; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
+              <div style="overflow:auto; max-height:260px; margin-top:6px;">
+                <table class="meas-table" style="margin:0;">
+                  <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>功能</th><th>驅動版本</th></tr></thead>
+                  <tbody>${idleInsts.map(renderPlainInstRow).join('')}</tbody>
+                </table>
+              </div>
+            </details>
+          ` : ''}
+        </div>
+      </details>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
         <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:13.5px; background:#F1F5F9; color:#334155; border:1px solid #94A3B8; font-weight:700;">⬅ 返回上一頁</button>
@@ -997,7 +1093,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       <div style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 4 格設定入口
+            ⬅ 返回 5 格設定入口
           </button>
           <span style="font-weight:900; font-size:15.5px; color:#78350F;">🎛️ 04 / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
         </div>
@@ -1212,7 +1308,7 @@ function renderGlobalEditorPanel() {
   } else if (AUDIT_GLOBAL_TAB === 'global') {
     innerHtml = _renderGlobalIniFullPageHtml(ws, usedVars);
   } else if (AUDIT_GLOBAL_TAB === 'station_isn') {
-    innerHtml = _renderStationIsnFullPageHtml(ws);
+    innerHtml = _renderStationIsnFullPageHtml(ws, usedInstRefs);
   } else if (AUDIT_GLOBAL_TAB === 'inst_com') {
     innerHtml = _renderInstMountFullPageHtml(ws, usedInstRefs);
   } else {
@@ -1296,6 +1392,20 @@ function appendMountStation(instIdx, stName) {
   const cur = String(inst['Mount'] || '').split(',').map(x => x.trim()).filter(Boolean);
   if (!cur.includes(stName)) cur.push(stName);
   inst['Mount'] = cur.join(',');
+  renderGlobalEditorPanel();
+}
+
+function toggleInstMountStation(instIdx, stName, isChecked) {
+  if (!STATE.workspace || !STATE.workspace.instruments || !STATE.workspace.instruments[instIdx] || !stName) return;
+  const inst = STATE.workspace.instruments[instIdx];
+  let cur = String(inst['Mount'] || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (isChecked) {
+    if (!cur.includes(stName)) cur.push(stName);
+  } else {
+    cur = cur.filter(x => x !== stName);
+  }
+  inst['Mount'] = cur.join(',');
+  _recordPendingIniNotice(`儀器 [${inst['Name'] || ''}] 掛載站別更新為: ${inst['Mount'] || '(未掛載)'}`);
   renderGlobalEditorPanel();
 }
 

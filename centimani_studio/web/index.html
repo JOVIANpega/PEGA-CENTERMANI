@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.2</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.6.3</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1041,46 +1041,17 @@
 
       <!-- 載入檔案後的編修工作區 -->
       <div id="editorWorkspaceBody" style="display:none;">
-        <!-- ② 任務分類編修區（左：改測試步驟 / 右：改環境通訊） -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:14px; margin-bottom:12px;">
-          <!-- 左卡 A：測試站流程與儀器 -->
-          <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:14px 16px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-              <div style="font-weight:800; font-size:15px; color:#4C1D95;">A. 測試站流程與儀器編修</div>
-              <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:#334155;">
-                目標站別：
-                <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:12.5px; font-weight:700;"></select>
-              </label>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btnOpenJumpModal" class="btn btn-jump" style="flex:1 1 155px; justify-content:center; padding:10px 12px; font-size:13.5px;" onclick="openJumpEditorModal()">
-                🔀 編輯跳轉 (PASS/FAIL)
-              </button>
-              <button id="btnOpenBlockSorter" class="btn" style="flex:1 1 175px; justify-content:center; padding:10px 12px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700; font-size:13.5px;" onclick="openBlockSorterModal()">
-                🧱 積木順序排序 (拖拉 Phase)
-              </button>
-            </div>
-          </div>
-
-          <!-- 右卡 B：全域環境與通訊 (INI / DUTs) -->
-          <div style="background:#FFFFFF; border:1.5px solid #93C5FD; border-top:4px solid #2563EB; border-radius:10px; padding:14px 16px;">
-            <div style="font-weight:800; font-size:15px; color:#1E3A8A; margin-bottom:10px;">B. 全域環境與通訊設定 (INI / DUTs)</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="btnOpenGlobalEditor" class="btn" style="flex:1 1 260px; justify-content:center; padding:10px 12px; background:#EFF6FF; color:#1E3A8A; border-color:#60A5FA; font-weight:800;" onclick="toggleGlobalEditorPanel('hub')">
-                🎛️ 開啟 4 合 1 設定入口 (手風琴總覽)
-              </button>
-              <button id="btnOpenSfisModal" class="btn" style="flex:1 1 150px; justify-content:center; padding:10px 10px; background:#F5F3FF; color:#4C1D95; border-color:#C4B5FD;" onclick="toggleGlobalEditorPanel('system')">
-                🌐 System.ini
-              </button>
-              <button id="btnOpenCommModal" class="btn" style="flex:1 1 150px; justify-content:center; padding:10px 10px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="toggleGlobalEditorPanel('global')">
-                🔌 Global.ini
-              </button>
-            </div>
+        <!-- ② 目標測試站選擇列（供流程排序與跳轉編輯使用） -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span style="font-size:13px; font-weight:800; color:#1E293B;">🎯 目前目標測試站：</span>
+            <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:13px; font-weight:800; color:#0F172A; background:#FFFFFF;"></select>
+            <span style="font-size:12px; color:#64748B;">（點擊下方 5 格水平手風琴卡牌，即可排序測試流程、改跳轉或進入專屬全頁面設定）</span>
           </div>
         </div>
 
-        <!-- ③ 內嵌展開區：全域設定線上微調區 (DUTs / Instrument / Global.ini) -->
-        <div id="auditGlobalEditor" style="display:none; margin-bottom:12px;"></div>
+        <!-- ③ 5 合 1 水平手風琴入口與全頁面設定區 -->
+        <div id="auditGlobalEditor" style="display:block; margin-bottom:12px;"></div>
 
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
@@ -1363,10 +1334,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.6.2"></script>
-<script src="/js/audit_editors.js?v=0.6.2"></script>
-<script src="/js/flow_guide.js?v=0.6.2"></script>
-<script src="/js/block_sorter.js?v=0.6.2"></script>
+<script src="/js/inst_hmi.js?v=0.6.3"></script>
+<script src="/js/audit_editors.js?v=0.6.3"></script>
+<script src="/js/flow_guide.js?v=0.6.3"></script>
+<script src="/js/block_sorter.js?v=0.6.3"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2671,6 +2642,12 @@ function syncEditorView() {
       } else if (prev && stNames.includes(prev)) {
         sel.value = prev;
       }
+    }
+    if (typeof renderGlobalEditorPanel === 'function') {
+      if (typeof AUDIT_GLOBAL_TAB === 'undefined' || !AUDIT_GLOBAL_TAB) AUDIT_GLOBAL_TAB = 'hub';
+      const editorBox = document.getElementById('auditGlobalEditor');
+      if (editorBox) editorBox.style.display = 'block';
+      renderGlobalEditorPanel();
     }
   } else {
     if (fileBar) fileBar.style.display = 'none';
