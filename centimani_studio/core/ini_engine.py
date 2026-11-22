@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 Centimani Studio V2.2 - System.ini & Global.ini Engine
 1. When repairing an existing Excel that already has a sibling System.ini, preserves all original
    SFIS / iPLAS / MiniCloud / LoopRunning keys and only updates NewFormatScriptFile & TestItemCodeFile.
@@ -12,6 +12,9 @@ import glob
 import shutil
 from .checksum_signer import generate_official_checksum
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+
 
 def copy_test_item_code_to_output(output_dir, tic_filename="Test Item Code V2.04_20250310.xlsx"):
     """Copies the official Test Item Code Excel file into output_dir so CentimaniSystem.exe can load it."""
@@ -19,16 +22,26 @@ def copy_test_item_code_to_output(output_dir, tic_filename="Test Item Code V2.04
     if os.path.exists(target_path):
         return tic_filename
 
-    scripts_root = r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS"
-    # Try exact match first, then any Test Item Code V2*.xlsx
-    candidates = glob.glob(os.path.join(scripts_root, "**", tic_filename), recursive=True)
-    if not candidates:
-        candidates = glob.glob(os.path.join(scripts_root, "**", "*Test Item Code V2*.xlsx"), recursive=True)
-    if candidates:
-        src_tic = candidates[0]
-        actual_name = os.path.basename(src_tic)
-        shutil.copy2(src_tic, os.path.join(output_dir, actual_name))
-        return actual_name
+    search_roots = [
+        os.path.join(PROJECT_ROOT, "Centimani_1.5.3_sample", "System"),
+        os.path.join(PROJECT_ROOT, "SCRIPTS"),
+        r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS",
+    ]
+    for s_root in search_roots:
+        if not os.path.exists(s_root):
+            continue
+        exact_p = os.path.join(s_root, tic_filename)
+        if os.path.exists(exact_p):
+            shutil.copy2(exact_p, os.path.join(output_dir, tic_filename))
+            return tic_filename
+        candidates = glob.glob(os.path.join(s_root, "**", tic_filename), recursive=True)
+        if not candidates:
+            candidates = glob.glob(os.path.join(s_root, "**", "*Test Item Code V2*.xlsx"), recursive=True)
+        if candidates:
+            src_tic = candidates[0]
+            actual_name = os.path.basename(src_tic)
+            shutil.copy2(src_tic, os.path.join(output_dir, actual_name))
+            return actual_name
     return tic_filename
 
 
@@ -53,14 +66,17 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 if vname not in settings_map:
                     settings_map[vname] = scripts_map.get(vname, "1")
 
-    # 2. Scan Station sheets for [Scripts] variables
-    for st_name, steps in workspace.get("stations", {}).items():
-        for step in steps:
-            text = " ".join([str(v) for v in step.values() if v])
-            for m in re.finditer(r"\*\$\(([^)]+)\)", text):
-                vname = m.group(1).strip()
-                if vname not in scripts_map:
-                    scripts_map[vname] = settings_map.get(vname, "DEFAULT_VAL")
+    # 2. Scan Station & Marco sheets for [Scripts] variables
+    for sheet_group in (workspace.get("stations", {}), workspace.get("marcos", {})):
+        for _s_name, steps in sheet_group.items():
+            if not isinstance(steps, list):
+                continue
+            for step in steps:
+                text = " ".join([str(v) for v in step.values() if v])
+                for m in re.finditer(r"\*\$\(([^)]+)\)", text):
+                    vname = m.group(1).strip()
+                    if vname not in scripts_map:
+                        scripts_map[vname] = settings_map.get(vname, "DEFAULT_VAL")
 
     # 3. Build Global.ini content
     global_lines = [

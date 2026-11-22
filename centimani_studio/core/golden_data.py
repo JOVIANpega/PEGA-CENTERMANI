@@ -384,8 +384,10 @@ STANDARD_BLOCKS = [
 
 
 _CACHED_VALID_TEST_IDS = None
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(_BASE_DIR)
 
-def get_valid_test_ids(scripts_root=r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS"):
+def get_valid_test_ids(scripts_root=None):
     """Loads all valid 7-character TestIDs from Test Item Code V2.04+ Excel files."""
     global _CACHED_VALID_TEST_IDS
     if _CACHED_VALID_TEST_IDS is not None:
@@ -397,11 +399,22 @@ def get_valid_test_ids(scripts_root=r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS"):
         "BRPW033", "WUPO010", "WUPO011", "WUPO013", "KAOT041", "KAOT042", "KAOT043",
         "KAOT044", "KAOT045", "KAOT046", "VSCH026", "VSCH001", "VSCH002", "IOPI113",
         "IPIO01D", "IPIP048", "NUNU003", "CACK088", "CACK211", "CACK226", "WFOT013",
-        "WFOT024", "WFOT030", "WFOT034"
+        "WFOT024", "WFOT030", "WFOT034", "WFOT036", "IOLE015"
     }
     try:
-        # Prioritize newest V2.04 file
-        tic_files = glob.glob(os.path.join(scripts_root, "**", "*Test Item Code V2*.xlsx"), recursive=True)
+        search_roots = []
+        if scripts_root and os.path.exists(scripts_root):
+            search_roots.append(scripts_root)
+        for cand_root in (
+            os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample"),
+            os.path.join(_PROJECT_ROOT, "SCRIPTS"),
+            r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS",
+        ):
+            if os.path.exists(cand_root) and cand_root not in search_roots:
+                search_roots.append(cand_root)
+        tic_files = []
+        for sr in search_roots:
+            tic_files.extend(glob.glob(os.path.join(sr, "**", "*Test Item Code V2*.xlsx"), recursive=True))
         for tf in tic_files[:2]:
             wb = openpyxl.load_workbook(tf, read_only=True, data_only=True)
             for s in wb.sheetnames:
@@ -457,13 +470,20 @@ def get_tic_catalog():
         tic_path = _ACTIVE_TIC_PATH
     else:
         candidates = [
+            os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "System", "Test Item Code V2.04_20250310.xlsx"),
+            os.path.join(_PROJECT_ROOT, "SCRIPTS", "Test Item Code V2.04_20250310.xlsx"),
+            os.path.join(_PROJECT_ROOT, "SCRIPTS", "KANGAROO", "Test Item Code V2.04_20250310.xlsx"),
             r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample\System\Test Item Code V2.04_20250310.xlsx",
             r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS\AI_SOURCE\KANGAROO\FW\Test Item Code V2.04_20250310.xlsx",
         ]
         tic_path = next((p for p in candidates if os.path.exists(p)), None)
         if not tic_path:
-            found = glob.glob(r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS\**\*Test Item Code V2*.xlsx", recursive=True)
-            tic_path = found[0] if found else None
+            for sr in (os.path.join(_PROJECT_ROOT, "SCRIPTS"), r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS"):
+                if os.path.exists(sr):
+                    found = glob.glob(os.path.join(sr, "**", "*Test Item Code V2*.xlsx"), recursive=True)
+                    if found:
+                        tic_path = found[0]
+                        break
         _ACTIVE_TIC_PATH = tic_path
 
     if tic_path:

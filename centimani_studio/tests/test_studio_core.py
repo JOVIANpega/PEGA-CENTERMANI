@@ -143,13 +143,47 @@ class TestCentimaniStudioCore(unittest.TestCase):
         conv = update_comm_settings(ws, dut_ur1="COM9", dut_ip1="192.168.50.10", convert_uart_to_ssh=True, target_sheet=st)
         self.assertEqual(conv, 2)
         sys_ini, glb_ini = sync_and_generate_inis(ws, "TestFlow.xlsx", self.tmp_dir)
-        sys_txt = open(sys_ini, encoding="utf-8").read()
-        glb_txt = open(glb_ini, encoding="utf-8").read()
+        with open(sys_ini, encoding="utf-8") as f_sys:
+            sys_txt = f_sys.read()
+        with open(glb_ini, encoding="utf-8") as f_glb:
+            glb_txt = f_glb.read()
         self.assertIn("SFIS_Enable=1", sys_txt)
         self.assertIn("172.18.125.49", sys_txt)
         self.assertIn("iPLAS_Site=PCQ", sys_txt)
         self.assertIn("DUT_UR1=COM9", glb_txt)
         self.assertIn("DUTIP_1=192.168.50.10", glb_txt)
+
+    def test_marco_import_inplace_export_and_dry_run(self):
+        from desktop_app import convert_workspace_to_dry_run
+        from core.golden_data import get_active_tic_info
+        ws = get_golden_mother()
+        st = list(ws["stations"].keys())[0]
+        auto_fix_workspace(ws)
+        base_xlsx = os.path.join(self.tmp_dir, "BaseNoMarco.xlsx")
+        export_workspace_to_excel(ws, base_xlsx)
+
+        # Import existing Excel and insert RF IQxel block (which adds Marco sheets in-place)
+        ws_in = import_excel_to_workspace(base_xlsx)
+        insert_rf_iqxel_block(
+            ws_in, st, "InstIQApiA", "WIFI RF Test",
+            tx_tests=[{"channel": "6", "bw": "20", "mcs": "7", "antenna": "1", "target_pwr": "15", "pwr_min": "13", "pwr_max": "17", "evm_min": "-50", "evm_max": "-28"}],
+            rx_tests=[{"channel": "6", "bw": "20", "mcs": "7", "antenna": "1", "rx_level": "-59"}]
+        )
+        auto_fix_workspace(ws_in)
+        fixed_xlsx = os.path.join(self.tmp_dir, "BaseWithMarco_FIXED.xlsx")
+        export_workspace_to_excel(ws_in, fixed_xlsx)
+
+        # Re-import and verify Marco sheets are parsed as list of dicts and work with Dry-Run
+        ws_re = import_excel_to_workspace(fixed_xlsx)
+        self.assertIn("WIFI Tx MCS", ws_re["marcos"])
+        self.assertIsInstance(ws_re["marcos"]["WIFI Tx MCS"], list)
+        self.assertEqual(len(ws_re["marcos"]["WIFI Tx MCS"]), 21)
+
+        dry_ws = convert_workspace_to_dry_run(ws_re)
+        self.assertEqual(dry_ws["marcos"]["WIFI Tx MCS"][0]["ExecMode"], "0")
+
+        tic_info = get_active_tic_info()
+        self.assertGreater(tic_info["count"], 5000)
 
     def test_phase_order_detection_and_block_sorter(self):
         from core.block_sorter import (
@@ -186,13 +220,19 @@ class TestCentimaniStudioCore(unittest.TestCase):
         self.assertIn("$sEth_MAC", res_bad["dep_warnings"][0])
 
 
-        # Test active_sheet setting in export_workspace_to_excel
+        # Test active_sheet setting and light-blue Phase highlight in export_workspace_to_excel
         import openpyxl, tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_test_xlsx = os.path.join(tmp_dir, "test_active_sheet.xlsx")
             export_workspace_to_excel(ws, out_test_xlsx, active_sheet="MB")
             wb_check = openpyxl.load_workbook(out_test_xlsx)
             self.assertEqual(wb_check.active.title, "MB")
+            self.assertTrue(wb_check["MB"].views.sheetView[0].tabSelected)
+            self.assertFalse(wb_check["Properties"].views.sheetView[0].tabSelected)
+            # Reordered Phase blocks (rows 4, 5, 6 in Excel) should have light-blue fill (BAE6FD)
+            fill_r4 = wb_check["MB"].cell(row=4, column=2).fill.start_color.rgb
+            self.assertIn("BAE6FD", str(fill_r4))
+            wb_check.close()
 
 
 if __name__ == "__main__":

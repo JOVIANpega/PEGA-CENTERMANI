@@ -406,7 +406,13 @@ function closeInstIntroPage() {
   document.getElementById('panelInstIntro').style.display = 'none';
   document.getElementById('panelGen').style.display = 'block';
   if (typeof switchGenSubMode === 'function') {
-    switchGenSubMode((INTRO_STATE.targetMode === 'gen' || INTRO_STATE.targetMode === 'wiz_volt') ? 'create' : 'edit');
+    if (INTRO_STATE.targetMode === 'gen' || INTRO_STATE.targetMode === 'wiz_volt') {
+      switchGenSubMode('create');
+    } else if (INTRO_STATE.targetMode === 'tab3') {
+      switchGenSubMode('inst');
+    } else {
+      switchGenSubMode('edit');
+    }
   }
 }
 
@@ -504,7 +510,13 @@ function closeInstHmi() {
   document.getElementById('panelInstHmi').style.display = 'none';
   document.getElementById('panelGen').style.display = 'block';
   if (typeof switchGenSubMode === 'function') {
-    switchGenSubMode((INST_HMI_STATE.targetMode === 'gen' || INST_HMI_STATE.targetMode === 'wiz_volt') ? 'create' : 'edit');
+    if (INST_HMI_STATE.targetMode === 'gen' || INST_HMI_STATE.targetMode === 'wiz_volt') {
+      switchGenSubMode('create');
+    } else if (INST_HMI_STATE.targetMode === 'tab3') {
+      switchGenSubMode('inst');
+    } else {
+      switchGenSubMode('edit');
+    }
   }
 }
 
@@ -926,6 +938,18 @@ async function confirmInstHmi() {
       tx_tests: s.rfTxTests.map(x => Object.assign({}, x)),
       rx_tests: s.rfRxTests.map(x => Object.assign({}, x))
     };
+    if (s.targetMode === 'tab3') {
+      closeInstHmi();
+      if (typeof tab3GenerateStandalone === 'function') {
+        await tab3GenerateStandalone({
+          inst_name: s.instName,
+          title_name: rfPayload.title_name,
+          rf_block: rfPayload
+        });
+      }
+      return;
+    }
+
     if (s.targetMode === 'gen') {
       STATE.genRfBlocks = STATE.genRfBlocks || [];
       STATE.genRfBlocks.push(rfPayload);
@@ -964,6 +988,21 @@ async function confirmInstHmi() {
 
   const { steps, globalsPatch, dl, ul } = buildInstHmiPayload();
   const cleanTitle = (s.titleName || `${s.instName} Test`).trim();
+
+  if (s.targetMode === 'tab3') {
+    closeInstHmi();
+    if (typeof tab3GenerateStandalone === 'function') {
+      await tab3GenerateStandalone({
+        inst_name: s.instName,
+        title_name: cleanTitle,
+        dl_val: dl,
+        ul_val: ul,
+        custom_steps: steps,
+        globals_patch: globalsPatch
+      });
+    }
+    return;
+  }
 
   if (s.targetMode === 'gen') {
     STATE.genCustomInsts = STATE.genCustomInsts || [];

@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.1</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.5.2</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1363,10 +1363,10 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js"></script>
-<script src="/js/audit_editors.js"></script>
-<script src="/js/flow_guide.js?v=2.9.0"></script>
-<script src="/js/block_sorter.js?v=2.9.0"></script>
+<script src="/js/inst_hmi.js?v=0.5.2"></script>
+<script src="/js/audit_editors.js?v=0.5.2"></script>
+<script src="/js/flow_guide.js?v=0.5.2"></script>
+<script src="/js/block_sorter.js?v=0.5.2"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2466,11 +2466,15 @@ function renderTab3Queue() {
   `).join('');
 }
 
-async function tab3GenerateStandalone() {
+async function tab3GenerateStandalone(extraHmiItem = null) {
   let itemsToInsert = [];
   if (TAB3_QUEUE.length > 0) {
     itemsToInsert = [...TAB3_QUEUE];
-  } else {
+  }
+  if (extraHmiItem) {
+    itemsToInsert.push(extraHmiItem);
+  }
+  if (itemsToInsert.length === 0) {
     const instName = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
     const titleName = (document.getElementById('tab3TitleInput') || {}).value.trim() || `Test_${instName}`;
     const dlVal = (document.getElementById('tab3DlInput') || {}).value.trim();
@@ -2554,12 +2558,18 @@ function tab3OnInstChange() {
 
 function tab3OpenIntro() {
   const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
-  openInstIntroPage('audit', inst);
+  openInstIntroPage('tab3', inst);
 }
 
 function tab3OpenHmi() {
   const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
-  openInstIntroPage('audit', inst);
+  if (inst === 'NI6008-1') {
+    openNi6009Hmi('tab3');
+  } else if (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[inst] && INST_INTRO_PROFILES[inst].hasInteractiveHmi) {
+    openInstHmi('tab3', inst);
+  } else {
+    openInstIntroPage('tab3', inst);
+  }
 }
 
 async function tab3ConfirmInsert() {
@@ -2630,13 +2640,14 @@ function syncEditorView() {
   const openBtn = document.getElementById('btnEditorOpenExcel');
   const goEditBtn = document.getElementById('btnGoToEditorFromAudit');
 
-  const hasWs = !!(STATE.workspace && STATE.selectedPath);
+  const hasWs = !!(STATE.workspace && Object.keys(STATE.workspace.stations || {}).length > 0);
   if (goEditBtn) goEditBtn.style.display = hasWs ? 'inline-flex' : 'none';
   if (!pathEl || !emptyEl || !bodyEl) return;
 
   if (hasWs) {
     const stNames = Object.keys(STATE.workspace.stations || {});
-    pathEl.textContent = `${STATE.selectedPath}  （共 ${stNames.length} 個測試站）`;
+    const dispPath = STATE.selectedPath || (STATE.workspace && STATE.workspace.source_file) || '記憶體母體工作區 (尚未存檔)';
+    pathEl.textContent = `${dispPath}  （共 ${stNames.length} 個測試站）`;
     if (fileBar) fileBar.style.display = 'flex';
     emptyEl.style.display = 'none';
     bodyEl.style.display = 'block';
@@ -4322,6 +4333,8 @@ function closeNi6009Hmi() {
   document.getElementById('panelGen').style.display = 'block';
   if (NI6_STATE.targetMode === 'gen' || NI6_STATE.targetMode === 'wiz_volt') {
     switchGenSubMode('create');
+  } else if (NI6_STATE.targetMode === 'tab3') {
+    switchGenSubMode('inst');
   } else {
     switchGenSubMode('edit');
   }
@@ -4520,6 +4533,16 @@ async function ni6ConfirmSubmit() {
     return;
   }
 
+  if (NI6_STATE.targetMode === 'tab3') {
+    closeNi6009Hmi();
+    await tab3GenerateStandalone({
+      inst_name: 'NI6008-1',
+      title_name: payloadBlock.title_name,
+      ni6009_block: payloadBlock
+    });
+    return;
+  }
+
   if (NI6_STATE.targetMode === 'gen') {
     STATE.genNi6009Blocks = STATE.genNi6009Blocks || [];
     if (NI6_STATE.editGenIdx >= 0 && NI6_STATE.editGenIdx < STATE.genNi6009Blocks.length) {
@@ -4575,17 +4598,10 @@ async function openCurrentExcelFile() {
 
 async function applyFixAndExport(dryRun) {
   if (!STATE.workspace) return;
-  if (!dryRun && STATE.report) {
-    const errCnt = STATE.report.error_count || 0;
-    const manCnt = STATE.report.manual_warning_count || 0;
-    if (errCnt > 0 || manCnt > 0) {
-      const ok = confirm(
-        `目前還有 ${errCnt} 個錯誤與 ${manCnt} 個需人工確認項目（例如跳轉邏輯或安全收尾），\n` +
-        `確定要直接匯出 *_FIXED.xlsx 嗎？\n（按「取消」可先在頁面上查看紅/黃折疊卡並套用一鍵修補）`
-      );
-      if (!ok) return;
-    }
-  }
+
+  const targetSheet = (STATE.pendingInserts && STATE.pendingInserts.length > 0 && STATE.pendingInserts[STATE.pendingInserts.length - 1].sheet)
+    || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
+    || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
   const data = await withLoadingTimer('正在修復、簽章並重新檢查匯出檔', async () => {
     const res = await fetch('/api/fix_and_export_in_place', {
@@ -4595,6 +4611,7 @@ async function applyFixAndExport(dryRun) {
         workspace: STATE.workspace,
         user_choices: STATE.userChoices,
         dry_run: dryRun,
+        active_sheet: targetSheet,
         open_excel: true
       })
     });
@@ -4621,8 +4638,11 @@ async function applyFixAndExport(dryRun) {
       STATE.recentFiles = data.recent_files;
       renderRecentFilesList(data.recent_files);
     }
-    document.getElementById('pickedPathText').textContent = data.excel_path;
-    document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
+    const pText = document.getElementById('pickedPathText');
+    if (pText) pText.textContent = data.excel_path;
+    const bOpen = document.getElementById('btnOpenCurrentExcel');
+    if (bOpen) bOpen.style.display = 'inline-flex';
+    syncEditorView();
     renderAuditResults();
   }
 

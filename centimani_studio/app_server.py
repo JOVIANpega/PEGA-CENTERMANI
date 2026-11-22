@@ -8,14 +8,58 @@ Centimani Studio V2.4 - Local Web Server & API Engine
 """
 import os
 import sys
+import re
 import json
-import cgi
 import shutil
 import tempfile
 import webbrowser
 import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
+
+
+def _parse_multipart_form(headers, rfile):
+    """Python 3.10 ~ 3.13+ compatible multipart/form-data parser (replaces removed 'cgi' module)."""
+    ctype = headers.get("Content-Type") or headers.get("content-type") or ""
+    if "multipart/form-data" not in ctype.lower():
+        return None
+    m = re.search(r'boundary=(?:"([^"]+)"|([^;\s]+))', ctype, re.I)
+    if not m:
+        return {}
+    boundary = (m.group(1) or m.group(2)).encode("utf-8")
+    length = int(headers.get("Content-Length") or headers.get("content-length") or 0)
+    if length <= 0:
+        return {}
+    raw_data = rfile.read(length)
+    delimiter = b"--" + boundary
+    parts = raw_data.split(delimiter)
+    fields = {}
+    for part in parts[1:]:
+        if part.startswith(b"--") or not part.strip():
+            continue
+        if part.startswith(b"\r\n"):
+            part = part[2:]
+        elif part.startswith(b"\n"):
+            part = part[1:]
+        if b"\r\n\r\n" in part:
+            hdr_bytes, body = part.split(b"\r\n\r\n", 1)
+            if body.endswith(b"\r\n"):
+                body = body[:-2]
+        elif b"\n\n" in part:
+            hdr_bytes, body = part.split(b"\n\n", 1)
+            if body.endswith(b"\n"):
+                body = body[:-1]
+        else:
+            continue
+        hdr_text = hdr_bytes.decode("utf-8", errors="ignore")
+        nm = re.search(r'name="([^"]+)"', hdr_text, re.I)
+        if nm:
+            field_key = nm.group(1)
+            fields.setdefault(field_key, []).append(body)
+            fn_m = re.search(r'filename="([^"]+)"', hdr_text, re.I)
+            if fn_m:
+                fields[f"{field_key}__filename"] = os.path.basename(fn_m.group(1).replace("\\", "/"))
+    return fields
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -84,6 +128,8 @@ def get_last_opened_dir():
     d = get_app_settings().get("last_dir", "")
     if d and os.path.exists(d):
         return d
+    if os.path.exists(SCRIPTS_ROOT):
+        return SCRIPTS_ROOT
     return PROJECT_ROOT
 
 
@@ -97,9 +143,10 @@ def get_recent_excel_files(limit=8):
     last_d = get_last_opened_dir()
     if last_d and os.path.exists(last_d):
         search_dirs.append(last_d)
-    default_temp = os.path.join(PROJECT_ROOT, "TEMP_SCRIPT")
-    if os.path.exists(default_temp) and default_temp not in search_dirs:
-        search_dirs.append(default_temp)
+    for sub_folder in ("TEST_SECRIPT", "TEMP_SCRIPT"):
+        cand_d = os.path.join(PROJECT_ROOT, sub_folder)
+        if os.path.exists(cand_d) and cand_d not in search_dirs:
+            search_dirs.append(cand_d)
     if os.path.exists(SCRIPTS_ROOT) and SCRIPTS_ROOT not in search_dirs:
         search_dirs.append(SCRIPTS_ROOT)
 
@@ -131,69 +178,125 @@ def get_recent_excel_files(limit=8):
     return files_list[:limit]
 
 
-_PICK_LOCK = None
+import threading
+_PICK_LOCK = threading.Lock()
+_EXCEL_LAUNCH_LOCK = threading.Lock()
+_LAST_EXCEL_LAUNCH = {"path": "", "time": 0.0}
+
+
+def _prepare_topmost_tk_root(tk_mod):
+    """Creates a 1x1 topmost parent Tk window that forces Win32 file/folder dialogs above fullscreen Chrome."""
+    import ctypes
+    try:
+        ctypes.windll.user32.AllowSetForegroundWindow(-1)
+    except Exception:
+        pass
+    root = tk_mod.Tk()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    root.geometry(f"1x1+{sw // 2}+{sh // 3}")
+    root.overrideredirect(True)
+    try:
+        root.attributes("-alpha", 0.01)
+    except Exception:
+        pass
+    root.attributes("-topmost", True)
+    root.deiconify()
+    root.lift()
+    root.focus_force()
+    root.update()
+    try:
+        ctypes.windll.user32.SetForegroundWindow(root.winfo_id())
+    except Exception:
+        pass
+    return root
 
 
 def _run_tk_dialog(child_code, cfg_data):
-    # If running inside PyInstaller bundle, sys.executable is the .exe itself,
-    # so we should invoke a standalone tkinter dialog in-process or via python if available
-    if getattr(sys, "frozen", False):
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            root.lift()
-            root.focus_force()
-            res = ""
-            if "file_types" in cfg_data:
-                ft = cfg_data.get("file_types") or [("Excel 活頁簿 (*.xlsx)", "*.xlsx"), ("所有檔案 (*.*)", "*.*")]
-                res = filedialog.askopenfilename(
-                    title=cfg_data.get("title", "選擇檔案"),
-                    initialdir=cfg_data.get("init_dir", ""),
-                    filetypes=ft
-                )
-            else:
-                res = filedialog.askdirectory(
-                    title=cfg_data.get("title", "選擇資料夾"),
-                    initialdir=cfg_data.get("init_dir", "")
-                )
-            root.destroy()
-            return (res or "").strip()
-        except Exception as e:
-            print(f"[_run_tk_dialog in-process error] {e}")
-            return ""
-
-    # Normal python mode: run isolated child process to avoid any UI thread contention
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=180
-        )
-        return proc.stdout.strip()
-    except Exception as e:
-        print(f"[_run_tk_dialog subprocess error] {e}")
+    if not _PICK_LOCK.acquire(blocking=False):
         return ""
+    try:
+        # If running inside PyInstaller bundle, sys.executable is the .exe itself,
+        # so we should invoke a standalone tkinter dialog in-process
+        if getattr(sys, "frozen", False):
+            try:
+                import tkinter as tk
+                from tkinter import filedialog
+                root = _prepare_topmost_tk_root(tk)
+                res = ""
+                if "file_types" in cfg_data:
+                    ft = cfg_data.get("file_types") or [("Excel 活頁簿 (*.xlsx)", "*.xlsx"), ("所有檔案 (*.*)", "*.*")]
+                    res = filedialog.askopenfilename(
+                        parent=root,
+                        title=cfg_data.get("title", "選擇檔案"),
+                        initialdir=cfg_data.get("init_dir", ""),
+                        filetypes=ft
+                    )
+                else:
+                    res = filedialog.askdirectory(
+                        parent=root,
+                        title=cfg_data.get("title", "選擇資料夾"),
+                        initialdir=cfg_data.get("init_dir", "")
+                    )
+                root.destroy()
+                return (res or "").strip()
+            except Exception as e:
+                print(f"[_run_tk_dialog in-process error] {e}")
+                return ""
+
+        # Normal python mode: run isolated child process to avoid any UI thread contention
+        try:
+            import ctypes
+            try:
+                ctypes.windll.user32.AllowSetForegroundWindow(-1)
+            except Exception:
+                pass
+            proc = subprocess.run(
+                [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=180
+            )
+            return proc.stdout.strip()
+        except Exception as e:
+            print(f"[_run_tk_dialog subprocess error] {e}")
+            return ""
+    finally:
+        _PICK_LOCK.release()
 
 
 def pick_file_native(file_types=None, title="選擇要檢查與修復的 Centimani Excel 腳本"):
     init_dir = get_last_opened_dir()
     child_code = """
-import sys, json, os
+import sys, json, os, ctypes
 try:
     import tkinter as tk
     from tkinter import filedialog
+    try:
+        ctypes.windll.user32.AllowSetForegroundWindow(-1)
+    except Exception:
+        pass
     cfg = json.loads(sys.argv[1])
     root = tk.Tk()
-    root.withdraw()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    root.geometry(f"1x1+{sw // 2}+{sh // 3}")
+    root.overrideredirect(True)
+    try:
+        root.attributes('-alpha', 0.01)
+    except Exception:
+        pass
     root.attributes('-topmost', True)
+    root.deiconify()
     root.lift()
     root.focus_force()
+    root.update()
+    try:
+        ctypes.windll.user32.SetForegroundWindow(root.winfo_id())
+    except Exception:
+        pass
     ft = []
     if cfg.get('file_types'):
         for desc, pat in cfg['file_types']:
@@ -203,6 +306,7 @@ try:
         ft.append(('所有檔案 (*.*)', '*.*'))
     
     path = filedialog.askopenfilename(
+        parent=root,
         title=cfg.get('title', '選擇檔案'),
         initialdir=cfg.get('init_dir', ''),
         filetypes=ft
@@ -228,17 +332,35 @@ except Exception as e:
 def pick_folder_native(title="選擇要批次掃描的 Centimani 專案資料夾"):
     init_dir = get_last_opened_dir()
     child_code = """
-import sys, json, os
+import sys, json, os, ctypes
 try:
     import tkinter as tk
     from tkinter import filedialog
+    try:
+        ctypes.windll.user32.AllowSetForegroundWindow(-1)
+    except Exception:
+        pass
     cfg = json.loads(sys.argv[1])
     root = tk.Tk()
-    root.withdraw()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    root.geometry(f"1x1+{sw // 2}+{sh // 3}")
+    root.overrideredirect(True)
+    try:
+        root.attributes('-alpha', 0.01)
+    except Exception:
+        pass
     root.attributes('-topmost', True)
+    root.deiconify()
     root.lift()
     root.focus_force()
+    root.update()
+    try:
+        ctypes.windll.user32.SetForegroundWindow(root.winfo_id())
+    except Exception:
+        pass
     path = filedialog.askdirectory(
+        parent=root,
         title=cfg.get('title', '選擇資料夾'),
         initialdir=cfg.get('init_dir', '')
     )
@@ -321,83 +443,133 @@ def _scan_project_folder(root_dir):
     return items
 
 
+def _bring_window_to_front(class_name, title_keyword="", max_wait_sec=3.5, maximize=False):
+    """Polls for a visible window matching class_name/title_keyword and raises it above fullscreen Chrome."""
+    import time, ctypes
+    try:
+        user32 = ctypes.windll.user32
+        try:
+            user32.AllowSetForegroundWindow(-1)
+        except Exception:
+            pass
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        kw_low = (title_keyword or "").lower()
+        deadline = time.time() + max_wait_sec
+        while time.time() < deadline:
+            matched = []
+            def _cb(hwnd, _lp):
+                if user32.IsWindowVisible(hwnd):
+                    buf_cls = ctypes.create_unicode_buffer(64)
+                    user32.GetClassNameW(hwnd, buf_cls, 64)
+                    if buf_cls.value == class_name:
+                        buf_txt = ctypes.create_unicode_buffer(256)
+                        user32.GetWindowTextW(hwnd, buf_txt, 256)
+                        t_low = buf_txt.value.lower()
+                        if not kw_low or kw_low in t_low:
+                            matched.append(hwnd)
+                return True
+            user32.EnumWindows(WNDENUMPROC(_cb), 0)
+            if matched:
+                hwnd = matched[0]
+                user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                if maximize:
+                    user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
+                # Toggle HWND_TOPMOST (-1) then HWND_NOTOPMOST (-2) to raise above Chrome Z-order
+                user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040)
+                user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040)
+                user32.SetForegroundWindow(hwnd)
+                return True
+            time.sleep(0.25)
+    except Exception:
+        pass
+    return False
+
+
 def open_folder_in_explorer(folder_path):
-    """Reliably opens folder in Windows Explorer using Shell.Application and explorer.exe fallback."""
+    """Reliably opens folder in Windows Explorer and brings it in front of Chrome."""
     try:
         if not folder_path or not os.path.exists(folder_path):
             return
         norm_path = os.path.normpath(folder_path)
 
-        import threading, time
         def _task():
-            opened = False
-            # Method 1: Shell.Application COM Explore (fastest and cleanest in Windows 10/11)
             try:
-                import win32com.client
-                shell = win32com.client.Dispatch("Shell.Application")
-                shell.Explore(norm_path)
-                opened = True
+                subprocess.Popen(["explorer.exe", norm_path])
+                _bring_window_to_front("CabinetWClass", os.path.basename(norm_path), max_wait_sec=2.5, maximize=False)
             except Exception as e:
-                print(f"[open_folder_in_explorer] Shell.Explore failed: {e}")
-
-            # Method 2: Process execution fallback
-            if not opened:
-                try:
-                    subprocess.Popen(["explorer.exe", norm_path])
-                except Exception as e:
-                    print(f"[open_folder_in_explorer] Popen explorer.exe failed: {e}")
+                print(f"[open_folder_in_explorer] Popen explorer.exe failed: {e}")
 
         threading.Thread(target=_task, daemon=True).start()
     except Exception as e:
         print(f"[open_folder_in_explorer] error: {e}")
 
 
+def _find_excel_executable():
+    """Locates EXCEL.EXE from Windows Registry App Paths or standard Office directories."""
+    candidates = [
+        r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
+        r"C:\Program Files\Microsoft Office\Office16\EXCEL.EXE",
+        r"C:\Program Files (x86)\Microsoft Office\root\Office16\EXCEL.EXE",
+        r"C:\Program Files (x86)\Microsoft Office\Office16\EXCEL.EXE",
+        r"C:\Program Files\Microsoft Office\Office15\EXCEL.EXE",
+    ]
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\excel.exe") as key:
+            val, _ = winreg.QueryValueEx(key, "")
+            if val and os.path.exists(val):
+                candidates.insert(0, val)
+    except Exception:
+        pass
+    for exe in candidates:
+        if os.path.exists(exe):
+            return exe
+    return None
+
+
 def launch_excel_file_async(file_path):
-    """Reliably launches Excel for the given file using Shell.Open, win32com, and startfile."""
+    """
+    Reliably launches Microsoft Excel for the given file in a single debounced background thread,
+    avoiding duplicate thread DDE collisions and raising the Excel window above fullscreen Chrome.
+    """
     if not file_path or not os.path.exists(file_path):
         return
 
-    import threading, time, ctypes
+    import time
+    norm_p = os.path.abspath(file_path)
+    with _EXCEL_LAUNCH_LOCK:
+        now = time.time()
+        if _LAST_EXCEL_LAUNCH["path"] == norm_p and (now - _LAST_EXCEL_LAUNCH["time"]) < 1.5:
+            return
+        _LAST_EXCEL_LAUNCH["path"] = norm_p
+        _LAST_EXCEL_LAUNCH["time"] = now
+
     def _open_task():
-        norm_p = os.path.abspath(file_path)
+        launched = False
+        excel_exe = _find_excel_executable()
+        if excel_exe:
+            try:
+                subprocess.Popen([excel_exe, norm_p])
+                launched = True
+            except Exception as e_exe:
+                print(f"[launch_excel_file_async] direct EXCEL.EXE spawn failed: {e_exe}")
 
-        # Attempt 1: Shell.Application Open (native Windows shell invocation)
-        try:
-            import win32com.client
-            shell = win32com.client.Dispatch("Shell.Application")
-            shell.Open(norm_p)
-            return
-        except Exception as e_sh:
-            print(f"[launch_excel_file_async] Shell.Open failed: {e_sh}")
+        if not launched:
+            try:
+                os.startfile(norm_p)
+                launched = True
+            except Exception as e_sf:
+                print(f"[launch_excel_file_async] os.startfile failed: {e_sf}")
 
-        # Attempt 2: os.startfile (Windows standard shell verb execution)
-        try:
-            os.startfile(norm_p)
-            return
-        except Exception as e_sf:
-            print(f"[launch_excel_file_async] os.startfile failed: {e_sf}")
+        if not launched:
+            try:
+                subprocess.Popen(f'start "" "{norm_p}"', shell=True)
+            except Exception as e_cmd:
+                print(f"[launch_excel_file_async] cmd start failed: {e_cmd}")
 
-        # Attempt 3: cmd start fallback
-        try:
-            subprocess.Popen(f'start "" "{norm_p}"', shell=True)
-            return
-        except Exception as e_cmd:
-            print(f"[launch_excel_file_async] cmd start failed: {e_cmd}")
-
-        # Attempt 4: win32com Excel.Application Automation
-        try:
-            import win32com.client
-            xl = win32com.client.Dispatch("Excel.Application")
-            xl.Visible = True
-            xl.UserControl = True
-            wb = xl.Workbooks.Open(norm_p)
-            for w in xl.Windows:
-                w.Visible = True
-                w.WindowState = -4137
-        except Exception as e_com:
-            print(f"[launch_excel_file_async] win32com fallback failed: {e_com}")
-
-    threading.Thread(target=_open_task, daemon=True).start()
+        fname_stem = os.path.splitext(os.path.basename(norm_p))[0]
+        if not _bring_window_to_front("XLMAIN", fname_stem, max_wait_sec=4.0, maximize=True):
+            _bring_window_to_front("XLMAIN", "", max_wait_sec=1.0, maximize=True)
 
     threading.Thread(target=_open_task, daemon=True).start()
 
@@ -690,6 +862,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 content = f.read()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
@@ -720,6 +893,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 data = f.read()
             self.send_response(200)
             self.send_header("Content-Type", ctype)
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -884,10 +1058,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/api/upload_and_analyze_log":
             # Direct multipart file upload for Log / CSV with zero UI dialog freeze
-            ctype, pdict = cgi.parse_header(self.headers.get("content-type", ""))
-            if ctype == "multipart/form-data":
-                pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
-                fields = cgi.parse_multipart(self.rfile, pdict)
+            fields = _parse_multipart_form(self.headers, self.rfile)
+            if fields is not None:
                 file_items = fields.get("log_file", [])
                 if not file_items:
                     self._send_json({"status": "error", "message": "未收到上傳的 Log 檔案"}, 400)
@@ -926,28 +1098,69 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/upload_and_audit":
-            # Handles multipart file upload from web browser
-            ctype, pdict = cgi.parse_header(self.headers.get("content-type", ""))
-            if ctype == "multipart/form-data":
-                pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
-                fields = cgi.parse_multipart(self.rfile, pdict)
+            # Handles multipart file upload from web browser, preserving real filename & resolving original project folder!
+            fields = _parse_multipart_form(self.headers, self.rfile)
+            if fields is not None:
                 file_items = fields.get("excel_file", [])
                 if not file_items:
                     self._send_json({"status": "error", "message": "未收到上傳的 Excel 檔案"}, 400)
                     return
                 file_bytes = file_items[0]
-                # Save to a temporary or scratch file to inspect (with unique timestamp / fallback if locked)
-                scratch_dir = os.path.join(BASE_DIR, "uploaded_temp")
-                os.makedirs(scratch_dir, exist_ok=True)
-                temp_path = os.path.join(scratch_dir, "temp_uploaded.xlsx")
-                try:
-                    with open(temp_path, "wb") as f:
-                        f.write(file_bytes)
-                except (PermissionError, IOError):
-                    import time
-                    temp_path = os.path.join(scratch_dir, f"temp_uploaded_{time.strftime('%H%M%S')}.xlsx")
-                    with open(temp_path, "wb") as f:
-                        f.write(file_bytes)
+                orig_fname = fields.get("excel_file__filename", "") or "Uploaded_TestFlow.xlsx"
+                orig_fname = os.path.basename(orig_fname).strip() or "Uploaded_TestFlow.xlsx"
+
+                # Try resolving to the real local file in last_dir or SCRIPTS_ROOT so in-place export saves in the original folder!
+                resolved_path = ""
+                search_roots = []
+                last_d = get_last_opened_dir()
+                if last_d and os.path.exists(last_d):
+                    search_roots.append(last_d)
+                if os.path.exists(SCRIPTS_ROOT) and SCRIPTS_ROOT not in search_roots:
+                    search_roots.append(SCRIPTS_ROOT)
+                if os.path.exists(PROJECT_ROOT) and PROJECT_ROOT not in search_roots:
+                    search_roots.append(PROJECT_ROOT)
+
+                for s_root in search_roots:
+                    direct_cand = os.path.join(s_root, orig_fname)
+                    if os.path.isfile(direct_cand) and os.path.getsize(direct_cand) == len(file_bytes):
+                        resolved_path = direct_cand
+                        break
+                    for r_dir, _d_names, f_names in os.walk(s_root):
+                        if "uploaded_temp" in r_dir or "output_system" in r_dir:
+                            continue
+                        for fn in f_names:
+                            if fn.lower() == orig_fname.lower():
+                                full_c = os.path.join(r_dir, fn)
+                                try:
+                                    if os.path.getsize(full_c) == len(file_bytes):
+                                        resolved_path = full_c
+                                        break
+                                except Exception:
+                                    pass
+                        if resolved_path:
+                            break
+                    if resolved_path:
+                        break
+
+                if resolved_path:
+                    temp_path = resolved_path
+                    set_last_opened_dir(os.path.dirname(os.path.abspath(resolved_path)))
+                else:
+                    stem = os.path.splitext(orig_fname)[0] or "Uploaded_Script"
+                    for sfx in ["_Fixed", "_FIXED", "_DryRun", "temp_uploaded"]:
+                        stem = stem.replace(sfx, "")
+                    upload_out_dir = os.path.join(OUTPUT_ROOT, f"{stem}_Uploaded", "System")
+                    os.makedirs(upload_out_dir, exist_ok=True)
+                    temp_path = os.path.join(upload_out_dir, orig_fname)
+                    try:
+                        with open(temp_path, "wb") as f:
+                            f.write(file_bytes)
+                    except (PermissionError, IOError):
+                        import time
+                        ext = os.path.splitext(orig_fname)[1] or ".xlsx"
+                        temp_path = os.path.join(upload_out_dir, f"{stem}_{time.strftime('%H%M%S')}{ext}")
+                        with open(temp_path, "wb") as f:
+                            f.write(file_bytes)
 
                 ws = import_excel_to_workspace(temp_path)
                 rep = audit_workspace(ws)
@@ -1217,17 +1430,26 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 open_excel = payload.get("open_excel", False)
 
                 src_file = ws.get("source_file", "")
-                if not src_file or not os.path.exists(src_file):
-                    # Fallback to scratch or prompt
-                    src_file = os.path.join(OUTPUT_ROOT, "Fixed_Script", "TestFlow.xlsx")
+                if not src_file or not os.path.exists(src_file) or "uploaded_temp" in os.path.abspath(src_file):
+                    st_first = active_sheet or (list(ws.get("stations", {}).keys())[0] if ws.get("stations") else "MB")
+                    proj_first = ws.get("project_name", "Centimani") or "Centimani"
+                    fallback_dir = os.path.join(OUTPUT_ROOT, f"{proj_first}_{st_first}_Fixed", "System")
+                    os.makedirs(fallback_dir, exist_ok=True)
+                    if src_file and os.path.exists(src_file):
+                        orig_dir = fallback_dir
+                    else:
+                        src_file = os.path.join(fallback_dir, f"{proj_first}_TestFlow_{st_first}.xlsx")
+                        orig_dir = fallback_dir
+                else:
+                    orig_dir = os.path.dirname(os.path.abspath(src_file))
 
-                orig_dir = os.path.dirname(os.path.abspath(src_file))
                 base_name = os.path.splitext(os.path.basename(src_file))[0]
                 # Strip previous suffixes if present
                 for sfx in ["_Fixed", "_FIXED", "_DryRun", "temp_uploaded"]:
                     base_name = base_name.replace(sfx, "")
                 if not base_name:
-                    base_name = "Centimani_TestFlow"
+                    st_first = active_sheet or (list(ws.get("stations", {}).keys())[0] if ws.get("stations") else "MB")
+                    base_name = f"Centimani_TestFlow_{st_first}"
 
                 if dry_run:
                     ws_to_export = convert_workspace_to_dry_run(ws)
@@ -1255,28 +1477,27 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     target_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
                     print(f"[File Lock Protection] {out_xlsx_path} is locked by Excel. Saving to {target_xlsx_path} instead.")
 
-                export_workspace_to_excel(ws_to_export, target_xlsx_path, active_sheet=active_sheet)
+                actual_xlsx_path = export_workspace_to_excel(ws_to_export, target_xlsx_path, active_sheet=active_sheet)
+                actual_xlsx_name = os.path.basename(actual_xlsx_path)
 
-                # Sync and generate INIs in the original directory (preserving original SFIS keys)
-                sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, fixed_xlsx_name, orig_dir)
+                # Sync and generate INIs in the original directory (preserving original SFIS keys & computing Checksum)
+                sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, actual_xlsx_name, orig_dir)
 
-                # Compute official Checksum and write to System.ini
-                chk = generate_official_checksum(target_xlsx_path, sys_ini)
+                # Re-import and audit BEFORE launching Excel so openpyxl closes the file before Excel locks it!
+                ws_re = import_excel_to_workspace(actual_xlsx_path)
+                rep_re = audit_workspace(ws_re)
 
                 open_folder_in_explorer(orig_dir)
-                if open_excel and os.path.exists(target_xlsx_path):
-                    launch_excel_file_async(target_xlsx_path)
-
-                ws_re = import_excel_to_workspace(target_xlsx_path)
-                rep_re = audit_workspace(ws_re)
+                if open_excel and os.path.exists(actual_xlsx_path):
+                    launch_excel_file_async(actual_xlsx_path)
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
-                    "excel_path": target_xlsx_path,
+                    "excel_path": actual_xlsx_path,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
-                    "checksum": chk or "已自動寫入 [Checksum]",
+                    "checksum": "已自動寫入 [Checksum]",
                     "fixed_logs": fixed_logs,
                     "isn_info": extract_isn_info(ws_re),
                     "workspace": ws_re,
@@ -1432,7 +1653,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         pass
 
                 out_xlsx = os.path.join(target_dir, xlsx_name)
-                actual_xlsx = export_workspace_to_excel(ws, out_xlsx)
+                actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
                 chk = "已自動寫入 [Checksum]"
@@ -1484,24 +1705,49 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 ws["stations"] = {st_name: init_steps}
 
-                # 3. 連續載入目標儀器測項（支援同一款儀器連續插入多筆不同測項）
+                # 3. 連續載入目標儀器測項（支援標準上下限、NI-6009 多通道 HMI、IQxel RF HMI 與自訂步驟 HMI）
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
                     t_name = str(it.get("title_name", "")).strip() or f"Test_{i_name}_{idx_item + 1}"
                     d_val = str(it.get("dl_val", "")).strip()
                     u_val = str(it.get("ul_val", "")).strip()
-                    insert_instrument_title_block(
-                        ws, st_name, i_name, t_name,
-                        after_block_idx=idx_item,  # 依序排在前置路由與上一個測項之後
-                        dl_val=d_val,
-                        ul_val=u_val
-                    )
+                    if it.get("ni6009_block"):
+                        nb = it["ni6009_block"]
+                        insert_ni6009_block(
+                            ws, st_name,
+                            mode=nb.get("mode", "RSE"),
+                            sample_ms=str(nb.get("sample_ms", "1000")),
+                            dev_id=str(nb.get("dev_id", "Dev1")),
+                            title_name=str(nb.get("title_name", t_name)),
+                            channels=nb.get("channels", []),
+                            after_block_idx=-1
+                        )
+                    elif it.get("rf_block"):
+                        rb = it["rf_block"]
+                        insert_rf_iqxel_block(
+                            ws, st_name,
+                            inst_name=str(rb.get("inst_name", i_name)),
+                            title_name=str(rb.get("title_name", t_name)),
+                            settings_str=str(rb.get("settings_str", "")),
+                            tx_tests=rb.get("tx_tests", []),
+                            rx_tests=rb.get("rx_tests", []),
+                            after_block_idx=-1
+                        )
+                    else:
+                        insert_instrument_title_block(
+                            ws, st_name, i_name, t_name,
+                            after_block_idx=-1,
+                            dl_val=d_val,
+                            ul_val=u_val,
+                            custom_steps=it.get("custom_steps"),
+                            globals_patch=it.get("globals_patch")
+                        )
 
                 # 4. 全自動檢查與錯誤修復 (Auto Audit & Repair)
                 audit_rep = audit_workspace(ws)
                 auto_fix_workspace(ws)
 
-                # 5. 輸出 Excel 與 INI，自動寫入 Checksum
+                # 5. 輸出 Excel (預設開啟於測試站 st_name 分頁) 與 INI，自動寫入 Checksum
                 lead_inst = items[0].get("inst_name", "INST") if items else "INST"
                 xlsx_name = f"{proj_name}_{lead_inst}_{st_name}.xlsx"
                 folder_label = f"InstTemplate_{lead_inst}_{st_name}"
@@ -1514,10 +1760,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         pass
 
                 out_xlsx = os.path.join(target_dir, xlsx_name)
-                actual_xlsx = export_workspace_to_excel(ws, out_xlsx)
+                actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st_name)
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
-                generate_official_checksum(actual_xlsx, sys_ini)
 
                 # 6. 自動開啟目標目錄與喚醒 Excel 給使用者檢視
                 if get_app_settings().get("auto_open_folder", True):
@@ -1562,7 +1807,7 @@ def launch_fullscreen_browser(url):
 def run_server(port=8765):
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.5.2) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

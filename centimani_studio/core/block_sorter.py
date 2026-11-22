@@ -194,6 +194,7 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
     """
     Reorder a station's Title/Phase blocks according to new_order_indices,
     re-index the Index column, optionally re-number non-teardown numeric Phases,
+    highlight moved/renumbered Phase blocks in light blue (_modified_cells with highlight='blue'),
     and run variable dependency checks.
     """
     stations = workspace.get("stations") or {}
@@ -204,6 +205,17 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
     blocks = extract_station_blocks(rows)
     if len(new_order_indices) != len(blocks) or sorted(new_order_indices) != list(range(len(blocks))):
         raise ValueError("區塊排序索引不完整或重複")
+
+    # Record each block's original Phase and original start_row before mutation
+    orig_meta = {
+        b["orig_idx"]: {
+            "orig_pos": b["orig_idx"],
+            "orig_phase": str(b.get("phase") or "").strip(),
+            "orig_start_row": b.get("start_row", 2),
+            "title": b.get("title", ""),
+        }
+        for b in blocks
+    }
 
     ordered_blocks = [blocks[i] for i in new_order_indices]
 
@@ -220,11 +232,41 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
                 b["phase_num"] = next_phase
                 next_phase += 1
 
-    # Rebuild flattened rows and re-index 000, 001, ... (preserving 3-digit padding)
+    # Rebuild flattened rows, re-index 000, 001, ..., and mark modified Phase blocks in light blue
+    from .golden_data import STATION_HEADERS_16
+    mods = [m for m in workspace.get("_modified_cells", []) if m.get("sheet") != sheet_name]
+
     new_rows = []
-    for b in ordered_blocks:
-        for r in b["_rows"]:
+    for new_pos, b in enumerate(ordered_blocks):
+        om = orig_meta.get(b["orig_idx"], {})
+        old_pos = om.get("orig_pos", new_pos)
+        old_phase = om.get("orig_phase", "")
+        new_phase = str(b.get("phase") or "").strip()
+        is_block_modified = (old_pos != new_pos) or (old_phase != new_phase)
+        block_start_excel_row = len(new_rows) + 2
+
+        for r_off, r in enumerate(b["_rows"]):
+            excel_row = len(new_rows) + 2
             new_rows.append(r)
+            if is_block_modified:
+                note_txt = (
+                    f"[積木順序排序] 區塊「{b.get('title', '')}」"
+                    f"由原第 {old_pos + 1} 順位 (Phase {old_phase or '-'}) "
+                    f"調整為第 {new_pos + 1} 順位 (Phase {new_phase or '-'})"
+                )
+                for col_n in STATION_HEADERS_16:
+                    mods.append({
+                        "sheet": sheet_name,
+                        "row": excel_row,
+                        "col_name": col_n,
+                        "old": old_phase,
+                        "new": new_phase,
+                        "highlight": "blue",
+                        "show_comment": (r_off == 0 and col_n in ("Phase", "Title")),
+                        "note": note_txt,
+                    })
+
+    workspace["_modified_cells"] = mods
 
     # Detect whether original Index started at 000 or 001
     start_idx = 0

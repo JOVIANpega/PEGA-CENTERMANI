@@ -7,6 +7,8 @@ import os
 import re
 from .golden_data import get_valid_test_ids
 
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(_BASE_DIR)
 VALID_EXEC_PREFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
 
@@ -368,6 +370,8 @@ def audit_workspace(workspace):
             os.path.join(os.path.dirname(f_dir), "Device"), os.path.join(os.path.dirname(f_dir), "API")
         ])
     base_search_dirs.extend([
+        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "Device"),
+        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "API"),
         os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "Device"),
         os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "API")
     ])
@@ -899,6 +903,8 @@ def auto_fix_workspace(workspace, user_choices=None):
         ])
     # Also add standard project sample paths
     base_search_dirs.extend([
+        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "Device"),
+        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "API"),
         os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "Device"),
         os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "API")
     ])
@@ -1154,6 +1160,41 @@ def auto_fix_workspace(workspace, user_choices=None):
                     if vname not in scripts_dict:
                         scripts_dict[vname] = settings_dict.get(vname, "192.168.1.10" if "IP" in vname else "DEFAULT_VAL")
                         fixed_logs.append(f"[{st_name} 第 {r_num} 列] 已自動將站位變數 *$({vname}) 補齊至 Global.ini [Scripts] 區段")
+
+    # 3. Repair each Marco Sheet (11-col)
+    for m_name, m_steps in workspace.get("marcos", {}).items():
+        if not isinstance(m_steps, list) or not m_steps:
+            continue
+        m_len = len(m_steps)
+        for idx, step in enumerate(m_steps):
+            r_num = idx + 2
+            new_idx = f"{idx:02d}"
+            old_idx = str(step.get("Index", "")).strip()
+            if old_idx != new_idx:
+                step["Index"] = new_idx
+            tid = str(step.get("TestID", "")).strip()
+            if not tid:
+                step["TestID"] = "B7PL025"
+                fixed_logs.append(f"[Marco:{m_name} 第 {r_num} 列] 已自動補齊空白 TestID 為 'B7PL025'")
+                modified_cells.append({
+                    "sheet": m_name, "row": r_num, "col_name": "TestID",
+                    "old": "", "new": "B7PL025", "note": "補齊空白 TestID 為標準代碼 B7PL025"
+                })
+            s_send = str(step.get("Send", "")).strip()
+            s_mode = str(step.get("ExecMode", "")).strip()
+            if (":ReleaseDevice" in s_send or ":ReleaseSubDevice" in s_send) and s_mode != "3":
+                step["ExecMode"] = "3"
+                fixed_logs.append(f"[Marco:{m_name} 第 {r_num} 列] 已將 :ReleaseDevice 的 ExecMode 由 '{s_mode}' 修正為 '3'")
+                modified_cells.append({
+                    "sheet": m_name, "row": r_num, "col_name": "ExecMode",
+                    "old": s_mode, "new": "3", "note": f"原為 '{s_mode}'，修正 :ReleaseDevice 為 '3' (Continue)"
+                })
+            row_text = " ".join([str(v) for v in step.values() if v])
+            for m in re.finditer(r"\*\$\(([^)]+)\)", row_text):
+                vname = m.group(1).strip()
+                if vname not in scripts_dict:
+                    scripts_dict[vname] = settings_dict.get(vname, "DEFAULT_VAL")
+                    fixed_logs.append(f"[Marco:{m_name} 第 {r_num} 列] 已自動將變數 *$({vname}) 補齊至 Global.ini [Scripts] 區段")
 
     workspace["_modified_cells"] = modified_cells
 
@@ -1620,130 +1661,6 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
         s["Index"] = f"{idx:03d}"
 
     return len(block_rows)
-
-
-def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_name="WIFI RF Test", settings_str="", tx_tests=None, rx_tests=None, after_block_idx=-1):
-    """
-    依 IQxel / MT8870A RF 人機介面設定，插入標準 WIFI Tx MCS / WIFI Rx MCS 主站呼叫列，
-    並自動補齊 11 欄 Marco 子工作表 (WIFI Tx MCS 21 步 / WIFI Rx MCS 22 步) 與 Instrument 掛載。
-    """
-    from .golden_data import get_golden_mother, STANDARD_BLOCKS
-
-    stations = workspace.get("stations", {})
-    if sheet_name not in stations:
-        return 0
-    tx_tests = tx_tests or []
-    rx_tests = rx_tests or []
-    if not tx_tests and not rx_tests:
-        return 0
-
-    steps = stations[sheet_name]
-
-    # 1. Ensure RF instrument is in Instrument and mounted to sheet_name
-    catalog = get_golden_mother().get("instruments", [])
-    inst_meta = next((i for i in catalog if i.get("Name") == inst_name), None) or {
-        "Mount": sheet_name, "Name": inst_name, "Sub": "", "ControlDLL": "InstIQApi_A.dll",
-        "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini",
-        "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel RF Tester"
-    }
-    ws_insts = workspace.setdefault("instruments", [])
-    existing = next((i for i in ws_insts if str(i.get("Name", "")).strip() == inst_name), None)
-    if existing:
-        cur_m = str(existing.get("Mount", "")).strip()
-        m_list = [x.strip() for x in cur_m.split(",") if x.strip()]
-        if sheet_name not in m_list:
-            m_list.append(sheet_name)
-            existing["Mount"] = ",".join(m_list)
-        if settings_str.strip():
-            existing["Settings"] = settings_str.strip()
-    else:
-        new_inst = dict(inst_meta)
-        new_inst["Mount"] = sheet_name
-        if settings_str.strip():
-            new_inst["Settings"] = settings_str.strip()
-        ws_insts.append(new_inst)
-
-    # 2. Ensure WIFI Tx MCS / WIFI Rx MCS Marco sub-sheets exist
-    rf_blk = next((b for b in STANDARD_BLOCKS if b.get("block_id") == "BLK_WIFI_RF_IQXEL"), None)
-    if rf_blk and rf_blk.get("required_marcos"):
-        ws_marcos = workspace.setdefault("marcos", {})
-        for m_name, m_rows in rf_blk["required_marcos"].items():
-            if m_name not in ws_marcos or not ws_marcos[m_name]:
-                ws_marcos[m_name] = [dict(r) for r in m_rows]
-
-    # 3. Next unused Phase (1..96) & insertion index before Phase 97
-    used_p = {int(str(s.get("Phase", "")).strip()) for s in steps if str(s.get("Phase", "")).strip().isdigit() and 1 <= int(str(s.get("Phase", "")).strip()) <= 96}
-    next_p = 1
-    while next_p in used_p and next_p <= 96:
-        next_p += 1
-
-    blocks = _build_title_blocks(steps)
-    p97_idx = len(steps)
-    for idx, s in enumerate(steps):
-        if str(s.get("Phase", "")).strip() in ("97", "98", "99"):
-            p97_idx = idx
-            break
-    if 0 <= after_block_idx < len(blocks):
-        insert_idx = min(blocks[after_block_idx]["steps"][-1]["global_idx"] + 1, p97_idx)
-    else:
-        insert_idx = p97_idx
-
-    block_rows = []
-    for t in tx_tests:
-        ch = str(t.get("channel", "6")).strip()
-        bw = str(t.get("bw", "20")).strip()
-        mcs = str(t.get("mcs", "7")).strip()
-        ant = str(t.get("antenna", "1")).strip()
-        tpwr = str(t.get("target_pwr", "15")).strip()
-        pmin = str(t.get("pwr_min", "13")).strip()
-        pmax = str(t.get("pwr_max", "17")).strip()
-        emin = str(t.get("evm_min", "-50")).strip()
-        emax = str(t.get("evm_max", "-28")).strip()
-        lbl = f"WIFI TX_CH{ch} MCS{mcs}_BW{bw}"
-        block_rows.append({
-            "Index": "", "Phase": str(next_p) if not block_rows else "",
-            "Title": f"0,{lbl}", "Marco": "WIFI Tx MCS",
-            "Instrument": "MeasWIFI", "Switch": "",
-            "Send": f"{ch},{bw},{mcs},{ant},{tpwr},{pmin},{pmax},{emin},{emax},{lbl}",
-            "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
-            "Prompt": "", "Waiting": "", "ExecMode": "1",
-            "Description": f"RF#-#{lbl} ({pmin}~{pmax}dBm)", "TestID": "WFOT036"
-        })
-
-    for r in rx_tests:
-        ch = str(r.get("channel", "6")).strip()
-        bw = str(r.get("bw", "20")).strip()
-        mcs = str(r.get("mcs", "7")).strip()
-        ant = str(r.get("antenna", "1")).strip()
-        rlvl = str(r.get("rx_level", "-59")).strip()
-        lbl = f"WIFI RX_CH{ch} MCS{mcs}_BW{bw}"
-        block_rows.append({
-            "Index": "", "Phase": str(next_p) if not block_rows else "",
-            "Title": f"0,{lbl}", "Marco": "WIFI Rx MCS",
-            "Instrument": "GenWIFI", "Switch": "",
-            "Send": f"{ch},{bw},{mcs},{ant},{rlvl},{lbl}",
-            "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
-            "Prompt": "", "Waiting": "", "ExecMode": "1",
-            "Description": f"RF#-#{lbl} ({rlvl}dBm)", "TestID": "WFOT036"
-        })
-
-    mods = workspace.setdefault("_modified_cells", [])
-    note_txt = f"透過 {inst_name} RF 人機介面插入 ({len(tx_tests)} Tx / {len(rx_tests)} Rx，已同步補齊 Marco)"
-    for off, r_dict in enumerate(block_rows):
-        pos = insert_idx + off
-        steps.insert(pos, r_dict)
-        r_num = pos + 2
-        for col_n in ("Phase", "Title", "Marco", "Instrument", "Send", "ExecMode", "Description", "TestID"):
-            mods.append({
-                "sheet": sheet_name, "row": r_num, "col_name": col_n,
-                "old": "", "new": "INSERTED", "note": note_txt
-            })
-
-    for idx, s in enumerate(steps):
-        s["Index"] = f"{idx:03d}"
-
-    return len(block_rows)
-
 
 
 def update_comm_settings(workspace, dut_ur1="", dut_ip1="", dut_login="", convert_uart_to_ssh=False, target_sheet=""):

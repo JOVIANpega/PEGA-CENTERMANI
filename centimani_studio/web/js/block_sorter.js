@@ -852,11 +852,10 @@ async function bsApplyAndOpenExcel() {
     const fixedCount = (dataFix.fixed_logs || []).length;
     alert(
       `🎉 順序套用與腳本修復成功！\n\n` +
-      `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}。\n` +
-      `2. 腳本邏輯自動修復完成：共修正 ${fixedCount} 處潛在問題（TestID 重複、變數宣告、Phase 遞增等）。\n` +
-      `3. 已生成標準檔案並自動以 Excel 開啟：\n` +
-      `   ${dataFix.excel_path}\n\n` +
-      `（已自動鎖定於 [${BS_STATE.sheetName}] 工作表，請於 Excel 視窗中檢視黃色標註之修復結果）`
+      `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}（修改過順序/Phase 的區塊已標上「淡藍色底色 #BAE6FD」）。\n` +
+      `2. 腳本邏輯自動修復完成：共修正 ${fixedCount} 處潛在問題（自動修復儲存格已標上「亮黃色底色 #FEF08A」）。\n` +
+      `3. 已生成標準檔案並自動以 Excel 開啟於 [${BS_STATE.sheetName}] 工作表：\n` +
+      `   ${dataFix.excel_path}`
     );
 
   } catch (err) {

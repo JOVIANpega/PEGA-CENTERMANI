@@ -25,12 +25,14 @@ FONT_BODY = Font(name="Calibri", size=11, bold=False, color="000000")
 FONT_HEADER = Font(name="Calibri", size=11, bold=True, color="000000")
 FONT_SKIP = Font(name="Calibri", size=11, italic=True, color="7F7F7F")
 FONT_FIXED = Font(name="Calibri", size=11, bold=True, color="7F1D1D")
+FONT_REORDERED = Font(name="Calibri", size=11, bold=True, color="0C4A6E")
 
 FILL_HEADER = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
 FILL_PHASE0 = PatternFill(start_color="F2F8FD", end_color="F2F8FD", fill_type="solid")
 FILL_PHASE97 = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 FILL_SKIP = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 FILL_FIXED_CELL = PatternFill(start_color="FEF08A", end_color="FEF08A", fill_type="solid")
+FILL_REORDERED_CELL = PatternFill(start_color="BAE6FD", end_color="BAE6FD", fill_type="solid")
 
 BORDER_THIN = Border(
     left=Side(style="thin", color="64748B"),
@@ -43,17 +45,54 @@ ALIGN_LEFT = Alignment(wrap_text=True, vertical="center", horizontal="left")
 ALIGN_CENTER = Alignment(wrap_text=True, vertical="center", horizontal="center")
 
 
+def _read_bounded_rows(ws_sheet, max_col=17, max_empty_streak=50, hard_limit=5000):
+    """
+    Streams rows from a worksheet and stops early after `max_empty_streak` consecutive blank rows.
+    Prevents 30~60s freezes when an Excel sheet has formatting or DataValidation dragged down to row 1,048,576.
+    """
+    rows = []
+    empty_streak = 0
+    for r_idx, r in enumerate(ws_sheet.iter_rows(max_col=max_col, values_only=True), start=1):
+        if r_idx > hard_limit:
+            break
+        if r_idx > 1 and not any(x is not None and str(x).strip() != "" for x in r[:max_col]):
+            empty_streak += 1
+            if empty_streak >= max_empty_streak:
+                break
+            continue
+        empty_streak = 0
+        rows.append(r)
+    return rows
+
+
 def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
     """Applies Calibri 11, wrap_text=True, borders, auto-fit column widths, and yellow highlights for fixed cells."""
     fixed_cell_map = fixed_cell_map or {}
     ws.row_dimensions[1].height = 28
     center_cols = {1, 2, 8, 9, 13, 14, 16} if is_station else {1}
 
-    # Bounded column count prevents openpyxl from hanging on sparse/unbounded sheets (e.g. max_col=16384)
-    max_c = min(ws.max_column or 1, 16 if is_station else 30)
+    # Bounded column and row counts prevent openpyxl from hanging on sparse/unbounded sheets (e.g. max_col=16384 or max_row=1048576)
+    max_c = min(ws.max_column or 1, 16 if is_station else 20)
+    scan_max_r = min(ws.max_row or 1, 3000)
+
+    # Find actual last non-empty row and column so we don't format trailing empty rows/cols
+    actual_max_r = 1
+    actual_max_c = 1
+    for r_idx, r_vals in enumerate(ws.iter_rows(max_row=scan_max_r, max_col=max_c, values_only=True), start=1):
+        row_has_val = False
+        for c_idx, val in enumerate(r_vals, start=1):
+            if val is not None and str(val).strip() != "":
+                row_has_val = True
+                if c_idx > actual_max_c:
+                    actual_max_c = c_idx
+        if row_has_val:
+            actual_max_r = r_idx
+
+    if is_station:
+        actual_max_c = 16
 
     curr_phase_str = ""
-    for r_idx, row in enumerate(ws.iter_rows(max_col=max_c), start=1):
+    for r_idx, row in enumerate(ws.iter_rows(max_row=actual_max_r, max_col=actual_max_c), start=1):
         if r_idx > 1:
             max_lines = 1
             for cell in row:
@@ -84,21 +123,36 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
                     elif curr_phase_str == "97":
                         cell.fill = FILL_PHASE97
 
-                # Highlight modified cells in bright yellow (#FEF08A) with Comment
+                # Highlight modified cells: Light Blue (#BAE6FD) for reordered Phase blocks, Bright Yellow (#FEF08A) for auto-fixed/inserted cells
                 if (r_idx, c_idx) in fixed_cell_map:
-                    note_txt = fixed_cell_map[(r_idx, c_idx)]
-                    cell.fill = FILL_FIXED_CELL
-                    cell.font = FONT_FIXED
-                    cmt = Comment(f"[Centimani Studio 自動修正]\n{note_txt}", "ScriptDoctor")
-                    cmt.width = 320
-                    cmt.height = 120
-                    cell.comment = cmt
+                    cell_meta = fixed_cell_map[(r_idx, c_idx)]
+                    if isinstance(cell_meta, dict):
+                        note_txt = cell_meta.get("note", "")
+                        hl_type = cell_meta.get("highlight", "yellow")
+                        show_cmt = cell_meta.get("show_comment", True)
+                    else:
+                        note_txt = str(cell_meta or "")
+                        hl_type = "yellow"
+                        show_cmt = True
 
-    # Auto-adjust column widths based on text length (bounded by max_c)
-    for col_idx in range(1, max_c + 1):
+                    if hl_type == "blue":
+                        cell.fill = FILL_REORDERED_CELL
+                        cell.font = FONT_REORDERED
+                    else:
+                        cell.fill = FILL_FIXED_CELL
+                        cell.font = FONT_FIXED
+
+                    if show_cmt and note_txt:
+                        cmt = Comment(f"[Centimani Studio 自動標註]\n{note_txt}", "ScriptDoctor")
+                        cmt.width = 320
+                        cmt.height = 120
+                        cell.comment = cmt
+
+    # Auto-adjust column widths based on text length (bounded by actual_max_c & actual_max_r)
+    for col_idx in range(1, actual_max_c + 1):
         col_letter = get_column_letter(col_idx)
         max_len = 0
-        for r in range(1, min(ws.max_row + 1, 250)):
+        for r in range(1, min(actual_max_r + 1, 250)):
             cell_val = ws.cell(row=r, column=col_idx).value
             val_str = str(cell_val or "")
             for line in val_str.split("\n"):
@@ -110,6 +164,33 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
         ws.column_dimensions[col_letter].width = col_w
 
 
+def _set_active_worksheet(wb, workspace, active_sheet=None):
+    """
+    Ensures Microsoft Excel opens directly on `active_sheet` (or the main station sheet)
+    by updating wb.active, wb.views[0].activeTab, and every sheet's tabSelected flag.
+    """
+    target_active = active_sheet if (active_sheet and active_sheet in wb.sheetnames) else None
+    if not target_active:
+        for st_k in (workspace.get("stations") or {}).keys():
+            if st_k in wb.sheetnames:
+                target_active = st_k
+                break
+    if target_active and target_active in wb.sheetnames:
+        active_idx = wb.sheetnames.index(target_active)
+        wb.active = active_idx
+        for i, ws_item in enumerate(wb.worksheets):
+            try:
+                if ws_item.views and ws_item.views.sheetView:
+                    ws_item.views.sheetView[0].tabSelected = (i == active_idx)
+            except Exception:
+                pass
+        try:
+            if wb.views:
+                wb.views[0].activeTab = active_idx
+        except Exception:
+            pass
+
+
 def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     """
     Exports the workspace JSON into a standard 16-column Centimani .xlsx workbook.
@@ -119,17 +200,35 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     os.makedirs(os.path.dirname(output_excel_path), exist_ok=True)
     source_file = workspace.get("source_file", "")
 
-    # Build lookup of modified cells per sheet: sheet_name -> {(row_idx, col_idx): note}
+    # Build lookup of modified cells per sheet: sheet_name -> {(row_idx, col_idx): meta_dict}
     col_name_to_idx = {h: i + 1 for i, h in enumerate(STATION_HEADERS_16)}
+    marco_col_to_idx = {h: i + 1 for i, h in enumerate(MARCO_HEADERS_11)}
+    marco_sheet_names = set(workspace.get("marcos", {}).keys())
     sheet_fixed_map = {}
     for mc in workspace.get("_modified_cells", []):
-        if mc.get("col_name") == "Index":
-            continue  # Don't yellow-highlight every re-indexed row
+        hl = mc.get("highlight", "yellow")
+        if mc.get("col_name") == "Index" and hl != "blue":
+            continue  # Don't yellow-highlight every re-indexed row, but DO light-blue highlight reordered Phase rows
         s_name = mc.get("sheet", "")
         r_num = mc.get("row", 0)
-        c_idx = col_name_to_idx.get(mc.get("col_name", ""), 0)
+        lookup = marco_col_to_idx if s_name in marco_sheet_names else col_name_to_idx
+        c_idx = lookup.get(mc.get("col_name", ""), 0)
         if s_name and r_num and c_idx:
-            sheet_fixed_map.setdefault(s_name, {})[(r_num, c_idx)] = mc.get("note", "")
+            s_map = sheet_fixed_map.setdefault(s_name, {})
+            prev = s_map.get((r_num, c_idx))
+            if prev and prev.get("highlight") == "blue" and hl != "blue":
+                # Keep light-blue row background for reordered Phase block, append auto-fix note
+                s_map[(r_num, c_idx)] = {
+                    "note": (prev.get("note", "") + "\n" + mc.get("note", "")).strip(),
+                    "highlight": "blue",
+                    "show_comment": True,
+                }
+            else:
+                s_map[(r_num, c_idx)] = {
+                    "note": mc.get("note", ""),
+                    "highlight": hl,
+                    "show_comment": mc.get("show_comment", True),
+                }
 
     if source_file and os.path.exists(source_file):
         # IN-PLACE NON-DESTRUCTIVE PATCH MODE
@@ -210,9 +309,9 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
 
         for st_name, steps in workspace.get("stations", {}).items():
             if st_name in wb.sheetnames:
-                ws_st = wb[st_name]
-                # Clear existing rows
-                ws_st.delete_rows(1, ws_st.max_row + 10)
+                idx_pos = wb.sheetnames.index(st_name)
+                wb.remove(wb[st_name])
+                ws_st = wb.create_sheet(title=st_name, index=idx_pos)
             else:
                 ws_st = wb.create_sheet(title=st_name)
 
@@ -230,16 +329,47 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
 
             apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=sheet_fixed_map.get(st_name, {}))
 
+        # Write or update Marco sheets (11 columns: Index_NN + Send..TestID) in In-Place mode
+        for m_name, m_steps in workspace.get("marcos", {}).items():
+            if not isinstance(m_steps, list) or not m_steps:
+                continue
+            if m_name in wb.sheetnames:
+                idx_pos = wb.sheetnames.index(m_name)
+                wb.remove(wb[m_name])
+                ws_m = wb.create_sheet(title=m_name, index=idx_pos)
+            else:
+                ws_m = wb.create_sheet(title=m_name)
+            m_headers = [f"Index_{len(m_steps)}"] + MARCO_HEADERS_11[1:]
+            ws_m.append(m_headers)
+            for idx, step in enumerate(m_steps):
+                step["Index"] = f"{idx:02d}"
+                row_vals = []
+                for h in MARCO_HEADERS_11:
+                    val = step.get(h, "")
+                    row_vals.append(val if (val is not None and str(val) != "") else None)
+                ws_m.append(row_vals)
+            apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=sheet_fixed_map.get(m_name, {}))
+
         # Format other sheets cleanly with Calibri 11 + wrap_text without losing any columns
         for s_other in wb.sheetnames:
-            if s_other not in workspace.get("stations", {}):
+            if s_other not in workspace.get("stations", {}) and s_other not in workspace.get("marcos", {}):
                 apply_sheet_formatting(wb[s_other], is_station=False)
 
-        if active_sheet and active_sheet in wb.sheetnames:
-            wb.active = wb[active_sheet]
+        _set_active_worksheet(wb, workspace, active_sheet)
 
-        wb.save(output_excel_path)
-        return output_excel_path
+        actual_output_path = output_excel_path
+        try:
+            wb.save(output_excel_path)
+        except (PermissionError, IOError) as pe:
+            ts = datetime.datetime.now().strftime("%H%M%S")
+            dir_name = os.path.dirname(output_excel_path)
+            base_name = os.path.basename(output_excel_path)
+            name_no_ext, ext = os.path.splitext(base_name)
+            fallback_path = os.path.join(dir_name, f"{name_no_ext}_{ts}{ext}")
+            print(f"[export_workspace_to_excel in-place] {output_excel_path} locked ({pe}), saving to fallback: {fallback_path}")
+            wb.save(fallback_path)
+            actual_output_path = fallback_path
+        return actual_output_path
 
     # BRAND-NEW MOTHER TEMPLATE GENERATION MODE
     wb = openpyxl.Workbook()
@@ -308,15 +438,13 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
             ws_m.append(row_vals)
         apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=sheet_fixed_map.get(m_name, {}))
 
-    if active_sheet and active_sheet in wb.sheetnames:
-        wb.active = wb[active_sheet]
+    _set_active_worksheet(wb, workspace, active_sheet)
 
     # 防禦性存檔：若檔案被 Excel 鎖定引發 PermissionError，自動以時間戳備援檔名保存
     actual_output_path = output_excel_path
     try:
         wb.save(output_excel_path)
     except (PermissionError, IOError) as pe:
-        import datetime
         ts = datetime.datetime.now().strftime("%H%M%S")
         dir_name = os.path.dirname(output_excel_path)
         base_name = os.path.basename(output_excel_path)
@@ -365,7 +493,7 @@ def import_excel_to_workspace(xlsx_path):
     def read_table_sheet(sheet_name, default_headers):
         if sheet_name not in wb.sheetnames:
             return []
-        rows = list(wb[sheet_name].iter_rows(max_col=20, values_only=True))
+        rows = _read_bounded_rows(wb[sheet_name], max_col=20, max_empty_streak=30, hard_limit=1000)
         if not rows:
             return []
         raw_h = [str(c).strip() if c is not None else f"Col_{i}" for i, c in enumerate(rows[0])]
@@ -393,7 +521,7 @@ def import_excel_to_workspace(xlsx_path):
     for s_name in wb.sheetnames:
         if s_name in ["Properties", "DUTs", "Switch", "Instrument", "PathLoss"]:
             continue
-        rows = list(wb[s_name].iter_rows(max_col=17, values_only=True))
+        rows = _read_bounded_rows(wb[s_name], max_col=17, max_empty_streak=50, hard_limit=5000)
         if not rows:
             continue
         headers = [str(c).strip() if c is not None else "" for c in rows[0][:17]]
@@ -414,8 +542,18 @@ def import_excel_to_workspace(xlsx_path):
                 step_list.append(step_item)
             ws_data["stations"][s_name] = step_list
         elif "Send" in headers:
-            # 11-Column Marco Sheet
-            ws_data["marcos"][s_name] = len(rows) - 1
+            # 11-Column Marco Sheet (parse full steps list for auditing, jump editing, and dry-run)
+            m_list = []
+            for r in rows[1:]:
+                if not any(r[:11]):
+                    continue
+                r_pad = list(r[:11]) + [None] * max(0, 11 - len(r[:11]))
+                m_item = {}
+                for c_i, h_key in enumerate(MARCO_HEADERS_11):
+                    v = r_pad[c_i]
+                    m_item[h_key] = str(v).strip() if v is not None else ""
+                m_list.append(m_item)
+            ws_data["marcos"][s_name] = m_list
 
     if first_station:
         ws_data["station_name"] = first_station
