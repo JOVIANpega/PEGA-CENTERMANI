@@ -457,6 +457,45 @@ def audit_workspace(workspace):
         obtain_lock_row = None
         ni6008_single_Check_streak = 0
 
+        # CentimaniSystem.exe LoadNewFormatScript mandatory checks (:ShowISN & :SfCheckRoute + unique Title per Phase)
+        show_isn_idx = None
+        sf_route_idx = None
+        for r_i, r_obj in enumerate(steps):
+            s_cmd_low = str(r_obj.get("Send", "")).strip().lower()
+            if show_isn_idx is None and s_cmd_low.startswith(":showisn"):
+                show_isn_idx = r_i
+            if sf_route_idx is None and s_cmd_low.startswith(":sfcheckroute"):
+                sf_route_idx = r_i
+        if show_isn_idx is None:
+            errors.append(
+                f"[{st_name}] 缺少必要前置指令 :ShowISN（Centimani 載入將報錯 'DUT1 can't find \":ShowISN\" function.'，一鍵修復可自動補齊）"
+            )
+        if sf_route_idx is None:
+            errors.append(
+                f"[{st_name}] 缺少必要前置指令 :SfCheckRoute（Centimani 載入將報錯 'DUT1 can't find \":SfCheckRoute\" function.'，一鍵修復可自動補齊）"
+            )
+        if show_isn_idx is not None and sf_route_idx is not None and show_isn_idx > sf_route_idx:
+            errors.append(
+                f"[{st_name}] :ShowISN 必須排在 :SfCheckRoute 之前（Centimani 載入將報錯 'Please execute ShowISN first.'）"
+            )
+
+        cur_phase_lbl = ""
+        titles_in_phase = {}
+        for blk_chk in blocks:
+            p_raw = str(blk_chk.get("phase", "")).strip()
+            if p_raw:
+                cur_phase_lbl = p_raw
+            t_raw = str(blk_chk.get("title", "")).strip()
+            t_norm = t_raw.split(",")[1].strip() if "," in t_raw else t_raw
+            if cur_phase_lbl and cur_phase_lbl != "-1" and t_norm:
+                key_pt = (cur_phase_lbl, t_norm)
+                if key_pt in titles_in_phase:
+                    errors.append(
+                        f"[{st_name}] 同一個 Phase {cur_phase_lbl} 內存在重複的 Title '{t_norm}'（Centimani 將報錯 'There are duplicated titles ({t_norm}) in the Phase {cur_phase_lbl} !!!'）"
+                    )
+                else:
+                    titles_in_phase[key_pt] = True
+
         for b_idx, blk in enumerate(blocks):
             b_steps = blk["steps"]
             b_len = len(b_steps)
@@ -1293,9 +1332,43 @@ def auto_fix_workspace(workspace, user_choices=None):
 
     workspace["_modified_cells"] = modified_cells
 
-    # Auto-fix missing Phase 97 & unclosed :ReleaseDevice at end of each station sheet
+    # Auto-fix missing :ShowISN / :SfCheckRoute (required by CentimaniSystem.exe), Phase 97, & unclosed :ReleaseDevice
     for st_name in list(workspace.get("stations", {}).keys()):
         st_steps = workspace["stations"][st_name]
+        if st_steps:
+            # Ensure :Sf* commands use ExecMode 8 or 9
+            for r_i, s_obj in enumerate(st_steps):
+                s_cmd = str(s_obj.get("Send", "")).strip()
+                if s_cmd.startswith((":SfCheckRoute", ":SfGetVersion", ":SfSaveLinkData", ":SfSsdInputData", ":SfGetiMAC")):
+                    em_cur = str(s_obj.get("ExecMode", "")).strip()
+                    if em_cur not in ("8", "9"):
+                        s_obj["ExecMode"] = "8" if s_cmd.startswith(":SfCheckRoute") else "9"
+                        fixed_logs.append(f"[{st_name} 第 {r_i + 2} 列] SFIS 指令 {s_cmd.split(',')[0]} 之 ExecMode 已修正為 '{s_obj['ExecMode']}'")
+
+            show_idx = next((i for i, s in enumerate(st_steps) if str(s.get("Send", "")).strip().lower().startswith(":showisn")), None)
+            route_idx = next((i for i, s in enumerate(st_steps) if str(s.get("Send", "")).strip().lower().startswith(":sfcheckroute")), None)
+            if show_idx is None or route_idx is None:
+                inject_rows = []
+                first_has_p0 = (str(st_steps[0].get("Phase", "")).strip() == "0")
+                if show_idx is None and route_idx is None:
+                    if first_has_p0:
+                        st_steps[0]["Phase"] = ""
+                    inject_rows = [
+                        {"Index": "000", "Phase": "0", "Title": "0,CheckRoute", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Show ISN to UI", "TestID": "B7PL025"},
+                        {"Index": "001", "Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SfCheckRoute", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "2000", "ExecMode": "8", "Description": "PC#-#CheckRoute from SFIS", "TestID": "OTFX064"},
+                    ]
+                    st_steps[0:0] = inject_rows
+                    fixed_logs.append(f"[{st_name}] 已自動補齊 Centimani 強制前置指令 :ShowISN 與 :SfCheckRoute (Phase 0)")
+                elif show_idx is None:
+                    if first_has_p0:
+                        st_steps[0]["Phase"] = ""
+                    st_steps.insert(0, {"Index": "000", "Phase": "0", "Title": "0,ShowISN_Precheck", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Show ISN to UI", "TestID": "B7PL025"})
+                    fixed_logs.append(f"[{st_name}] 已自動補齊 Centimani 強制前置指令 :ShowISN (Phase 0)")
+                elif route_idx is None:
+                    ins_pos = show_idx + 1
+                    st_steps.insert(ins_pos, {"Index": "", "Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SfCheckRoute", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "2000", "ExecMode": "8", "Description": "PC#-#CheckRoute from SFIS", "TestID": "OTFX064"})
+                    fixed_logs.append(f"[{st_name}] 已自動補齊 Centimani 強制前置指令 :SfCheckRoute")
+
         has_p97 = any(str(s.get("Phase", "")).strip() == "97" for s in st_steps)
         if not has_p97:
             added_p97 = apply_safety_ending_fix(workspace, st_name, "phase97")

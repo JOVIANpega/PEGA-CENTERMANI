@@ -589,8 +589,10 @@ def run_all_verifications():
                 "switches": [],
                 "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "AULAB_TEST$MB", "Station": "MB,1"}],
                 "stations": {"MB": [
-                    {"Index": "000", "Phase": "0", "Title": "0,Load DLL", "Send": ':autLabs.Load,"1"', "ExecMode": "*$(AULAB)", "TestID": "B7PL025"},
-                    {"Index": "001", "Phase": "97", "Title": "1,Disconnect", "Send": ':CloseMessage', "ExecMode": "3", "TestID": "B7PL025"},
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                    {"Index": "002", "Phase": "", "Title": "0,Load DLL", "Send": ':autLabs.Load,"1"', "ExecMode": "*$(AULAB)", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "97", "Title": "1,Disconnect", "Send": ':CloseMessage', "ExecMode": "3", "TestID": "B7PL025"},
                 ]}
             })
             check(dyn_rep.get("error_count", -1) == 0,
@@ -617,7 +619,8 @@ def run_all_verifications():
             check(skip_ws["stations"]["RF"][4]["Phase"] == "-1",
                   "自動順編 Phase 時保留 Phase=-1 暫停狀態不被強制重編啟用", str(skip_ws["stations"]["RF"][4]["Phase"]))
             _autofix_ws(skip_ws)
-            rf_inst_vals = [r.get("Instrument", "") for r in skip_ws["stations"]["RF"][1:4]]
+            pwr_rows = [r for r in skip_ws["stations"]["RF"] if r.get("Send") in (":ObtainDevice", ':Dev.SetON,"5","2"', ":ReleaseDevice")]
+            rf_inst_vals = [r.get("Instrument", "") for r in pwr_rows]
             check(rf_inst_vals == ["SetON", "", ""],
                   "一鍵修復自動精簡同區塊連續重複之 Instrument 為僅首列寫入", str(rf_inst_vals))
             check('id="genHubCard_qa"' in index_html and 'id="genModeQa"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
@@ -636,8 +639,8 @@ def run_all_verifications():
             check(sw_res.get("status") == "ok" and bool(sw_res.get("guide_txt_path")) and os.path.exists(sw_res.get("guide_txt_path", "")),
                   "匯出時自動產出隨附 <專案>_編寫與使用說明.txt 檔案", sw_res.get("guide_txt_path", ""))
             txt_body = open(sw_res["guide_txt_path"], "r", encoding="utf-8-sig").read()
-            check("EN_NI6008_1" in txt_body and "【三、 Global.ini" in txt_body and "【四、 台北座位" in txt_body,
-                  "隨附說明 .txt 正確列出 EN_NI6008_1 一鍵開關與台北/產線應變 SOP")
+            check("EN_NI6008_1" in txt_body and "Global.ini [Scripts]" in txt_body and "Phase = -1" in txt_body,
+                  "精簡版隨附說明 .txt 正確列出 EN_NI6008_1 與 Phase=-1 開關使用說明")
             wb_sw = openpyxl.load_workbook(sw_res["excel_path"], read_only=True, data_only=True)
             sw_titles = [str(r[2] or "").strip() for r in wb_sw["MB"].iter_rows(min_row=2, values_only=True) if r and r[2]]
             wb_sw.close()
@@ -743,6 +746,24 @@ def run_all_verifications():
             sys_ask_txt = open(os.path.join(ask_res["output_dir"], "System.ini"), "r", encoding="utf-8", errors="ignore").read()
             check("StationList=MB" in sys_ask_txt and re.search(r"(?m)^StationName=\s*$", sys_ask_txt) is not None,
                   "選擇『當場彈窗選擇測試站』時，System.ini 保留 StationList=MB 並將 StationName= 維持空白", "")
+
+            # [v0.8.015] 驗證書籤二即使漏勾 BLK_PRETEST_ROUTE（僅選 BLK_PHASE97_TEARDOWN），也會自動補入 :ShowISN 與 :SfCheckRoute（防報錯 DUT1 can't find ":ShowISN" function.）
+            min_wiz_res = post_json("/api/generate_new_standalone", {
+                "project_name": "MIN_WIZ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PHASE97_TEARDOWN"],
+                "open_excel": False,
+            })
+            check(min_wiz_res.get("status") == "ok" and os.path.exists(min_wiz_res.get("excel_path", "")),
+                  "即使精靈僅選 Phase 97 收尾積木仍可成功產出母體 Excel")
+            wb_mw = openpyxl.load_workbook(min_wiz_res["excel_path"], read_only=True, data_only=True)
+            mw_sends = [str(r[6] or "").strip() for r in wb_mw["MB"].iter_rows(min_row=2, values_only=True) if r]
+            wb_mw.close()
+            idx_isn = next((i for i, x in enumerate(mw_sends) if x.startswith(":ShowISN")), -1)
+            idx_route = next((i for i, x in enumerate(mw_sends) if x.startswith(":SfCheckRoute")), -1)
+            check(idx_isn >= 0 and idx_route > idx_isn,
+                  "未選 CheckRoute 時自動於 Phase 0 補入 :ShowISN 與 :SfCheckRoute（避免載入報錯 can't find :ShowISN）", str(mw_sends[:4]))
 
             # [v0.8.013] 驗證 DUTs 表必須包含 MB_TAIPEI 列（防止 'No any DUT is set.'），且 auto_fix 按測試站分組不污染 Slot 編號
             dual_dut_stations = [str(d.get("Station", "")).strip() for d in dual_ws.get("duts", [])]
