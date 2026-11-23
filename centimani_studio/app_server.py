@@ -1512,6 +1512,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 user_choices = payload.get("user_choices", {})
                 dry_run = payload.get("dry_run", False)
                 taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
+                no_hw_phase_pause = bool(payload.get("no_hw_phase_pause", False))
+                station_name_mode = str(payload.get("station_name_mode", "fixed")).strip().lower()
                 active_sheet = payload.get("active_sheet", "")
                 open_excel = payload.get("open_excel", False)
 
@@ -1545,6 +1547,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     fixed_xlsx_name = f"{base_name}_FIXED.xlsx"
 
                 fixed_logs = auto_fix_workspace(ws_to_export, user_choices=user_choices)
+                if no_hw_phase_pause and not dry_run:
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws_to_export)
+                if station_name_mode == "ask":
+                    ws_to_export.setdefault("system_ini", {})["StationName_Mode"] = "ask"
+                    ws_to_export["system_ini"]["StationName"] = ""
+                else:
+                    ws_to_export.setdefault("system_ini", {}).pop("StationName_Mode", None)
+                    if not ws_to_export["system_ini"].get("StationName"):
+                        st_fallback = active_sheet or (next(iter(ws_to_export.get("stations", {}).keys()), "MB"))
+                        ws_to_export["system_ini"]["StationName"] = st_fallback
 
                 taipei_sheet = ""
                 if taipei_dual_mode and not dry_run:
@@ -1595,7 +1608,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.013")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.014")
 
                 self._send_json({
                     "status": "ok",
@@ -1796,6 +1809,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 auto_fix_workspace(ws)
                 taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
+                no_hw_phase_pause = bool(payload.get("no_hw_phase_pause", False))
+                station_name_mode = str(payload.get("station_name_mode", "fixed")).strip().lower()
+                if no_hw_phase_pause and not dry_run:
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws)
+                if station_name_mode == "ask":
+                    ws.setdefault("system_ini", {})["StationName_Mode"] = "ask"
+                    ws["system_ini"]["StationName"] = ""
+                else:
+                    ws.setdefault("system_ini", {})["StationName_Mode"] = "fixed"
+                    ws["system_ini"]["StationName"] = st
                 taipei_sheet = ""
                 if taipei_dual_mode and not dry_run:
                     from core.block_sorter import build_taipei_dual_station
@@ -1835,7 +1859,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.013")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.014")
 
                 self._send_json({
                     "status": "ok",
@@ -1889,6 +1913,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 auto_sample_mode = bool(payload.get("auto_sample_mode", False))
                 global_use_sw = bool(payload.get("use_ini_switch", False))
                 taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
+                no_hw_phase_pause = bool(payload.get("no_hw_phase_pause", False))
+                station_name_mode = str(payload.get("station_name_mode", "fixed")).strip().lower()
                 rf_inst_names = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
                 inst_occ_counts = {}
                 for idx_item, it in enumerate(items):
@@ -2017,6 +2043,15 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 audit_rep = audit_workspace(ws)
                 fix_logs = auto_fix_workspace(ws)
                 post_audit = audit_workspace(ws)
+                if no_hw_phase_pause:
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws)
+                if station_name_mode == "ask":
+                    ws.setdefault("system_ini", {})["StationName_Mode"] = "ask"
+                    ws["system_ini"]["StationName"] = ""
+                else:
+                    ws.setdefault("system_ini", {})["StationName_Mode"] = "fixed"
+                    ws["system_ini"]["StationName"] = st_name
 
                 taipei_sheet = ""
                 if taipei_dual_mode:
@@ -2055,7 +2090,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.013")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.014")
 
                 self._send_json({
                     "status": "ok",
@@ -2210,7 +2245,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.013) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.014) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

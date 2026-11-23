@@ -27,6 +27,7 @@ Centimani Studio - 一鍵全功能端到端自動驗收腳本 (End-to-End Full F
 5. [產線 Log 診斷分析 & 5,203 筆 Test Item Code 智慧搜尋]
 """
 import os
+import re
 import sys
 import json
 import shutil
@@ -716,8 +717,32 @@ def run_all_verifications():
             })
             check(resume_res.get("status") == "ok" and resume_res["blocks"][1]["phase"] not in ("-1", "") and resume_res["blocks"][1]["is_skipped"] is False,
                   "/api/reorder_station_blocks 支援一鍵將 Phase -1 積木恢復並順編", str(resume_res["blocks"][1]["phase"]))
-            check('id="auditTaipeiDualChk"' in index_html and 'id="tab3TaipeiDualChk"' in index_html and 'openStationDiffModal' in index_html,
-                  "UI 具備雙分頁產生選項與雙分頁差異比對視窗")
+            check('id="auditStationPromptSel"' in index_html and 'id="tab3StationPromptSel"' in index_html
+                  and 'id="tab3NoHwPhaseChk"' in index_html and 'openStationDiffModal' in index_html,
+                  "UI 具備單 Sheet 無儀器 Phase=-1 與 System.ini StationName 留空選站選項")
+
+            # [v0.8.014] 驗證單 Sheet 工作流 + no_hw_phase_pause=True (Phase=-1) + station_name_mode="ask" (StationName 留空)
+            ask_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "NI6008-1", "title_name": "Measure Voltage Single"}],
+                "project_name": "SINGLE_ASK",
+                "station_name": "MB",
+                "auto_sample_mode": True,
+                "use_ini_switch": True,
+                "no_hw_phase_pause": True,
+                "station_name_mode": "ask",
+                "taipei_dual_mode": False,
+                "open_excel": False,
+            })
+            check(ask_res.get("status") == "ok" and not ask_res.get("taipei_sheet"),
+                  "預設單 Sheet 產出不包含第二張 _TAIPEI 測試站分頁（簡化維護）")
+            wb_ask = openpyxl.load_workbook(ask_res["excel_path"], read_only=True, data_only=True)
+            ask_phases = [str(r[1] or "").strip() for r in wb_ask["MB"].iter_rows(min_row=2, values_only=True) if r and r[1] is not None and str(r[1]).strip() != ""]
+            check("MB_TAIPEI" not in wb_ask.sheetnames and "-1" in ask_phases,
+                  "勾選無儀器寫入 Phase=-1 後，單一 MB 工作表將儀器測試區塊設為 Phase=-1", str(ask_phases))
+            wb_ask.close()
+            sys_ask_txt = open(os.path.join(ask_res["output_dir"], "System.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check("StationList=MB" in sys_ask_txt and re.search(r"(?m)^StationName=\s*$", sys_ask_txt) is not None,
+                  "選擇『當場彈窗選擇測試站』時，System.ini 保留 StationList=MB 並將 StationName= 維持空白", "")
 
             # [v0.8.013] 驗證 DUTs 表必須包含 MB_TAIPEI 列（防止 'No any DUT is set.'），且 auto_fix 按測試站分組不污染 Slot 編號
             dual_dut_stations = [str(d.get("Station", "")).strip() for d in dual_ws.get("duts", [])]

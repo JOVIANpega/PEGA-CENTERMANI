@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.013">
+<link rel="stylesheet" href="/css/app.css?v=0.8.014">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.013</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.014</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1059,10 +1059,19 @@
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:16px; margin-bottom:12px;">
         <h3 style="margin:0 0 10px 0; color:var(--slate-900);">Step 4：總覽確認與產出測試包 (Finish)</h3>
         <div id="wizSummaryBox" style="font-size:13.5px; line-height:1.7; color:#1E293B; margin-bottom:14px;"></div>
-        <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px; color:#1E3A8A; font-weight:700; cursor:pointer;">
-          <input id="wizTaipeiDualChk" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
-          <span>🏢 同步產生台北無硬體除錯分頁（<code>_TAIPEI</code>）＋ 兩地一鍵切換 <code>.bat</code>（同包帶去產線免重複維護兩份 Excel）</span>
-        </label>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:8px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:12.5px; color:#1E3A8A; font-weight:700;">
+            <span>🎯 啟動站別 (StationName)：</span>
+            <select id="wizStationPromptSel" style="flex:1; padding:4px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A;">
+              <option value="fixed">指定站別直接啟動 (System.ini 寫入站名)</option>
+              <option value="ask">留空（執行時彈窗詢問選擇測試站）</option>
+            </select>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 12px; font-size:12.5px; color:#92400E; font-weight:700; cursor:pointer;">
+            <input id="wizNoHwPhaseChk" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
+            <span>⏸️ 無儀器時將儀器測項寫入 <code>Phase = -1</code>（維持單一 Sheet，上產線改回數字即跑）</span>
+          </label>
+        </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
           <button class="btn btn-dry" style="padding:10px 18px; font-size:14.5px;" onclick="generateNewMother(true)">
             🧪 Finish：產生『無硬體試跑版』
@@ -1159,12 +1168,19 @@
         <!-- ⑤ 產出確認列 -->
         <div id="editorExportBar" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:none; flex-direction:column; gap:10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
-            <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:6px 12px; font-size:0.84rem; color:#1E3A8A; font-weight:700; cursor:pointer;">
-              <input id="auditTaipeiDualChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
-              <span>🏢 同步產生台北無硬體分頁 (<code>_TAIPEI</code>) + 兩地切換 <code>.bat</code></span>
+            <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:5px 10px; font-size:0.83rem; color:#1E3A8A; font-weight:700;">
+              <span>🎯 啟動站別：</span>
+              <select id="auditStationPromptSel" style="padding:3px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A;">
+                <option value="fixed">指定站別 (StationName=站名)</option>
+                <option value="ask">留空（執行時彈窗選擇測試站）</option>
+              </select>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:6px 12px; font-size:0.83rem; color:#92400E; font-weight:700; cursor:pointer;">
+              <input id="auditNoHwPhaseChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
+              <span>⏸️ 無儀器時將儀器測項寫入 <code>Phase = -1</code>（維持單一 Sheet，回產線改回數字即跑）</span>
             </label>
-            <button type="button" onclick="openStationDiffModal()" class="btn" style="padding:6px 13px; font-size:0.84rem; background:#F8FAFC; color:#0F172A; border:1px solid #94A3B8; font-weight:800;">
-              🔍 雙分頁差異比對 (產線 vs _TAIPEI)
+            <button type="button" onclick="openStationDiffModal()" class="btn" style="padding:6px 13px; font-size:0.83rem; background:#F8FAFC; color:#0F172A; border:1px solid #94A3B8; font-weight:800;">
+              🔍 比對兩張測試站分頁差異
             </button>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
@@ -1199,15 +1215,22 @@
             <button id="tab3StepNav2" onclick="tab3GoStep(2)" class="source-mode-tab" style="padding:5px 12px; font-size:0.85rem;">② 細部規格與人機設定</button>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:8px; margin-bottom:10px;">
-          <label style="display:flex; align-items:center; gap:8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#312E81; font-weight:700; cursor:pointer;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#312E81; font-weight:700; cursor:pointer;">
             <input id="tab3UseIniSwitch" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
-            <span>🔧 為每組儀器賦予獨立 <code>*$(EN_...)</code> 開關（同儀器兩組自動編為 <code>_2</code>；取消則寫傳統 <code>0,名稱,3</code>）</span>
+            <span>🔧 在 <code>Global.ini</code> 開關測項（寫入 <code>*$(EN_...)</code>：0=執行 / 2=Skip；取消則寫 <code>0,名稱,3</code>）</span>
           </label>
-          <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#1E3A8A; font-weight:700; cursor:pointer;">
-            <input id="tab3TaipeiDualChk" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
-            <span>🏢 同步產生台北無硬體分頁 (<code>MB_TAIPEI</code>) ＋ 兩地一鍵切換 <code>.bat</code></span>
+          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#92400E; font-weight:700; cursor:pointer;">
+            <input id="tab3NoHwPhaseChk" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
+            <span>⏸️ 無儀器先寫 <code>Phase = -1</code>（維持單一 Sheet，到產線改回數字即跑）</span>
           </label>
+          <div style="display:flex; align-items:center; gap:6px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#1E3A8A; font-weight:700;">
+            <span>🎯 啟動站別：</span>
+            <select id="tab3StationPromptSel" style="flex:1; padding:3px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A;">
+              <option value="fixed">指定 MB 直接啟動</option>
+              <option value="ask">留空（開機當場選站）</option>
+            </select>
+          </div>
         </div>
 
         <!-- 隱藏相容欄位（供現有 HMI / 規格介紹連動） -->
@@ -1680,11 +1703,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.013"></script>
-<script src="/js/audit_editors.js?v=0.8.013"></script>
-<script src="/js/flow_guide.js?v=0.8.013"></script>
-<script src="/js/block_sorter.js?v=0.8.013"></script>
-<script src="/js/script_qa.js?v=0.8.013"></script>
+<script src="/js/inst_hmi.js?v=0.8.014"></script>
+<script src="/js/audit_editors.js?v=0.8.014"></script>
+<script src="/js/flow_guide.js?v=0.8.014"></script>
+<script src="/js/block_sorter.js?v=0.8.014"></script>
+<script src="/js/script_qa.js?v=0.8.014"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3148,7 +3171,8 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
   }
 
   const useIniSwitch = !!(document.getElementById('tab3UseIniSwitch') && document.getElementById('tab3UseIniSwitch').checked);
-  const taipeiDualMode = !!(document.getElementById('tab3TaipeiDualChk') && document.getElementById('tab3TaipeiDualChk').checked);
+  const noHwPhasePause = !!(document.getElementById('tab3NoHwPhaseChk') && document.getElementById('tab3NoHwPhaseChk').checked);
+  const stationNameMode = (document.getElementById('tab3StationPromptSel') && document.getElementById('tab3StationPromptSel').value) || 'fixed';
   try {
     const data = await withLoadingTimer(
       `正在匯出母體範本（共 ${itemsToInsert.length} 項測項）並開啟輸出目錄`,
@@ -3162,7 +3186,9 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
             station_name: 'MB',
             auto_sample_mode: autoSampleMode,
             use_ini_switch: useIniSwitch,
-            taipei_dual_mode: taipeiDualMode,
+            no_hw_phase_pause: noHwPhasePause,
+            station_name_mode: stationNameMode,
+            taipei_dual_mode: false,
             open_excel: false
           })
         });
@@ -5373,7 +5399,8 @@ async function applyFixAndExport(dryRun) {
     || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
     || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
-  const taipeiDualMode = !!(document.getElementById('auditTaipeiDualChk') && document.getElementById('auditTaipeiDualChk').checked);
+  const noHwPhasePause = !!(document.getElementById('auditNoHwPhaseChk') && document.getElementById('auditNoHwPhaseChk').checked);
+  const stationNameMode = (document.getElementById('auditStationPromptSel') && document.getElementById('auditStationPromptSel').value) || 'fixed';
   const data = await withLoadingTimer(
     dryRun ? '正在匯出「無硬體試跑版」Excel 並喚醒視窗' : '正在寫入匯出 *_FIXED.xlsx、簽章並喚醒開啟 Excel',
     async () => {
@@ -5384,7 +5411,9 @@ async function applyFixAndExport(dryRun) {
           workspace: STATE.workspace,
           user_choices: STATE.userChoices,
           dry_run: dryRun,
-          taipei_dual_mode: taipeiDualMode,
+          no_hw_phase_pause: noHwPhasePause,
+          station_name_mode: stationNameMode,
+          taipei_dual_mode: false,
           active_sheet: targetSheet,
           open_excel: false
         })
@@ -5925,7 +5954,9 @@ async function generateNewMother(dryRun) {
           rf_blocks: STATE.genRfBlocks || [],
           system_ini_overrides: STATE.genSystemIni || {},
           dry_run: dryRun,
-          taipei_dual_mode: !!(document.getElementById('wizTaipeiDualChk') && document.getElementById('wizTaipeiDualChk').checked),
+          no_hw_phase_pause: !!(document.getElementById('wizNoHwPhaseChk') && document.getElementById('wizNoHwPhaseChk').checked),
+          station_name_mode: (document.getElementById('wizStationPromptSel') && document.getElementById('wizStationPromptSel').value) || 'fixed',
+          taipei_dual_mode: false,
           open_excel: false,
           testid_overrides: MOTHER_TESTID_OVERRIDES,
           wizard_config: {

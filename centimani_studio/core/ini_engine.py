@@ -114,7 +114,12 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
     system_ini_path = os.path.join(output_dir, "System.ini")
     station_names = list(workspace.get("stations", {}).keys())
     station_list_str = ",".join(station_names) if station_names else workspace.get("station_name", "MB")
-    active_station = workspace.get("station_name", station_names[0] if station_names else "MB")
+    if str(sys_cfg.get("StationName_Mode", "")).lower() == "ask":
+        active_station = ""
+    elif "StationName" in sys_cfg:
+        active_station = str(sys_cfg.get("StationName", "")).strip()
+    else:
+        active_station = workspace.get("station_name", station_names[0] if station_names else "MB")
 
     has_preserved_sys = False
     if source_file and os.path.exists(source_file):
@@ -124,6 +129,11 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 raw_sys = open(cand_sys, "r", encoding="utf-8", errors="ignore").read()
                 raw_sys = re.sub(r"(?m)^NewFormatScriptFile=.*$", f"NewFormatScriptFile={excel_filename}", raw_sys)
                 raw_sys = re.sub(r"(?m)^TestItemCodeFile=.*$", f"TestItemCodeFile={actual_tic_name}", raw_sys)
+                if str(sys_cfg.get("StationName_Mode", "")).lower() == "ask" or (
+                    "StationName" in sys_cfg and str(sys_cfg.get("StationName", "")).strip() == ""
+                ):
+                    if re.search(r"(?m)^StationName=.*$", raw_sys):
+                        raw_sys = re.sub(r"(?m)^StationName=.*$", "StationName=", raw_sys)
                 for k_ov in ("DebugMode", "RetryCount", "StationList", "StationName", "SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
                     if k_ov in sys_cfg and str(sys_cfg[k_ov]).strip() != "":
                         v_ov = str(sys_cfg[k_ov]).strip()

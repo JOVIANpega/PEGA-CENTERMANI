@@ -602,3 +602,47 @@ def diff_station_sheets(workspace, sheet_a, sheet_b):
         "block_diffs": block_diffs,
         "summary": summary,
     }
+
+
+def pause_hardware_phases_minus_one(workspace, target_sheet=None):
+    """
+    單 Sheet 工作流程：將用到儀器/治具設備的測試 Phase 區塊 (1..94) 首列 Phase 欄位寫為 '-1'，
+    並以淡藍色標註；使用者回產線時只需將該 '-1' 手動改回數字 (1, 2...) 即可立即執行，
+    不需維護第二份 Sheet。
+    """
+    stations = workspace.get("stations") or {}
+    hw_prefixes = (":ObtainDevice", ":ObtainSubDevice", ":Dev.", ":sDev.")
+    mods = workspace.setdefault("_modified_cells", [])
+    paused_blocks = []
+
+    for st_name, rows in stations.items():
+        if target_sheet and st_name != target_sheet:
+            continue
+        blocks = extract_station_blocks(rows)
+        for blk in blocks:
+            p_num = blk.get("phase_num")
+            if p_num is None or p_num < 1 or p_num >= 95:
+                continue
+            has_hw = any(
+                str(r.get("Instrument", "")).strip() != ""
+                or str(r.get("Send", "")).strip().startswith(hw_prefixes)
+                for r in blk.get("_rows", [])
+            )
+            if not has_hw:
+                continue
+            r0 = blk["_rows"][0]
+            old_p = str(r0.get("Phase", "") or "").strip()
+            if old_p != "-1":
+                r0["Phase"] = "-1"
+                mods.append({
+                    "sheet": st_name,
+                    "row": blk.get("start_row", 2),
+                    "col_name": "Phase",
+                    "old": old_p,
+                    "new": "-1",
+                    "highlight": "blue",
+                    "show_comment": True,
+                    "note": "【無儀器預寫 Phase=-1】回產線有儀器時，手動改回數字 (如 1, 2...) 即可恢復測試。",
+                })
+                paused_blocks.append({"sheet": st_name, "title": blk.get("title", ""), "old_phase": old_p})
+    return paused_blocks
