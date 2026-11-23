@@ -586,7 +586,7 @@ def run_all_verifications():
                 "global_ini": {"Settings": {}, "Scripts": {"AULAB": "1"}},
                 "instruments": [],
                 "switches": [],
-                "duts": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "AULAB_TEST$MB", "Station": "MB,1"}],
                 "stations": {"MB": [
                     {"Index": "000", "Phase": "0", "Title": "0,Load DLL", "Send": ':autLabs.Load,"1"', "ExecMode": "*$(AULAB)", "TestID": "B7PL025"},
                     {"Index": "001", "Phase": "97", "Title": "1,Disconnect", "Send": ':CloseMessage', "ExecMode": "3", "TestID": "B7PL025"},
@@ -718,6 +718,29 @@ def run_all_verifications():
                   "/api/reorder_station_blocks 支援一鍵將 Phase -1 積木恢復並順編", str(resume_res["blocks"][1]["phase"]))
             check('id="auditTaipeiDualChk"' in index_html and 'id="tab3TaipeiDualChk"' in index_html and 'openStationDiffModal' in index_html,
                   "UI 具備雙分頁產生選項與雙分頁差異比對視窗")
+
+            # [v0.8.013] 驗證 DUTs 表必須包含 MB_TAIPEI 列（防止 'No any DUT is set.'），且 auto_fix 按測試站分組不污染 Slot 編號
+            dual_dut_stations = [str(d.get("Station", "")).strip() for d in dual_ws.get("duts", [])]
+            check(any(s.startswith("MB,") for s in dual_dut_stations) and any(s.startswith("MB_TAIPEI,") for s in dual_dut_stations),
+                  "雙分頁模式 DUTs 工作表同步寫入 MB 與 MB_TAIPEI 列（避免切換台北分頁報錯 No any DUT is set.）", str(dual_dut_stations))
+            _autofix_ws(dual_ws)
+            fixed_dut_stations = [str(d.get("Station", "")).strip() for d in dual_ws.get("duts", [])]
+            dual_post_rep = _audit_ws(dual_ws)
+            check(all(not s.endswith(",5") for s in fixed_dut_stations) and "MB_TAIPEI,1" in fixed_dut_stations and dual_post_rep.get("error_count", -1) == 0,
+                  "多站並存時一鍵修復依 Station 分組維持 MB_TAIPEI,1..4 且 0 Error", str(fixed_dut_stations))
+            # 驗證若 DUTs 缺某站列時 audit_workspace 能偵測並由 auto_fix_workspace 自動補齊
+            missing_dut_ws = {
+                "project_name": "MISS_DUT", "station_name": "FT1",
+                "global_ini": {"Settings": {}, "Scripts": {}}, "instruments": [], "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "MISS_DUT$OTHER", "Station": "OTHER,1"}],
+                "stations": {"FT1": [{"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "1", "TestID": "B7PL025"}]},
+            }
+            rep_miss_dut = _audit_ws(missing_dut_ws)
+            check(any("No any DUT is set." in e for e in rep_miss_dut.get("errors", [])),
+                  "audit_workspace 可攔截 DUTs 缺少測站列（防止 No any DUT is set.）")
+            _autofix_ws(missing_dut_ws)
+            check(any(str(d.get("Station", "")).startswith("FT1,") for d in missing_dut_ws.get("duts", [])),
+                  "auto_fix_workspace 自動為缺漏測站補齊 DUTs 列")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

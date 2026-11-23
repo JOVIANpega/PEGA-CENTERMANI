@@ -360,6 +360,18 @@ def audit_workspace(workspace):
                         f"[{sec_label} 第 {idx} 列] 變數 *$({vname}) 尚未在 Global.ini 的 [Settings] 區段宣告（系統將自動補入 [Settings]）"
                     )
 
+    # Rule 5A-2: Ensure every non-empty Station sheet has matching rows in DUTs (otherwise Centimani throws "No any DUT is set.")
+    dut_station_prefixes = {
+        str(d.get("Station", "")).split(",")[0].strip()
+        for d in workspace.get("duts", [])
+        if str(d.get("Station", "")).strip()
+    }
+    for st_n, st_rows in workspace.get("stations", {}).items():
+        if st_rows and st_n not in dut_station_prefixes:
+            errors.append(
+                f"[DUTs 表] 找不到測試站 '{st_n}' 的 DUT 設定列（Centimani 啟動將報錯 'No any DUT is set.'，一鍵修復可自動補齊）"
+            )
+
     # Rule 5B: Check Instrument ControlDLL version against disk PE FileVersion
     src_file = workspace.get("source_file", "")
     base_search_dirs = []
@@ -863,46 +875,100 @@ def auto_fix_workspace(workspace, user_choices=None):
                     settings_dict[vname] = scripts_dict.get(vname, "192.168.1.10" if "IP" in vname else "COM1")
                     fixed_logs.append(f"已自動將環境表變數 *$({vname}) 補齊至 Global.ini [Settings] 區段")
 
-    # 1-0. Auto-fix DUTs duplicate DUT Name & Connection Names (Resolves Centimani '已經加入含有相同索引鍵的項目')
-    duts = workspace.get("duts", [])
+    # 1-0. Ensure every active Station has matching DUTs rows & deduplicate per-Station (Resolves 'No any DUT is set.' and duplicate key errors)
+    import copy as _copy
+    duts = workspace.setdefault("duts", [])
+    dut_station_prefixes = {
+        str(d.get("Station", "")).split(",")[0].strip()
+        for d in duts
+        if str(d.get("Station", "")).strip()
+    }
+    proj_nm = str(workspace.get("project_name", "PROJECT") or "PROJECT").strip() or "PROJECT"
+    for st_n, st_rows in workspace.get("stations", {}).items():
+        if st_rows and st_n not in dut_station_prefixes:
+            base_st = st_n[:-7] if st_n.endswith("_TAIPEI") and st_n[:-7] in dut_station_prefixes else ""
+            tpl_rows = [d for d in duts if base_st and str(d.get("Station", "")).split(",")[0].strip() == base_st]
+            if not tpl_rows and duts:
+                tpl_rows = [duts[0]]
+            if tpl_rows:
+                for i_t, td in enumerate(tpl_rows, start=1):
+                    nd = _copy.deepcopy(td)
+                    old_s = str(nd.get("Station", "")).strip()
+                    slot_s = old_s.split(",", 1)[1].strip() if "," in old_s else str(i_t)
+                    nd["Station"] = f"{st_n},{slot_s}"
+                    nd["DUT Name"] = f"{proj_nm}${st_n}" if i_t == 1 else f"{st_n}_{i_t}"
+                    duts.append(nd)
+            else:
+                duts.append({
+                    "Load": "*$(LOAD_1)",
+                    "DUT Name": f"{proj_nm}${st_n}",
+                    "Station": f"{st_n},1",
+                    "Parameter": "*$(PCIP_1),*$(DUTIP_1),1",
+                    "SFIS_DeviceID": "*$(DEVID_1)",
+                    "ScanBarcode( {Name,Lengh,Pattern} )": "{ISN,3,[0-9A-Z]}",
+                    "Connection1 (Type,Name,ConnectString)": '"Uart","UART","*$(DUT_UR1),115200,8,One,None,None,10000,5000"',
+                    "Connection2 (Type,Name,ConnectString)": '"APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"',
+                    "Connection3 (Type,Name,ConnectString)": '"Uart","UARTF","*$(PCUART_fixture_1),9600,8,One,None,None,10000,5000"',
+                    "Connection4(Type,Name,ConnectString)": "",
+                })
+            dut_station_prefixes.add(st_n)
+            fixed_logs.append(f"[DUTs 表] 已為測試站 '{st_n}' 自動補齊 DUT 設定列（防止 Centimani 啟動報錯 'No any DUT is set.'）")
+
     if len(duts) > 1:
-        seen_dut_names = set()
-        seen_conn_names = set()
-        for idx, d in enumerate(duts, start=1):
+        st_row_groups = {}
+        for d in duts:
+            sv = str(d.get("Station", "")).strip()
+            sp = sv.split(",")[0].strip() if sv else (next(iter(workspace.get("stations", {}).keys()), "MB"))
+            st_row_groups.setdefault(sp, []).append(d)
+
+        seen_dut_by_st = {}
+        seen_conn_by_st = {}
+        slot_counters = {}
+        for d in duts:
+            st_val = str(d.get("Station", "")).strip()
+            st_prefix = st_val.split(",")[0].strip() if "," in st_val else (st_val or "MB")
+            slot_idx = slot_counters.get(st_prefix, 0) + 1
+            slot_counters[st_prefix] = slot_idx
+            group_len = len(st_row_groups.get(st_prefix, [d]))
+
+            seen_dut_names = seen_dut_by_st.setdefault(st_prefix, set())
+            seen_conn_names = seen_conn_by_st.setdefault(st_prefix, set())
+
             d_name = str(d.get("DUT Name", "")).strip()
             if not d_name or d_name in seen_dut_names:
                 base = d_name.split("_")[0] if "_" in d_name else (d_name or "DUT")
-                new_d_name = f"{base}_{idx}"
+                new_d_name = f"{base}_{slot_idx}"
                 d["DUT Name"] = new_d_name
-                fixed_logs.append(f"[DUTs 表] 第 {idx} 列 DUT Name 重複或空白，已自動更名為唯一識別名 '{new_d_name}'")
+                fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列 DUT Name 重複或空白，已自動更名為唯一識別名 '{new_d_name}'")
             seen_dut_names.add(d.get("DUT Name"))
 
-            # Update Station column to MB,1 / MB,2 / MB,3 / MB,4
-            st_val = str(d.get("Station", "")).strip()
+            # Update Station column per-station (preserve single-slot ',0' or dynamic '*$(...)', else 1..4)
             if "," in st_val:
-                st_prefix = st_val.split(",")[0].strip()
-                d["Station"] = f"{st_prefix},{idx}"
+                raw_slot = st_val.split(",", 1)[1].strip()
+                if raw_slot == "0" and group_len == 1:
+                    pass
+                elif raw_slot.startswith("*$("):
+                    pass
+                elif group_len > 1 or raw_slot.isdigit():
+                    d["Station"] = f"{st_prefix},{slot_idx}"
 
-            # Make connection names unique across slots (e.g. UART_1, UART_2, CmdConsole_1)
-            # and remove duplicate Utility connections
+            # Make connection names unique across slots within the same station
             for c_col in [f"Connection{i} (Type,Name,ConnectString)" for i in range(1, 5)] + ["Connection4(Type,Name,ConnectString)"]:
                 if c_col in d and d[c_col]:
                     raw_c = str(d[c_col]).strip()
                     if "UtilityLibrary.dll" in raw_c:
-                        # Centimani loads Utility automatically; duplicate declaration in DUTs causes duplicate key crash
                         d[c_col] = ""
-                        fixed_logs.append(f"[DUTs 表] 第 {idx} 列已自動移除多餘的 UtilityLibrary 宣告（Centimani 內建加載，宣告會造成索引鍵衝突）")
+                        fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列已自動移除多餘的 UtilityLibrary 宣告（Centimani 內建加載，宣告會造成索引鍵衝突）")
                         continue
-                    # Check connection name in "Type","Name","ConnectString"
                     parts = [p.strip().strip('"') for p in raw_c.split(",")]
                     if len(parts) >= 2:
                         c_type = parts[0]
                         c_name = parts[1]
                         c_conn = ",".join(parts[2:])
                         if c_name in seen_conn_names:
-                            new_c_name = f"{c_name}_{idx}"
+                            new_c_name = f"{c_name}_{slot_idx}"
                             d[c_col] = f'"{c_type}","{new_c_name}","{c_conn}"'
-                            fixed_logs.append(f"[DUTs 表] 第 {idx} 列連線名稱 '{c_name}' 重複，已自動更名為 '{new_c_name}' 避免 Centimani 索引鍵衝突")
+                            fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列連線名稱 '{c_name}' 重複，已自動更名為 '{new_c_name}' 避免 Centimani 索引鍵衝突")
                             seen_conn_names.add(new_c_name)
                         else:
                             seen_conn_names.add(c_name)

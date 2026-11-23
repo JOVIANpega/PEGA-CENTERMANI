@@ -1595,7 +1595,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.012")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.013")
 
                 self._send_json({
                     "status": "ok",
@@ -1738,6 +1738,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     ws["instruments"] = filtered_insts
 
                 # Ensure non-teardown Phases are strictly contiguous (0, 1, 2, 3...) with no gaps
+                if steps and str(steps[0].get("Phase", "")).strip() == "":
+                    steps[0]["Phase"] = "0"
                 next_phase = 0
                 for st_row in steps:
                     p_str = str(st_row.get("Phase", "")).strip()
@@ -1833,7 +1835,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.012")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.013")
 
                 self._send_json({
                     "status": "ok",
@@ -2053,7 +2055,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.012")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.013")
 
                 self._send_json({
                     "status": "ok",
@@ -2208,7 +2210,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.012) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.013) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

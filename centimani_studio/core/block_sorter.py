@@ -383,6 +383,42 @@ def build_taipei_dual_station(workspace, prod_sheet, taipei_sheet=None):
 
     stations[t_sheet] = copied_rows
     workspace["_modified_cells"] = mods
+
+    # Ensure DUTs has matching rows for t_sheet so Centimani never fails with "No any DUT is set."
+    duts_list = workspace.setdefault("duts", [])
+    duts_kept = [
+        d for d in duts_list
+        if str(d.get("Station", "")).split(",")[0].strip() != t_sheet
+    ]
+    prod_duts = [
+        d for d in duts_list
+        if str(d.get("Station", "")).split(",")[0].strip() == prod_sheet
+    ]
+    if not prod_duts and duts_kept:
+        prod_duts = [duts_kept[0]]
+    proj = str(workspace.get("project_name", "PROJECT") or "PROJECT").strip() or "PROJECT"
+    if prod_duts:
+        for idx_d, src_d in enumerate(prod_duts, start=1):
+            nd = copy.deepcopy(src_d)
+            src_st = str(nd.get("Station", "")).strip()
+            slot_part = src_st.split(",", 1)[1].strip() if "," in src_st else str(idx_d)
+            nd["Station"] = f"{t_sheet},{slot_part}"
+            nd["DUT Name"] = f"{proj}${t_sheet}" if idx_d == 1 else f"{t_sheet}_{idx_d}"
+            duts_kept.append(nd)
+    else:
+        duts_kept.append({
+            "Load": "*$(LOAD_1)",
+            "DUT Name": f"{proj}${t_sheet}",
+            "Station": f"{t_sheet},1",
+            "Parameter": "*$(PCIP_1),*$(DUTIP_1),1",
+            "SFIS_DeviceID": "*$(DEVID_1)",
+            "ScanBarcode( {Name,Lengh,Pattern} )": "{ISN,3,[0-9A-Z]}",
+            "Connection1 (Type,Name,ConnectString)": '"Uart","UART","*$(DUT_UR1),115200,8,One,None,None,10000,5000"',
+            "Connection2 (Type,Name,ConnectString)": '"APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"',
+            "Connection3 (Type,Name,ConnectString)": '"Uart","UARTF","*$(PCUART_fixture_1),9600,8,One,None,None,10000,5000"',
+            "Connection4(Type,Name,ConnectString)": "",
+        })
+    workspace["duts"] = duts_kept
     return t_sheet
 
 
@@ -395,18 +431,23 @@ def write_env_switch_bats(target_dir, prod_sheet, taipei_sheet, xlsx_filename=""
     os.makedirs(target_dir, exist_ok=True)
     files_written = []
 
-    def _ps_ini_block(station_target, load234_val):
+    def _ps_ini_block(station_target, load234_val=None):
+        glb_part = ""
+        if load234_val is not None:
+            glb_part = (
+                "$glb = 'Global.ini'; if (Test-Path $glb) { "
+                "$g = Get-Content $glb -Raw; "
+                "$g = $g -replace '(?mi)^LOAD_1\\s*=.*$', 'LOAD_1=true'; "
+                f"$g = $g -replace '(?mi)^(LOAD_[234])\\s*=.*$', ('$1={load234_val}'); "
+                "Set-Content $glb -Value $g -NoNewline }"
+            )
         return (
             "powershell -NoProfile -Command ^\r\n"
             "  \"$sys = 'System.ini'; if (Test-Path $sys) { "
             "$c = Get-Content $sys -Raw; "
             f"$c = $c -replace '(?mi)^(StationName|Station)\\s*=.*$', ('$1=' + '{station_target}'); "
             "Set-Content $sys -Value $c -NoNewline }; "
-            "$glb = 'Global.ini'; if (Test-Path $glb) { "
-            "$g = Get-Content $glb -Raw; "
-            "$g = $g -replace '(?mi)^LOAD_1\\s*=.*$', 'LOAD_1=true'; "
-            f"$g = $g -replace '(?mi)^(LOAD_[234])\\s*=.*$', ('$1={load234_val}'); "
-            "Set-Content $glb -Value $g -NoNewline }\"\r\n"
+            f"{glb_part}\"\r\n"
         )
 
     tp_bat = os.path.join(target_dir, "切換_台北座位除錯模式.bat")
@@ -440,7 +481,7 @@ def write_env_switch_bats(target_dir, prod_sheet, taipei_sheet, xlsx_filename=""
         f"echo  對應腳本：{xlsx_filename}\r\n"
         "echo  說明：還原產線測試站與硬體儀器完整掛載\r\n"
         "echo ============================================================\r\n"
-        + _ps_ini_block(prod_sheet, "true")
+        + _ps_ini_block(prod_sheet, None)
         + "echo.\r\n"
         f"echo [完成] 已還原產線正式站別 {prod_sheet}（上機前請確認實體儀器與 SFIS 連線正常）。\r\n"
         "pause\r\n"
