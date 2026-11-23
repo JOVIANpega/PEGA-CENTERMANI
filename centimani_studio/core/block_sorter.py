@@ -1,3 +1,5 @@
+import copy
+import os
 import re
 
 
@@ -5,8 +7,9 @@ def _parse_phase_int(val):
     s = str(val or "").strip()
     if not s:
         return None
+    s_head = s.split(":")[0].strip()
     try:
-        return int(float(s))
+        return int(float(s_head))
     except Exception:
         return None
 
@@ -94,9 +97,10 @@ def extract_station_blocks(rows):
 
         pnum = b["phase_num"]
         is_teardown = (pnum is not None and pnum >= 95)
+        is_skipped = (pnum == -1)
         out_of_order = False
         order_reason = ""
-        if pnum is not None:
+        if pnum is not None and not is_skipped:
             if seen_teardown and not is_teardown:
                 out_of_order = True
                 order_reason = f"Phase {pnum} 位於收尾固定區 Phase >= 95 之後"
@@ -116,6 +120,7 @@ def extract_station_blocks(rows):
             "title": b["title"],
             "row_count": len(b["rows"]),
             "is_teardown": is_teardown,
+            "is_skipped": is_skipped,
             "is_out_of_order": out_of_order,
             "order_reason": order_reason,
             "produced_vars": sorted(produced),
@@ -190,11 +195,12 @@ def find_phase_order_issues(workspace):
     return issues, warn_strings
 
 
-def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumber_phase=True):
+def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumber_phase=True, paused_orig_indices=None):
     """
     Reorder a station's Title/Phase blocks according to new_order_indices,
+    optionally pause/resume blocks (Phase = -1 <-> numeric Phase),
     re-index the Index column, optionally re-number non-teardown numeric Phases,
-    highlight moved/renumbered Phase blocks in light blue (_modified_cells with highlight='blue'),
+    highlight moved/paused/renumbered Phase blocks in light blue (_modified_cells with highlight='blue'),
     and run variable dependency checks.
     """
     stations = workspace.get("stations") or {}
@@ -219,14 +225,43 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
 
     ordered_blocks = [blocks[i] for i in new_order_indices]
 
-    # Determine starting phase number if auto-renumbering
+    # Apply pause/resume toggles if specified
+    if paused_orig_indices is not None:
+        paused_set = {int(x) for x in paused_orig_indices}
+        used_positive = {
+            b["phase_num"]
+            for b in ordered_blocks
+            if b["orig_idx"] not in paused_set
+            and b["phase_num"] is not None
+            and 0 <= b["phase_num"] < 95
+        }
+        for b in ordered_blocks:
+            is_fixed = b.get("is_teardown") or (b["phase_num"] is not None and b["phase_num"] >= 95)
+            if is_fixed:
+                continue
+            if b["orig_idx"] in paused_set:
+                b["_rows"][0]["Phase"] = "-1"
+                b["phase"] = "-1"
+                b["phase_num"] = -1
+                b["is_skipped"] = True
+            elif b["phase_num"] == -1:
+                cand = 1
+                while cand in used_positive and cand < 95:
+                    cand += 1
+                used_positive.add(cand)
+                b["_rows"][0]["Phase"] = str(cand)
+                b["phase"] = str(cand)
+                b["phase_num"] = cand
+                b["is_skipped"] = False
+
+    # Determine starting phase number if auto-renumbering (keep skipped Phase=-1 intact!)
     if auto_renumber_phase:
-        normal_nums = [b["phase_num"] for b in blocks if b["phase_num"] is not None and not b["is_teardown"]]
+        normal_nums = [b["phase_num"] for b in ordered_blocks if b["phase_num"] is not None and 0 <= b["phase_num"] < 95]
         next_phase = min(normal_nums) if normal_nums else 1
         if next_phase > 1:
             next_phase = 1
         for b in ordered_blocks:
-            if b["phase_num"] is not None and not b["is_teardown"]:
+            if b["phase_num"] is not None and 0 <= b["phase_num"] < 95:
                 b["_rows"][0]["Phase"] = str(next_phase)
                 b["phase"] = str(next_phase)
                 b["phase_num"] = next_phase
@@ -286,4 +321,243 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
     return {
         "blocks": serialize_blocks_for_ui(refreshed_blocks),
         "dep_warnings": dep_warnings,
+    }
+
+
+def build_taipei_dual_station(workspace, prod_sheet, taipei_sheet=None):
+    """
+    同一份 Excel 雙地共存：克隆產線站別 (<prod_sheet>) 為無硬體台北除錯站 (<prod_sheet>_TAIPEI)。
+    - <taipei_sheet> 不掛載於 Instrument/Switch.Mount，因此 Centimani 開機不載入儀器 DLL。
+    - 將需實體連線/儀器/量測與 CheckLimit 步驟設為 ExecMode='6' (Skip) 並清空該列 Instrument/Switch；
+      :Sf* 指令依規則保留 ExecMode='9' 且清空 Validation。
+    - 原產線分頁 <prod_sheet> 維持 100% 完整產線流程與硬體掛載不變。
+    """
+    stations = workspace.setdefault("stations", {})
+    if prod_sheet not in stations:
+        raise ValueError(f"找不到產線測試站工作表：{prod_sheet}")
+
+    base_name = prod_sheet[:24] if len(prod_sheet) > 24 else prod_sheet
+    t_sheet = (taipei_sheet or f"{base_name}_TAIPEI")[:31]
+    copied_rows = [copy.deepcopy(r) for r in stations[prod_sheet]]
+
+    hw_prefixes = (
+        ":Connect", ":Disconnect", ":ObtainDevice", ":ReleaseDevice",
+        ":ObtainSubDevice", ":ReleaseSubDevice", ":Dev.", ":sDev.",
+        ":Utility.Ping", ":FindIP", ":CheckLimit"
+    )
+    mods = [m for m in workspace.get("_modified_cells", []) if m.get("sheet") != t_sheet]
+    for idx, st in enumerate(copied_rows):
+        s_send = str(st.get("Send", "")).strip()
+        s_inst = str(st.get("Instrument", "")).strip()
+        s_sw = str(st.get("Switch", "")).strip()
+        old_exec = str(st.get("ExecMode", "")).strip()
+
+        if s_send.startswith(":Sf"):
+            if old_exec not in ("8", "9"):
+                st["ExecMode"] = "9"
+            if str(st.get("Validation", "")).strip():
+                st["Validation"] = ""
+            continue
+
+        is_hw_or_meas = (
+            s_inst != "" or
+            s_sw != "" or
+            s_send.startswith(hw_prefixes) or
+            bool(str(st.get("Validation", "")).strip()) or
+            ("@" in s_send and not s_send.startswith(":"))
+        )
+        if is_hw_or_meas:
+            st["ExecMode"] = "6"
+            st["Instrument"] = ""
+            st["Switch"] = ""
+            mods.append({
+                "sheet": t_sheet,
+                "row": idx + 2,
+                "col_name": "ExecMode",
+                "old": old_exec,
+                "new": "6",
+                "highlight": "blue",
+                "show_comment": True,
+                "note": "【台北無硬體除錯分頁】硬體/連線/量測步驟已自動設為 ExecMode=6 (Skip) 且不掛載 DLL。",
+            })
+
+    stations[t_sheet] = copied_rows
+    workspace["_modified_cells"] = mods
+    return t_sheet
+
+
+def write_env_switch_bats(target_dir, prod_sheet, taipei_sheet, xlsx_filename=""):
+    """
+    在匯出目錄產生 Windows CRLF 雙地一鍵切換批次檔：
+    - 切換_台北座位除錯模式.bat (切換為 <taipei_sheet> 無硬體單槽除錯)
+    - 切換_工廠產線正式模式.bat (切換回 <prod_sheet> 產線完整測試)
+    """
+    os.makedirs(target_dir, exist_ok=True)
+    files_written = []
+
+    def _ps_ini_block(station_target, load234_val):
+        return (
+            "powershell -NoProfile -Command ^\r\n"
+            "  \"$sys = 'System.ini'; if (Test-Path $sys) { "
+            "$c = Get-Content $sys -Raw; "
+            f"$c = $c -replace '(?mi)^(StationName|Station)\\s*=.*$', ('$1=' + '{station_target}'); "
+            "Set-Content $sys -Value $c -NoNewline }; "
+            "$glb = 'Global.ini'; if (Test-Path $glb) { "
+            "$g = Get-Content $glb -Raw; "
+            "$g = $g -replace '(?mi)^LOAD_1\\s*=.*$', 'LOAD_1=true'; "
+            f"$g = $g -replace '(?mi)^(LOAD_[234])\\s*=.*$', ('$1={load234_val}'); "
+            "Set-Content $glb -Value $g -NoNewline }\"\r\n"
+        )
+
+    tp_bat = os.path.join(target_dir, "切換_台北座位除錯模式.bat")
+    tp_content = (
+        "@echo off\r\n"
+        "chcp 65001 >nul\r\n"
+        f"title Centimani 環境切換 - 台北無硬體座位除錯 ({taipei_sheet})\r\n"
+        "cd /d \"%~dp0\"\r\n"
+        "echo ============================================================\r\n"
+        f"echo  切換至【台北座位除錯模式】站別：{taipei_sheet}\r\n"
+        f"echo  對應腳本：{xlsx_filename}\r\n"
+        "echo  說明：僅啟用 LOAD_1、略過儀器 DLL 與治具量測 (ExecMode=6)\r\n"
+        "echo ============================================================\r\n"
+        + _ps_ini_block(taipei_sheet, "false")
+        + "echo.\r\n"
+        f"echo [完成] 已設定預設站別為 {taipei_sheet}（若使用 Centimani 主程式，請確認站別下拉選 {taipei_sheet} 與 SFIS OFF）。\r\n"
+        "pause\r\n"
+    )
+    with open(tp_bat, "w", encoding="utf-8", newline="") as f:
+        f.write(tp_content)
+    files_written.append(tp_bat)
+
+    prod_bat = os.path.join(target_dir, "切換_工廠產線正式模式.bat")
+    prod_content = (
+        "@echo off\r\n"
+        "chcp 65001 >nul\r\n"
+        f"title Centimani 環境切換 - 工廠產線正式模式 ({prod_sheet})\r\n"
+        "cd /d \"%~dp0\"\r\n"
+        "echo ============================================================\r\n"
+        f"echo  切換回【工廠產線正式模式】站別：{prod_sheet}\r\n"
+        f"echo  對應腳本：{xlsx_filename}\r\n"
+        "echo  說明：還原產線測試站與硬體儀器完整掛載\r\n"
+        "echo ============================================================\r\n"
+        + _ps_ini_block(prod_sheet, "true")
+        + "echo.\r\n"
+        f"echo [完成] 已還原產線正式站別 {prod_sheet}（上機前請確認實體儀器與 SFIS 連線正常）。\r\n"
+        "pause\r\n"
+    )
+    with open(prod_bat, "w", encoding="utf-8", newline="") as f:
+        f.write(prod_content)
+    files_written.append(prod_bat)
+
+    return files_written
+
+
+def _normalize_title_label(raw_title):
+    s = str(raw_title or "").strip()
+    parts = [p.strip() for p in s.split(",")]
+    if len(parts) >= 2:
+        return parts[1]
+    return s
+
+
+def diff_station_sheets(workspace, sheet_a, sheet_b):
+    """
+    同檔雙分頁差異比對（例如比對 MB 與 MB_TAIPEI），確保在台北除錯修改邏輯後，
+    能立即找出漏同步回產線分頁的區塊與測項步驟差異。
+    """
+    stations = workspace.get("stations") or {}
+    if sheet_a not in stations or sheet_b not in stations:
+        raise ValueError(f"找不到欲比對的測試站分頁：{sheet_a} 或 {sheet_b}")
+
+    blocks_a = extract_station_blocks(stations[sheet_a])
+    blocks_b = extract_station_blocks(stations[sheet_b])
+
+    map_a = {}
+    order_a = []
+    for idx, b in enumerate(blocks_a):
+        key = _normalize_title_label(b.get("title") or b.get("title_raw")) or f"BLOCK_{idx+1}"
+        if key in map_a:
+            key = f"{key}#{idx+1}"
+        map_a[key] = b
+        order_a.append(key)
+
+    map_b = {}
+    order_b = []
+    for idx, b in enumerate(blocks_b):
+        key = _normalize_title_label(b.get("title") or b.get("title_raw")) or f"BLOCK_{idx+1}"
+        if key in map_b:
+            key = f"{key}#{idx+1}"
+        map_b[key] = b
+        order_b.append(key)
+
+    only_in_a = []
+    only_in_b = []
+    block_diffs = []
+
+    for k in order_a:
+        if k not in map_b:
+            ba = map_a[k]
+            only_in_a.append({
+                "title": k,
+                "phase": ba.get("phase", ""),
+                "step_count": ba.get("step_count", 0),
+                "start_row": ba.get("start_row", 0),
+            })
+
+    for k in order_b:
+        if k not in map_a:
+            bb = map_b[k]
+            only_in_b.append({
+                "title": k,
+                "phase": bb.get("phase", ""),
+                "step_count": bb.get("step_count", 0),
+                "start_row": bb.get("start_row", 0),
+            })
+
+    for k in order_a:
+        if k not in map_b:
+            continue
+        ba = map_a[k]
+        bb = map_b[k]
+        rows_a = ba.get("_rows", [])
+        rows_b = bb.get("_rows", [])
+        step_changes = []
+        max_len = max(len(rows_a), len(rows_b))
+        for si in range(max_len):
+            ra = rows_a[si] if si < len(rows_a) else {}
+            rb = rows_b[si] if si < len(rows_b) else {}
+            diffs_in_row = []
+            for col in ("Phase", "Send", "Ref", "Validation", "ExecMode", "Waiting", "Description"):
+                va = str(ra.get(col, "") or "").strip()
+                vb = str(rb.get(col, "") or "").strip()
+                if va != vb:
+                    diffs_in_row.append({"col": col, "val_a": va, "val_b": vb})
+            if diffs_in_row:
+                step_changes.append({
+                    "step_offset": si + 1,
+                    "send_a": str(ra.get("Send", "") or ""),
+                    "send_b": str(rb.get("Send", "") or ""),
+                    "fields": diffs_in_row,
+                })
+        if step_changes or str(ba.get("phase", "")) != str(bb.get("phase", "")):
+            block_diffs.append({
+                "title": k,
+                "phase_a": ba.get("phase", ""),
+                "phase_b": bb.get("phase", ""),
+                "step_count_a": len(rows_a),
+                "step_count_b": len(rows_b),
+                "step_changes": step_changes,
+            })
+
+    summary = (
+        f"比對 {sheet_a} ({len(blocks_a)} 區塊) vs {sheet_b} ({len(blocks_b)} 區塊)："
+        f"僅 {sheet_a} 有 {len(only_in_a)} 塊、僅 {sheet_b} 有 {len(only_in_b)} 塊、步驟內容有差異 {len(block_diffs)} 塊"
+    )
+    return {
+        "sheet_a": sheet_a,
+        "sheet_b": sheet_b,
+        "only_in_a": only_in_a,
+        "only_in_b": only_in_b,
+        "block_diffs": block_diffs,
+        "summary": summary,
     }

@@ -213,12 +213,26 @@ def _prepare_topmost_tk_root(tk_mod):
     return root
 
 
+_ACTIVE_PICK_PROC = None
+
+
 def _run_tk_dialog(child_code, cfg_data):
-    if not _PICK_LOCK.acquire(blocking=False):
-        return ""
+    global _ACTIVE_PICK_PROC
+    # 若前一個系統選檔對話框還卡在背景，先中止舊程序再開啟新對話框，避免 _PICK_LOCK 鎖死導致直接 cancel
+    old_p = _ACTIVE_PICK_PROC
+    if old_p is not None and old_p.poll() is None:
+        try:
+            old_p.terminate()
+            old_p.wait(timeout=1.5)
+        except Exception:
+            try:
+                old_p.kill()
+            except Exception:
+                pass
+        _ACTIVE_PICK_PROC = None
+
+    _PICK_LOCK.acquire()
     try:
-        # If running inside PyInstaller bundle, sys.executable is the .exe itself,
-        # so we should invoke a standalone tkinter dialog in-process
         if getattr(sys, "frozen", False):
             try:
                 import tkinter as tk
@@ -245,22 +259,30 @@ def _run_tk_dialog(child_code, cfg_data):
                 print(f"[_run_tk_dialog in-process error] {e}")
                 return ""
 
-        # Normal python mode: run isolated child process to avoid any UI thread contention
         try:
             import ctypes
             try:
                 ctypes.windll.user32.AllowSetForegroundWindow(-1)
             except Exception:
                 pass
-            proc = subprocess.run(
+            proc = subprocess.Popen(
                 [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=180
             )
-            return proc.stdout.strip()
+            _ACTIVE_PICK_PROC = proc
+            try:
+                out, _err = proc.communicate(timeout=180)
+                return (out or "").strip()
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                return ""
+            finally:
+                if _ACTIVE_PICK_PROC is proc:
+                    _ACTIVE_PICK_PROC = None
         except Exception as e:
             print(f"[_run_tk_dialog subprocess error] {e}")
             return ""
@@ -281,35 +303,23 @@ try:
         pass
     cfg = json.loads(sys.argv[1])
     root = tk.Tk()
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
-    root.geometry(f"1x1+{sw // 2}+{sh // 3}")
-    root.overrideredirect(True)
-    try:
-        root.attributes('-alpha', 0.01)
-    except Exception:
-        pass
+    root.withdraw()
     root.attributes('-topmost', True)
-    root.deiconify()
-    root.lift()
-    root.focus_force()
-    root.update()
-    try:
-        ctypes.windll.user32.SetForegroundWindow(root.winfo_id())
-    except Exception:
-        pass
+    root.update_idletasks()
     ft = []
     if cfg.get('file_types'):
         for desc, pat in cfg['file_types']:
             ft.append((desc, pat))
     else:
-        ft.append(('Excel 活頁簿 (*.xlsx)', '*.xlsx'))
+        ft.append(('Excel 活頁簿 (*.xlsx;*.xlsm)', '*.xlsx;*.xlsm'))
         ft.append(('所有檔案 (*.*)', '*.*'))
-    
+    init_d = cfg.get('init_dir', '')
+    if not init_d or not os.path.isdir(init_d):
+        init_d = os.getcwd()
     path = filedialog.askopenfilename(
         parent=root,
         title=cfg.get('title', '選擇檔案'),
-        initialdir=cfg.get('init_dir', ''),
+        initialdir=init_d,
         filetypes=ft
     )
     root.destroy()
@@ -743,6 +753,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         if not tx_tests and not rx_tests:
             return None
         steps = []
+        last_inst = ""
         for idx, t in enumerate(tx_tests):
             ch = str(t.get("channel", "3")).strip() or "3"
             bw = str(t.get("bw", "20")).strip() or "20"
@@ -754,11 +765,13 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
             emin = str(t.get("evm_min", "-50")).strip() or "-50"
             emax = str(t.get("evm_max", "-28")).strip() or "-28"
             lbl = f"WIFI TX{ant}_CH{ch} MCS{mcs}_BW{bw}"
+            row_inst = "MeasWIFI" if last_inst != "MeasWIFI" else ""
+            last_inst = "MeasWIFI"
             steps.append({
                 "Phase": "9" if len(steps) == 0 else "",
                 "Title": f"0,{lbl}",
                 "Marco": "WIFI Tx MCS",
-                "Instrument": "MeasWIFI", "Switch": "",
+                "Instrument": row_inst, "Switch": "",
                 "Send": f"{ch},{bw},{mcs},{ant},{tpwr},{pmin},{pmax},{emin},{emax},{lbl}",
                 "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "",
                 "ExecMode": "1", "Description": f"RF#-#{lbl}", "TestID": "WFOT036"
@@ -770,11 +783,13 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
             ant = str(r.get("antenna", "1")).strip() or "1"
             rxlvl = str(r.get("rx_level", "-59")).strip() or "-59"
             lbl = f"WIFI RX{ant}_CH{ch} MCS{mcs}_BW{bw}"
+            row_inst = "GenWIFI" if last_inst != "GenWIFI" else ""
+            last_inst = "GenWIFI"
             steps.append({
                 "Phase": "9" if len(steps) == 0 else "",
                 "Title": f"0,{lbl}",
                 "Marco": "WIFI Rx MCS",
-                "Instrument": "GenWIFI", "Switch": "",
+                "Instrument": row_inst, "Switch": "",
                 "Send": f"{ch},{bw},{mcs},{ant},{rxlvl},{lbl}",
                 "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "",
                 "ExecMode": "1", "Description": f"RF#-#{lbl}", "TestID": "WFOT036"
@@ -801,10 +816,10 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         delay_ms = str(pw.get("delay_ms", "2000")).strip() or "2000"
         return [
             {"Phase": "", "Title": "0,Power ON Sequence,3", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Obtain iPower Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Dev.Switch,"1,0"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Turn OFF Channel 1", "TestID": "BRPW011"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.Switch,"1,0"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Turn OFF Channel 1", "TestID": "BRPW011"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Delay,"{delay_ms}"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": f"PC#-#Wait Discharge ({delay_ms}ms)", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Dev.Switch,"1,1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Turn ON Channel 1", "TestID": "BRPW011"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release iPower Lock", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.Switch,"1,1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Turn ON Channel 1", "TestID": "BRPW011"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release iPower Lock", "TestID": "BRME027"},
         ]
 
     if bid == "BLK_VOLT_DIFF_SINGLE":
@@ -817,8 +832,8 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         vmax = str(vd.get("max", "12.60")).strip() or "12.60"
         return [
             {"Phase": "2", "Title": f"0,Measure {nm},3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": f':Dev.VOLTAGE,"DIFF,2000,{ch}"', "Reply": "0", "EndPrompt": "", "Ref": f"${nm}", "Validation": f"({nm},%f,{vmin},{vmax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"DUT#-#Measure {nm} ({vmin}V~{vmax}V)", "TestID": "BRPW024"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.VOLTAGE,"DIFF,2000,{ch}"', "Reply": "0", "EndPrompt": "", "Ref": f"${nm}", "Validation": f"({nm},%f,{vmin},{vmax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"DUT#-#Measure {nm} ({vmin}V~{vmax}V)", "TestID": "BRPW024"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
         ]
 
     if bid == "BLK_LED_FEASA":
@@ -834,8 +849,8 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         ws["global_ini"]["Settings"]["LED_AZ1"] = port
         return [
             {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": f':Dev.CaptureAndRead,"{ch}"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": f"(LED_Wave,%f,{wmin},{wmax});\n(LED_Int,%f,{imin},{imax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"LED#-#Verify Ch{ch} Wavelength({wmin}~{wmax}) & Intensity", "TestID": "IOLE015"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.CaptureAndRead,"{ch}"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": f"(LED_Wave,%f,{wmin},{wmax});\n(LED_Int,%f,{imin},{imax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"LED#-#Verify Ch{ch} Wavelength({wmin}~{wmax}) & Intensity", "TestID": "IOLE015"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"},
         ]
 
     if bid == "BLK_SFIS_MAC_69PN":
@@ -1004,11 +1019,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "tic_info": info
             })
         elif parsed.path == "/api/pick_file":
-            selected_path = pick_file_native()
+            qs = parse_qs(parsed.query)
+            path_only = qs.get("path_only", ["0"])[0] in ("1", "true", "True")
+            dlg_title = qs.get("title", [""])[0] or "選擇要檢查與修復的 Centimani Excel 腳本"
+            selected_path = pick_file_native(title=dlg_title)
             if not selected_path:
                 self._send_json({"status": "cancel"})
                 return
-            if payload.get("path_only"):
+            if path_only:
                 self._send_json({"status": "ok", "file_path": selected_path})
                 return
             ws = import_excel_to_workspace(selected_path)
@@ -1280,7 +1298,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     ws, sheet_name, inst_name, title_name,
                     after_block_idx=after_block_idx, dl_val=dl_val, ul_val=ul_val,
                     custom_steps=payload.get("custom_steps"),
-                    globals_patch=payload.get("globals_patch")
+                    globals_patch=payload.get("globals_patch"),
+                    use_ini_switch=bool(payload.get("use_ini_switch", False))
                 )
                 rep = audit_workspace(ws)
                 self._send_json({
@@ -1309,7 +1328,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     dev_id=str(payload.get("dev_id", "Dev1")),
                     title_name=str(payload.get("title_name", "Measure Voltage Test")),
                     channels=payload.get("channels", []),
-                    after_block_idx=int(payload.get("after_block_idx", -1))
+                    after_block_idx=int(payload.get("after_block_idx", -1)),
+                    use_ini_switch=bool(payload.get("use_ini_switch", False))
                 )
                 rep = audit_workspace(ws)
                 self._send_json({
@@ -1338,7 +1358,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     settings_str=str(payload.get("settings_str", "")),
                     tx_tests=payload.get("tx_tests", []),
                     rx_tests=payload.get("rx_tests", []),
-                    after_block_idx=int(payload.get("after_block_idx", -1))
+                    after_block_idx=int(payload.get("after_block_idx", -1)),
+                    use_ini_switch=bool(payload.get("use_ini_switch", False))
                 )
                 rep = audit_workspace(ws)
                 self._send_json({
@@ -1443,7 +1464,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 sheet_name = payload.get("sheet_name", "")
                 new_order = payload.get("new_order_indices", [])
                 auto_renum = bool(payload.get("auto_renumber_phase", True))
-                res = reorder_station_blocks(ws, sheet_name, new_order, auto_renumber_phase=auto_renum)
+                paused_indices = payload.get("paused_orig_indices", None)
+                res = reorder_station_blocks(
+                    ws,
+                    sheet_name,
+                    new_order,
+                    auto_renumber_phase=auto_renum,
+                    paused_orig_indices=paused_indices,
+                )
                 rep = audit_workspace(ws)
                 self._send_json({
                     "status": "ok",
@@ -1454,10 +1482,36 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if parsed.path == "/api/diff_station_sheets":
+                from core.block_sorter import diff_station_sheets
+                ws = payload.get("workspace", {})
+                stations = ws.get("stations", {}) or {}
+                st_keys = list(stations.keys())
+                sheet_a = payload.get("sheet_a", "").strip()
+                sheet_b = payload.get("sheet_b", "").strip()
+                if not sheet_a and st_keys:
+                    sheet_a = next((k for k in st_keys if not k.endswith("_TAIPEI")), st_keys[0])
+                if not sheet_b and st_keys:
+                    cand_tp = f"{sheet_a[:24]}_TAIPEI" if len(sheet_a) > 24 else f"{sheet_a}_TAIPEI"
+                    if cand_tp in stations:
+                        sheet_b = cand_tp
+                    else:
+                        sheet_b = next((k for k in st_keys if k != sheet_a), "")
+                if not sheet_a or not sheet_b or sheet_a not in stations or sheet_b not in stations:
+                    self._send_json({
+                        "status": "error",
+                        "message": "工作簿需要至少 2 個測試站分頁才能進行差異比對（例如 MB 與 MB_TAIPEI）。",
+                    }, 400)
+                    return
+                diff_res = diff_station_sheets(ws, sheet_a, sheet_b)
+                self._send_json({"status": "ok", **diff_res})
+                return
+
             if parsed.path == "/api/fix_and_export_in_place":
                 ws = payload.get("workspace", {})
                 user_choices = payload.get("user_choices", {})
                 dry_run = payload.get("dry_run", False)
+                taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
                 active_sheet = payload.get("active_sheet", "")
                 open_excel = payload.get("open_excel", False)
 
@@ -1492,6 +1546,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 fixed_logs = auto_fix_workspace(ws_to_export, user_choices=user_choices)
 
+                taipei_sheet = ""
+                if taipei_dual_mode and not dry_run:
+                    from core.block_sorter import build_taipei_dual_station
+                    st_keys_exp = [k for k in (ws_to_export.get("stations") or {}).keys() if not k.endswith("_TAIPEI")]
+                    prod_st = active_sheet if (active_sheet and not active_sheet.endswith("_TAIPEI") and active_sheet in (ws_to_export.get("stations") or {})) else (st_keys_exp[0] if st_keys_exp else "")
+                    if prod_st:
+                        taipei_sheet = build_taipei_dual_station(ws_to_export, prod_st)
+
                 # Export to the original file directory with file lock conflict protection!
                 out_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
                 
@@ -1515,6 +1577,13 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 # Sync and generate INIs in the original directory (preserving original SFIS keys & computing Checksum)
                 sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, actual_xlsx_name, orig_dir)
 
+                switch_bats = []
+                if taipei_sheet:
+                    from core.block_sorter import write_env_switch_bats
+                    st_keys_exp = [k for k in (ws_to_export.get("stations") or {}).keys() if not k.endswith("_TAIPEI")]
+                    prod_st = active_sheet if (active_sheet and not active_sheet.endswith("_TAIPEI")) else (st_keys_exp[0] if st_keys_exp else "MB")
+                    switch_bats = write_env_switch_bats(orig_dir, prod_st, taipei_sheet, xlsx_filename=actual_xlsx_name)
+
                 # Re-import and audit BEFORE launching Excel so openpyxl closes the file before Excel locks it!
                 ws_re = import_excel_to_workspace(actual_xlsx_path)
                 rep_re = audit_workspace(ws_re)
@@ -1524,12 +1593,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     launch_excel_file_async(actual_xlsx_path)
 
                 from core.golden_data import check_workspace_missing_dlls
+                from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.012")
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
                     "excel_path": actual_xlsx_path,
+                    "guide_txt_path": guide_txt_path,
+                    "taipei_sheet": taipei_sheet,
+                    "switch_bats": switch_bats,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": "已自動寫入 [Checksum]",
@@ -1586,6 +1660,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     self._send_json({"status": "error", "message": "僅支援開啟 Excel 檔案"}, 400)
                     return
                 launch_excel_file_async(fpath)
+                self._send_json({"status": "ok"})
+
+            elif parsed.path == "/api/open_guide_txt":
+                fpath = str(payload.get("file_path", "")).strip()
+                if not fpath or not os.path.exists(fpath):
+                    self._send_json({"status": "error", "message": "找不到編寫與使用說明 .txt 檔案"}, 404)
+                    return
+                if not fpath.lower().endswith(".txt"):
+                    self._send_json({"status": "error", "message": "僅支援開啟 .txt 說明檔案"}, 400)
+                    return
+                launch_ini_file_async([fpath])
                 self._send_json({"status": "ok"})
 
             elif parsed.path == "/api/generate_new_standalone":
@@ -1708,6 +1793,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     )
 
                 auto_fix_workspace(ws)
+                taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
+                taipei_sheet = ""
+                if taipei_dual_mode and not dry_run:
+                    from core.block_sorter import build_taipei_dual_station
+                    taipei_sheet = build_taipei_dual_station(ws, st)
 
                 if dry_run:
                     ws = convert_workspace_to_dry_run(ws)
@@ -1729,6 +1819,10 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
+                switch_bats = []
+                if taipei_sheet:
+                    from core.block_sorter import write_env_switch_bats
+                    switch_bats = write_env_switch_bats(target_dir, st, taipei_sheet, xlsx_filename=actual_xlsx_name)
                 chk = "已自動寫入 [Checksum]"
 
                 open_folder_in_explorer(target_dir)
@@ -1737,12 +1831,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     launch_excel_file_async(actual_xlsx)
 
                 from core.golden_data import check_workspace_missing_dlls
+                from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.012")
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
                     "excel_path": actual_xlsx,
+                    "guide_txt_path": guide_txt_path,
+                    "taipei_sheet": taipei_sheet,
+                    "switch_bats": switch_bats,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
@@ -1786,12 +1885,20 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 # 3. 連續載入目標儀器測項（支援標準上下限、NI-6009 多通道 HMI、IQxel RF HMI 與自訂步驟 HMI）
                 auto_sample_mode = bool(payload.get("auto_sample_mode", False))
+                global_use_sw = bool(payload.get("use_ini_switch", False))
+                taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
                 rf_inst_names = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
+                inst_occ_counts = {}
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                    inst_occ_counts[i_name] = inst_occ_counts.get(i_name, 0) + 1
+                    occ_num = inst_occ_counts[i_name]
+                    var_sfx = f"_{occ_num}" if occ_num > 1 else ""
                     t_name = str(it.get("title_name", "")).strip() or f"Test_{i_name}_{idx_item + 1}"
                     d_val = str(it.get("dl_val", "")).strip()
                     u_val = str(it.get("ul_val", "")).strip()
+                    item_use_sw = bool(it.get("use_ini_switch", global_use_sw))
+                    item_same_phase = bool(it.get("same_phase", False))
                     if it.get("ni6009_block"):
                         nb = it["ni6009_block"]
                         insert_ni6009_block(
@@ -1801,7 +1908,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             dev_id=str(nb.get("dev_id", "Dev1")),
                             title_name=str(nb.get("title_name", t_name)),
                             channels=nb.get("channels", []),
-                            after_block_idx=-1
+                            after_block_idx=-1,
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
                     elif it.get("rf_block"):
                         rb = it["rf_block"]
@@ -1812,7 +1921,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             settings_str=str(rb.get("settings_str", "")),
                             tx_tests=rb.get("tx_tests", []),
                             rx_tests=rb.get("rx_tests", []),
-                            after_block_idx=-1
+                            after_block_idx=-1,
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
                     elif auto_sample_mode and i_name == "NI6008-1":
                         insert_ni6009_block(
@@ -1820,11 +1931,13 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             mode="RSE", sample_ms="1000", dev_id="Dev1",
                             title_name=f"{t_name}_Sample",
                             channels=[
-                                {"ch": 0, "name": "VCC_3V3", "dl": "3.13", "ul": "3.47"},
-                                {"ch": 1, "name": "VCC_5V0", "dl": "4.75", "ul": "5.25"},
-                                {"ch": 2, "name": "VCC_1V8", "dl": "1.71", "ul": "1.89"},
+                                {"ch": 0, "name": f"VCC_3V3{var_sfx}", "dl": "3.13", "ul": "3.47"},
+                                {"ch": 1, "name": f"VCC_5V0{var_sfx}", "dl": "4.75", "ul": "5.25"},
+                                {"ch": 2, "name": f"VCC_1V8{var_sfx}", "dl": "1.71", "ul": "1.89"},
                             ],
-                            after_block_idx=-1
+                            after_block_idx=-1,
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
                     elif auto_sample_mode and i_name in rf_inst_names:
                         insert_rf_iqxel_block(
@@ -1839,23 +1952,25 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             rx_tests=[
                                 {"channel": "11", "bw": "20", "mcs": "7", "antenna": "1", "per_min": "0", "per_max": "10"},
                             ],
-                            after_block_idx=-1
+                            after_block_idx=-1,
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
                     elif auto_sample_mode and not it.get("custom_steps"):
                         if i_name == "FeasaLED":
                             sample_steps = [
                                 {"Send": ":ObtainDevice", "ExecMode": "0", "Description": f"PC#-#Obtain {i_name}", "TestID": "BRME027"},
-                                {"Send": ':Dev.CaptureAndRead,"01"', "Ref": "$LED_Wave_1;\n$LED_Int_1", "Validation": "(LED_Wave_1,%f,515,535);\n(LED_Int_1,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH01 Green", "TestID": "IOLE015"},
-                                {"Send": ':Dev.CaptureAndRead,"02"', "Ref": "$LED_Wave_2;\n$LED_Int_2", "Validation": "(LED_Wave_2,%f,615,640);\n(LED_Int_2,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH02 Red", "TestID": "IOLE015"},
-                                {"Send": ':Dev.CaptureAndRead,"03"', "Ref": "$LED_Wave_3;\n$LED_Int_3", "Validation": "(LED_Wave_3,%f,450,475);\n(LED_Int_3,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH03 Blue", "TestID": "IOLE015"},
+                                {"Send": ':Dev.CaptureAndRead,"01"', "Ref": f"$LED_Wave_1{var_sfx};\n$LED_Int_1{var_sfx}", "Validation": f"(LED_Wave_1{var_sfx},%f,515,535);\n(LED_Int_1{var_sfx},%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH01 Green", "TestID": "IOLE015"},
+                                {"Send": ':Dev.CaptureAndRead,"02"', "Ref": f"$LED_Wave_2{var_sfx};\n$LED_Int_2{var_sfx}", "Validation": f"(LED_Wave_2{var_sfx},%f,615,640);\n(LED_Int_2{var_sfx},%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH02 Red", "TestID": "IOLE015"},
+                                {"Send": ':Dev.CaptureAndRead,"03"', "Ref": f"$LED_Wave_3{var_sfx};\n$LED_Int_3{var_sfx}", "Validation": f"(LED_Wave_3{var_sfx},%f,450,475);\n(LED_Int_3{var_sfx},%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH03 Blue", "TestID": "IOLE015"},
                                 {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {i_name}", "TestID": "BRME027"},
                             ]
                         else:
                             sample_steps = [
                                 {"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {i_name}", "TestID": "B7PL025"},
-                                {"Send": ':Dev.Measure,"1"', "Validation": f"({i_name}_M1,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 1: Primary Measure", "TestID": "B7PL025"},
-                                {"Send": ':Dev.Measure,"2"', "Validation": f"({i_name}_M2,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 2: Secondary Verify", "TestID": "B7PL025"},
-                                {"Send": ':Dev.Measure,"3"', "Validation": f"({i_name}_M3,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 3: Boundary Check", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"1"', "Validation": f"({i_name}{var_sfx}_M1,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 1: Primary Measure", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"2"', "Validation": f"({i_name}{var_sfx}_M2,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 2: Secondary Verify", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"3"', "Validation": f"({i_name}{var_sfx}_M3,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 3: Boundary Check", "TestID": "B7PL025"},
                                 {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {i_name}", "TestID": "B7PL025"},
                             ]
                         insert_instrument_title_block(
@@ -1864,7 +1979,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             dl_val=d_val,
                             ul_val=u_val,
                             custom_steps=sample_steps,
-                            globals_patch=it.get("globals_patch")
+                            globals_patch=it.get("globals_patch"),
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
                     else:
                         insert_instrument_title_block(
@@ -1873,7 +1990,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             dl_val=d_val,
                             ul_val=u_val,
                             custom_steps=it.get("custom_steps"),
-                            globals_patch=it.get("globals_patch")
+                            globals_patch=it.get("globals_patch"),
+                            same_phase=item_same_phase,
+                            use_ini_switch=item_use_sw
                         )
 
                 # 自動補掛載 MB 工作表實際用到 (如 Phase 97 之 POWERSWITCH) 且未掛載的儀器，並過濾未使用的儀器避免 DLL 缺失報錯
@@ -1897,6 +2016,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 fix_logs = auto_fix_workspace(ws)
                 post_audit = audit_workspace(ws)
 
+                taipei_sheet = ""
+                if taipei_dual_mode:
+                    from core.block_sorter import build_taipei_dual_station
+                    taipei_sheet = build_taipei_dual_station(ws, st_name)
+
                 # 5. 輸出 Excel (預設開啟於測試站 st_name 分頁) 與 INI，自動寫入 Checksum
                 lead_inst = items[0].get("inst_name", "INST") if items else "INST"
                 xlsx_name = f"{proj_name}_{lead_inst}_{st_name}.xlsx"
@@ -1914,6 +2038,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
 
+                switch_bats = []
+                if taipei_sheet:
+                    from core.block_sorter import write_env_switch_bats
+                    switch_bats = write_env_switch_bats(target_dir, st_name, taipei_sheet, xlsx_filename=actual_xlsx_name)
+
                 # 6. 匯出時一律自動開啟目標目錄，Excel 依前端確認視窗決定是否開啟
                 open_folder_in_explorer(target_dir)
 
@@ -1922,12 +2051,17 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 # 匯出前實機 DLL 檢查（確認本機 Centimani 目錄與所選儀器 DLL 是否齊備）
                 from core.golden_data import check_workspace_missing_dlls
+                from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.012")
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
                     "excel_path": actual_xlsx,
+                    "guide_txt_path": guide_txt_path,
+                    "taipei_sheet": taipei_sheet,
+                    "switch_bats": switch_bats,
                     "inst_name": lead_inst,
                     "total_items": len(items),
                     "total_steps": len(ws.get("stations", {}).get(st_name, [])),
@@ -1970,6 +2104,26 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     if open_excel:
                         launch_excel_file_async(dst_path)
                 self._send_json(res)
+            elif parsed.path == "/api/pick_file":
+                path_only = bool(payload.get("path_only", False))
+                dlg_title = str(payload.get("title", "")).strip() or "選擇 Centimani Excel 檔案 (*.xlsx)"
+                selected_path = pick_file_native(title=dlg_title)
+                if not selected_path:
+                    self._send_json({"status": "cancel"})
+                    return
+                if path_only:
+                    self._send_json({"status": "ok", "file_path": selected_path})
+                    return
+                ws = import_excel_to_workspace(selected_path)
+                rep = audit_workspace(ws)
+                self._send_json({
+                    "status": "ok",
+                    "file_path": selected_path,
+                    "workspace": ws,
+                    "report": rep,
+                    "recent_files": get_recent_excel_files(),
+                    "isn_info": extract_isn_info(ws)
+                })
             elif parsed.path == "/api/pick_centimani_dir":
                 from core.golden_data import _get_local_dll_versions
                 folder = pick_folder_native("選擇本機 Centimani 主程式目錄 (含 Device\\ 資料夾與 LoadScript.dll)")
@@ -2054,7 +2208,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.002) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.012) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

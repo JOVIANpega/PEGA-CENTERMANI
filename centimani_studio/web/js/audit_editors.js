@@ -455,8 +455,8 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   return `
     <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div>
-        <div style="font-weight:900; font-size:15.5px; color:#0F172A;">🧭 腳本編修 5 合 1 入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
-        <div style="font-size:12.5px; color:#64748B;">比照首頁手風琴式導覽：INI 環境設定放第 1、2 格，流程與跳轉放第 3、4 格，站別與儀器放第 5 格。</div>
+        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修 5 合 1 入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
+        <div style="font-size:0.85rem; color:#64748B;">先於上方選定目標測試站，再點擊下方卡片進入修改（1～2 格設定 INI 環境、3～4 格調整流程順序與跳轉、5 格設定站別與儀器）。</div>
       </div>
     </div>
 
@@ -464,37 +464,37 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
       <!-- 01 System.ini -->
       <div id="globalHubCard_system" class="acc-card active" data-theme="slate" onmouseenter="_setActiveHubCard('system')" onclick="switchGlobalEditorTab('system')">
         <div>
-          <div class="acc-num">01 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${sModCount} 項</span>` : ''}</div>
+          <div class="acc-num">01 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${sModCount} 項</span>` : ''}</div>
           <div class="acc-icon">🏭</div>
           <div class="acc-title">廠區 / SFIS / 量產模式</div>
           <div class="acc-sub">System.ini 過站開關與廠區伺服器網址</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E293B; line-height:1.65;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E293B; line-height:1.65;">
             <li>除錯模式：<b class="mono">DebugMode = ${sys.DebugMode || '1'}</b> (${String(sys.DebugMode)==='1'?'免簽章調試':'正式量產'})</li>
             <li>過站上傳：<b>SFIS ${String(sys.SFIS_Enable)==='1'?'🟢 開':'⚪ 關'}</b> ｜ <b>iPLAS ${String(sys.iPLAS_Enable)==='1'?'🟢 開':'⚪ 關'}</b></li>
             <li>出廠廠區：<b class="mono">${_escAttr(factoryShort)}</b> ｜ 路由：<b class="mono">${_escAttr(sys.SFIS_TSP || '-')}</b></li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:13px; background:#334155; color:#FFFFFF; border:none; font-weight:800;">🏭 進入修改 System.ini ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">🏭 進入修改 System.ini ▶</button>
         </div>
       </div>
 
       <!-- 02 Global.ini -->
       <div id="globalHubCard_global" class="acc-card" data-theme="blue" onmouseenter="_setActiveHubCard('global')" onclick="switchGlobalEditorTab('global')">
         <div>
-          <div class="acc-num">02 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:11px;">已改 ${gModCount} 項</span>` : ''}</div>
+          <div class="acc-num">02 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${gModCount} 項</span>` : ''}</div>
           <div class="acc-icon">🔌</div>
           <div class="acc-title">COM / IP / 槽位 / 版號</div>
           <div class="acc-sub">Global.ini 治具序列埠、網卡 IP 與韌體版號</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E3A8A; line-height:1.65;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
             <li>啟用槽位：<b>1號槽 (${gSet.LOAD_1 || 'true'})</b></li>
             <li>序列埠號：<b class="mono">${_escAttr(gSet.DUT_UR1 || 'COM4')}</b> (待測物) ｜ <b class="mono">${_escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8')}</b> (治具)</li>
             <li>連線位址：DUT <b class="mono">${_escAttr(gSet.DUTIP_1 || '-')}</b> ｜ PC <b class="mono">${_escAttr(gSet.PCIP_1 || '-')}</b></li>
             ${gScr.FW_VERSION ? `<li>韌體版號：<b class="mono">${_escAttr(gScr.FW_VERSION)}</b></li>` : ''}
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:13px; font-weight:800;">🔌 進入修改 Global.ini ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🔌 進入修改 Global.ini ▶</button>
         </div>
       </div>
 
@@ -507,12 +507,12 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
           <div class="acc-sub">拖拉 Phase 積木順序 / 複製或刪除測項</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.65;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
             <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
             <li>包含步驟：共 <b>${curSteps.length} 步</b>（分成 <b>${curPhases} 個 Phase</b> 積木）</li>
             <li>支援拖拉重新排序、整段複製或插入新測項</li>
           </ul>
-          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:13px; font-weight:800;">🧩 進入積木排序 ▶</button>
+          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🧩 進入積木排序 ▶</button>
         </div>
       </div>
 
@@ -525,12 +525,12 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
           <div class="acc-sub">設定 PASS / FAIL 跳轉目標與重測行為</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#312E81; line-height:1.65;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
             <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
             <li>可視覺化設定每一步的 <b>PASS / FAIL</b> 跳轉規則</li>
             <li>避免手寫 Index 錯亂導致跳錯階段或無窮迴圈</li>
           </ul>
-          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:13px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🔀 進入跳轉編輯 ▶</button>
+          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🔀 進入跳轉編輯 ▶</button>
         </div>
       </div>
 
@@ -543,12 +543,12 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
           <div class="acc-sub">站別開關 / 新增站 / 條碼位數 / 外部儀器</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.65;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
             <li>已定義站別：共 <b>${duts.length} 列</b>（含 ${stationKeys.length} 個 Excel 分頁）</li>
             <li>目前條碼位數：<b class="mono">${_escAttr(curIsnLen)} 碼</b>（支援一鍵統一修改）</li>
-            <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（內附白話勾選掛載區）</li>
+            <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（可勾選掛載測試站與連線位址）</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:13px; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
         </div>
       </div>
     </div>
@@ -1049,7 +1049,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
           🔧 進階：各測試站掛載的外部儀器與連線設定（使用中 ${activeInsts.length} 台，點此展開微調）
         </summary>
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
-          <div style="font-size:12.5px; color:#92400E; background:#FEF3C7; padding:6px 10px; border-radius:6px;">
+          <div style="font-size:0.85rem; color:#92400E; background:#FEF3C7; padding:6px 10px; border-radius:6px;">
             💡 <b>用處說明：</b>決定哪些外部儀器（如電源供應器、RF 分析儀、治具控制器）要在哪些測試站啟動與連線。不確定時保持預設即可。
           </div>
           <div style="overflow:auto; max-height:320px; border:1px solid #FDE68A; border-radius:6px; background:#FFFFFF;">

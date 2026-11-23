@@ -394,7 +394,25 @@ def run_all_verifications():
         check('id="exportConfirmModal" class="modal-backdrop"' in index_html and 'id="copySheetModal" class="modal-backdrop"' in index_html,
               "匯出確認彈窗與跨檔複製彈窗皆使用標準 .modal-backdrop 隱藏遮罩")
 
-        # 6E: 檢查根目錄 .bat 批次檔皆為標準 Windows CRLF 換行 (防止 cmd.exe chcp 65001 位移錯誤)
+        # 6E: 檢查手風琴說明文與實際流程一致，且採用 rem 等比字體縮放規則
+        flow_guide_js = open(os.path.join(STUDIO_DIR, "web", "js", "flow_guide.js"), "r", encoding="utf-8").read()
+        audit_editors_js = open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read()
+        check(".acc-card .acc-title" in app_css and "rem" in app_css.split(".acc-card .acc-title")[1][:120],
+              "手風琴標題/內文改用 rem 單位，隨系統字體設定 (13/15/17/19px) 等比縮放")
+        check("書籤三：儀器範本" in index_html and "左側撲克牌庫" in index_html and "書籤一：既有腳本編修" in flow_guide_js,
+              "首頁手風琴、流程導覽 (flow_guide.js) 與書籤三撲克牌說明文已全面與新版 UI 同步")
+        check("比照首頁手風琴式導覽" not in audit_editors_js and "儀器長積木" not in index_html,
+              "已移除舊版『比照首頁…』『儀器長積木』等過時說明文字")
+        check("renderTab3Queue()" in index_html and "catInst.dll_exists === false" in index_html,
+              "書籤三右欄已選卡片與 Step 2 細部卡同步標示 ❌ 缺 DLL 紅框警示")
+        check("openFolderBrowserModal(initDir" in index_html or ("/api/pick_file" in index_html and "path_only: true" in index_html),
+              "跨檔案複製 Sheet 瀏覽來源/目標支援直接呼叫 Windows 系統選檔對話框 (/api/pick_file)")
+        check("selectFlowGuideStage" in flow_guide_js and "quickJumpHtml" not in flow_guide_js,
+              "流程導覽整合為上方 5 階段互動流程卡（移除重複截斷之 13 顆黃色膠囊列）")
+        check("decodeURIComponent('${encodeURIComponent(f.path)}')" in index_html,
+              "內建資料夾瀏覽窗無雙重 URL 編碼錯誤")
+
+        # 6F: 檢查根目錄 .bat 批次檔皆為標準 Windows CRLF 換行 (防止 cmd.exe chcp 65001 位移錯誤)
         for bat_name in ("啟動_Centimani腳本工具.bat", "一鍵全功能自動驗收.bat"):
             bat_p = os.path.join(PROJECT_ROOT, bat_name)
             if os.path.exists(bat_p):
@@ -510,23 +528,196 @@ def run_all_verifications():
                     if str(row[1]).strip() == "NI6008-1":
                         ni_ver = str(row[6] or "").strip()
             dut_name_val = next((str(r[1] or "").strip() for r in wb_dll["DUTs"].iter_rows(min_row=2, values_only=True) if r and r[1]), "")
-            mb_inst_cols = [str(r[4] or "").strip() for r in wb_dll["MB"].iter_rows(min_row=2, values_only=True) if r and r[4]]
+            mb_rows_all = list(wb_dll["MB"].iter_rows(min_row=2, values_only=True))
+            mb_inst_cols = [str(r[4] or "").strip() for r in mb_rows_all if r and r[4]]
             wb_dll.close()
+            # 驗證單次綁定規範：同一區塊內 Instrument 不連續重複填寫；RF 多 TX/RX 共用單一 Phase 與多個 Title
+            consec_dup_inst = []
+            prev_nonempty_i = None
+            for ri_mb, r_mb in enumerate(mb_rows_all, 2):
+                iv_mb = str(r_mb[4] or "").strip() if r_mb and len(r_mb) > 4 else ""
+                if iv_mb and iv_mb == prev_nonempty_i:
+                    consec_dup_inst.append((ri_mb, iv_mb))
+                prev_nonempty_i = iv_mb or None
+            rf_rows_mb = [r for r in mb_rows_all if r and str(r[3] or "").strip().startswith("WIFI ")]
+            rf_phases_mb = [str(r[1] or "").strip() for r in rf_rows_mb if str(r[1] or "").strip()]
+            rf_titles_mb = [str(r[2] or "").strip() for r in rf_rows_mb if str(r[2] or "").strip()]
+            rf_insts_mb = [str(r[4] or "").strip() for r in rf_rows_mb if str(r[4] or "").strip()]
+            check(len(consec_dup_inst) == 0, "Instrument 欄位僅於區塊首列或切換功能時寫入一次（無連續重複列）", str(consec_dup_inst))
+            check(len(rf_phases_mb) == 1 and len(rf_titles_mb) == 3 and rf_insts_mb == ["MeasWIFI", "GenWIFI"],
+                  "RF 多筆 TX/RX 共用單一 Phase、各自獨立 Title，且 MeasWIFI/GenWIFI 各只寫一次",
+                  f"P={rf_phases_mb}, T={len(rf_titles_mb)}, I={rf_insts_mb}")
             check(ni_ver == "1.1.2.0", "NI6008-1 (DaqUSBNi.dll) 版本號已自動對齊本機真實 DLL (1.1.2.0)", str(ni_ver))
             check("HXTaudio" not in inst_names_in_sheet, "Instrument 工作表僅保留實際選用之儀器，不殘留未選儀器 (避免 DLL is not Found)", str(inst_names_in_sheet))
             check("IPOWER2401" in inst_names_in_sheet, "Phase 97 使用之 POWERSWITCH 已自動保留對應儀器 IPOWER2401", str(inst_names_in_sheet))
             from core.golden_data import get_golden_mother as _gm_chk
-            gm_insts = {i["Name"]: i.get("dll_exists") for i in _gm_chk().get("instruments", [])}
+            gm_list = _gm_chk().get("instruments", [])
+            gm_insts = {i["Name"]: i.get("dll_exists") for i in gm_list}
+            gm_usable = {i["Name"]: i.get("is_usable") for i in gm_list}
             check(gm_insts.get("NI6008-1") is True and gm_insts.get("HXTaudio") is False, "儀器目錄正確標記本機 DLL 存在與缺失狀態 (NI6008-1=True, HXTaudio=False)")
+            check(gm_usable.get("InstIQApiA") is True and gm_usable.get("NI6008-1") is True and gm_usable.get("HXTaudio") is False,
+                  "可使用設備旗標正確區分『實機DLL或專屬範本』 (InstIQApiA=True, HXTaudio=False)")
+            check("TAB3_CAT_FILTER = 'USABLE'" in index_html and "auditEmptyRecentBox" in index_html,
+                  "書籤三預設篩選『✅ 可使用設備』且 01 腳本健檢具備未載檔最近紀錄引導區")
             check(bool(auto_res.get("centimani_dir_exists")), "匯出時自動偵測並回傳本機 Centimani 主程式目錄", auto_res.get("centimani_dir", ""))
             missing_names = [m.get("dll") for m in auto_res.get("missing_dlls", [])]
             check("InstIQApi_A.dll" in missing_names and "DigitIO6509.dll" in missing_names and "DaqUSBNi.dll" not in missing_names,
                   "匯出時精準回報缺少的實機 DLL (InstIQApi_A.dll / DigitIO6509.dll)", str(missing_names))
             check("missing_dlls" in exp_ins_res and "missing_dlls" in gen_res,
                   "書籤一修復匯出與書籤二新母體匯出皆具備實機 DLL 缺失檢查回傳")
+            # 驗證未掛載且未使用的型錄儀器 (如 HXTaudio / OSP120 Mount='') 不應觸發誤報
+            from core.golden_data import check_workspace_missing_dlls as _chk_dlls
+            idle_ws_res = _chk_dlls({
+                "instruments": [
+                    {"Name": "NI6008-1", "Mount": "MB", "ControlDLL": "DaqUSBNi.dll", "Functions": "Voltage"},
+                    {"Name": "OSP120", "Mount": "", "ControlDLL": "NFT.dll", "Functions": "RFSW"},
+                ],
+                "switches": [],
+                "stations": {"MB": [{"Instrument": "Voltage"}]}
+            })
+            check(len(idle_ws_res["missing_dlls"]) == 0,
+                  "未掛載且未使用的型錄儀器不誤報缺 DLL 警告", str(idle_ws_res["missing_dlls"]))
             check(dut_name_val == "INST_AUTO_SAMPLE$MB", "DUTs 工作表 DUT Name 格式符合 ProjectName$StationName", dut_name_val)
             check("FeasaLED" not in mb_inst_cols and "Agilent34401A" not in mb_inst_cols and "LED_Test" in mb_inst_cols and "DC" in mb_inst_cols,
                   "MB 工作表 Instrument 欄位皆寫入合法 TestType (LED_Test/DC 等，非儀器 Name)")
+            # 驗證實戰腳本動態 ExecMode 變數 (*$(AULAB)) 不會被誤報為無效主代碼
+            from core.script_doctor import audit_workspace as _audit_ws
+            dyn_rep = _audit_ws({
+                "global_ini": {"Settings": {}, "Scripts": {"AULAB": "1"}},
+                "instruments": [],
+                "switches": [],
+                "duts": [],
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Load DLL", "Send": ':autLabs.Load,"1"', "ExecMode": "*$(AULAB)", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "97", "Title": "1,Disconnect", "Send": ':CloseMessage', "ExecMode": "3", "TestID": "B7PL025"},
+                ]}
+            })
+            check(dyn_rep.get("error_count", -1) == 0,
+                  "腳本健檢相容實戰動態 ExecMode 變數 (*$(AULAB)) 不誤報 Error", str(dyn_rep.get("errors", [])))
+            # 驗證 block_sorter 保留 Phase=-1 暫停區塊與識別 97:PWROFF，且 auto_fix_workspace 自動精簡同區塊重複 Instrument
+            from core.block_sorter import extract_station_blocks as _ext_blks, reorder_station_blocks as _reord_blks
+            from core.script_doctor import auto_fix_workspace as _autofix_ws
+            skip_ws = {
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [], "switches": [], "duts": [],
+                "stations": {"RF": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Instrument": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "1", "Title": "0,PowerOn", "Instrument": "SetON", "Send": ":ObtainDevice", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "002", "Phase": "", "Title": "", "Instrument": "SetON", "Send": ':Dev.SetON,"5","2"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "", "Title": "", "Instrument": "SetON", "Send": ":ReleaseDevice", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "004", "Phase": "-1", "Title": "0,Paused Phase", "Instrument": "", "Send": ':Delay,"10"', "ExecMode": "6", "TestID": "B7PL025"},
+                    {"Index": "005", "Phase": "97:PWROFF", "Title": "1,PowerOff", "Instrument": "", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                ]}
+            }
+            blks_skip = _ext_blks(skip_ws["stations"]["RF"])
+            check(not any(b["is_out_of_order"] for b in blks_skip) and blks_skip[2]["is_skipped"] is True and blks_skip[3]["is_teardown"] is True,
+                  "積木排序正確辨識 Phase=-1 暫停區塊與 97:PWROFF 收尾（不誤報倒退）")
+            _reord_blks(skip_ws, "RF", [0, 1, 2, 3], auto_renumber_phase=True)
+            check(skip_ws["stations"]["RF"][4]["Phase"] == "-1",
+                  "自動順編 Phase 時保留 Phase=-1 暫停狀態不被強制重編啟用", str(skip_ws["stations"]["RF"][4]["Phase"]))
+            _autofix_ws(skip_ws)
+            rf_inst_vals = [r.get("Instrument", "") for r in skip_ws["stations"]["RF"][1:4]]
+            check(rf_inst_vals == ["SetON", "", ""],
+                  "一鍵修復自動精簡同區塊連續重複之 Instrument 為僅首列寫入", str(rf_inst_vals))
+            check('id="genHubCard_qa"' in index_html and 'id="genModeQa"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
+                  "腳本建立與編修中心已新增『書籤四：問編寫問題』卡片與直覺置頂問答模組")
+            # 驗證 use_ini_switch=True 生成 *$(EN_xxx) 開關，以及全數匯出皆自動產出隨附 _編寫與使用說明.txt
+            check('id="iiUseIniSwitch"' in index_html and 'id="tab3UseIniSwitch"' in index_html and 'openGuideTxtFile' in index_html,
+                  "UI 已具備 Global.ini 一鍵開關勾選框與隨附說明 .txt 開啟鈕")
+            sw_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "NI6008-1", "title_name": "Voltage Switchable"}],
+                "project_name": "SW_TEST",
+                "station_name": "MB",
+                "auto_sample_mode": True,
+                "use_ini_switch": True,
+                "open_excel": False,
+            })
+            check(sw_res.get("status") == "ok" and bool(sw_res.get("guide_txt_path")) and os.path.exists(sw_res.get("guide_txt_path", "")),
+                  "匯出時自動產出隨附 <專案>_編寫與使用說明.txt 檔案", sw_res.get("guide_txt_path", ""))
+            txt_body = open(sw_res["guide_txt_path"], "r", encoding="utf-8-sig").read()
+            check("EN_NI6008_1" in txt_body and "【三、 Global.ini" in txt_body and "【四、 台北座位" in txt_body,
+                  "隨附說明 .txt 正確列出 EN_NI6008_1 一鍵開關與台北/產線應變 SOP")
+            wb_sw = openpyxl.load_workbook(sw_res["excel_path"], read_only=True, data_only=True)
+            sw_titles = [str(r[2] or "").strip() for r in wb_sw["MB"].iter_rows(min_row=2, values_only=True) if r and r[2]]
+            wb_sw.close()
+            glb_sw_txt = open(os.path.join(sw_res["output_dir"], "Global.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check(any(t.startswith("*$(EN_NI6008_1),") for t in sw_titles) and "EN_NI6008_1=0" in glb_sw_txt,
+                  "啟用一鍵開關後 Excel Title 寫入 *$(EN_NI6008_1) 且 Global.ini [Scripts] 寫入 EN_NI6008_1=0", str(sw_titles))
+            check(bool(exp_ins_res.get("guide_txt_path")) and os.path.exists(exp_ins_res.get("guide_txt_path", ""))
+                  and bool(gen_res.get("guide_txt_path")) and os.path.exists(gen_res.get("guide_txt_path", "")),
+                  "書籤一修復匯出與書籤二新母體匯出皆同步自動產生隨附說明 .txt")
+            # 驗證 /api/open_guide_txt 僅開啟 .txt 並使用 safe async opener
+            launched_inis.clear()
+            open_txt_res = post_json("/api/open_guide_txt", {"file_path": sw_res["guide_txt_path"]})
+            check(open_txt_res.get("status") == "ok" and len(launched_inis) == 1,
+                  "/api/open_guide_txt 正常開啟隨附編寫說明 .txt 檔案")
+
+            # [v0.8.012] 驗證：
+            # 1) 同款儀器插入兩次 (2x NI6008-1) 自動產出唯一 EN_NI6008_1 / EN_NI6008_1_2 與不重名變數 $VCC_3V3 / $VCC_3V3_2
+            # 2) taipei_dual_mode=True 同步產生 MB_TAIPEI (不掛載 Instrument.Mount) 與 CRLF 兩地切換 .bat
+            # 3) /api/diff_station_sheets 正確比對 MB vs MB_TAIPEI 差異
+            # 4) /api/reorder_station_blocks 支援 paused_orig_indices 一鍵暫停(-1) / 恢復
+            dual_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [
+                    {"inst_name": "NI6008-1", "title_name": "Measure 3.3V Rail"},
+                    {"inst_name": "NI6008-1", "title_name": "Measure 3.3V Rail_2"},
+                ],
+                "project_name": "DUAL_TEST",
+                "station_name": "MB",
+                "auto_sample_mode": True,
+                "use_ini_switch": True,
+                "taipei_dual_mode": True,
+                "open_excel": False,
+            })
+            check(dual_res.get("status") == "ok" and dual_res.get("taipei_sheet") == "MB_TAIPEI" and len(dual_res.get("switch_bats", [])) == 2,
+                  "雙同款儀器 + 台北雙分頁共存模式成功匯出 MB / MB_TAIPEI 與兩支切換 .bat")
+            wb_dual = openpyxl.load_workbook(dual_res["excel_path"], read_only=True, data_only=True)
+            dual_mb_rows = list(wb_dual["MB"].iter_rows(min_row=2, values_only=True))
+            dual_titles = [str(r[2] or "").strip() for r in dual_mb_rows if r and r[2]]
+            dual_refs = "\n".join(str(r[9] or "") for r in dual_mb_rows if r and r[9])
+            inst_mounts = [str(r[5] or "") for r in wb_dual["Instrument"].iter_rows(min_row=2, values_only=True) if r]
+            check("MB_TAIPEI" in wb_dual.sheetnames and all("MB_TAIPEI" not in m for m in inst_mounts),
+                  "MB_TAIPEI 成功建立且不掛載於 Instrument.Mount（台北開機零 DLL 報錯）", str(inst_mounts))
+            wb_dual.close()
+            glb_dual = open(os.path.join(dual_res["output_dir"], "Global.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check(any("*$(EN_NI6008_1)," in t for t in dual_titles) and any("*$(EN_NI6008_1_2)," in t for t in dual_titles)
+                  and "EN_NI6008_1=0" in glb_dual and "EN_NI6008_1_2=0" in glb_dual,
+                  "兩組同款 NI6008-1 自動分配唯一開關 *$(EN_NI6008_1) 與 *$(EN_NI6008_1_2)", str(dual_titles))
+            check("$VCC_3V3" in dual_refs and "$VCC_3V3_2" in dual_refs,
+                  "兩組同款 NI6008-1 懶人範本自動區分 Ref 變數 ($VCC_3V3 與 $VCC_3V3_2) 不互相覆寫")
+            for bat_p in dual_res.get("switch_bats", []):
+                raw_bat = open(bat_p, "rb").read()
+                has_crlf = b"\r\n" in raw_bat
+                has_bare_lf = b"\n" in raw_bat.replace(b"\r\n", b"")
+                check(os.path.exists(bat_p) and has_crlf and not has_bare_lf,
+                      f"切換批次檔 {os.path.basename(bat_p)} 維持標準 Windows CRLF (\\r\\n) 格式")
+
+            from core.excel_engine import import_excel_to_workspace as _imp_ws
+            dual_ws = _imp_ws(dual_res["excel_path"])
+            diff_res = post_json("/api/diff_station_sheets", {"workspace": dual_ws, "sheet_a": "MB", "sheet_b": "MB_TAIPEI"})
+            check(diff_res.get("status") == "ok" and len(diff_res.get("only_in_a", [])) == 0 and len(diff_res.get("block_diffs", [])) >= 1,
+                  "/api/diff_station_sheets 正確比對 MB 與 MB_TAIPEI 同步狀態與 ExecMode 差異", diff_res.get("summary", ""))
+
+            pause_res = post_json("/api/reorder_station_blocks", {
+                "workspace": dual_ws,
+                "sheet_name": "MB",
+                "new_order_indices": list(range(len(_ext_blks(dual_ws["stations"]["MB"])))),
+                "auto_renumber_phase": True,
+                "paused_orig_indices": [1],
+            })
+            check(pause_res.get("status") == "ok" and pause_res["blocks"][1]["phase"] == "-1" and pause_res["blocks"][1]["is_skipped"] is True,
+                  "/api/reorder_station_blocks 支援一鍵暫停積木為 Phase -1")
+            resume_res = post_json("/api/reorder_station_blocks", {
+                "workspace": pause_res["workspace"],
+                "sheet_name": "MB",
+                "new_order_indices": list(range(len(pause_res["blocks"]))),
+                "auto_renumber_phase": True,
+                "paused_orig_indices": [],
+            })
+            check(resume_res.get("status") == "ok" and resume_res["blocks"][1]["phase"] not in ("-1", "") and resume_res["blocks"][1]["is_skipped"] is False,
+                  "/api/reorder_station_blocks 支援一鍵將 Phase -1 積木恢復並順編", str(resume_res["blocks"][1]["phase"]))
+            check('id="auditTaipeiDualChk"' in index_html and 'id="tab3TaipeiDualChk"' in index_html and 'openStationDiffModal' in index_html,
+                  "UI 具備雙分頁產生選項與雙分頁差異比對視窗")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

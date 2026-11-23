@@ -241,6 +241,22 @@ function bsFilterCards() {
   bsRenderBlocks();
 }
 
+function bsToggleBlockPause(idx) {
+  const b = BS_STATE.currentBlocks[idx];
+  if (!b || b.is_teardown || (b.phase_num !== null && b.phase_num >= 95)) return;
+  if (b.is_skipped || b.phase_num === -1) {
+    b.is_skipped = false;
+    b.phase_num = 1;
+    b.phase = '1';
+  } else {
+    b.is_skipped = true;
+    b.phase_num = -1;
+    b.phase = '-1';
+  }
+  BS_STATE.selectedIdx = idx;
+  bsRenderBlocks();
+}
+
 function bsMoveBlock(idx, delta) {
   const current = BS_STATE.currentBlocks[idx];
   if (current && (current.is_teardown || (current.phase_num !== null && current.phase_num >= 95))) return;
@@ -471,8 +487,11 @@ function bsComputeLiveInspection() {
 
   const rowStates = blocks.map((b, idx) => {
     let previewPhase = b.phase;
-    const isFixed = b.is_teardown || (b.phase_num !== null && b.phase_num >= 95);
-    if (autoRenumber && !isFixed && b.phase_num !== -1) {
+    const isPaused = !!(b.is_skipped || b.phase_num === -1);
+    const isFixed = !isPaused && (b.is_teardown || (b.phase_num !== null && b.phase_num >= 95));
+    if (isPaused) {
+      previewPhase = '-1';
+    } else if (autoRenumber && !isFixed) {
       previewPhase = String(nextPhase);
       nextPhase += 1;
     }
@@ -532,6 +551,7 @@ function bsRenderBlocks() {
     if (!isMatched) return;
 
     const isTeardown = b.is_teardown || (b.phase_num !== null && b.phase_num >= 95);
+    const isPaused = !isTeardown && !!(b.is_skipped || b.phase_num === -1);
     const currentOrderNum = idx + 1;
     const totalCount = BS_STATE.currentBlocks.length;
     const isSwappedA = (BS_STATE.swappedAIdx === idx);
@@ -542,7 +562,7 @@ function bsRenderBlocks() {
 
     html += `
       <div id="bsCard_${idx}"
-           class="bs-poker-mini-card ${isSelected ? 'active' : ''} ${st.hasConflict ? 'conflict' : ''} ${isTeardown ? 'teardown' : ''} ${isOrderChanged && !isTeardown ? 'order-modified' : ''} ${isSwappedA ? 'just-swapped-a' : ''} ${isSwappedB ? 'just-swapped-b' : ''}"
+           class="bs-poker-mini-card ${isSelected ? 'active' : ''} ${st.hasConflict ? 'conflict' : ''} ${isTeardown ? 'teardown' : ''} ${isPaused ? 'phase-paused' : ''} ${isOrderChanged && !isTeardown ? 'order-modified' : ''} ${isSwappedA ? 'just-swapped-a' : ''} ${isSwappedB ? 'just-swapped-b' : ''}"
            ${isTeardown ? '' : 'draggable="true"'}
            ondragstart="bsOnDragStart(event, ${idx})"
            ondragover="bsOnDragOver(event, ${idx})"
@@ -550,11 +570,13 @@ function bsRenderBlocks() {
            ondrop="bsOnDrop(event, ${idx})"
            ondragend="bsOnDragEnd()"
            onclick="bsSelectCard(${idx})"
-           title="${bsEscapeHtml(b.title)} (${b.row_count} 行) · 原第 ${b.start_row} 列${isOrderChanged ? ' · 順序已調整' : ''}">
+           title="${bsEscapeHtml(b.title)} (${b.row_count} 行) · 原第 ${b.start_row} 列${isPaused ? ' · Phase -1 已暫停' : ''}${isOrderChanged ? ' · 順序已調整' : ''}">
         
-        <!-- Phase 標籤（支援點擊序號直接手動指派順序） -->
+        <!-- Phase 標籤（支援點擊序號直接手動指派順序 / 一鍵暫停為 -1） -->
         <div class="bs-card-phase-badge" onclick="event.stopPropagation();">
-          ${isTeardown ? `🔒 Phase ${b.phase || '95+'}` : `
+          ${isTeardown ? `🔒 Phase ${b.phase || '95+'}` : (isPaused ? `
+            <span class="bs-paused-badge" style="cursor:pointer;" onclick="bsToggleBlockPause(${idx})" title="點擊立即恢復為有效 Phase">⏸️ Phase -1</span>
+          ` : `
             Phase 
             <input type="number" 
                    min="1" 
@@ -565,7 +587,7 @@ function bsRenderBlocks() {
                    onfocus="this.select()" 
                    onchange="bsDirectJumpPhase(${idx}, this.value)" 
                    onkeydown="if(event.key==='Enter'){this.blur();}">
-          `}
+          `)}
         </div>
 
         <!-- Title 名稱 -->
@@ -578,6 +600,9 @@ function bsRenderBlocks() {
           <div class="bs-card-steps-pill">
             ${b.row_count} 行
           </div>
+          ${isPaused ? `
+            <button type="button" class="bs-card-pause-btn is-resume" onclick="event.stopPropagation(); bsToggleBlockPause(${idx});" title="恢復此 Phase 為正常測試">▶ 恢復</button>
+          ` : ''}
           ${isOrderChanged && !isTeardown ? `
             <span class="bs-card-moved-tag" title="此積木順序已經過調動 (原序號 #${b.orig_idx + 1})">
               已調動
@@ -591,7 +616,9 @@ function bsRenderBlocks() {
           <button type="button" class="bs-card-hover-btn" onclick="bsMoveBlock(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="往前挪一位 (◀)">
             ◀
           </button>
-          <span style="font-size:10px; color:#64748B; font-weight:700;">#${currentOrderNum}</span>
+          <button type="button" class="bs-card-pause-btn ${isPaused ? 'is-resume' : ''}" onclick="bsToggleBlockPause(${idx})" title="${isPaused ? '恢復為有效 Phase' : '一鍵將 Phase 設為 -1 (整批暫停略過)'}">
+            ${isPaused ? '▶ 恢復' : '⏸️ 暫停'}
+          </button>
           <button type="button" class="bs-card-hover-btn" onclick="bsMoveBlock(${idx}, 1)" ${idx === totalCount - 1 ? 'disabled' : ''} title="往後挪一位 (▶)">
             ▶
           </button>
@@ -746,6 +773,9 @@ async function bsApplyReorder() {
   }
 
   const newOrder = BS_STATE.currentBlocks.map(b => b.orig_idx);
+  const pausedOrigIndices = BS_STATE.currentBlocks
+    .filter(b => !b.is_teardown && (b.is_skipped || b.phase_num === -1))
+    .map(b => b.orig_idx);
   const autoRenum = document.getElementById('chkBsAutoRenumber') ? document.getElementById('chkBsAutoRenumber').checked : true;
 
   try {
@@ -756,7 +786,8 @@ async function bsApplyReorder() {
         workspace: STATE.workspace,
         sheet_name: BS_STATE.sheetName,
         new_order_indices: newOrder,
-        auto_renumber_phase: autoRenum
+        auto_renumber_phase: autoRenum,
+        paused_orig_indices: pausedOrigIndices
       })
     });
     const data = await res.json();
@@ -790,6 +821,9 @@ async function bsApplyAndOpenExcel() {
   }
 
   const newOrder = BS_STATE.currentBlocks.map(b => b.orig_idx);
+  const pausedOrigIndices = BS_STATE.currentBlocks
+    .filter(b => !b.is_teardown && (b.is_skipped || b.phase_num === -1))
+    .map(b => b.orig_idx);
   const autoRenum = document.getElementById('chkBsAutoRenumber') ? document.getElementById('chkBsAutoRenumber').checked : true;
 
   const btnBottom = document.getElementById('btnBsApplyAndOpen');
@@ -820,7 +854,8 @@ async function bsApplyAndOpenExcel() {
           workspace: STATE.workspace,
           sheet_name: BS_STATE.sheetName,
           new_order_indices: newOrder,
-          auto_renumber_phase: autoRenum
+          auto_renumber_phase: autoRenum,
+          paused_orig_indices: pausedOrigIndices
         })
       });
       const dataReorder = await resReorder.json();

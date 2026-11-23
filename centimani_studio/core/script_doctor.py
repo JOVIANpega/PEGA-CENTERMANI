@@ -463,6 +463,8 @@ def audit_workspace(workspace):
 
             # Local vars defined so far within THIS Title block
             curr_block_locals = set()
+            active_title_inst = ""
+            dup_inst_suggested = False
 
             for item in b_steps:
                 idx = item["global_idx"]
@@ -475,6 +477,16 @@ def audit_workspace(workspace):
                 s_title = str(step.get("Title", "")).strip()
                 s_marco = str(step.get("Marco", "")).strip()
                 s_inst = str(step.get("Instrument", "")).strip()
+
+                if s_inst:
+                    if offset > 0 and s_inst == active_title_inst:
+                        if not dup_inst_suggested:
+                            dup_inst_suggested = True
+                            suggestions.append(
+                                f"[{st_name} 第 {r_num} 列] 同一 Title 區塊 '{blk['title']}' 內連續重複填寫 Instrument '{s_inst}'（依實戰腳本規範僅需於首列或切換功能列寫一次，自動修復可代為精簡）"
+                            )
+                    else:
+                        active_title_inst = s_inst
                 s_sw = str(step.get("Switch", "")).strip()
                 s_send = str(step.get("Send", "")).strip()
                 s_endp = str(step.get("EndPrompt", "")).strip()
@@ -517,6 +529,9 @@ def audit_workspace(workspace):
                 # Rule 3: ExecMode relative step bounds + interactive choice card generation
                 if s_mode == "":
                     warnings.append(f"[{st_name} 第 {r_num} 列] ExecMode 為空白（建議明確填寫 0 或 1）")
+                elif re.fullmatch(r"\*\$\([^)]+\)", s_mode):
+                    # Dynamic variable ExecMode such as *$(AULAB), *$(execmode_n) used in production scripts
+                    pass
                 else:
                     mode_head = s_mode.split(":")[0].strip()
                     if mode_head not in VALID_EXEC_PREFIXES:
@@ -997,12 +1012,26 @@ def auto_fix_workspace(workspace, user_choices=None):
         for b_idx, blk in enumerate(blocks):
             b_steps = blk["steps"]
             b_len = len(b_steps)
+            active_title_inst_fix = ""
 
             for item in b_steps:
                 idx = item["global_idx"]
                 r_num = item["row_num"]
                 offset = item["offset"]
                 step = item["step"]
+
+                # Clean consecutive duplicate Instrument inside the same Title block (per real script convention)
+                cur_inst_fix = str(step.get("Instrument", "")).strip()
+                if cur_inst_fix:
+                    if offset > 0 and cur_inst_fix == active_title_inst_fix:
+                        step["Instrument"] = ""
+                        fixed_logs.append(f"[{st_name} 第 {r_num} 列] 同區塊重複填寫之 Instrument '{cur_inst_fix}' 已精簡留空（僅保留首列單次宣告）")
+                        modified_cells.append({
+                            "sheet": st_name, "row": r_num, "col_name": "Instrument",
+                            "old": cur_inst_fix, "new": "", "note": f"同 Title 區塊內連續重複之 Instrument '{cur_inst_fix}' 已精簡為僅首列填寫"
+                        })
+                    else:
+                        active_title_inst_fix = cur_inst_fix
 
                 # Re-index
                 new_idx = f"{idx:03d}"
@@ -1267,7 +1296,7 @@ def apply_safety_ending_fix(workspace, sheet_name, fix_kind):
                 "系統自動補齊 :ReleaseDevice (ExecMode=3)，確保儀器獨佔鎖定必釋放"
             ))
     elif fix_kind == "phase97":
-        has_p97 = any(str(s.get("Phase", "")).strip() == "97" for s in steps)
+        has_p97 = any(str(s.get("Phase", "")).strip().split(":")[0].strip() == "97" for s in steps)
         if not has_p97:
             new_rows.append((
                 _make_row(phase="97", title="1,Disconnect", send=":CloseMessage", exec_mode="3", desc="PC#-#Close Prompt Message"),
@@ -1302,9 +1331,34 @@ def apply_safety_ending_fix(workspace, sheet_name, fix_kind):
     return len(new_rows)
 
 
-def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, after_block_idx=-1, dl_val="", ul_val="", custom_steps=None, globals_patch=None):
+def _make_ini_switch_var(workspace, inst_name, sheet_name=None):
+    """Generates a unique EN_<INST> switch key in Global.ini [Scripts] (0=Run, 2=Skip)."""
+    raw = re.sub(r"[^A-Za-z0-9]+", "_", str(inst_name or "INST").upper()).strip("_") or "INST"
+    base_key = f"EN_{raw}"
+    scripts_ini = workspace.setdefault("global_ini", {}).setdefault("Scripts", {})
+
+    used_in_stations = set()
+    stations = workspace.get("stations", {})
+    target_sheets = [sheet_name] if (sheet_name and sheet_name in stations) else list(stations.keys())
+    for st in target_sheets:
+        for row in stations.get(st, []):
+            t_str = str(row.get("Title", ""))
+            for m in re.findall(r"\*\$\(\s*([A-Za-z0-9_]+)\s*\)", t_str):
+                used_in_stations.add(m)
+
+    key = base_key
+    suffix = 2
+    while key in scripts_ini or key in used_in_stations:
+        key = f"{base_key}_{suffix}"
+        suffix += 1
+    scripts_ini[key] = "0"
+    return key
+
+
+def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, after_block_idx=-1, dl_val="", ul_val="", custom_steps=None, globals_patch=None, same_phase=False, use_ini_switch=False):
     """
     在既有測試站工作表中，以「獨立新 Title 區塊」插入指定儀器範本（嚴格插在既有 Title 區塊之後、Phase 97 之前），
+    遵循實戰腳本規則：Phase 與 Title 僅於區塊首列填寫一次；Instrument 僅於首列或切換功能時填寫一次（不連續重複），
     同步補齊 Instrument 分頁與 Mount 掛載，並將整個新區塊寫入 _modified_cells 亮黃底提醒。
     """
     from .golden_data import get_golden_mother
@@ -1354,7 +1408,7 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
     blocks = _build_title_blocks(steps)
     p97_idx = len(steps)
     for idx, s in enumerate(steps):
-        if str(s.get("Phase", "")).strip() in ("97", "98", "99"):
+        if str(s.get("Phase", "")).strip().split(":")[0].strip() in ("97", "98", "99"):
             p97_idx = idx
             break
 
@@ -1369,7 +1423,8 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
     funcs = funcs_raw.upper()
     primary_test_type = funcs_raw.split(",")[0].strip() if funcs_raw else inst_name
     clean_title = (title_name or f"{inst_name} Test").strip()
-    t_header = f"0,{clean_title},3"
+    run_mode_tok = f"*$({_make_ini_switch_var(workspace, inst_name, sheet_name=sheet_name)})" if use_ini_switch else "0"
+    t_header = f"{run_mode_tok},{clean_title},3"
 
     def _row(phase="", title="", inst="", send="", ref="", val="", exec_mode="1", desc="", tid="B7PL025"):
         return {
@@ -1379,13 +1434,28 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
             "Waiting": "", "ExecMode": exec_mode, "Description": desc, "TestID": tid
         }
 
+    phase_row0 = "" if same_phase else str(next_p)
+    inst_col = "LED_Test" if "LED_TEST" in funcs else primary_test_type
+
     if custom_steps and isinstance(custom_steps, list):
         block_rows = []
+        active_inst = ""
         for idx_cs, cs in enumerate(custom_steps):
+            raw_cs_inst = cs.get("Instrument")
+            if idx_cs == 0:
+                row_inst = str(raw_cs_inst).strip() if raw_cs_inst not in (None, "") else inst_col
+                active_inst = row_inst
+            else:
+                cand_inst = str(raw_cs_inst).strip() if raw_cs_inst is not None else ""
+                if cand_inst and cand_inst != active_inst:
+                    row_inst = cand_inst
+                    active_inst = cand_inst
+                else:
+                    row_inst = ""
             block_rows.append(_row(
-                phase=str(next_p) if idx_cs == 0 else "",
+                phase=phase_row0 if idx_cs == 0 else "",
                 title=t_header if idx_cs == 0 else "",
-                inst=str(cs.get("Instrument", primary_test_type)),
+                inst=row_inst,
                 send=str(cs.get("Send", "")),
                 ref=str(cs.get("Ref", "")),
                 val=str(cs.get("Validation", "")),
@@ -1394,15 +1464,14 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 tid=str(cs.get("TestID", "B7PL025"))
             ))
     else:
-        inst_col = "LED_Test" if "LED_TEST" in funcs else primary_test_type
         block_rows = [
-            _row(phase=str(next_p), title=t_header, inst=inst_col, send=":ObtainDevice", exec_mode="0" if "LED_TEST" in funcs else "1", desc=f"PC#-#Obtain {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
+            _row(phase=phase_row0, title=t_header, inst=inst_col, send=":ObtainDevice", exec_mode="0" if "LED_TEST" in funcs else "1", desc=f"PC#-#Obtain {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
         ]
         if "LED_TEST" in funcs:
             w_min = str(dl_val).strip() or "515"
             w_max = str(ul_val).strip() or "535"
             block_rows.append(_row(
-                inst="LED_Test",
+                inst="",
                 send=':Dev.CaptureAndRead,"01"',
                 ref="$LED_Wave;\n$LED_Int",
                 val=f"(LED_Wave,%f,{w_min},{w_max});\n(LED_Int,%f,1000,99999)",
@@ -1411,21 +1480,21 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 tid="IOLE015"
             ))
         elif "POWERSWITCH" in funcs:
-            block_rows.append(_row(inst=inst_col, send=':Dev.SwitchOFF,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power OFF"))
+            block_rows.append(_row(inst="", send=':Dev.SwitchOFF,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power OFF"))
             block_rows.append(_row(send=':Delay,"500"', exec_mode="0", desc="PC#-#Wait 500ms"))
-            block_rows.append(_row(inst=inst_col, send=':Dev.SwitchON,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power ON"))
+            block_rows.append(_row(inst="", send=':Dev.SwitchON,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power ON"))
         elif any(k in funcs for k in ("VOLTAGE", "DC", "DMM", "DAQ", "PMETER")):
             dl = str(dl_val).strip() or "0.0"
             ul = str(ul_val).strip() or "5.0"
             key_base = clean_title.replace(",", "_")
-            block_rows.append(_row(inst=inst_col, send=':Dev.Measure,"1"', val=f"({key_base}_CH1,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch1 ({dl}~{ul})"))
-            block_rows.append(_row(inst=inst_col, send=':Dev.Measure,"2"', val=f"({key_base}_CH2,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch2 ({dl}~{ul})"))
+            block_rows.append(_row(inst="", send=':Dev.Measure,"1"', val=f"({key_base}_CH1,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch1 ({dl}~{ul})"))
+            block_rows.append(_row(inst="", send=':Dev.Measure,"2"', val=f"({key_base}_CH2,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch2 ({dl}~{ul})"))
         else:
             val_str = f"({clean_title.replace(',', '_')},%f,{dl_val},{ul_val})" if (dl_val or ul_val) else ""
-            block_rows.append(_row(inst=inst_col, send=f':Dev.Run,""', val=val_str, exec_mode="2:0", desc=f"DUT#-#{clean_title}"))
+            block_rows.append(_row(inst="", send=f':Dev.Run,""', val=val_str, exec_mode="2:0", desc=f"DUT#-#{clean_title}"))
 
         block_rows.append(
-            _row(inst=inst_col, send=":ReleaseDevice", exec_mode="3", desc=f"PC#-#Release {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
+            _row(inst="", send=":ReleaseDevice", exec_mode="3", desc=f"PC#-#Release {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
         )
 
     # 5. Insert rows & highlight entire block in _modified_cells
@@ -1447,7 +1516,7 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
     return len(block_rows)
 
 
-def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_name="WIFI RF Test", settings_str="", tx_tests=None, rx_tests=None, after_block_idx=-1):
+def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_name="WIFI RF Test", settings_str="", tx_tests=None, rx_tests=None, after_block_idx=-1, same_phase=False, use_ini_switch=False):
     """
     依 IQxel / MT8870A RF 人機介面設定，插入標準 WIFI Tx MCS / WIFI Rx MCS 主站呼叫列，
     並自動補齊 11 欄 Marco 子工作表 (WIFI Tx MCS 21 步 / WIFI Rx MCS 22 步) 與 Instrument 掛載。
@@ -1505,7 +1574,7 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
     blocks = _build_title_blocks(steps)
     p97_idx = len(steps)
     for idx, s in enumerate(steps):
-        if str(s.get("Phase", "")).strip() in ("97", "98", "99"):
+        if str(s.get("Phase", "")).strip().split(":")[0].strip() in ("97", "98", "99"):
             p97_idx = idx
             break
     if 0 <= after_block_idx < len(blocks):
@@ -1513,7 +1582,9 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
     else:
         insert_idx = p97_idx
 
+    rf_run_mode = f"*$({_make_ini_switch_var(workspace, inst_name, sheet_name=sheet_name)})" if use_ini_switch else "0"
     block_rows = []
+    last_inst = ""
     for t in tx_tests:
         ch = str(t.get("channel", "6")).strip()
         bw = str(t.get("bw", "20")).strip()
@@ -1525,10 +1596,12 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
         emin = str(t.get("evm_min", "-50")).strip()
         emax = str(t.get("evm_max", "-28")).strip()
         lbl = f"WIFI TX_CH{ch} MCS{mcs}_BW{bw}"
+        row_inst = "MeasWIFI" if last_inst != "MeasWIFI" else ""
+        last_inst = "MeasWIFI"
         block_rows.append({
-            "Index": "", "Phase": str(next_p) if not block_rows else "",
-            "Title": f"0,{lbl}", "Marco": "WIFI Tx MCS",
-            "Instrument": "MeasWIFI", "Switch": "",
+            "Index": "", "Phase": ("" if (same_phase or block_rows) else str(next_p)),
+            "Title": f"{rf_run_mode},{lbl}", "Marco": "WIFI Tx MCS",
+            "Instrument": row_inst, "Switch": "",
             "Send": f"{ch},{bw},{mcs},{ant},{tpwr},{pmin},{pmax},{emin},{emax},{lbl}",
             "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
             "Prompt": "", "Waiting": "", "ExecMode": "1",
@@ -1542,10 +1615,12 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
         ant = str(r.get("antenna", "1")).strip()
         rlvl = str(r.get("rx_level", "-59")).strip()
         lbl = f"WIFI RX_CH{ch} MCS{mcs}_BW{bw}"
+        row_inst = "GenWIFI" if last_inst != "GenWIFI" else ""
+        last_inst = "GenWIFI"
         block_rows.append({
-            "Index": "", "Phase": str(next_p) if not block_rows else "",
-            "Title": f"0,{lbl}", "Marco": "WIFI Rx MCS",
-            "Instrument": "GenWIFI", "Switch": "",
+            "Index": "", "Phase": ("" if (same_phase or block_rows) else str(next_p)),
+            "Title": f"{rf_run_mode},{lbl}", "Marco": "WIFI Rx MCS",
+            "Instrument": row_inst, "Switch": "",
             "Send": f"{ch},{bw},{mcs},{ant},{rlvl},{lbl}",
             "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
             "Prompt": "", "Waiting": "", "ExecMode": "1",
@@ -1570,7 +1645,7 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
     return len(block_rows)
 
 
-def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1):
+def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1, same_phase=False, use_ini_switch=False):
     """
     依 NI-6009 人機介面設定，插入標準 :Dev.VOLTAGE + :CheckLimit 獨立 Title 區塊，
     同步掛載 NI6008-1 至 Instrument 分頁、寫入 Global.ini [Settings] DAQ_1，並整塊亮黃底標記。
@@ -1612,7 +1687,7 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
     blocks = _build_title_blocks(steps)
     p97_idx = len(steps)
     for idx, s in enumerate(steps):
-        if str(s.get("Phase", "")).strip() in ("97", "98", "99"):
+        if str(s.get("Phase", "")).strip().split(":")[0].strip() in ("97", "98", "99"):
             p97_idx = idx
             break
     if 0 <= after_block_idx < len(blocks):
@@ -1633,11 +1708,12 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
             "Waiting": "", "ExecMode": exec_mode, "Description": desc, "TestID": tid
         }
 
+    ni_run_mode = f"*$({_make_ini_switch_var(workspace, 'NI6008_1', sheet_name=sheet_name)})" if use_ini_switch else "0"
     block_rows = [
-        _row(phase=str(next_p), title=f"0,{clean_title},3", inst="Voltage", send=":ObtainDevice", exec_mode="0", desc="INST#-#Obtain NI6009 Lock"),
-        _row(inst="Voltage", send=':Delay,"1500"', exec_mode="0", desc="PC#-#Wait Voltage Stabilize"),
-        _row(inst="Voltage", send=f':Dev.VOLTAGE,"{mode},{sample_ms},{ch_nums}"', ref=ref_lines, exec_mode="0", desc=f"INST#-#Read {ch_desc}", tid="BRPW033"),
-        _row(inst="Voltage", send=":ReleaseDevice", exec_mode="3", desc="INST#-#Release NI6009 Lock", tid="BRME027"),
+        _row(phase=("" if same_phase else str(next_p)), title=f"{ni_run_mode},{clean_title},3", inst="Voltage", send=":ObtainDevice", exec_mode="0", desc="INST#-#Obtain NI6009 Lock"),
+        _row(inst="", send=':Delay,"1500"', exec_mode="0", desc="PC#-#Wait Voltage Stabilize"),
+        _row(inst="", send=f':Dev.VOLTAGE,"{mode},{sample_ms},{ch_nums}"', ref=ref_lines, exec_mode="0", desc=f"INST#-#Read {ch_desc}", tid="BRPW033"),
+        _row(inst="", send=":ReleaseDevice", exec_mode="3", desc="INST#-#Release NI6009 Lock", tid="BRME027"),
     ]
     for c in channels:
         nm = str(c["name"]).strip()

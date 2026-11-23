@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=2.8.6">
+<link rel="stylesheet" href="/css/app.css?v=0.8.012">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.002</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.012</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -53,8 +53,8 @@
   <div id="panelHome" style="display:block;">
     <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
-        <h2 style="margin:0; font-size:20px; color:#0F172A;">歡迎使用 Centimani 自動化腳本工作台</h2>
-        <div style="font-size:13.5px; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時展開功能說明並點亮主題色，點擊進入對應工作區</div>
+        <h2 style="margin:0; font-size:1.33rem; color:#0F172A;">歡迎使用 Centimani 自動化腳本工作台</h2>
+        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時展開功能說明並點亮主題色，點擊進入對應工作區</div>
       </div>
     </div>
 
@@ -68,14 +68,14 @@
           <div class="acc-sub">Audit &amp; Auto-Fix</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#0C4A6E; line-height:1.6;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#0C4A6E; line-height:1.6;">
             <li>單檔體檢與整包資料夾批次掃描</li>
             <li>紅黃燈錯誤報告與跳轉分支樹檢查</li>
             <li>一鍵補碼修復簽章，或帶入 02 編修</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('audit', pickExcelNative);" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;">📂 選取 Excel</button>
-            <button onclick="event.stopPropagation(); enterModule('audit', pickFolderAndScan);" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">📁 掃描資料夾</button>
+            <button onclick="event.stopPropagation(); enterModule('audit', pickExcelNative);" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📂 選取 Excel</button>
+            <button onclick="event.stopPropagation(); enterModule('audit', pickFolderAndScan);" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">📁 掃描資料夾</button>
           </div>
         </div>
       </div>
@@ -88,14 +88,17 @@
           <div class="acc-sub">Builder (0→1) &amp; Editor (1→N)</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.6;">
-            <li><b>模式一</b>：既有 Excel 無限次編修與加儀器</li>
-            <li><b>模式二</b>：首次 4 步驟建立新腳本母體</li>
-            <li>34 款儀器人機、跳轉、通訊與全域微調</li>
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.6;">
+            <li><b>書籤一</b>：既有 Excel 5 合 1 編修與跨檔複製</li>
+            <li><b>書籤二</b>：首次 4 步驟建立新腳本母體</li>
+            <li><b>書籤三</b>：34 款儀器撲克牌庫（含懶人快速版／人機）</li>
+            <li><b>書籤四</b>：問編寫問題（Phase / Title / 跳轉 / 指令寫法百科）</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;">✏️ 編修既有腳本 (常用)</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:12.5px; background:#FFFFFF;">🆕 建立新母體</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📝 書籤一：既有編修</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">🌱 書籤二：新母體</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('inst'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFBEB; color:#92400E; border-color:#F59E0B;">🧪 書籤三：儀器範本</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('qa'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border-color:#818CF8;">💬 書籤四：問編寫問題</button>
           </div>
         </div>
       </div>
@@ -108,12 +111,12 @@
           <div class="acc-sub">Failure Log Analyzer</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.6;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.6;">
             <li>匯入產線 FAIL Log 或貼上錯誤片段</li>
             <li>秒抓超標數據、規格差距與瓶頸耗時</li>
             <li>一鍵複製乾淨異常摘要報告</li>
           </ul>
-          <button onclick="event.stopPropagation(); enterModule('diagnose');" class="btn btn-jump" style="padding:6px 14px; font-size:12.5px;">📄 匯入 Log 診斷 ▶</button>
+          <button onclick="event.stopPropagation(); enterModule('diagnose');" class="btn btn-jump" style="padding:6px 14px; font-size:0.85rem;">📄 匯入 Log 診斷 ▶</button>
         </div>
       </div>
 
@@ -125,12 +128,12 @@
           <div class="acc-sub">Error Code Lookup (V2.04)</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#312E81; line-height:1.6;">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.6;">
             <li>預設自動載入最新版 <b>V2.04</b>（免選檔）</li>
             <li>中英文關鍵字即時搜尋 Error Code / 通用碼</li>
             <li>一鍵複製或套用至測試腳本</li>
           </ul>
-          <button onclick="event.stopPropagation(); enterModule('tic');" class="btn btn-dry" style="padding:6px 14px; font-size:12.5px;">🔍 查詢 Error Code / TestID ▶</button>
+          <button onclick="event.stopPropagation(); enterModule('tic');" class="btn btn-dry" style="padding:6px 14px; font-size:0.85rem;">🔍 查詢 Error Code / TestID ▶</button>
         </div>
       </div>
 
@@ -142,17 +145,17 @@
           <div class="acc-sub">Preferences &amp; Options</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#334155; line-height:1.6;">
-            <li>開啟首頁自動全螢幕視窗開關</li>
-            <li>功能進入前「流程圖導覽」顯示開關</li>
-            <li>匯出自動開資料夾 / 預設字體大小</li>
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#334155; line-height:1.6;">
+            <li>啟動全螢幕與「流程圖導覽」顯示開關</li>
+            <li>匯出自動開資料夾與全域字體大小 (13~19px)</li>
+            <li>本機 Centimani 主程式目錄（實機 DLL 檢查）</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchTab('settings');" class="btn" style="padding:6px 14px; font-size:12.5px; background:#334155; color:#FFFFFF; border-color:#1E293B;">⚙️ 開啟系統設定 ▶</button>
+          <button onclick="event.stopPropagation(); switchTab('settings');" class="btn" style="padding:6px 14px; font-size:0.85rem; background:#334155; color:#FFFFFF; border-color:#1E293B;">⚙️ 開啟系統設定 ▶</button>
         </div>
       </div>
     </div>
 
-    <div id="homeStatusFooter" style="margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:9px 14px; font-size:13px; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div id="homeStatusFooter" style="margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:9px 14px; font-size:0.87rem; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
       <span>📊 系統狀態：已載入 34 款儀器型錄（含 NI-6009 / FeasaLED / iPower / DMM / DIO / IQxel RF）</span>
       <span>📚 預設 Error Code 表：<span id="homeTicLabel" class="mono" style="font-weight:700; color:#0F172A;">Test Item Code V2.04</span></span>
     </div>
@@ -169,69 +172,63 @@
     <!-- 頂部操作列（排版最佳化：按鈕放上方，檔案路徑完整獨立呈現於下一行） -->
     <div class="action-bar" style="flex-direction:column; align-items:flex-start; gap:8px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; flex-wrap:wrap;">
+        <input type="file" id="auditDirectUploadInput" accept=".xlsx,.xlsm" style="display:none;" onchange="uploadExcelForAudit(this)">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span class="has-popup">
-            <button class="btn btn-primary-blue" onclick="pickExcelNative()">
-              📂 選取單一 Excel
-            </button>
-            <div class="popup-card">
-              <h4>📂 腳本健檢說明</h4>
-              <ul>
-                <li>掃描 <code>TestFlow</code> 與 <code>Phase</code> 工作表結構。</li>
-                <li>檢查必填欄位（如 <code>TestID</code>、<code>ExecMode</code>）、重複索引與格式錯誤。</li>
-                <li>同步比對同目錄 <code>System.ini</code> 的 Checksum 一致性。</li>
-              </ul>
-            </div>
-          </span>
+          <button class="btn btn-primary-blue" onclick="document.getElementById('auditDirectUploadInput').click()" title="使用瀏覽器原生選檔視窗直接開啟並檢查本機 Excel（100% 前景彈出）">
+            📂 選取單一 Excel
+          </button>
 
-          <span class="has-popup">
-            <button class="btn" style="background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="pickFolderAndScan()">
-              📁 掃描整包資料夾
-            </button>
-            <div class="popup-card">
-              <h4>📁 整包專案資料夾批次健檢</h4>
-              <ul>
-                <li>自動掃描資料夾內所有測試站腳本（自動跳過 <code>*_FIXED</code>、<code>old_*</code> 與 <code>Test Item Code</code>）。</li>
-                <li>一次列出全站錯誤、需人工確認項與自動修補項。</li>
-                <li>支援一鍵整包修復並自動備份原 <code>System.ini</code> / <code>Global.ini</code>。</li>
-              </ul>
-            </div>
-          </span>
+          <button class="btn" style="background:#FFFFFF; color:#1E293B; border-color:#94A3B8;" onclick="openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) })" title="直接在網頁內瀏覽專案目錄並點選 .xlsx 進行體檢">
+            🗂️ 站內瀏覽選檔
+          </button>
+
+          <button class="btn" style="background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="pickFolderAndScan()" title="遞迴掃描專案資料夾內所有站別腳本，並支援一鍵整包批次修復">
+            📁 掃描整包資料夾
+          </button>
         </div>
 
         <!-- 健檢右側動作：一鍵帶入編修 / 一鍵修好並匯出 -->
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()">
+          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()" title="保留目前檔案直接切換至 02 書籤一進行 5 合 1 編修">
             ✏️ 帶入此檔前往編修 ▶
           </button>
 
-          <span class="has-popup">
-            <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)">
-              💾 一鍵修好並匯出 (*_FIXED.xlsx)
-            </button>
-            <div class="popup-card">
-              <h4>💾 產線修復匯出</h4>
-              <ul>
-                <li>依下方方案自動修補異常項目，輸出 <code>*_FIXED.xlsx</code> 至原資料夾。</li>
-                <li>自動更新 <code>System.ini</code> 的 <code>[Checksum]</code> 供實機載入。</li>
-              </ul>
-            </div>
-          </span>
+          <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)" title="依下方對策自動修補異常項目，輸出 *_FIXED.xlsx 並重算 Checksum">
+            💾 一鍵修好並匯出 (*_FIXED.xlsx)
+          </button>
         </div>
       </div>
 
       <!-- 完整路徑顯示於下一行，不被按鈕擠壓截斷 -->
       <div style="display:flex; align-items:center; gap:8px; width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
-        <span style="font-weight:700; color:#475569; font-size:13px; white-space:nowrap;">📍 目前檔案：</span>
+        <span style="font-weight:700; color:#475569; font-size:0.87rem; white-space:nowrap;">📍 目前檔案：</span>
         <span id="pickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
-          尚未選擇檔案（點擊上方「📂 選取單一 Excel」或「📁 掃描整包資料夾」）
+          尚未選擇檔案（點擊上方「📂 選取單一 Excel」或從下方最近紀錄一鍵載入健檢）
         </span>
-        <button id="btnRefreshCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:12.5px; background:#F1F5F9; color:#334155; border-color:#94A3B8; white-space:nowrap;" onclick="refreshCurrentExcelFile()" title="Excel 手動微調存檔後，點此重新讀取體檢">
+        <button id="btnRefreshCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:0.83rem; background:#F1F5F9; color:#334155; border-color:#94A3B8; white-space:nowrap;" onclick="refreshCurrentExcelFile()" title="Excel 手動微調存檔後，點此重新讀取體檢">
           🔄 重新檢視
         </button>
-        <button id="btnOpenCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:12.5px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
+        <button id="btnOpenCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:0.83rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
           📂 開啟此 Excel
         </button>
+      </div>
+    </div>
+
+    <!-- 尚未載入檔案時的快捷最近紀錄與引導卡片（避免進入 01 時畫面空白） -->
+    <div id="auditEmptyRecentBox" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:20px; margin-bottom:12px;">
+      <div style="text-align:center; margin-bottom:14px;">
+        <div style="font-size:1.8rem; margin-bottom:4px;">🔍</div>
+        <div style="font-weight:900; font-size:1.08rem; color:#0F172A;">選取或點選最近 TestFlow.xlsx 立即開始健檢</div>
+        <div style="font-size:0.87rem; color:#64748B; margin-top:4px;">自動檢查 16 欄格式、缺漏 7 碼 TestID、PASS/FAIL 跳轉分支與 System.ini Checksum</div>
+      </div>
+      <div style="max-width:780px; margin:0 auto; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.88rem; font-weight:800; color:#1E293B;">⚡ 最近使用 / 專案內腳本（點擊右側直接健檢）：</span>
+          <span style="font-size:0.78rem; color:#64748B;">點擊立即載入檢查</span>
+        </div>
+        <div id="auditRecentFilesList" style="display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:0.82rem; color:#94A3B8; text-align:center; padding:10px;">正在偵測最近腳本...</div>
+        </div>
       </div>
     </div>
 
@@ -390,6 +387,10 @@
               <input id="iiUlInput" type="text" placeholder="例如：3.45" class="mono" style="width:100%; margin-top:4px; padding:6px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
             </label>
           </div>
+          <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:8px 10px; font-size:12.5px; color:#1E3A8A; font-weight:700; cursor:pointer;">
+            <input id="iiUseIniSwitch" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
+            <span>加入 Global.ini 獨立開關（勾選：Title 寫 <code>*$(EN_...)</code>，同儀器多組會自動編號 `_2`；未勾選則寫傳統 <code>0,名稱,3</code>）</span>
+          </label>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
           <button onclick="closeInsertInstModal()" class="btn" style="background:#E2E8F0; color:#334155; border-color:#94A3B8;">取消</button>
@@ -847,8 +848,8 @@
     <div id="genModeHub" style="display:block; margin-bottom:14px;">
       <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div>
-          <div style="font-weight:900; font-size:17px; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
-          <div style="font-size:13px; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區。</div>
+          <div style="font-weight:900; font-size:1.13rem; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
+          <div style="font-size:0.87rem; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區。</div>
         </div>
       </div>
       <div class="acc-row" style="min-height:310px;">
@@ -857,15 +858,15 @@
             <div class="acc-num">01 / EDIT (1 → N)</div>
             <div class="acc-icon">📝</div>
             <div class="acc-title">書籤一：既有腳本編修</div>
-            <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與微調</div>
+            <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與跨檔複製</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#1E3A8A; line-height:1.65;">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
               <li><b>5 合 1 快捷編修</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
-              <li><b>自動體檢存檔</b>：匯出 <code>*_FIXED.xlsx</code> 時自動順編與補齊安全收尾</li>
-              <li>支援直接開啟既有腳本或從健檢結果一鍵帶入</li>
+              <li><b>跨檔複製與匯出體檢</b>：支援完整複製整張 Sheet，匯出時檢驗缺漏 DLL 並計算 Checksum</li>
+              <li>支援直接開啟既有腳本、最近紀錄或從健檢結果一鍵帶入</li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('edit');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:13px; font-weight:800;">📝 進入既有腳本編修 ▶</button>
+            <button onclick="event.stopPropagation(); switchGenSubMode('edit');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📝 進入既有腳本編修 ▶</button>
           </div>
         </div>
 
@@ -877,12 +878,12 @@
             <div class="acc-sub">全新案子從零開始 4 步驟精靈建檔</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.65;">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
               <li>引導式 <b>4 步驟</b>：基本/ISN → 勾選測項 → 填參數 → 總覽產出</li>
               <li>自動建立 Properties、DUTs、Switch、Instrument 與標準測試站</li>
               <li>同時生成配套 <code>Global.ini</code> 與 <code>System.ini</code></li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('create');" class="btn btn-primary-green" style="padding:7px 14px; font-size:13px; font-weight:800;">🌱 進入建立新母體 ▶</button>
+            <button onclick="event.stopPropagation(); switchGenSubMode('create');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🌱 進入建立新母體 ▶</button>
           </div>
         </div>
 
@@ -891,15 +892,32 @@
             <div class="acc-num">03 / INSTRUMENTS (34 款)</div>
             <div class="acc-icon">🧪</div>
             <div class="acc-title">書籤三：插入儀器範本</div>
-            <div class="acc-sub">34 款標準儀器與互動人機免選檔生成</div>
+            <div class="acc-sub">34 款儀器撲克牌庫（懶人快速版／互動人機）</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#78350F; line-height:1.65;">
-              <li>免手動選 Excel，自動以母體生成標準儀器測試範本</li>
-              <li>內建 <b>NI-6009、FeasaLED、IQxel RF</b> 等視覺化人機面板</li>
-              <li>支援一次加入多台儀器並自動執行全盤體檢</li>
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
+              <li>免選既有 Excel，從撲克牌庫點擊「+」或拖曳排好測試序列</li>
+              <li>自動比對本機 <code>Device\\</code> 標示 <b>❌ 缺 DLL</b>，避免上機報錯</li>
+              <li>支援 <b>⚡ 懶人快速版</b> 自動出範例，或進入 <b>🎛️ 專業細部人機</b></li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('inst');" class="btn btn-jump" style="padding:7px 14px; font-size:13px; font-weight:800;">🧪 進入插入儀器範本 ▶</button>
+            <button onclick="event.stopPropagation(); switchGenSubMode('inst');" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🧪 進入插入儀器範本 ▶</button>
+          </div>
+        </div>
+
+        <div id="genHubCard_qa" class="acc-card" data-theme="indigo" onmouseenter="setActiveGenHubCard('qa')" onclick="switchGenSubMode('qa')">
+          <div>
+            <div class="acc-num">04 / Q&amp;A (寫法百科)</div>
+            <div class="acc-icon">💬</div>
+            <div class="acc-title">書籤四：問編寫問題</div>
+            <div class="acc-sub">寫 Phase / Title / 儀器 / 跳轉隨查百科</div>
+          </div>
+          <div class="acc-body">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
+              <li><b>直接發問</b>：例如「怎麼暫停這一個 Phase」、「Instrument 何時留空」</li>
+              <li><b>欄位機能矩陣</b>：一次列出 Phase / Title / ExecMode / Ref 所有可用寫法</li>
+              <li>附真實產線 <code>perter_SCRIPT_11102026</code> 範例列，支援一鍵複製貼進 Excel</li>
+            </ul>
+            <button onclick="event.stopPropagation(); switchGenSubMode('qa');" class="btn" style="padding:7px 14px; font-size:0.88rem; font-weight:800; background:#4F46E5; color:#FFFFFF; border:none;">💬 進入問編寫問題 ▶</button>
           </div>
         </div>
       </div>
@@ -909,7 +927,7 @@
     <div id="genBackToModeHubBar" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:8px 12px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <button onclick="switchGenSubMode('hub')" class="btn" style="padding:6px 14px; font-size:13px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 5px rgba(15,23,42,0.18);">
-          ⬅ 返回 3 大模式選擇
+          ⬅ 返回模式選擇
         </button>
         <span id="genCurrentModeTitle" style="font-weight:900; font-size:14.5px; color:#0F172A;"></span>
       </div>
@@ -917,6 +935,7 @@
         <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 書籤一：既有編修</button>
         <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 書籤二：建立新母體</button>
         <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 書籤三：儀器範本</button>
+        <button id="btnGenModeQa" class="source-mode-tab" onclick="switchGenSubMode('qa')">💬 書籤四：問編寫問題</button>
       </div>
     </div>
 
@@ -1040,6 +1059,10 @@
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:16px; margin-bottom:12px;">
         <h3 style="margin:0 0 10px 0; color:var(--slate-900);">Step 4：總覽確認與產出測試包 (Finish)</h3>
         <div id="wizSummaryBox" style="font-size:13.5px; line-height:1.7; color:#1E293B; margin-bottom:14px;"></div>
+        <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px; color:#1E3A8A; font-weight:700; cursor:pointer;">
+          <input id="wizTaipeiDualChk" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
+          <span>🏢 同步產生台北無硬體除錯分頁（<code>_TAIPEI</code>）＋ 兩地一鍵切換 <code>.bat</code>（同包帶去產線免重複維護兩份 Excel）</span>
+        </label>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
           <button class="btn btn-dry" style="padding:10px 18px; font-size:14.5px;" onclick="generateNewMother(true)">
             🧪 Finish：產生『無硬體試跑版』
@@ -1093,7 +1116,7 @@
       <div id="editorEmptyHint" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:24px 20px; text-align:center; color:#475569;">
         <div style="font-size:32px; margin-bottom:6px;">✏️</div>
         <div style="font-weight:800; font-size:calc(var(--app-font-size, 15px) * 1.15); color:#0F172A; margin-bottom:6px;">選擇一份既有的 TestFlow.xlsx 開始編修</div>
-        <div style="font-size:var(--app-font-size, 15px); margin-bottom:16px; color:#475569;">請點擊下方按鈕選取測試腳本，選取後將直接載入進入「A. 測試站流程與儀器編修」。</div>
+        <div style="font-size:var(--app-font-size, 15px); margin-bottom:16px; color:#475569;">請選取既有 TestFlow.xlsx（或從下方最近紀錄快選）載入「5 合 1 水平手風琴」編修 INI、流程順序、跳轉與站別儀器；亦可直接進行跨檔案複製整張 Sheet。</div>
         
         <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
           <button class="btn btn-primary-blue" style="padding:10px 24px; font-size:calc(var(--app-font-size, 15px) * 1.05); font-weight:800; box-shadow:0 4px 10px rgba(37,99,235,0.25);" onclick="document.getElementById('localExcelPickerInput').click()">
@@ -1121,9 +1144,9 @@
         <!-- ② 目標測試站選擇列（供流程排序與跳轉編輯使用） -->
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span style="font-size:13px; font-weight:800; color:#1E293B;">🎯 目前目標測試站：</span>
-            <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:13px; font-weight:800; color:#0F172A; background:#FFFFFF;"></select>
-            <span style="font-size:12px; color:#64748B;">（點擊下方 5 格水平手風琴卡牌，即可排序測試流程、改跳轉或進入專屬全頁面設定）</span>
+            <span style="font-size:0.88rem; font-weight:800; color:#1E293B;">🎯 目前目標測試站：</span>
+            <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.88rem; font-weight:800; color:#0F172A; background:#FFFFFF;"></select>
+            <span style="font-size:0.83rem; color:#64748B;">（點擊下方 5 格水平手風琴卡牌，即可排序測試流程、改跳轉或進入專屬全頁面設定）</span>
           </div>
         </div>
 
@@ -1134,36 +1157,57 @@
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
 
         <!-- ⑤ 產出確認列 -->
-        <div id="editorExportBar" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-          <div style="font-size:13px; color:#475569;">
-            ✅ <b>安全自動體檢存檔：</b>匯出時會<b>自動檢查並修復錯誤</b>（Index 順編、缺漏 TestID、安全收尾與更新 Checksum），不需手動擔心格式問題。
+        <div id="editorExportBar" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:none; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
+            <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:6px 12px; font-size:0.84rem; color:#1E3A8A; font-weight:700; cursor:pointer;">
+              <input id="auditTaipeiDualChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
+              <span>🏢 同步產生台北無硬體分頁 (<code>_TAIPEI</code>) + 兩地切換 <code>.bat</code></span>
+            </label>
+            <button type="button" onclick="openStationDiffModal()" class="btn" style="padding:6px 13px; font-size:0.84rem; background:#F8FAFC; color:#0F172A; border:1px solid #94A3B8; font-weight:800;">
+              🔍 雙分頁差異比對 (產線 vs _TAIPEI)
+            </button>
           </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:13.5px;" onclick="applyFixAndExport(true)">
-              🧪 匯出「無硬體試跑版」
-            </button>
-            <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:13.5px;" onclick="applyFixAndExport(false)">
-              💾 寫入並匯出 Excel (*_FIXED.xlsx)
-            </button>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
+            <div style="font-size:0.88rem; color:#475569;">
+              ✅ <b>安全自動體檢存檔：</b>匯出時會自動修正格式、順編、補齊安全收尾、計算 Checksum 並檢查缺漏實機 DLL；完成後必開輸出資料夾並彈窗詢問是否開啟 Excel。
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:0.9rem;" onclick="applyFixAndExport(true)">
+                🧪 匯出「無硬體試跑版」
+              </button>
+              <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:0.9rem;" onclick="applyFixAndExport(false)">
+                💾 寫入並匯出 Excel (*_FIXED.xlsx)
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div><!-- /genModeEdit -->
 
-    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 積木拖曳 + 細部規格兩步驟生成) -->
+    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 撲克牌庫 + 細部規格兩步驟生成) -->
     <div id="genModeInst" style="display:none;">
       <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:16px 20px; margin-bottom:14px;">
         <!-- 頂部標題與步驟指示 -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div>
-            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:17px;">🧪 書籤三：插入儀器範本 (34 款人機 - 積木拖曳版)</h3>
-            <div style="font-size:13px; color:#64748B;">① 從下方把儀器積木拖曳（或點擊 +）到上方軌道排好順序 → ② 進入細部規格與人機設定 → 自動生成母體 Excel。</div>
+            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 書籤三：插入儀器範本 (34 款人機 - 撲克牌雙欄版)</h3>
+            <div style="font-size:0.87rem; color:#64748B;">① 從左側撲克牌庫點擊「+ 加入」或拖曳至右側排好測試順序 → ② 點擊「確認以上儀器清單」後選擇「⚡ 懶人快速版」或「🎛️ 專業細部版」。</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-            <button id="tab3StepNav1" onclick="tab3GoStep(1)" class="source-mode-tab active" style="padding:5px 12px; font-size:12.5px;">① 挑選與排序儀器積木</button>
+            <button id="tab3StepNav1" onclick="tab3GoStep(1)" class="source-mode-tab active" style="padding:5px 12px; font-size:0.85rem;">① 挑選與排序儀器卡片</button>
             <span style="color:#94A3B8;">➔</span>
-            <button id="tab3StepNav2" onclick="tab3GoStep(2)" class="source-mode-tab" style="padding:5px 12px; font-size:12.5px;">② 細部規格與人機設定</button>
+            <button id="tab3StepNav2" onclick="tab3GoStep(2)" class="source-mode-tab" style="padding:5px 12px; font-size:0.85rem;">② 細部規格與人機設定</button>
           </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:8px; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#312E81; font-weight:700; cursor:pointer;">
+            <input id="tab3UseIniSwitch" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
+            <span>🔧 為每組儀器賦予獨立 <code>*$(EN_...)</code> 開關（同儀器兩組自動編為 <code>_2</code>；取消則寫傳統 <code>0,名稱,3</code>）</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#1E3A8A; font-weight:700; cursor:pointer;">
+            <input id="tab3TaipeiDualChk" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
+            <span>🏢 同步產生台北無硬體分頁 (<code>MB_TAIPEI</code>) ＋ 兩地一鍵切換 <code>.bat</code></span>
+          </label>
         </div>
 
         <!-- 隱藏相容欄位（供現有 HMI / 規格介紹連動） -->
@@ -1175,41 +1219,41 @@
           <input id="tab3UlInput" type="text">
         </div>
 
-        <!-- ==================== STEP 1：左積木庫 + 右垂直測試流程序列 ==================== -->
+        <!-- ==================== STEP 1：左撲克牌庫 + 右已選測試流程序列 ==================== -->
         <div id="tab3Step1Box">
           <div class="tab3-split-layout" style="margin-bottom:14px;">
             <!-- 左欄：34 款儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
             <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:12px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-                <div style="font-weight:900; font-size:14px; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
+                <div style="font-weight:900; font-size:0.95rem; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
               </div>
               <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 34 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
-                style="width:100%; box-sizing:border-box; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:7px; font-size:12.5px; margin-bottom:8px;">
+                style="width:100%; box-sizing:border-box; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:7px; font-size:0.85rem; margin-bottom:8px;">
               <div id="tab3CatPills" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;"></div>
               <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(122px, 1fr)); gap:8px; max-height:430px; overflow-y:auto; padding-right:4px;"></div>
             </div>
 
-            <!-- 右欄：垂直長區塊序列槽 (由上往下執行) -->
+            <!-- 右欄：已選測試序列卡片區 (依序 #01 → #02 執行) -->
             <div id="tab3DeckDropZone"
               ondragover="event.preventDefault(); this.classList.add('lego-drop-active'); tab3ShowDropGhost(true);"
               ondragleave="if(!this.contains(event.relatedTarget)){ this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); }"
               ondrop="this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); tab3HandleDropToTrack(event);"
               style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:12px; padding:14px 16px; min-height:500px; display:flex; flex-direction:column; transition:all 0.18s;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; border-bottom:1px solid #DDD6FE; padding-bottom:10px;">
-                <div style="font-weight:900; font-size:14.5px; color:#4C1D95;">
-                  🧱 右欄：垂直測試序列（由上往下執行 · <span id="tab3TrackCount">0</span> 台）
+                <div style="font-weight:900; font-size:0.97rem; color:#4C1D95;">
+                  🧱 右欄：已選測試序列（依 #01 → #02 順序執行 · <span id="tab3TrackCount">0</span> 台）
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
-                  <button onclick="tab3ClearQueue()" class="btn" style="padding:5px 11px; font-size:12.5px; background:#FFFFFF; color:#475569;">🧹 清空</button>
-                  <button onclick="tab3OpenModeChoice()" class="btn btn-primary-green" style="padding:7px 16px; font-size:13.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.25);">
+                  <button onclick="tab3ClearQueue()" class="btn" style="padding:5px 11px; font-size:0.85rem; background:#FFFFFF; color:#475569;">🧹 清空</button>
+                  <button onclick="tab3OpenModeChoice()" class="btn btn-primary-green" style="padding:7px 16px; font-size:0.9rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.25);">
                     ✅ 確認以上儀器清單 ➔
                   </button>
                 </div>
               </div>
               <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:10px; flex:1; min-height:380px;">
-                <div style="color:#7C3AED; font-size:13.5px; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">
-                  👈 請從左側把想要的儀器長積木拖曳到此處<br>
-                  <span style="font-size:12px; color:#64748B; font-weight:500;">放開即磁吸接上；上下拖拉積木可自由調換執行順序</span>
+                <div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">
+                  👈 請從左側撲克牌庫點擊「+ 加入」或拖曳儀器卡片至此處<br>
+                  <span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span>
                 </div>
               </div>
             </div>
@@ -1218,20 +1262,20 @@
           <!-- 確認清單後的二選一出口 (懶人自動範例 vs 專業細部設定) -->
           <div id="tab3ModeChoiceBox" style="display:none; background:linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%); border:2px solid #818CF8; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-              <div style="font-weight:900; font-size:14.5px; color:#1E1B4B;">🎯 已確認儀器清單！請選擇接下來的產生方式：</div>
-              <button onclick="document.getElementById('tab3ModeChoiceBox').style.display='none'" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#64748B;">收起選項</button>
+              <div style="font-weight:900; font-size:0.97rem; color:#1E1B4B;">🎯 已確認儀器清單！請選擇接下來的產生方式：</div>
+              <button onclick="document.getElementById('tab3ModeChoiceBox').style.display='none'" class="btn" style="padding:3px 10px; font-size:0.82rem; background:#FFFFFF; color:#64748B;">收起選項</button>
             </div>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
               <button onclick="tab3GenerateAutoSample()" class="tab3-choice-card" style="border-color:#22C55E; background:linear-gradient(180deg,#FFFFFF 0%,#F0FDF4 100%);">
-                <div style="font-size:15px; font-weight:900; color:#15803D; margin-bottom:4px;">⚡ 懶人快速版：自動產生範例 Excel</div>
-                <div style="font-size:12.5px; color:#334155; line-height:1.45;">
-                  免進複雜設定，系統依您選的儀器<b>自動幫每台產生至少 3 個代表性測試項目</b>，寫入並體檢無誤後直接彈出目錄與 Excel！
+                <div style="font-size:1rem; font-weight:900; color:#15803D; margin-bottom:4px;">⚡ 懶人快速版：自動產生範例 Excel</div>
+                <div style="font-size:0.85rem; color:#334155; line-height:1.45;">
+                  免進複雜設定，系統依您選的儀器<b>自動幫每台產生至少 3 個代表性測試項目</b>，寫入並完成實機 DLL 檢查與開啟目錄，再彈窗詢問是否開啟 Excel！
                 </div>
               </button>
               <button onclick="tab3GoStep(2)" class="tab3-choice-card" style="border-color:#7C3AED; background:linear-gradient(180deg,#FFFFFF 0%,#F5F3FF 100%);">
-                <div style="font-size:15px; font-weight:900; color:#5B21B6; margin-bottom:4px;">🎛️ 專業細部版：逐台挑選測試項目</div>
-                <div style="font-size:12.5px; color:#334155; line-height:1.45;">
-                  進入下一頁針對每台儀器進行細部設定（例如 <b>RF WiFi/BT 頻段測項</b>、<b>NI-6009 腳位</b>、<b>FeasaLED 通道</b>），設定完再產出並體檢開啟！
+                <div style="font-size:1rem; font-weight:900; color:#5B21B6; margin-bottom:4px;">🎛️ 專業細部版：逐台挑選測試項目</div>
+                <div style="font-size:0.85rem; color:#334155; line-height:1.45;">
+                  進入下一步針對每台儀器進行細部設定（例如 <b>RF WiFi/BT 頻段測項</b>、<b>NI-6009 腳位</b>、<b>FeasaLED 通道</b>），設定完再產出並檢查 DLL 後彈窗開啟！
                 </div>
               </button>
             </div>
@@ -1241,10 +1285,10 @@
         <!-- ==================== STEP 2：細部規格與人機設定 ==================== -->
         <div id="tab3Step2Box" style="display:none;">
           <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:8px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="font-weight:800; font-size:14px; color:#4C1D95;">
+            <div style="font-weight:800; font-size:0.95rem; color:#4C1D95;">
               🎛️ 第二步：設定各儀器測項名稱、上下限 (DL/UL) 或開啟專屬互動人機
             </div>
-            <button onclick="tab3GoStep(1)" class="btn" style="padding:6px 14px; font-size:13px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">
+            <button onclick="tab3GoStep(1)" class="btn" style="padding:6px 14px; font-size:0.88rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">
               ⬅ 返回調整儀器積木
             </button>
           </div>
@@ -1252,11 +1296,11 @@
           <div id="tab3DetailCards" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
 
           <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-            <div style="font-size:12.5px; color:#166534;">
-              ✨ <b>自動生成保障：</b>將以 Golden Mother 建立腳本、自動補齊前置路由與 Phase 97 收尾，並立即置頂開啟 Excel！
+            <div style="font-size:0.85rem; color:#166534;">
+              ✨ <b>自動生成保障：</b>將以 Golden Mother 建立腳本、自動補齊前置路由與 Phase 97 收尾、開啟輸出資料夾，並顯示實機 DLL 檢查與是否開啟 Excel！
             </div>
-            <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:9px 22px; font-weight:900; font-size:14.5px; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
-              🚀 立即生成母體並開啟 Excel
+            <button onclick="tab3GenerateStandalone()" class="btn btn-primary-green" style="padding:9px 22px; font-weight:900; font-size:0.97rem; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+              🚀 立即生成母體並匯出
             </button>
           </div>
         </div>
@@ -1265,6 +1309,72 @@
         <div id="tab3OutputBox" style="display:none; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:12px 16px; margin-top:10px;"></div>
       </div>
     </div><!-- /genModeInst -->
+
+    <!-- 書籤四：問編寫問題（白話直覺問答 + 精簡 Excel 對比引擎） -->
+    <div id="genModeQa" style="display:none;">
+      <div class="panel" style="margin-bottom:12px; border-color:#C7D2FE; background:linear-gradient(135deg, #EEF2FF 0%, #FFFFFF 100%);">
+        <div style="font-weight:900; font-size:1.06rem; color:#312E81; margin-bottom:4px;">💬 問編寫問題（用白話查怎麼填 Excel 格子）</div>
+        <div style="font-size:0.84rem; color:#475569; margin-bottom:10px;">輸入想做的事（例：<code>retry 哪裡改</code>、<code>怎麼暫停這一個 Phase</code>），底下第一眼直接告訴您要改哪一欄、填什麼值。</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+          <input type="text" id="qaSearchInput"
+            placeholder="輸入想寫或想改的問題（例：retry 哪裡改、怎麼暫停 Phase、Instrument 何時留空、同個 Phase 多個 Title）..."
+            oninput="qaHandleSearchInput()"
+            onkeydown="if (event.key === 'Enter') qaHandleSearchInput();"
+            style="flex:1; min-width:260px; padding:9px 12px; border:1.5px solid #A5B4FC; border-radius:8px; font-size:0.94rem; background:#FFFFFF;">
+          <button type="button" onclick="qaHandleSearchInput()" class="btn"
+            style="padding:9px 16px; font-weight:800; font-size:0.9rem; background:#4F46E5; color:#FFFFFF; border:none; border-radius:8px;">
+            🔍 直接看答案
+          </button>
+          <button type="button" onclick="qaAskQuick('')" class="btn"
+            style="padding:9px 12px; font-size:0.86rem; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px;">
+            ↺ 回 6 大情景
+          </button>
+        </div>
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+          <span style="font-size:0.8rem; font-weight:800; color:#4338CA;">快點發問：</span>
+          <div id="qaQuickChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+      </div>
+
+      <!-- 答案永遠置頂顯示於搜尋框正下方，絕不推到畫面外！ -->
+      <div id="qaResultsList"></div>
+
+      <!-- 空白未查詢時：只顯示 6 張簡潔「我想做什麼？」情景卡片 -->
+      <div id="qaScenarioGridWrap">
+        <div style="font-size:0.93rem; font-weight:900; color:#0F172A; margin-bottom:8px;">📌 點選您現在想寫或想改的情境，立即看改前 ➔ 改後寫法：</div>
+        <div id="qaScenarioGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-bottom:14px;"></div>
+
+        <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px;">
+          <summary style="cursor:pointer; font-weight:800; font-size:0.88rem; color:#334155;">📖 展開查看各欄位可用代碼簡表（Phase / Title / ExecMode / Ref）</summary>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; margin-top:10px; font-size:0.82rem; color:#334155; line-height:1.55;">
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
+              <b>Phase 欄位</b><br>
+              <code>-1</code> 整批暫停 ｜ <code>0</code> 前置準備<br>
+              <code>1~96</code> 主測試（可共掛多 Title）<br>
+              <code>97 / 97:PWROFF</code> 斷電收尾 ｜ <code>98</code> PASS ｜ <code>99</code> FAIL
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
+              <b>Title 欄位（開頭數字）</b><br>
+              <code>0,名稱,次數</code> 正常跑並設重試次數<br>
+              <code>1,名稱,1</code> 失敗仍強制跑（收尾）<br>
+              <code>2,名稱</code> 跳過這個 Title ｜ <code>3,</code> Fail才跑
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
+              <b>ExecMode 欄位</b><br>
+              <code>0</code> 正常 ｜ <code>1</code> 單步重試 ｜ <code>2:0</code> 退回步0<br>
+              <code>3</code> 必繼續（ReleaseDevice）｜ <code>6</code> 單行跳過<br>
+              <code>4:P,F</code> 往後跳 ｜ <code>8/9</code> SFIS ｜ <code>*$(AULAB)</code>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
+              <b>Ref / Validation / Prompt</b><br>
+              <code>$VAR</code> 跨區全域（無 $ 換 Title 清空）<br>
+              <code>:WithinString</code> / <code>:rpString</code> / <code>:Trim</code><br>
+              <code>EndPrompt="#"</code> 秒回 ｜ <code>Prompt="!"</code> 串流
+            </div>
+          </div>
+        </details>
+      </div>
+    </div><!-- /genModeQa -->
   </div>
 
   <!-- ======================== 書籤四：TestID / Error Code 速查與精準套用 ======================== -->
@@ -1446,18 +1556,20 @@
 <!-- ======================== 網頁內建檔案瀏覽選取對話框 (解決 Windows 背景死鎖) ======================== -->
 <div id="modalFolderBrowser" class="modal-backdrop" style="display:none; z-index:99999;">
   <div class="modal-box" style="width:720px; max-width:95vw; max-height:85vh; display:flex; flex-direction:column; background:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 20px 40px rgba(15,23,42,0.3);">
-    <div style="background:#0F172A; color:#F8FAFC; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;">
-      <div style="font-weight:800; font-size:15px; display:flex; align-items:center; gap:8px;">
+    <div style="background:#0F172A; color:#FFFFFF; padding:12px 18px; display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-weight:800; font-size:1rem; color:#FFFFFF; display:flex; align-items:center; gap:8px;">
         <span>🗂️</span>
-        <span>瀏覽本機資料夾選取 TestFlow.xlsx</span>
+        <span id="fbModalTitle" style="color:#FFFFFF;">瀏覽本機資料夾選取 TestFlow.xlsx</span>
       </div>
-      <button type="button" onclick="closeFolderBrowserModal()" class="btn btn-modal-close" style="padding:3px 10px; font-size:12px;" title="關閉目錄瀏覽視窗">✕ 關閉</button>
+      <button type="button" onclick="closeFolderBrowserModal()" class="btn btn-modal-close" style="padding:3px 10px; font-size:0.82rem;" title="關閉目錄瀏覽視窗">✕ 關閉</button>
     </div>
     
     <!-- 路徑導覽列 -->
-    <div style="background:#F1F5F9; border-bottom:1px solid #CBD5E1; padding:8px 14px; display:flex; align-items:center; gap:8px;">
-      <button type="button" id="fbBtnParent" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700;" onclick="fbGoParent()">⬆ 回上一層</button>
-      <span id="fbCurrentPathText" class="mono" style="font-size:12px; color:#1E293B; font-weight:700; flex:1; word-break:break-all;"></span>
+    <div style="background:#F1F5F9; border-bottom:1px solid #CBD5E1; padding:8px 14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <button type="button" id="fbBtnParent" class="btn" style="padding:3px 10px; font-size:0.82rem; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700;" onclick="fbGoParent()">⬆ 回上一層</button>
+      <input type="text" id="fbPathJumpInput" class="mono" placeholder="可貼上資料夾路徑後按前往..." style="flex:1; min-width:200px; padding:4px 8px; font-size:0.82rem; color:#1E293B; font-weight:700; border:1px solid #94A3B8; border-radius:5px;" onkeydown="if(event.key==='Enter') fbLoadDir(this.value)">
+      <button type="button" class="btn" style="padding:3px 10px; font-size:0.82rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="fbLoadDir(document.getElementById('fbPathJumpInput').value)">前往</button>
+      <span id="fbCurrentPathText" class="mono" style="display:none;"></span>
     </div>
 
     <!-- 檔案與資料夾列表區 -->
@@ -1465,9 +1577,12 @@
       <div style="text-align:center; color:#94A3B8; padding:30px;">正在讀取資料夾內容...</div>
     </div>
 
-    <div style="background:#F8FAFC; border-top:1px solid #CBD5E1; padding:10px 16px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:12px; color:#64748B;">點擊資料夾可進入，點擊 Excel 檔案即刻載入編修。</span>
-      <button type="button" class="btn btn-modal-close" onclick="closeFolderBrowserModal()" style="padding:5px 16px; font-size:12.5px;" title="關閉目錄瀏覽視窗">關閉</button>
+    <div style="background:#F8FAFC; border-top:1px solid #CBD5E1; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <span id="fbFooterHint" style="font-size:0.82rem; color:#64748B;">點擊資料夾可進入，點擊 Excel 檔案立即選取。</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" id="fbOsFallbackBtn" class="btn" onclick="fbUseOsPickerFallback()" style="padding:5px 12px; font-size:0.82rem; background:#FFFFFF; border:1px solid #94A3B8;" title="若檔案位於其他磁碟或桌面，可呼叫 Windows 系統檔案總管視窗">🖥️ 改用 Windows 系統選檔</button>
+        <button type="button" class="btn btn-modal-close" onclick="closeFolderBrowserModal()" style="padding:5px 16px; font-size:0.85rem;" title="關閉目錄瀏覽視窗">關閉</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1534,12 +1649,12 @@
 <div id="exportConfirmModal" class="modal-backdrop" onclick="if(event.target===this) closeExportConfirmModal()">
   <div class="modal-panel" style="max-width:620px; width:95vw; background:#FFFFFF; border:2px solid #2563EB; padding:18px 22px; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:12px;">
-      <h3 id="ecModalTitle" style="margin:0; font-size:16px; color:#0F172A;">🎉 檔案匯出完成（已自動開啟輸出資料夾）</h3>
-      <button type="button" onclick="closeExportConfirmModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;">✕ 關閉</button>
+      <h3 id="ecModalTitle" style="margin:0; font-size:1.07rem; color:#0F172A;">🎉 檔案匯出完成（已自動開啟輸出資料夾）</h3>
+      <button type="button" onclick="closeExportConfirmModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.85rem;">✕ 關閉</button>
     </div>
-    <div id="ecModalBody" style="font-size:13px; color:#334155; line-height:1.6;"></div>
-    <div id="ecModalDllWarn" style="display:none; margin-top:12px; padding:10px 14px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:8px; color:#7F1D1D; font-size:13px; font-weight:700; line-height:1.55;"></div>
-    <div style="margin-top:14px; padding:10px 12px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; color:#1E3A8A; font-size:13.5px; font-weight:700;">
+    <div id="ecModalBody" style="font-size:0.88rem; color:#334155; line-height:1.6;"></div>
+    <div id="ecModalDllWarn" style="display:none; margin-top:12px; padding:10px 14px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:8px; color:#7F1D1D; font-size:0.88rem; font-weight:700; line-height:1.55;"></div>
+    <div style="margin-top:14px; padding:10px 12px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; color:#1E3A8A; font-size:0.9rem; font-weight:700;">
       ❓ 是否立即以 Microsoft Excel 開啟此檔案進行檢視？
     </div>
     <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px; border-top:1px solid #E2E8F0; padding-top:12px;">
@@ -1549,10 +1664,27 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.002"></script>
-<script src="/js/audit_editors.js?v=0.8.002"></script>
-<script src="/js/flow_guide.js?v=0.8.002"></script>
-<script src="/js/block_sorter.js?v=0.8.002"></script>
+<div id="stationDiffModal" class="modal-backdrop" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-panel" style="max-width:780px; width:95vw; background:#FFFFFF; border:2px solid #2563EB; padding:18px 22px; max-height:86vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:12px;">
+      <h3 style="margin:0; font-size:1.05rem; color:#0F172A;">🔍 同檔雙分頁差異比對（例如 MB 產線 vs MB_TAIPEI）</h3>
+      <button type="button" onclick="document.getElementById('stationDiffModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.85rem;">✕ 關閉</button>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+      <label style="font-size:0.86rem; font-weight:700;">分頁 A：<select id="diffSheetASel" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:5px;"></select></label>
+      <span style="font-weight:800; color:#64748B;">vs</span>
+      <label style="font-size:0.86rem; font-weight:700;">分頁 B：<select id="diffSheetBSel" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:5px;"></select></label>
+      <button type="button" onclick="runStationDiffCompare()" class="btn btn-primary-green" style="padding:5px 14px; font-size:0.85rem; font-weight:800;">▶ 立即比對</button>
+    </div>
+    <div id="diffStationsResultBody" style="font-size:0.86rem; color:#1E293B; line-height:1.6;"></div>
+  </div>
+</div>
+
+<script src="/js/inst_hmi.js?v=0.8.012"></script>
+<script src="/js/audit_editors.js?v=0.8.012"></script>
+<script src="/js/flow_guide.js?v=0.8.012"></script>
+<script src="/js/block_sorter.js?v=0.8.012"></script>
+<script src="/js/script_qa.js?v=0.8.012"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2608,51 +2740,57 @@ async function pickTicFileNative() {
 let GEN_SUB_MODE = 'hub';
 
 function setActiveGenHubCard(key) {
-  ['edit', 'create', 'inst'].forEach(k => {
+  ['edit', 'create', 'inst', 'qa'].forEach(k => {
     const el = document.getElementById('genHubCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
 }
 
 function switchGenSubMode(mode) {
-  GEN_SUB_MODE = ['hub', 'edit', 'create', 'inst'].includes(mode) ? mode : 'hub';
+  GEN_SUB_MODE = ['hub', 'edit', 'create', 'inst', 'qa'].includes(mode) ? mode : 'hub';
   const hubBox = document.getElementById('genModeHub');
   const backBar = document.getElementById('genBackToModeHubBar');
   const modeTitleEl = document.getElementById('genCurrentModeTitle');
   const cBox = document.getElementById('genModeCreate');
   const eBox = document.getElementById('genModeEdit');
   const iBox = document.getElementById('genModeInst');
+  const qBox = document.getElementById('genModeQa');
   const cBtn = document.getElementById('btnGenModeCreate');
   const eBtn = document.getElementById('btnGenModeEdit');
   const iBtn = document.getElementById('btnGenModeInst');
+  const qBtn = document.getElementById('btnGenModeQa');
 
   if (hubBox) hubBox.style.display = (GEN_SUB_MODE === 'hub') ? 'block' : 'none';
   if (backBar) backBar.style.display = (GEN_SUB_MODE === 'hub') ? 'none' : 'flex';
   if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
   if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
+  if (qBox) qBox.style.display = (GEN_SUB_MODE === 'qa') ? 'block' : 'none';
 
   const titleMap = {
     edit: '📝 書籤一：既有腳本編修 (1 → N)',
     create: '🌱 書籤二：首次建立新母體 (0 → 1)',
-    inst: '🧪 書籤三：插入儀器範本 (34 款人機)'
+    inst: '🧪 書籤三：插入儀器範本 (34 款人機)',
+    qa: '💬 書籤四：問編寫問題（Excel 編寫邏輯與指令百科）'
   };
   if (modeTitleEl) modeTitleEl.textContent = titleMap[GEN_SUB_MODE] || '';
 
   if (cBtn) cBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'create' ? ' active' : '');
   if (eBtn) eBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'edit' ? ' active' : '');
   if (iBtn) iBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'inst' ? ' active' : '');
+  if (qBtn) qBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'qa' ? ' active' : '');
 
   if (GEN_SUB_MODE === 'edit') {
     if (typeof AUDIT_GLOBAL_TAB !== 'undefined') AUDIT_GLOBAL_TAB = 'hub';
     syncEditorView();
   }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
+  if (GEN_SUB_MODE === 'qa' && typeof initScriptQaPanel === 'function') initScriptQaPanel();
 }
 
 let TAB3_QUEUE = [];
 let TAB3_STEP = 1;
-let TAB3_CAT_FILTER = 'POPULAR';
+let TAB3_CAT_FILTER = 'USABLE';
 let TAB3_DRAG_PAYLOAD = null; // { type: 'catalog', name } | { type: 'track', idx }
 let TAB3_ACTIVE_EDIT_IDX = -1;
 
@@ -2793,7 +2931,7 @@ function tab3HandleDropToTrack(e, targetIdx = null) {
 
 function tab3OpenModeChoice() {
   if (TAB3_QUEUE.length === 0) {
-    alert('請先從下方拖曳或點擊「＋ 加入」至少 1 台儀器到上方軌道！');
+    alert('請先從左側撲克牌庫點擊「＋ 加入」或拖曳至少 1 台儀器至右側序列！');
     return;
   }
   const box = document.getElementById('tab3ModeChoiceBox');
@@ -2811,32 +2949,40 @@ function renderTab3Queue() {
   if (TAB3_QUEUE.length === 0) {
     const choiceBox = document.getElementById('tab3ModeChoiceBox');
     if (choiceBox) choiceBox.style.display = 'none';
-    l.innerHTML = `<div style="color:#7C3AED; font-size:13.5px; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">👈 請從左側把想要的儀器長積木拖曳到此處<br><span style="font-size:12px; color:#64748B; font-weight:500;">放開即磁吸接上；上下拖拉積木可自由調換執行順序</span></div>`;
+    l.innerHTML = `<div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">👈 請從左側撲克牌庫點擊「+ 加入」或拖曳儀器卡片至此處<br><span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span></div>`;
     return;
   }
   l.innerHTML = TAB3_QUEUE.map((it, idx) => {
     const th = tab3GetInstTheme(it.inst_name);
     const stepNo = String(idx + 1).padStart(2, '0');
+    const catInst = (STATE.instCatalog || []).find(i => i.Name === it.inst_name);
+    const missingDll = Boolean(catInst && catInst.dll_exists === false);
+    const dllName = (catInst && catInst.ControlDLL) || '';
+    const cardTitleAttr = missingDll
+      ? `❌ 本機 Device 資料夾缺少 ${dllName}，請手動貼到 Centimani\\Device\\ 後再實機執行`
+      : '左右拖拉卡片可調整測試順序';
     return `
       ${idx > 0 ? '<div class="lego-plus-joiner" style="margin:0 2px;"><span>＋</span></div>' : ''}
       <div class="lego-poker-card selected-poker pop-in" draggable="true"
+        title="${cardTitleAttr}"
         ondragstart="TAB3_DRAG_PAYLOAD={type:'track', idx:${idx}}; this.classList.add('dragging'); event.dataTransfer.effectAllowed='move';"
         ondragend="this.classList.remove('dragging');"
         ondragover="event.preventDefault(); this.classList.add('drag-over-target');"
         ondragleave="this.classList.remove('drag-over-target');"
         ondrop="this.classList.remove('drag-over-target'); tab3HandleDropToTrack(event, ${idx});"
-        style="border-color:${th.color}; border-top-color:${th.color};">
+        style="border-color:${missingDll ? '#DC2626' : th.color}; border-top-color:${missingDll ? '#DC2626' : th.color}; ${missingDll ? 'background:linear-gradient(180deg,#FFF5F5 0%,#FEF2F2 100%);' : ''}">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
-            <span style="background:${th.color}; color:#FFF; font-weight:900; font-size:10px; padding:1px 6px; border-radius:999px;">#${stepNo}</span>
-            <span style="background:${th.badge}; color:${th.text}; font-size:10px; font-weight:800; padding:1px 5px; border-radius:999px;">${th.tag}</span>
+            <span style="background:${missingDll ? '#DC2626' : th.color}; color:#FFF; font-weight:900; font-size:0.68rem; padding:1px 6px; border-radius:999px;">#${stepNo}</span>
+            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.68rem; font-weight:800; padding:1px 5px; border-radius:999px;">${missingDll ? '❌ 缺 DLL' : th.tag}</span>
           </div>
           <div class="lego-gold-title mono" title="${it.inst_name}">${it.inst_name}</div>
-          <div style="font-size:10.5px; color:${th.text}; font-weight:700; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${it.title_name}</div>
+          ${missingDll ? `<div style="font-size:0.7rem; color:#B91C1C; font-weight:800; margin-top:4px; line-height:1.25;">缺 ${dllName}</div>` : ''}
+          <div style="font-size:0.72rem; color:${missingDll ? '#7F1D1D' : th.text}; font-weight:700; margin-top:${missingDll ? '2px' : '4px'}; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${it.title_name}</div>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #E2E8F0; padding-top:4px;">
-          <span style="font-size:10px; color:#94A3B8; font-weight:700;">⋮⋮</span>
-          <button onclick="tab3RemoveQueueItem(${idx})" title="移除此卡片" class="btn" style="padding:1px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none;">🗑</button>
+          <span style="font-size:0.7rem; color:#94A3B8; font-weight:700;">⋮⋮</span>
+          <button onclick="tab3RemoveQueueItem(${idx})" title="移除此卡片" class="btn" style="padding:1px 6px; font-size:0.75rem; background:#FEE2E2; color:#991B1B; border:none;">🗑</button>
         </div>
       </div>
     `;
@@ -2852,14 +2998,16 @@ function tab3RenderCatalogDeck() {
   const popularNames = ['NI6008-1', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'iPower', 'Relay'];
 
   if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
+    const usableCount = catalog.filter(i => i.is_usable !== false && (i.dll_exists !== false || i.has_template === true)).length;
     const pills = [
+      { id: 'USABLE', label: `✅ 可使用設備 (${usableCount})` },
       { id: 'POPULAR', label: '⭐ 常用 (6)' },
       ...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label.split(' / ')[0] })),
       { id: 'ALL', label: `全部 (${catalog.length})` }
     ];
     pillsEl.innerHTML = pills.map(p => `
       <button onclick="TAB3_CAT_FILTER='${p.id}'; tab3RenderCatalogDeck();" class="btn"
-        style="padding:4px 10px; font-size:12px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
+        style="padding:4px 10px; font-size:0.8rem; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
         ${p.label}
       </button>
     `).join('');
@@ -2868,7 +3016,9 @@ function tab3RenderCatalogDeck() {
   const q = ((document.getElementById('tab3DeckSearch') || {}).value || '').trim().toLowerCase();
   let filtered = catalog;
   if (!q) {
-    if (TAB3_CAT_FILTER === 'POPULAR') {
+    if (TAB3_CAT_FILTER === 'USABLE') {
+      filtered = filtered.filter(i => i.is_usable !== false && (i.dll_exists !== false || i.has_template === true));
+    } else if (TAB3_CAT_FILTER === 'POPULAR') {
       filtered = popularNames.map(n => catalog.find(i => i.Name === n)).filter(Boolean);
     } else if (TAB3_CAT_FILTER && TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
       const catObj = INST_CATEGORIES.find(c => c.id === TAB3_CAT_FILTER);
@@ -2885,10 +3035,14 @@ function tab3RenderCatalogDeck() {
   deckEl.innerHTML = filtered.map(inst => {
     const th = tab3GetInstTheme(inst.Name);
     const missingDll = (inst.dll_exists === false);
+    const hasTpl = (inst.has_template === true);
     const dllName = inst.ControlDLL || '';
     const cardTitleAttr = missingDll
-      ? `❌ 本機 Device 資料夾缺少 ${dllName}，請手動貼到 CENTERMAINA_TRY\\Device\\ 後再實機執行`
-      : `拖曳至右側牌疊，或點下方 ＋ 加入`;
+      ? (hasTpl
+          ? `⚠️ 有專屬範本但本機 Device 資料夾缺少 ${dllName}，請補齊後再實機執行`
+          : `❌ 尚無實機 ${dllName} 且無專屬範本（僅公版骨架）`)
+      : `拖曳至右側序列，或點下方 ＋ 加入`;
+    const badgeLabel = missingDll ? (hasTpl ? '❌ 缺 DLL(有範本)' : '⚠️ 無DLL/無範本') : th.tag;
     return `
       <div class="lego-poker-card" draggable="true"
         ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; this.classList.add('dragging'); event.dataTransfer.effectAllowed='copy';"
@@ -2897,13 +3051,13 @@ function tab3RenderCatalogDeck() {
         style="border-top-color:${missingDll ? '#DC2626' : th.color}; ${missingDll ? 'border-color:#FCA5A5; background:linear-gradient(180deg,#FFF5F5 0%,#FEF2F2 100%);' : ''}">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
-            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:10px; font-weight:900; padding:1px 5px; border-radius:999px;">${missingDll ? '❌ 缺 DLL' : th.tag}</span>
-            <button onclick="event.stopPropagation(); openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:0px 5px; font-size:10.5px; background:#F8FAFC; color:#475569;" title="查看儀器簡介">📖</button>
+            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.68rem; font-weight:900; padding:1px 5px; border-radius:999px;">${badgeLabel}</span>
+            <button onclick="event.stopPropagation(); openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:0px 5px; font-size:0.72rem; background:#F8FAFC; color:#475569;" title="查看儀器簡介">📖</button>
           </div>
           <div class="lego-gold-title mono" title="${inst.Name}">${inst.Name}</div>
-          <div style="font-size:10.5px; color:${missingDll ? '#991B1B' : '#64748B'}; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${missingDll ? ('缺 ' + dllName) : (inst.Desc || inst.Functions || '')}</div>
+          <div style="font-size:0.72rem; color:${missingDll ? '#991B1B' : '#64748B'}; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${missingDll ? ('缺 ' + dllName) : (inst.Desc || inst.Functions || '')}</div>
         </div>
-        <button onclick="event.stopPropagation(); tab3AddInstBlock('${inst.Name}')" class="btn" style="width:100%; padding:3px 6px; font-size:11.5px; background:${th.badge}; color:${th.text}; border:1.5px solid ${th.color}; font-weight:900; border-radius:6px;">
+        <button onclick="event.stopPropagation(); tab3AddInstBlock('${inst.Name}')" class="btn" style="width:100%; padding:3px 6px; font-size:0.78rem; background:${th.badge}; color:${th.text}; border:1.5px solid ${th.color}; font-weight:900; border-radius:6px;">
           ＋ 加入
         </button>
       </div>
@@ -2916,13 +3070,19 @@ function tab3RenderDetailCards() {
   if (!box) return;
   box.innerHTML = TAB3_QUEUE.map((it, idx) => {
     const hasHmi = (it.inst_name === 'NI6008-1') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(it.inst_name));
+    const catInst = (STATE.instCatalog || []).find(i => i.Name === it.inst_name);
+    const missingDll = Boolean(catInst && catInst.dll_exists === false);
+    const dllName = (catInst && catInst.ControlDLL) || '';
     return `
-      <div style="background:#FFFFFF; border:1.5px solid #CBD5E1; border-left:5px solid #7C3AED; border-radius:8px; padding:12px 14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="background:${missingDll ? '#FFF5F5' : '#FFFFFF'}; border:1.5px solid ${missingDll ? '#FCA5A5' : '#CBD5E1'}; border-left:5px solid ${missingDll ? '#DC2626' : '#7C3AED'}; border-radius:8px; padding:12px 14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; min-width:190px;">
-          <span style="background:#7C3AED; color:#FFF; font-weight:900; font-size:12px; padding:3px 9px; border-radius:999px;">#${idx + 1}</span>
+          <span style="background:${missingDll ? '#DC2626' : '#7C3AED'}; color:#FFF; font-weight:900; font-size:0.8rem; padding:3px 9px; border-radius:999px;">#${idx + 1}</span>
           <div>
-            <div class="mono" style="font-weight:900; font-size:14px; color:#4C1D95;">${it.inst_name}</div>
-            <div style="font-size:11.5px; color:#64748B;">可獨立調整測項名稱與上下限</div>
+            <div class="mono" style="font-weight:900; font-size:0.95rem; color:${missingDll ? '#991B1B' : '#4C1D95'};">
+              ${it.inst_name}
+              ${missingDll ? `<span style="margin-left:6px; background:#FEE2E2; color:#B91C1C; border:1px solid #FCA5A5; font-size:0.72rem; padding:1px 7px; border-radius:999px;">❌ 缺 ${dllName}</span>` : ''}
+            </div>
+            <div style="font-size:0.78rem; color:#64748B;">可獨立調整測項名稱與上下限</div>
           </div>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex:1; justify-content:flex-end;">
@@ -2987,6 +3147,8 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
     `;
   }
 
+  const useIniSwitch = !!(document.getElementById('tab3UseIniSwitch') && document.getElementById('tab3UseIniSwitch').checked);
+  const taipeiDualMode = !!(document.getElementById('tab3TaipeiDualChk') && document.getElementById('tab3TaipeiDualChk').checked);
   try {
     const data = await withLoadingTimer(
       `正在匯出母體範本（共 ${itemsToInsert.length} 項測項）並開啟輸出目錄`,
@@ -2999,6 +3161,8 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
             project_name: 'INST_MOTHER',
             station_name: 'MB',
             auto_sample_mode: autoSampleMode,
+            use_ini_switch: useIniSwitch,
+            taipei_dual_mode: taipeiDualMode,
             open_excel: false
           })
         });
@@ -3043,6 +3207,7 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
         <div style="font-size:12.5px; color:#334155; line-height:1.6;">
           • <b>輸出目錄：</b><span class="mono">${data.output_dir}</span><br>
           • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
+          ${data.guide_txt_path ? `• <b>編寫與使用說明：</b><span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:11.5px; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
           • <b>自動檢查結果：</b><span style="color:${errCnt === 0 ? '#15803D' : '#B45309'}; font-weight:800;">${errCnt === 0 ? '✅ 0 Error (全自動體檢通過、Phase 順編、Phase 97 收尾與 Checksum 已寫入)' : '⚠️ 尚有 ' + errCnt + ' 項待確認 (已自動修復 ' + (data.auto_fixed_count || 0) + ' 項)'}</span>
         </div>
         ${dllWarnHtml}
@@ -3051,6 +3216,9 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
     showExportCompleteModal({
       title: '🎉 儀器測試範本匯出完成（已開啟輸出資料夾）',
       excelPath: data.excel_path,
+      guideTxtPath: data.guide_txt_path || '',
+      taipeiSheet: data.taipei_sheet || '',
+      switchBats: data.switch_bats || [],
       outputDir: data.output_dir,
       centimaniDir: data.centimani_dir,
       centimaniDirExists: data.centimani_dir_exists,
@@ -3210,23 +3378,26 @@ function syncEditorView() {
 }
 
 function renderRecentFilesList(files) {
-  const container = document.getElementById('editorRecentFilesList');
-  if (!container) return;
-  if (!files || files.length === 0) {
-    container.innerHTML = `<div style="font-size:12px; color:#94A3B8; text-align:center; padding:10px;">目前未找到最近編修之 TestFlow.xlsx 檔案</div>`;
-    return;
-  }
-  container.innerHTML = files.map(f => `
-    <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
-      <div style="display:flex; flex-direction:column; overflow:hidden;">
-        <span style="font-weight:700; font-size:13px; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${f.path}">📄 ${f.name}</span>
-        <span style="font-size:11px; color:#64748B; font-family:Consolas, monospace;">[${f.folder}] ${f.size_kb} KB</span>
+  const mkHtml = (btnFn, btnLabel) => {
+    if (!files || files.length === 0) {
+      return `<div style="font-size:0.82rem; color:#94A3B8; text-align:center; padding:10px;">目前未找到最近使用之 TestFlow.xlsx 檔案</div>`;
+    }
+    return files.map(f => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
+        <div style="display:flex; flex-direction:column; overflow:hidden;">
+          <span style="font-weight:700; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${f.path}">📄 ${f.name}</span>
+          <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">[${f.folder}] ${f.size_kb} KB</span>
+        </div>
+        <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:0.82rem; white-space:nowrap; font-weight:700;" onclick="${btnFn}('${encodeURIComponent(f.path)}')">
+          ${btnLabel}
+        </button>
       </div>
-      <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:12px; white-space:nowrap; font-weight:700;" onclick="quickLoadFileFromRecent('${encodeURIComponent(f.path)}')">
-        ⚡ 立即載入編修
-      </button>
-    </div>
-  `).join('');
+    `).join('');
+  };
+  const container = document.getElementById('editorRecentFilesList');
+  if (container) container.innerHTML = mkHtml('quickLoadFileFromRecent', '⚡ 立即載入編修');
+  const auditContainer = document.getElementById('auditRecentFilesList');
+  if (auditContainer) auditContainer.innerHTML = mkHtml('loadSpecificFile', '🔍 立即載入健檢');
 }
 
 async function quickLoadFileFromRecent(encPath) {
@@ -3239,8 +3410,15 @@ async function quickLoadFileFromRecent(encPath) {
 // ----------------- 內建網頁資料夾導覽選取器 (100% 免卡死) -----------------
 let FB_CURRENT_DIR = '';
 let FB_PARENT_DIR = '';
+let FB_SELECT_CALLBACK = null;
+let FB_SELECT_LABEL = '⚡ 選取並載入編修';
 
-async function openFolderBrowserModal(targetDir = '') {
+async function openFolderBrowserModal(targetDir = '', options = null) {
+  const opts = options || {};
+  FB_SELECT_CALLBACK = (typeof opts.onSelectFile === 'function') ? opts.onSelectFile : null;
+  FB_SELECT_LABEL = opts.selectLabel || (FB_SELECT_CALLBACK ? '✔ 選取此檔案' : '⚡ 選取並載入編修');
+  const titleEl = document.getElementById('fbModalTitle');
+  if (titleEl) titleEl.textContent = opts.title || '瀏覽本機資料夾選取 TestFlow.xlsx';
   const modal = document.getElementById('modalFolderBrowser');
   if (modal) {
     modal.style.display = 'flex';
@@ -3255,16 +3433,18 @@ function closeFolderBrowserModal() {
     modal.style.display = 'none';
     modal.classList.remove('open');
   }
+  FB_SELECT_CALLBACK = null;
 }
 
 async function fbLoadDir(dirPath = '') {
   const listEl = document.getElementById('fbListContainer');
   const pathEl = document.getElementById('fbCurrentPathText');
+  const jumpEl = document.getElementById('fbPathJumpInput');
   const pBtn = document.getElementById('fbBtnParent');
   if (listEl) listEl.innerHTML = `<div style="text-align:center; color:#94A3B8; padding:30px;">正在讀取資料夾內容...</div>`;
 
   try {
-    const res = await fetch('/api/browse_dir?dir=' + encodeURIComponent(dirPath));
+    const res = await fetch('/api/browse_dir?dir=' + encodeURIComponent(dirPath || ''));
     const data = await res.json();
     if (data.status !== 'ok') {
       if (listEl) listEl.innerHTML = `<div style="color:#DC2626; padding:20px;">無法讀取該目錄內容</div>`;
@@ -3274,18 +3454,19 @@ async function fbLoadDir(dirPath = '') {
     FB_PARENT_DIR = data.parent_dir;
 
     if (pathEl) pathEl.textContent = FB_CURRENT_DIR;
+    if (jumpEl) jumpEl.value = FB_CURRENT_DIR;
     if (pBtn) pBtn.disabled = !FB_PARENT_DIR;
 
     let itemsHtml = '';
     // 渲染子資料夾
     (data.folders || []).forEach(f => {
       itemsHtml += `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; cursor:pointer;" onclick="fbLoadDir('${encodeURIComponent(f.path)}')">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; cursor:pointer;" onclick="fbLoadDir(decodeURIComponent('${encodeURIComponent(f.path)}'))">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:16px;">📁</span>
-            <span style="font-weight:700; font-size:13px; color:#1E3A8A;">${f.name}</span>
+            <span style="font-size:1rem;">📁</span>
+            <span style="font-weight:700; font-size:0.88rem; color:#1E3A8A;">${f.name}</span>
           </div>
-          <span style="font-size:11.5px; color:#64748B;">進入資料夾 ▶</span>
+          <span style="font-size:0.78rem; color:#64748B;">進入資料夾 ▶</span>
         </div>
       `;
     });
@@ -3295,14 +3476,14 @@ async function fbLoadDir(dirPath = '') {
       itemsHtml += `
         <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#FFFFFF; border:1.5px solid #C4B5FD; border-radius:6px; gap:8px;">
           <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
-            <span style="font-size:16px;">📄</span>
+            <span style="font-size:1rem;">📄</span>
             <div style="display:flex; flex-direction:column; overflow:hidden;">
-              <span style="font-weight:800; font-size:13px; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${f.name}</span>
-              <span style="font-size:11px; color:#64748B; font-family:Consolas, monospace;">${f.size_kb} KB</span>
+              <span style="font-weight:800; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${f.name}</span>
+              <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">${f.size_kb} KB</span>
             </div>
           </div>
-          <button type="button" class="btn btn-primary-blue" style="padding:4px 14px; font-size:12px; font-weight:700; white-space:nowrap;" onclick="fbSelectFile('${encodeURIComponent(f.path)}')">
-            ⚡ 選取並載入編修
+          <button type="button" class="btn btn-primary-blue" style="padding:4px 14px; font-size:0.82rem; font-weight:700; white-space:nowrap;" onclick="fbSelectFile('${encodeURIComponent(f.path)}')">
+            ${FB_SELECT_LABEL}
           </button>
         </div>
       `;
@@ -3324,11 +3505,37 @@ function fbGoParent() {
 }
 
 async function fbSelectFile(encPath) {
+  const cb = FB_SELECT_CALLBACK;
   closeFolderBrowserModal();
+  if (typeof cb === 'function') {
+    await cb(decodeURIComponent(encPath));
+    return;
+  }
   await loadSpecificFile(encPath);
   switchTab('gen');
   switchGenSubMode('edit');
   syncEditorView();
+}
+
+async function fbUseOsPickerFallback() {
+  const cb = FB_SELECT_CALLBACK;
+  try {
+    const res = await fetch('/api/pick_file', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ path_only: true }) });
+    const data = await res.json();
+    if (data.status === 'ok' && data.file_path) {
+      closeFolderBrowserModal();
+      if (typeof cb === 'function') {
+        await cb(data.file_path);
+      } else {
+        await loadSpecificFile(encodeURIComponent(data.file_path));
+        switchTab('gen');
+        switchGenSubMode('edit');
+        syncEditorView();
+      }
+    }
+  } catch (err) {
+    alert('開啟 Windows 系統選檔視窗失敗：' + (err && err.message ? err.message : err));
+  }
 }
 
 async function uploadExcelForEditor(inputEl) {
@@ -3524,61 +3731,89 @@ async function withLoadingTimer(label, asyncFn, minDurationMs = 0, subText = '')
   }
 }
 
+function _applyAuditLoadedPayload(data) {
+  STATE.selectedPath = data.file_path;
+  STATE.workspace = data.workspace;
+  if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
+  STATE.report = data.report;
+  STATE.pendingInserts = [];
+  STATE.isnInfo = data.isn_info || null;
+  STATE.activeSheetFilter = 'ALL';
+  STATE.showNormalJumps = false;
+  STATE.userChoices = {};
+  (STATE.report.choice_cards || []).forEach(c => {
+    STATE.userChoices[c.card_id] = c.recommended_value;
+  });
+  if (data.recent_files) {
+    STATE.recentFiles = data.recent_files;
+    renderRecentFilesList(data.recent_files);
+  }
+  const batchBox = document.getElementById('batchFolderBox');
+  if (batchBox) batchBox.style.display = 'none';
+  document.getElementById('pickedPathText').textContent = data.file_path;
+  document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
+  document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
+  document.getElementById('btnExportFixed').style.display = 'inline-flex';
+  const bEdDry = document.getElementById('btnEditorExportDry');
+  if (bEdDry) bEdDry.style.display = 'inline-flex';
+  const bInst = document.getElementById('btnOpenInsertInstModal');
+  if (bInst) bInst.style.display = 'inline-flex';
+  const bJump = document.getElementById('btnOpenJumpModal');
+  if (bJump) bJump.style.display = 'inline-flex';
+  const bSfis = document.getElementById('btnOpenSfisModal');
+  if (bSfis) bSfis.style.display = 'inline-flex';
+  const bComm = document.getElementById('btnOpenCommModal');
+  if (bComm) bComm.style.display = 'inline-flex';
+  const bGlob = document.getElementById('btnOpenGlobalEditor');
+  if (bGlob) bGlob.style.display = 'inline-flex';
+  const geBox = document.getElementById('auditGlobalEditor');
+  if (geBox) geBox.style.display = 'none';
+  document.getElementById('toggleDetailBar').style.display = 'flex';
+  renderAuditResults();
+  if (CURRENT_TAB === 'audit') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+async function uploadExcelForAudit(inputEl) {
+  if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+  const file = inputEl.files[0];
+  const formData = new FormData();
+  formData.append('excel_file', file);
+  try {
+    const data = await withLoadingTimer('正在讀取並體檢所選 Excel 腳本', async () => {
+      const res = await fetch('/api/upload_and_audit', { method: 'POST', body: formData });
+      return await res.json();
+    });
+    if (data.status !== 'ok') {
+      alert(data.message || '載入與解析失敗');
+      return;
+    }
+    _applyAuditLoadedPayload(data);
+  } catch (err) {
+    alert('讀取 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
+  } finally {
+    inputEl.value = '';
+  }
+}
+
 async function pickExcelNative() {
   if (STATE.isPickingFile) return;
   STATE.isPickingFile = true;
   try {
-    const data = await withLoadingTimer('正在讀取並體檢 Excel 腳本', async () => {
+    const data = await withLoadingTimer('正在開啟 Windows 選檔視窗並讀取 Excel', async () => {
       const res = await fetch('/api/pick_file');
       return await res.json();
     });
     if (data.status === 'cancel') {
-      alert('已取消選取檔案。若未看見 Windows 檔案選擇對話框，請直接點擊下方「⚡ 快速一鍵載入最近腳本」或「⚡ 網頁直接上傳載入」。');
+      openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) });
       return;
     }
     if (data.status !== 'ok') {
       alert(data.message || '檔案選取失敗');
       return;
     }
-
-    STATE.selectedPath = data.file_path;
-    STATE.workspace = data.workspace;
-    if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
-    STATE.report = data.report;
-    STATE.pendingInserts = [];
-    STATE.isnInfo = data.isn_info || null;
-    STATE.activeSheetFilter = 'ALL';
-    STATE.showNormalJumps = false;
-    STATE.userChoices = {};
-    (STATE.report.choice_cards || []).forEach(c => {
-      STATE.userChoices[c.card_id] = c.recommended_value;
-    });
-    if (data.recent_files) {
-      STATE.recentFiles = data.recent_files;
-      renderRecentFilesList(data.recent_files);
-    }
-
-    document.getElementById('pickedPathText').textContent = data.file_path;
-    document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
-    document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
-    document.getElementById('btnExportFixed').style.display = 'inline-flex';
-    const bEdDry = document.getElementById('btnEditorExportDry');
-    if (bEdDry) bEdDry.style.display = 'inline-flex';
-    const bInst = document.getElementById('btnOpenInsertInstModal');
-    if (bInst) bInst.style.display = 'inline-flex';
-    const bJump = document.getElementById('btnOpenJumpModal');
-    if (bJump) bJump.style.display = 'inline-flex';
-    const bSfis = document.getElementById('btnOpenSfisModal');
-    if (bSfis) bSfis.style.display = 'inline-flex';
-    const bComm = document.getElementById('btnOpenCommModal');
-    if (bComm) bComm.style.display = 'inline-flex';
-    const bGlob = document.getElementById('btnOpenGlobalEditor');
-    if (bGlob) bGlob.style.display = 'inline-flex';
-    const geBox = document.getElementById('auditGlobalEditor');
-    if (geBox) geBox.style.display = 'none';
-    document.getElementById('toggleDetailBar').style.display = 'flex';
-
-    renderAuditResults();
+    _applyAuditLoadedPayload(data);
   } catch (err) {
     console.error('pickExcelNative error:', err);
     alert('讀取 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
@@ -3610,6 +3845,8 @@ async function pickFolderAndScan() {
 }
 
 function renderBatchFolderBox() {
+  const emptyAudit = document.getElementById('auditEmptyRecentBox');
+  if (emptyAudit) emptyAudit.style.display = 'none';
   const box = document.getElementById('batchFolderBox');
   const items = STATE.batchItems || [];
   if (items.length === 0) {
@@ -3679,38 +3916,7 @@ async function loadSpecificFile(encPath) {
     alert(data.message || '載入失敗');
     return;
   }
-  STATE.selectedPath = data.file_path;
-  STATE.workspace = data.workspace;
-  if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
-  STATE.report = data.report;
-  STATE.pendingInserts = [];
-  STATE.isnInfo = data.isn_info || null;
-  STATE.activeSheetFilter = 'ALL';
-  STATE.showNormalJumps = false;
-  STATE.userChoices = {};
-  (STATE.report.choice_cards || []).forEach(c => {
-    STATE.userChoices[c.card_id] = c.recommended_value;
-  });
-  document.getElementById('pickedPathText').textContent = data.file_path;
-  document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
-  document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
-  document.getElementById('btnExportFixed').style.display = 'inline-flex';
-  const bEdDry2 = document.getElementById('btnEditorExportDry');
-  if (bEdDry2) bEdDry2.style.display = 'inline-flex';
-  const bInst2 = document.getElementById('btnOpenInsertInstModal');
-  if (bInst2) bInst2.style.display = 'inline-flex';
-  const bJump2 = document.getElementById('btnOpenJumpModal');
-  if (bJump2) bJump2.style.display = 'inline-flex';
-  const bSfis2 = document.getElementById('btnOpenSfisModal');
-  if (bSfis2) bSfis2.style.display = 'inline-flex';
-  const bComm2 = document.getElementById('btnOpenCommModal');
-  if (bComm2) bComm2.style.display = 'inline-flex';
-  const bGlob2 = document.getElementById('btnOpenGlobalEditor');
-  if (bGlob2) bGlob2.style.display = 'inline-flex';
-  const geBox2 = document.getElementById('auditGlobalEditor');
-  if (geBox2) geBox2.style.display = 'none';
-  document.getElementById('toggleDetailBar').style.display = 'flex';
-  renderAuditResults();
+  _applyAuditLoadedPayload(data);
 }
 
 async function batchFixFolder() {
@@ -3789,6 +3995,8 @@ function _renderGroupedMessages(msgs, icon, color) {
 
 function renderAuditResults() {
   if (typeof syncEditorView === 'function') syncEditorView();
+  const emptyAudit = document.getElementById('auditEmptyRecentBox');
+  if (emptyAudit) emptyAudit.style.display = 'none';
   const rep = STATE.report;
   const cards = rep.choice_cards || [];
   const errors = rep.errors || [];
@@ -3839,7 +4047,7 @@ function renderAuditResults() {
 
   let statusBadge = '';
   const autoNote = autoFixWarnings.length > 0
-    ? ` <span style="color:#0369A1; font-size:13.5px;">（另有 🤖 ${autoFixWarnings.length} 項機械式格式問題，將於點擊上方「💾 一鍵修好並存回原資料夾」時自動修補）</span>`
+    ? ` <span style="color:#0369A1; font-size:0.88rem;">（另有 🤖 ${autoFixWarnings.length} 項機械式格式問題，將於點擊右上角「💾 一鍵修好並匯出 (*_FIXED.xlsx)」時自動修補）</span>`
     : '';
   if (errors.length === 0 && manualWarnings.length === 0) {
     statusBadge = `<span style="color:#166534; font-size:16px;">🟢 檢查結果：無須人工介入的邏輯錯誤或警告！</span>${autoNote}`;
@@ -4719,7 +4927,8 @@ async function iiConfirmInsert() {
       inst_name: document.getElementById('iiInstSel').value,
       title_name: document.getElementById('iiTitleInput').value.trim(),
       dl_val: dlVal,
-      ul_val: ulVal
+      ul_val: ulVal,
+      use_ini_switch: !!(document.getElementById('iiUseIniSwitch') && document.getElementById('iiUseIniSwitch').checked)
     })
   });
   const data = await res.json();
@@ -5164,6 +5373,7 @@ async function applyFixAndExport(dryRun) {
     || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
     || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
+  const taipeiDualMode = !!(document.getElementById('auditTaipeiDualChk') && document.getElementById('auditTaipeiDualChk').checked);
   const data = await withLoadingTimer(
     dryRun ? '正在匯出「無硬體試跑版」Excel 並喚醒視窗' : '正在寫入匯出 *_FIXED.xlsx、簽章並喚醒開啟 Excel',
     async () => {
@@ -5174,6 +5384,7 @@ async function applyFixAndExport(dryRun) {
           workspace: STATE.workspace,
           user_choices: STATE.userChoices,
           dry_run: dryRun,
+          taipei_dual_mode: taipeiDualMode,
           active_sheet: targetSheet,
           open_excel: false
         })
@@ -5235,6 +5446,7 @@ async function applyFixAndExport(dryRun) {
     ✅ <strong>修復匯出完成！已自動開啟輸出資料夾進行檢視</strong><br>
     📂 所在資料夾：<span class="mono">${data.output_dir}</span><br>
     📄 匯出檔案：<span class="mono" style="color:#0F172A; font-weight:700;">${data.excel_path}</span>
+    ${data.guide_txt_path ? `<br>📝 編寫說明：<span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:11.5px; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button>` : ''}
     ${instVerifyHtml}
     ${logsHtml}
     <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:8px 0;">
@@ -5243,6 +5455,9 @@ async function applyFixAndExport(dryRun) {
   showExportCompleteModal({
     title: '🎉 腳本修復匯出完成（已開啟輸出資料夾）',
     excelPath: data.excel_path,
+    guideTxtPath: data.guide_txt_path || '',
+    taipeiSheet: data.taipei_sheet || '',
+    switchBats: data.switch_bats || [],
     outputDir: data.output_dir,
     centimaniDir: data.centimani_dir,
     centimaniDirExists: data.centimani_dir_exists,
@@ -5710,6 +5925,7 @@ async function generateNewMother(dryRun) {
           rf_blocks: STATE.genRfBlocks || [],
           system_ini_overrides: STATE.genSystemIni || {},
           dry_run: dryRun,
+          taipei_dual_mode: !!(document.getElementById('wizTaipeiDualChk') && document.getElementById('wizTaipeiDualChk').checked),
           open_excel: false,
           testid_overrides: MOTHER_TESTID_OVERRIDES,
           wizard_config: {
@@ -5744,11 +5960,15 @@ async function generateNewMother(dryRun) {
     ✅ <strong>測試包產出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
     📂 <span class="mono">${data.output_dir}</span><br>
     📄 <span class="mono">${data.excel_path}</span><br>
+    ${data.guide_txt_path ? `📝 <span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:11.5px; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
     ${formatIsnHtml(data.isn_info)}
   `;
   showExportCompleteModal({
     title: '🎉 新母體測試包匯出完成（已開啟輸出資料夾）',
     excelPath: data.excel_path,
+    guideTxtPath: data.guide_txt_path || '',
+    taipeiSheet: data.taipei_sheet || '',
+    switchBats: data.switch_bats || [],
     outputDir: data.output_dir,
     centimaniDir: data.centimani_dir,
     centimaniDirExists: data.centimani_dir_exists,
@@ -5899,8 +6119,15 @@ async function openCopySheetModal() {
 }
 
 async function csPickFile(role) {
+  const dlgTitle = role === 'src'
+    ? '選擇來源 Excel 檔案（複製 Sheet 用）'
+    : '選擇目標 Excel 檔案（貼上 Sheet 用）';
   try {
-    const res = await fetch('/api/pick_file', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ path_only: true }) });
+    const res = await fetch('/api/pick_file', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ path_only: true, title: dlgTitle })
+    });
     const data = await res.json();
     if (data.status === 'ok' && data.file_path) {
       if (role === 'src') {
@@ -5979,18 +6206,95 @@ async function csExecuteCopy() {
 }
 
 let _PENDING_EXPORT_EXCEL_PATH = '';
+let _PENDING_GUIDE_TXT_PATH = '';
+async function openGuideTxtFile(fpath) {
+  const target = fpath || _PENDING_GUIDE_TXT_PATH;
+  if (!target) return;
+  const res = await fetch('/api/open_guide_txt', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ file_path: target })
+  });
+  const d = await res.json();
+  if (d.status !== 'ok') alert(d.message || '無法開啟說明 .txt 檔案');
+}
+
+async function openStationDiffModal() {
+  const ws = STATE.workspace;
+  const stKeys = Object.keys((ws && ws.stations) || {});
+  if (stKeys.length < 2) {
+    alert('目前工作簿只有 ' + stKeys.length + ' 個測試站分頁；建議先勾選「同步產生台北無硬體分頁 (_TAIPEI)」匯出後再進行比對。');
+    return;
+  }
+  const selA = document.getElementById('diffSheetASel');
+  const selB = document.getElementById('diffSheetBSel');
+  selA.innerHTML = stKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+  selB.innerHTML = stKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+  const prodDefault = stKeys.find(k => !k.endsWith('_TAIPEI')) || stKeys[0];
+  const tpDefault = stKeys.find(k => k.endsWith('_TAIPEI')) || stKeys.find(k => k !== prodDefault) || stKeys[0];
+  selA.value = prodDefault;
+  selB.value = tpDefault;
+  document.getElementById('stationDiffModal').classList.add('open');
+  await runStationDiffCompare();
+}
+
+async function runStationDiffCompare() {
+  const selA = document.getElementById('diffSheetASel');
+  const selB = document.getElementById('diffSheetBSel');
+  const body = document.getElementById('diffStationsResultBody');
+  if (!STATE.workspace || !selA || !selB || !body) return;
+  body.innerHTML = '⏳ 正在比對兩個測試站分頁的所有 Phase 區塊與步驟欄位...';
+  const res = await fetch('/api/diff_station_sheets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workspace: STATE.workspace, sheet_a: selA.value, sheet_b: selB.value })
+  });
+  const d = await res.json();
+  if (d.status !== 'ok') {
+    body.innerHTML = `<div style="color:#B91C1C; font-weight:700;">⚠️ ${d.message || '比對失敗'}</div>`;
+    return;
+  }
+  const onlyA = (d.only_in_a || []).map(x => `<li><b>${x.title}</b> (Phase ${x.phase || '-'}, ${x.step_count} 步)</li>`).join('');
+  const onlyB = (d.only_in_b || []).map(x => `<li><b>${x.title}</b> (Phase ${x.phase || '-'}, ${x.step_count} 步)</li>`).join('');
+  const modHtml = (d.block_diffs || []).map(b => {
+    const chHtml = (b.step_changes || []).slice(0, 8).map(sc => {
+      const cols = (sc.fields || []).map(f => `<code>${f.col}</code>: <span style="color:#1D4ED8;">${f.val_a || '(空)'}</span> → <span style="color:#B45309;">${f.val_b || '(空)'}</span>`).join('；');
+      return `<div>• Step #${sc.step_offset}: ${cols}</div>`;
+    }).join('');
+    return `<div style="border:1px solid #E2E8F0; border-radius:6px; padding:8px 10px; margin-bottom:6px; background:#F8FAFC;">
+      <div style="font-weight:800; color:#0F172A;">📦 ${b.title} <span style="font-weight:600; color:#64748B;">(Phase ${b.phase_a || '-'} vs ${b.phase_b || '-'})</span></div>
+      <div style="font-size:12px; color:#334155; margin-top:4px;">${chHtml || 'Phase 編號不同，步驟內容相同'}</div>
+    </div>`;
+  }).join('');
+  body.innerHTML = `
+    <div style="padding:8px 12px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; margin-bottom:10px; font-weight:800; color:#1E3A8A;">${d.summary}</div>
+    ${onlyA ? `<div style="margin-bottom:8px;"><b>僅存在於 ${d.sheet_a}：</b><ul style="margin:4px 0 0 18px;">${onlyA}</ul></div>` : ''}
+    ${onlyB ? `<div style="margin-bottom:8px;"><b>僅存在於 ${d.sheet_b}：</b><ul style="margin:4px 0 0 18px;">${onlyB}</ul></div>` : ''}
+    ${modHtml ? `<div><b>同區塊欄位差異明細：</b>${modHtml}</div>` : (!onlyA && !onlyB ? '<div style="color:#15803D; font-weight:800;">✅ 兩個分頁所有測項邏輯完全同步！</div>' : '')}
+  `;
+}
+
 function showExportCompleteModal(opts = {}) {
   const modal = document.getElementById('exportConfirmModal');
   if (!modal) return;
   _PENDING_EXPORT_EXCEL_PATH = opts.excelPath || '';
+  _PENDING_GUIDE_TXT_PATH = opts.guideTxtPath || '';
   const titleEl = document.getElementById('ecModalTitle');
   const bodyEl = document.getElementById('ecModalBody');
   const warnEl = document.getElementById('ecModalDllWarn');
   if (titleEl) titleEl.textContent = opts.title || '🎉 檔案匯出完成（已自動開啟輸出資料夾）';
   if (bodyEl) {
+    const txtLine = _PENDING_GUIDE_TXT_PATH
+      ? `<div>• <b>編寫與使用說明：</b><span class="mono">${_PENDING_GUIDE_TXT_PATH}</span> <button type="button" onclick="openGuideTxtFile()" class="btn" style="padding:2px 10px; font-size:12px; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button></div>`
+      : '';
+    const dualLine = opts.taipeiSheet
+      ? `<div>• <b>台北無硬體分頁：</b>已同步寫入 <span class="mono">${opts.taipeiSheet}</span> ＋ ${(opts.switchBats || []).length} 支兩地一鍵切換 <code>.bat</code></div>`
+      : '';
     bodyEl.innerHTML = `
       <div>• <b>已開啟輸出目錄：</b><span class="mono">${opts.outputDir || '-'}</span></div>
       <div>• <b>匯出 Excel 檔案：</b><span class="mono" style="color:#0F172A; font-weight:700;">${opts.excelPath || '-'}</span></div>
+      ${txtLine}
+      ${dualLine}
       ${opts.summaryHtml || ''}
     `;
   }

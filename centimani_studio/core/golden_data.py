@@ -249,32 +249,65 @@ def _get_local_dll_versions(force_refresh=False):
     return versions
 
 
+TEMPLATED_INSTS = {
+    "NI6008-1", "FeasaLED", "IPOWER2401", "IPRO800",
+    "Agilent34401A", "MDA2700", "PS2005-1",
+    "InstIQApiA", "XelM8-B", "MT8870A", "DIO6509",
+}
+
+
 def _sync_real_dll_versions(mother_dict):
     dll_vers = _get_local_dll_versions()
     for sec in ("instruments", "switches"):
         for item in mother_dict.get(sec, []):
             dll_n = str(item.get("ControlDLL", "")).strip().lower()
+            i_name = str(item.get("Name", "")).strip()
+            has_tpl = i_name in TEMPLATED_INSTS
             if dll_vers:
                 item["dll_exists"] = (dll_n in dll_vers) if dll_n else True
                 if dll_n and dll_n in dll_vers:
                     item["Version"] = dll_vers[dll_n]
             else:
                 item["dll_exists"] = True
+            item["has_template"] = has_tpl
+            item["is_usable"] = bool(item["dll_exists"] or has_tpl)
     return mother_dict
 
 
 def check_workspace_missing_dlls(ws: dict) -> dict:
-    """檢查 workspace 中所有 Instrument / Switch 對應的 ControlDLL 是否存在於本機 Centimani Device/ 目錄。"""
+    """檢查 workspace 中實際有掛載 (Mount 非空) 或測站步驟有使用之 Instrument / Switch 對應的 ControlDLL 是否存在。"""
     cm_dir = get_configured_centimani_dir()
     cm_dir_exists = bool(cm_dir and os.path.isdir(cm_dir))
     dll_vers = _get_local_dll_versions(force_refresh=True) if cm_dir_exists else {}
+
+    used_inst_tokens = set()
+    used_sw_tokens = set()
+    for rows in (ws.get("stations") or {}).values():
+        if not isinstance(rows, list):
+            continue
+        for r in rows:
+            it = str(r.get("Instrument", "")).strip().lower()
+            if it:
+                used_inst_tokens.add(it)
+            sw = str(r.get("Switch", "")).strip().lower()
+            if sw:
+                used_sw_tokens.add(sw)
+
     missing_dlls = []
     seen = set()
     for sec in ("instruments", "switches"):
         for inst_r in ws.get(sec, []):
             d_fn = str(inst_r.get("ControlDLL", "")).strip()
             name = str(inst_r.get("Name", "")).strip()
+            mount = str(inst_r.get("Mount", "")).strip()
             if not d_fn:
+                continue
+            if sec == "instruments":
+                funcs = {f.strip().lower() for f in str(inst_r.get("Functions", "")).split(",") if f.strip()}
+                is_active = bool(mount) or (name.lower() in used_inst_tokens) or bool(funcs & used_inst_tokens)
+            else:
+                is_active = bool(mount) or (name.lower() in used_sw_tokens)
+            if not is_active:
                 continue
             key = (name.lower(), d_fn.lower())
             if key in seen:
@@ -325,10 +358,10 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {}, "Scripts": {}},
         "steps": [
             {"Phase": "", "Title": "0,Power ON Sequence", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "Power#-#Obtain Power Lock", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Dev.SwitchOFF,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Switch OFF Channel 1", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Delay,"500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Discharge", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Dev.SwitchON,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Switch ON Channel 1", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release Power Lock", "TestID": "BRME027"}
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.SwitchOFF,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Switch OFF Channel 1", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Discharge", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.SwitchON,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Power#-#Switch ON Channel 1", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release Power Lock", "TestID": "BRME027"}
         ]
     },
     {
@@ -340,9 +373,9 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {"DAQ_1": "Dev1"}, "Scripts": {}},
         "steps": [
             {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ':Delay,"1500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Voltage Stabilize", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ':Dev.VOLTAGE,"RSE,1000,0,1,2"', "Reply": "0", "EndPrompt": "", "Ref": "$VCC_5V;\n$VCC_3V3;\n$VCC_1V8", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Read AI0(5V), AI1(3.3V), AI2(1.8V)", "TestID": "BRPW033"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"1500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Voltage Stabilize", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.VOLTAGE,"RSE,1000,0,1,2"', "Reply": "0", "EndPrompt": "", "Ref": "$VCC_5V;\n$VCC_3V3;\n$VCC_1V8", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Read AI0(5V), AI1(3.3V), AI2(1.8V)", "TestID": "BRPW033"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_5V)","4.75","5.25","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_5V (4.75V~5.25V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_3V3)","3.15","3.45","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_3V3 (3.15V~3.45V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':CheckLimit,"*(VCC_1V8)","1.71","1.89","%f"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DUT#-#Check VCC_1V8 (1.71V~1.89V)", "TestID": "BRPW024"}
@@ -357,8 +390,8 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {}, "Scripts": {}},
         "steps": [
             {"Phase": "3", "Title": "0,DMM Measure DC Voltage,3", "Marco": "", "Instrument": "DC", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "DMM#-#Obtain Multimeter Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "DC", "Switch": "", "Send": ':Dev.DC,"101-102-103,1500"', "Reply": "0", "EndPrompt": "", "Ref": "$CH101_12V;\n$CH102_5V;\n$CH103_3V3", "Validation": "(CH101_12V,%f,11.4,12.6);\n(CH102_5V,%f,4.75,5.25);\n(CH103_3V3,%f,3.15,3.45)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DMM#-#Measure Ch101~103 DC Voltage", "TestID": "BRPW033"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "DC", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "DMM#-#Release Multimeter Lock", "TestID": "BRME027"}
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.DC,"101-102-103,1500"', "Reply": "0", "EndPrompt": "", "Ref": "$CH101_12V;\n$CH102_5V;\n$CH103_3V3", "Validation": "(CH101_12V,%f,11.4,12.6);\n(CH102_5V,%f,4.75,5.25);\n(CH103_3V3,%f,3.15,3.45)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DMM#-#Measure Ch101~103 DC Voltage", "TestID": "BRPW033"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "DMM#-#Release Multimeter Lock", "TestID": "BRME027"}
         ]
     },
     {
@@ -419,8 +452,8 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {"LED_AZ1": "COM17", "LED_Light1": "02"}, "Scripts": {}},
         "steps": [
             {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ':Dev.CaptureAndRead,"01"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": "(LED_Wave,%f,515,535);\n(LED_Int,%f,1000,99999)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "LED#-#Verify Green LED Wavelength & Intensity", "TestID": "IOLE015"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"}
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.CaptureAndRead,"01"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": "(LED_Wave,%f,515,535);\n(LED_Int,%f,1000,99999)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "LED#-#Verify Green LED Wavelength & Intensity", "TestID": "IOLE015"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"}
         ]
     },
     {
@@ -493,8 +526,8 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {}, "Scripts": {}},
         "steps": [
             {"Phase": "97", "Title": "1,End Test Safe Teardown,1", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Obtain Power Lock", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ':Dev.SwitchOFF,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Switch OFF Power", "TestID": "BRME027"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "POWERSWITCH", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release Power Lock", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.SwitchOFF,"1"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Switch OFF Power", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Power#-#Release Power Lock", "TestID": "BRME027"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UARTF@F\\r\\n", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Fixture#-#Pneumatic Fixture UP", "TestID": "OTFX157"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UARTF"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Fixture#-#Disconnect Fixture UART", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Disconnect DUT UART", "TestID": "B7PL025"}
