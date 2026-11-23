@@ -418,9 +418,32 @@ def audit_workspace(workspace):
         pass
 
     # Audit each Station Sheet
+    all_inst_rows = workspace.get("instruments", [])
     for st_name, steps in workspace.get("stations", {}).items():
         if not steps:
             continue
+
+        # Collect instruments mounted specifically to this station (from Instrument Sheet Col A 'Mount')
+        mounted_insts = []
+        mounted_funcs_low = set()
+        mounted_names_low = set()
+        for ir in all_inst_rows:
+            m_tokens = [x.strip() for x in str(ir.get("Mount", "")).split(",") if x.strip()]
+            if st_name in m_tokens:
+                mounted_insts.append(ir)
+                i_nm = str(ir.get("Name", "")).strip().lower()
+                if i_nm:
+                    mounted_names_low.add(i_nm)
+                for fn in str(ir.get("Functions", "")).split(","):
+                    if fn.strip():
+                        mounted_funcs_low.add(fn.strip().lower())
+        all_inst_funcs_low = {
+            fn.strip().lower()
+            for ir in all_inst_rows
+            for fn in str(ir.get("Functions", "")).split(",")
+            if fn.strip()
+        }
+        sw_names_low = {str(sn).strip().lower() for sn in sw_names if str(sn).strip()}
 
         blocks = _build_title_blocks(steps)
 
@@ -569,13 +592,44 @@ def audit_workspace(workspace):
                     except ValueError:
                         errors.append(f"[{st_name} 第 {r_num} 列] Phase 欄位值 '{s_phase}' 非有效整數！")
 
-                # Rule 1: TestID validation
+                # Rule 1: TestID validation (official DV tooltip exempts rows that invoke a Marco subroutine)
                 if not s_tid:
-                    errors.append(f"[{st_name} 第 {r_num} 列] 缺少第 16 欄 TestID（系統可自動補齊合法 7 碼代碼）")
+                    if not s_marco:
+                        errors.append(f"[{st_name} 第 {r_num} 列] 缺少第 16 欄 TestID（系統可自動補齊合法 7 碼代碼）")
                 elif len(s_tid) != 7 and "," not in s_tid and ";" not in s_tid:
                     warnings.append(f"[{st_name} 第 {r_num} 列] TestID '{s_tid}' 長度非標準 7 碼")
                 elif valid_tids and s_tid not in valid_tids and "," not in s_tid and ";" not in s_tid:
                     warnings.append(f"[{st_name} 第 {r_num} 列] TestID '{s_tid}' 未出現在 Test Item Code V2.04 標準表中")
+
+                # Rule 1B: Title comma syntax typo guard (e.g. '0.THERMAL,1' -> '0,THERMAL,1')
+                if s_title and re.match(r"^\d+\.[^,]+", s_title):
+                    warnings.append(
+                        f"[{st_name} 第 {r_num} 列] Title '{s_title}' 開頭使用句點 '.' 分隔（應為半形逗號 ','，如 '0,THERMAL,1'，否則引擎可能誤判啟用碼）"
+                    )
+
+                # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check
+                if all_inst_rows:
+                    if s_inst and mounted_insts and s_inst.lower() not in mounted_funcs_low:
+                        if s_inst.lower() in all_inst_funcs_low:
+                            warnings.append(
+                                f"[{st_name} 第 {r_num} 列] Instrument '{s_inst}' 存在於 Instrument 表，但對應裝置之 Mount 欄未包含站別 '{st_name}'"
+                            )
+                        else:
+                            warnings.append(
+                                f"[{st_name} 第 {r_num} 列] Instrument '{s_inst}' 未出現於已掛載至 '{st_name}' 裝置的 Functions 清單中"
+                            )
+                    if s_sw and mounted_insts:
+                        sw_head = s_sw.split(",", 1)[0].strip().lower()
+                        sw_base = re.sub(r"-\{\d+\}$", "", sw_head)
+                        sw_matched = (
+                            sw_head in sw_names_low
+                            or sw_head in mounted_names_low
+                            or (sw_base != sw_head and any(mn == sw_base or mn.startswith(sw_base + "-") for mn in mounted_names_low))
+                        )
+                        if not sw_matched:
+                            warnings.append(
+                                f"[{st_name} 第 {r_num} 列] Switch 欄指向 '{s_sw}'，但在已掛載至 '{st_name}' 的 Instrument/Switch 中找不到對應名稱（謹防像 PS2005 vs PSS1503 之錯名地雷）"
+                            )
 
                 # Rule 3: ExecMode relative step bounds + interactive choice card generation
                 if s_mode == "":
@@ -1169,9 +1223,9 @@ def auto_fix_workspace(workspace, user_choices=None):
                     else:
                         seen_phases_fix.add(p_int)
 
-                # Fix missing TestID
+                # Fix missing TestID (exempt Marco call rows per official Col P rule)
                 tid = str(step.get("TestID", "")).strip()
-                if not tid:
+                if not tid and not str(step.get("Marco", "")).strip():
                     step["TestID"] = "B7PL025"
                     fixed_logs.append(f"[{st_name} 第 {r_num} 列] 已自動補齊空白 TestID 為 'B7PL025'")
                     modified_cells.append({
@@ -1565,36 +1619,44 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
     run_mode_tok = f"*$({_make_ini_switch_var(workspace, inst_name, sheet_name=sheet_name)})" if use_ini_switch else "0"
     t_header = f"{run_mode_tok},{clean_title},3"
 
-    def _row(phase="", title="", inst="", send="", ref="", val="", exec_mode="1", desc="", tid="B7PL025"):
+    def _row(phase="", title="", inst="", sw="", send="", ref="", val="", exec_mode="1", desc="", tid="B7PL025"):
         return {
             "Index": "", "Phase": phase, "Title": title, "Marco": "",
-            "Instrument": inst, "Switch": "", "Send": send, "Reply": "0" if (send.startswith(":Dev") or send in (":ObtainDevice", ":ReleaseDevice")) else "",
+            "Instrument": inst, "Switch": sw, "Send": send, "Reply": "0" if (send.startswith(":Dev") or send.startswith(":sDev") or send in (":ObtainDevice", ":ReleaseDevice", ":ReleaseSubDevice") or send.startswith(":ObtainSubDevice")) else "",
             "EndPrompt": "", "Ref": ref, "Validation": val, "Prompt": "",
             "Waiting": "", "ExecMode": exec_mode, "Description": desc, "TestID": tid
         }
 
     phase_row0 = "" if same_phase else str(next_p)
     inst_col = "LED_Test" if "LED_TEST" in funcs else primary_test_type
+    active_sw_ref = existing.get("Switch", "").strip() if existing else ""
+    target_sw_val = active_sw_ref or inst_name
+    is_sub_dev = str((existing or inst_meta).get("Sub", "")).strip() == "1"
 
     if custom_steps and isinstance(custom_steps, list):
         block_rows = []
         active_inst = ""
         for idx_cs, cs in enumerate(custom_steps):
             raw_cs_inst = cs.get("Instrument")
+            raw_cs_sw = cs.get("Switch")
             if idx_cs == 0:
-                row_inst = str(raw_cs_inst).strip() if raw_cs_inst not in (None, "") else inst_col
+                row_inst = str(raw_cs_inst).strip() if raw_cs_inst not in (None, "") else ("" if is_sub_dev else inst_col)
                 active_inst = row_inst
+                row_sw = str(raw_cs_sw).strip() if raw_cs_sw not in (None, "") else ("" if is_sub_dev else target_sw_val)
             else:
                 cand_inst = str(raw_cs_inst).strip() if raw_cs_inst is not None else ""
                 if cand_inst and cand_inst != active_inst:
                     row_inst = cand_inst
                     active_inst = cand_inst
+                    row_sw = str(raw_cs_sw).strip() if raw_cs_sw not in (None, "") else ""
                 else:
                     row_inst = ""
+                    row_sw = str(raw_cs_sw).strip() if raw_cs_sw not in (None, "") else ""
             block_rows.append(_row(
                 phase=phase_row0 if idx_cs == 0 else "",
                 title=t_header if idx_cs == 0 else "",
                 inst=row_inst,
+                sw=row_sw,
                 send=str(cs.get("Send", "")),
                 ref=str(cs.get("Ref", "")),
                 val=str(cs.get("Validation", "")),
@@ -1602,9 +1664,25 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 desc=str(cs.get("Description", clean_title)),
                 tid=str(cs.get("TestID", "B7PL025"))
             ))
+    elif is_sub_dev:
+        # Sub=1 共用子設備（如 vnxRFSW / DevUart）：Col E/F 留空，改用 :ObtainSubDevice / :sDev.* / :ReleaseSubDevice
+        if inst_name.lower() == "vnxrfsw":
+            workspace.setdefault("global_ini", {}).setdefault("Scripts", {}).setdefault("RFSW_PORT", "1")
+            block_rows = [
+                _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
+                _row(send=':sDev.gName,"1"', ref="devName;devSN", exec_mode="1", desc=f"INST#-#Read {inst_name} Device Info"),
+                _row(send=':sDev.setSwitch,"1","*$(RFSW_PORT)"', exec_mode="1", desc=f"INST#-#{clean_title} Switch Port"),
+                _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
+            ]
+        else:
+            block_rows = [
+                _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
+                _row(send=':sDev.ClrVar', exec_mode="1", desc=f"INST#-#Clear {inst_name} Buffer"),
+                _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
+            ]
     else:
         block_rows = [
-            _row(phase=phase_row0, title=t_header, inst=inst_col, send=":ObtainDevice", exec_mode="0" if "LED_TEST" in funcs else "1", desc=f"PC#-#Obtain {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
+            _row(phase=phase_row0, title=t_header, inst=inst_col, sw=target_sw_val, send=":ObtainDevice", exec_mode="0" if "LED_TEST" in funcs else "1", desc=f"PC#-#Obtain {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
         ]
         if "LED_TEST" in funcs:
             w_min = str(dl_val).strip() or "515"
@@ -1643,7 +1721,7 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
         pos = insert_idx + off
         steps.insert(pos, r_dict)
         r_num = pos + 2
-        for col_n in ("Phase", "Title", "Instrument", "Send", "Ref", "Validation", "ExecMode", "Description", "TestID"):
+        for col_n in ("Phase", "Title", "Instrument", "Switch", "Send", "Ref", "Validation", "ExecMode", "Description", "TestID"):
             mods.append({
                 "sheet": sheet_name, "row": r_num, "col_name": col_n,
                 "old": "", "new": "INSERTED", "note": note_txt
@@ -1740,7 +1818,7 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
         block_rows.append({
             "Index": "", "Phase": ("" if (same_phase or block_rows) else str(next_p)),
             "Title": f"{rf_run_mode},{lbl}", "Marco": "WIFI Tx MCS",
-            "Instrument": row_inst, "Switch": "",
+            "Instrument": row_inst, "Switch": inst_name if row_inst else "",
             "Send": f"{ch},{bw},{mcs},{ant},{tpwr},{pmin},{pmax},{emin},{emax},{lbl}",
             "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
             "Prompt": "", "Waiting": "", "ExecMode": "1",
@@ -1759,7 +1837,7 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
         block_rows.append({
             "Index": "", "Phase": ("" if (same_phase or block_rows) else str(next_p)),
             "Title": f"{rf_run_mode},{lbl}", "Marco": "WIFI Rx MCS",
-            "Instrument": row_inst, "Switch": "",
+            "Instrument": row_inst, "Switch": inst_name if row_inst else "",
             "Send": f"{ch},{bw},{mcs},{ant},{rlvl},{lbl}",
             "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "",
             "Prompt": "", "Waiting": "", "ExecMode": "1",
@@ -1772,7 +1850,7 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
         pos = insert_idx + off
         steps.insert(pos, r_dict)
         r_num = pos + 2
-        for col_n in ("Phase", "Title", "Marco", "Instrument", "Send", "ExecMode", "Description", "TestID"):
+        for col_n in ("Phase", "Title", "Marco", "Instrument", "Switch", "Send", "ExecMode", "Description", "TestID"):
             mods.append({
                 "sheet": sheet_name, "row": r_num, "col_name": col_n,
                 "old": "", "new": "INSERTED", "note": note_txt
@@ -1784,10 +1862,10 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
     return len(block_rows)
 
 
-def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1, same_phase=False, use_ini_switch=False):
+def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1, same_phase=False, use_ini_switch=False, inst_name="NI6008-1"):
     """
     依 NI-6009 人機介面設定，插入標準 :Dev.VOLTAGE + :CheckLimit 獨立 Title 區塊，
-    同步掛載 NI6008-1 至 Instrument 分頁、寫入 Global.ini [Settings] DAQ_1，並整塊亮黃底標記。
+    同步掛載 NI6008-1 至 Instrument 分頁、填入 Col F (Switch)、寫入 Global.ini [Settings] DAQ_1，並整塊亮黃底標記。
     """
     from .golden_data import get_golden_mother
 
@@ -1795,15 +1873,16 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
     if sheet_name not in stations or not channels:
         return 0
     steps = stations[sheet_name]
+    target_inst_name = str(inst_name or "NI6008-1").strip() or "NI6008-1"
 
-    # 1. Ensure NI6008-1 is in Instrument and mounted to sheet_name
+    # 1. Ensure NI6008 device is in Instrument and mounted to sheet_name
     catalog = get_golden_mother().get("instruments", [])
-    inst_meta = next((i for i in catalog if i.get("Name") == "NI6008-1"), None) or {
-        "Mount": sheet_name, "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll",
-        "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.0.2.1", "Switch": "", "Desc": "DAQ device NI6008/6009"
+    inst_meta = next((i for i in catalog if i.get("Name") == target_inst_name), None) or {
+        "Mount": sheet_name, "Name": target_inst_name, "Sub": "", "ControlDLL": "DaqUSBNi.dll",
+        "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"
     }
     ws_insts = workspace.setdefault("instruments", [])
-    existing = next((i for i in ws_insts if str(i.get("Name", "")).strip() == "NI6008-1"), None)
+    existing = next((i for i in ws_insts if str(i.get("Name", "")).strip() == target_inst_name), None)
     if existing:
         cur_m = str(existing.get("Mount", "")).strip()
         m_list = [x.strip() for x in cur_m.split(",") if x.strip()]
@@ -1839,17 +1918,17 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
     ref_lines = ";\n".join(f"${c['name']}" for c in channels)
     ch_desc = ", ".join(f"AI{c['ch']}({c['name']})" for c in channels)
 
-    def _row(phase="", title="", inst="", send="", ref="", exec_mode="0", desc="", tid="B7PL025"):
+    def _row(phase="", title="", inst="", sw="", send="", ref="", exec_mode="0", desc="", tid="B7PL025"):
         return {
             "Index": "", "Phase": phase, "Title": title, "Marco": "",
-            "Instrument": inst, "Switch": "", "Send": send, "Reply": "0",
+            "Instrument": inst, "Switch": sw, "Send": send, "Reply": "0",
             "EndPrompt": "", "Ref": ref, "Validation": "", "Prompt": "",
             "Waiting": "", "ExecMode": exec_mode, "Description": desc, "TestID": tid
         }
 
-    ni_run_mode = f"*$({_make_ini_switch_var(workspace, 'NI6008_1', sheet_name=sheet_name)})" if use_ini_switch else "0"
+    ni_run_mode = f"*$({_make_ini_switch_var(workspace, target_inst_name.replace('-', '_'), sheet_name=sheet_name)})" if use_ini_switch else "0"
     block_rows = [
-        _row(phase=("" if same_phase else str(next_p)), title=f"{ni_run_mode},{clean_title},3", inst="Voltage", send=":ObtainDevice", exec_mode="0", desc="INST#-#Obtain NI6009 Lock"),
+        _row(phase=("" if same_phase else str(next_p)), title=f"{ni_run_mode},{clean_title},3", inst="Voltage", sw=target_inst_name, send=":ObtainDevice", exec_mode="0", desc="INST#-#Obtain NI6009 Lock"),
         _row(inst="", send=':Delay,"1500"', exec_mode="0", desc="PC#-#Wait Voltage Stabilize"),
         _row(inst="", send=f':Dev.VOLTAGE,"{mode},{sample_ms},{ch_nums}"', ref=ref_lines, exec_mode="0", desc=f"INST#-#Read {ch_desc}", tid="BRPW033"),
         _row(inst="", send=":ReleaseDevice", exec_mode="3", desc="INST#-#Release NI6009 Lock", tid="BRME027"),
@@ -1868,7 +1947,7 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
         pos = insert_idx + off
         steps.insert(pos, r_dict)
         r_num = pos + 2
-        for col_n in ("Phase", "Title", "Instrument", "Send", "Ref", "ExecMode", "Description", "TestID"):
+        for col_n in ("Phase", "Title", "Instrument", "Switch", "Send", "Ref", "ExecMode", "Description", "TestID"):
             mods.append({
                 "sheet": sheet_name, "row": r_num, "col_name": col_n,
                 "old": "", "new": "INSERTED", "note": note_txt

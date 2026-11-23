@@ -82,35 +82,36 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
         "instruments": [
             {"Mount": "", "Name": "IPOWER2401", "Sub": "", "ControlDLL": "iPower2401.dll", "Settings": "192.168.201.11,192.168.201.3,9999,1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch 2401"},
             {"Mount": "", "Name": "IPRO800", "Sub": "", "ControlDLL": "iPowerPro800.dll", "Settings": "*$(PCUART_P),1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch Pro800"},
-            {"Mount": station_name, "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"},
+            {"Mount": "", "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"},
             {"Mount": "", "Name": "Agilent34401A", "Sub": "", "ControlDLL": "Agilent34401A.dll", "Settings": "GPIB,GPIB0::16::INSTR", "Functions": "DC,AC,FREQ", "Version": "1.0.0.2", "Switch": "", "Desc": "Agilent 34401A Multimeter (Device\\Agilent34401A.dll)"},
             {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "2.1.0.1", "Switch": "", "Desc": "LED analyser FeasaLED"},
             {"Mount": "", "Name": "NI4461", "Sub": "", "ControlDLL": "DaqNI4461.dll", "Settings": "Dev2", "Functions": "VOIP,RMS", "Version": "1.0.0.0", "Switch": "", "Desc": "DAQ device NI4461 Audio"},
             {"Mount": "", "Name": "QRDecode", "Sub": "", "ControlDLL": "QRDecode.dll", "Settings": "", "Functions": "QRCode", "Version": "1.0.0.0", "Switch": "", "Desc": "Decode QR Code"},
-            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"},
-            {"Mount": "", "Name": "XelM8-B", "Sub": "", "ControlDLL": "InstIQApi_B.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT", "Version": "1.0.0.0", "Switch": "", "Desc": "LitePoint IQxel B Route"},
-            {"Mount": "", "Name": "MT8870A", "Sub": "", "ControlDLL": "InstAnritsu.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT", "Version": "1.0.0.0", "Switch": "", "Desc": "Anritsu MT8870A RF Tester"},
-            {"Mount": "", "Name": "Chroma6150x", "Sub": "", "ControlDLL": "Chroma6150x.dll", "Settings": "", "Functions": "ACSource", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma AC Power Source"},
-            {"Mount": "", "Name": "Chroma6310A", "Sub": "", "ControlDLL": "Chroma6310A.dll", "Settings": "", "Functions": "DCLoad", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma DC Electronic Load"},
-            {"Mount": "", "Name": "KEITHLEY2302", "Sub": "", "ControlDLL": "KEITHLEY2302.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2302 Battery Simulator"},
-            {"Mount": "", "Name": "PPH1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Supply PPH1503"},
-            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.1", "Switch": "", "Desc": "Power Supply PSS2005"},
-            {"Mount": "", "Name": "GDM906x", "Sub": "", "ControlDLL": "GDM906x.dll", "Settings": "", "Functions": "DMM", "Version": "1.0.0.0", "Switch": "", "Desc": "GW Instek GDM906x Multimeter"},
-            {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ", "Version": "1.0.0.1", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
-            {"Mount": "", "Name": "E4418B", "Sub": "", "ControlDLL": "PMeterE4418B.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent E4418B Power Meter"},
-            {"Mount": "", "Name": "U2004A", "Sub": "", "ControlDLL": "U2004A.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Keysight U2004A USB Power Sensor"},
-            {"Mount": "", "Name": "OSP120", "Sub": "", "ControlDLL": "NFT.dll", "Settings": "", "Functions": "RFSW", "Version": "1.0.0.0", "Switch": "", "Desc": "R&S OSP120 RF Switch"},
-            {"Mount": "", "Name": "SAn9000", "Sub": "", "ControlDLL": "SAn9000.dll", "Settings": "", "Functions": "SA", "Version": "1.0.0.0", "Switch": "", "Desc": "Spectrum Analyzer"},
-            {"Mount": "", "Name": "vnxRFSW", "Sub": "", "ControlDLL": "vnxRFSWlib.dll", "Settings": "", "Functions": "RFSW", "Version": "1.0.0.0", "Switch": "", "Desc": "Vaunix RF Switch"},
-            {"Mount": "", "Name": "HXTaudio", "Sub": "", "ControlDLL": "HXTaudio.dll", "Settings": "", "Functions": "Audio", "Version": "1.0.0.0", "Switch": "", "Desc": "HXT Audio Analyzer"},
-            {"Mount": "", "Name": "SAu3751", "Sub": "", "ControlDLL": "SAu3751.dll", "Settings": "", "Functions": "Audio", "Version": "1.0.0.0", "Switch": "", "Desc": "Audio Analyzer SAu3751"},
-            {"Mount": "", "Name": "FC6000-1", "Sub": "", "ControlDLL": "FCPM6000.dll", "Settings": "", "Functions": "AirTest", "Version": "1.0.0.0", "Switch": "", "Desc": "Fukuda Air Leak Tester FC6000"},
-            {"Mount": "", "Name": "FM480-1", "Sub": "", "ControlDLL": "FM480.dll", "Settings": "", "Functions": "AirTest", "Version": "1.0.0.0", "Switch": "", "Desc": "Flow Meter FM480"},
-            {"Mount": "", "Name": "DIO6509", "Sub": "", "ControlDLL": "DigitIO6509.dll", "Settings": "", "Functions": "DIO", "Version": "1.0.0.0", "Switch": "", "Desc": "NI PCI-6509 Digital I/O"},
-            {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
-            {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
-            {"Mount": "", "Name": "ScpTDS3014B", "Sub": "", "ControlDLL": "ScpTDS3014B.dll", "Settings": "", "Functions": "Scope", "Version": "1.0.0.0", "Switch": "", "Desc": "Tektronix TDS3014B Oscilloscope"},
-            {"Mount": "", "Name": "DevUart", "Sub": "", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller"},
+            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT,WIFI 5G,WIFI 2.4G,BT,CW", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"},
+            {"Mount": "", "Name": "XelM8-B", "Sub": "", "ControlDLL": "InstIQApi_B.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT,WIFI 5G,WIFI 2.4G,BT,CW", "Version": "1.0.0.0", "Switch": "", "Desc": "LitePoint IQxel B Route"},
+            {"Mount": "", "Name": "MT8870A", "Sub": "", "ControlDLL": "InstAnritsu.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT,WIFI,BT", "Version": "1.0.0.0", "Switch": "", "Desc": "Anritsu MT8870A RF Tester"},
+            {"Mount": "", "Name": "Chroma6150x", "Sub": "", "ControlDLL": "Chroma6150x.dll", "Settings": "", "Functions": "ACSource,PowerSource", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma AC Power Source"},
+            {"Mount": "", "Name": "Chroma6310A", "Sub": "", "ControlDLL": "Chroma6310A.dll", "Settings": "", "Functions": "DCLoad,ElectronicLoad", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma DC Electronic Load"},
+            {"Mount": "", "Name": "KEITHLEY2302", "Sub": "", "ControlDLL": "KEITHLEY2302.dll", "Settings": "", "Functions": "DC,SetVoltageCurrent,GetVoltageCurrent", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2302 Battery Simulator"},
+            {"Mount": "", "Name": "PPH1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "GPIB,*$(GPIBPPH1503)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR,MSCurr,MSVolt,SetCurr,SetVolt,SetON,OUTONOFF", "Version": "1.0.2.0", "Switch": "", "Desc": "Power Supply PPH1503"},
+            {"Mount": "", "Name": "PSS1503-1", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "GPIB,*$(GPIB1503-1)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.3.0", "Switch": "", "Desc": "DC Power 1503"},
+            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "GPIB,*$(GPIB2005)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.1.0", "Switch": "", "Desc": "Power Supply PSS2005"},
+            {"Mount": "", "Name": "GDM906x", "Sub": "", "ControlDLL": "GDM906x.dll", "Settings": "", "Functions": "DMM,VDC,ADC,VAC,AAC,FREQ", "Version": "1.0.0.0", "Switch": "", "Desc": "GW Instek GDM906x Multimeter"},
+            {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ,FREQ,AC,DC", "Version": "1.0.0.1", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
+            {"Mount": "", "Name": "E4418B", "Sub": "", "ControlDLL": "PMeterE4418B.dll", "Settings": "", "Functions": "PMeter,RFPWR", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent E4418B Power Meter"},
+            {"Mount": "", "Name": "U2004A", "Sub": "", "ControlDLL": "U2004A.dll", "Settings": "", "Functions": "PMeter,txPWR", "Version": "2.0.1.0", "Switch": "", "Desc": "Keysight U2004A USB Power Sensor"},
+            {"Mount": "", "Name": "OSP120", "Sub": "", "ControlDLL": "NFT.dll", "Settings": "", "Functions": "RFSW,NFT", "Version": "1.0.0.0", "Switch": "", "Desc": "R&S OSP120 RF Switch"},
+            {"Mount": "", "Name": "SAn9000", "Sub": "", "ControlDLL": "SAn9000.dll", "Settings": "", "Functions": "SA,RFPWR,FREQ,SMASK", "Version": "1.0.0.0", "Switch": "", "Desc": "Spectrum Analyzer"},
+            {"Mount": "", "Name": "vnxRFSW", "Sub": "1", "ControlDLL": "vnxRFSWlib.dll", "Settings": ".\\device\\VNX_switch.dll", "Functions": "RFSW,gInfo,gName,initDev,getSwitch,setSwitch,getActive", "Version": "1.0.0.0", "Switch": "", "Desc": "Vaunix RF Switch (SubDevice)"},
+            {"Mount": "", "Name": "HXTaudio", "Sub": "", "ControlDLL": "HXTaudio.dll", "Settings": "", "Functions": "Audio,HXTaudio1", "Version": "1.0.0.6", "Switch": "", "Desc": "HXT Audio Analyzer"},
+            {"Mount": "", "Name": "SAu3751", "Sub": "", "ControlDLL": "SAu3751.dll", "Settings": "", "Functions": "Audio,RFPWR,FREQ,SMASK", "Version": "1.0.0.0", "Switch": "", "Desc": "Audio Analyzer SAu3751"},
+            {"Mount": "", "Name": "FC6000-1", "Sub": "", "ControlDLL": "FCPM6000.dll", "Settings": "FCPM-6000RC,1,500", "Functions": "AirTest,PwrRG,FcRG,rFreq,rPwr,rVol,rFrPw,List,gIP,Rst,CHECK", "Version": "1.0.1.10", "Switch": "", "Desc": "Fukuda Air Leak Tester FC6000"},
+            {"Mount": "", "Name": "FM480-1", "Sub": "", "ControlDLL": "FM480.dll", "Settings": "", "Functions": "AirTest,FSCAN", "Version": "1.0.1.0", "Switch": "", "Desc": "Flow Meter FM480"},
+            {"Mount": "", "Name": "DIO6509", "Sub": "", "ControlDLL": "DigitIO6509.dll", "Settings": "", "Functions": "DIO,IOswitch", "Version": "1.0.0.0", "Switch": "", "Desc": "NI PCI-6509 Digital I/O"},
+            {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR,RRout", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
+            {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE,SETDVBC,PREDEV,RESDEV,DEFDEV", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
+            {"Mount": "", "Name": "ScpTDS3014B", "Sub": "", "ControlDLL": "ScpTDS3014B.dll", "Settings": "", "Functions": "Scope,RMS,VOLAGE,FREQ,MEAN,AMPL,PK2PK", "Version": "1.0.3.2", "Switch": "", "Desc": "Tektronix TDS3014B Oscilloscope"},
+            {"Mount": "", "Name": "DevUart", "Sub": "1", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller (SubDevice)"},
             {"Mount": "", "Name": "AutoTFTP", "Sub": "", "ControlDLL": "AutoTFTP.dll", "Settings": "", "Functions": "TFTP", "Version": "1.0.0.0", "Switch": "", "Desc": "Auto TFTP Server"},
             {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.1.0", "Switch": "", "Desc": "Device Queue Sync"},
             {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"}
@@ -372,7 +373,7 @@ STANDARD_BLOCKS = [
         "default_phase": "1",
         "required_globals": {"Settings": {"DAQ_1": "Dev1"}, "Scripts": {}},
         "steps": [
-            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"1500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Voltage Stabilize", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.VOLTAGE,"RSE,1000,0,1,2"', "Reply": "0", "EndPrompt": "", "Ref": "$VCC_5V;\n$VCC_3V3;\n$VCC_1V8", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Read AI0(5V), AI1(3.3V), AI2(1.8V)", "TestID": "BRPW033"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
@@ -389,7 +390,7 @@ STANDARD_BLOCKS = [
         "default_phase": "3",
         "required_globals": {"Settings": {}, "Scripts": {}},
         "steps": [
-            {"Phase": "3", "Title": "0,DMM Measure DC Voltage,3", "Marco": "", "Instrument": "DC", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "DMM#-#Obtain Multimeter Lock", "TestID": "B7PL025"},
+            {"Phase": "3", "Title": "0,DMM Measure DC Voltage,3", "Marco": "", "Instrument": "DC", "Switch": "Agilent34401A", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "DMM#-#Obtain Multimeter Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.DC,"101-102-103,1500"', "Reply": "0", "EndPrompt": "", "Ref": "$CH101_12V;\n$CH102_5V;\n$CH103_3V3", "Validation": "(CH101_12V,%f,11.4,12.6);\n(CH102_5V,%f,4.75,5.25);\n(CH103_3V3,%f,3.15,3.45)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "DMM#-#Measure Ch101~103 DC Voltage", "TestID": "BRPW033"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "DMM#-#Release Multimeter Lock", "TestID": "BRME027"}
         ]
@@ -451,7 +452,7 @@ STANDARD_BLOCKS = [
         "default_phase": "8",
         "required_globals": {"Settings": {"LED_AZ1": "COM17", "LED_Light1": "02"}, "Scripts": {}},
         "steps": [
-            {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
+            {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "FeasaLED", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.CaptureAndRead,"01"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": "(LED_Wave,%f,515,535);\n(LED_Int,%f,1000,99999)", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "LED#-#Verify Green LED Wavelength & Intensity", "TestID": "IOLE015"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"}
         ]
@@ -513,8 +514,8 @@ STANDARD_BLOCKS = [
             ]
         },
         "steps": [
-            {"Phase": "9", "Title": "0,WIFI TX1_CH3 MCS7_BW20", "Marco": "WIFI Tx MCS", "Instrument": "MeasWIFI", "Switch": "", "Send": "3,20,7,1,15,13,17,-50,-28,WIFI TX1_CH3 MCS7_BW20", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "RF#-#WIFI TX CH3 MCS7 BW20", "TestID": "WFOT036"},
-            {"Phase": "", "Title": "0,WIFI RX1_CH5 MCS7_BW40", "Marco": "WIFI Rx MCS", "Instrument": "GenWIFI", "Switch": "", "Send": "5,40,7,1,-59,WIFI RX1_CH5 MCS7_BW40", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "RF#-#WIFI RX CH5 MCS7 BW40", "TestID": "WFOT036"}
+            {"Phase": "9", "Title": "0,WIFI TX1_CH3 MCS7_BW20", "Marco": "WIFI Tx MCS", "Instrument": "MeasWIFI", "Switch": "InstIQApiA", "Send": "3,20,7,1,15,13,17,-50,-28,WIFI TX1_CH3 MCS7_BW20", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "RF#-#WIFI TX CH3 MCS7 BW20", "TestID": "WFOT036"},
+            {"Phase": "", "Title": "0,WIFI RX1_CH5 MCS7_BW40", "Marco": "WIFI Rx MCS", "Instrument": "GenWIFI", "Switch": "InstIQApiA", "Send": "5,40,7,1,-59,WIFI RX1_CH5 MCS7_BW40", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "RF#-#WIFI RX CH5 MCS7 BW40", "TestID": "WFOT036"}
         ]
     },
     {

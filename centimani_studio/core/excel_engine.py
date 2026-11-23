@@ -14,6 +14,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.comments import Comment
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from .golden_data import (
     STATION_HEADERS_16,
     MARCO_HEADERS_11,
@@ -47,12 +48,78 @@ ALIGN_LEFT = Alignment(wrap_text=True, vertical="center", horizontal="left")
 ALIGN_CENTER = Alignment(wrap_text=True, vertical="center", horizontal="center")
 
 
-def _read_bounded_rows(ws_sheet, max_col=17, max_empty_streak=50, hard_limit=5000):
+STATION_HEADER_TOOLTIPS = {
+    "A1": ("TestID index 定義", "由 EditorScriptTool 自動定義\n若欄位為空白時，程序將會自動加入\nPS: 第一次生成時，請清空讓系統重新編排"),
+    "B1": ("測試順序定義", "0：測試前動作\n1~96： 測試順序，可重複定義，但必需注意順序性\n97：End Test 後動作\n98：End PASS 後動作\n99：End FAIL 後動作"),
+    "C1": ("該測試項名稱", "設定此測試大項名稱（格式：0/2/*$(Var),名稱,重試次數）"),
+    "D1": ("Group Loop 測試定義", "可重複 Call Loop testing\n若有需一併設定 Title 名稱, 若需要帶入參數則填在Send欄位\n若無時，請清除為空白"),
+    "E1": ("輸入 Instrument Function name", "輸入於 Instrument Sheet 內定義其中一 Function name\n若無時請清除為空白\n並於 Instrument Sheet 內填入該站別名"),
+    "F1": ("DUT與Device/Switch的接線設定", '若有搭配 Switch 時，填入 Switch Name\n若無時，需填入 Instrument Name\n格式 : DeviceName,"DUT ChainNo:Device Route-Port"\n           SwitchName,"DUT ChainNo:Switch L1, L2, …"'),
+    "G1": ("要執行的小項測試動作", "可定義執行所有動作項目\n與 Marco 引入參數設定\n相關設定請參照說明書"),
+    "H1": ("動作判斷條件", "運行後判斷條件\n加上 @ 可設為 Reply 中包含關鍵字即可\n若無時 Reply 將需要完全一樣"),
+    "I1": ("結束字元定義", "若有特殊結束字元時可定義於此\n若無時，請清除為空白"),
+    "J1": ("儲存變數名稱", "可將 Send 後所有Reply 執行儲存為變數使用\n加上 $ 可設定為公用變數\n若無時，僅為該 Phase 內部使用"),
+    "K1": ("驗證某變數的值是否有符合設定的上下限條件", "可取出 Ref 內變數進行相對判斷式定義\nFormat : (KeyName,Value type,DL,UL)\nValue type : %s(字串), %d(整數), %f(浮點數), %x(16進位整數)"),
+    "L1": ("執行前判斷設定", "用來確認收到特定訊息後才執行command，\n第一字元為@表示含有即可，沒有則是全符合"),
+    "M1": ("Time Out 定設定", "等待DUT回應的時間，沒設定則以 System.ini 內預設為主"),
+    "N1": ("執行模式", "0 : Normal mode\n1 : Direct Retry on Fail\n2 : Retry from Retry Point   ex: 2:RetryPoint\n3 : Continue\n4 : Condition ex: 4:PassStep,FailStep\n6 : Skip\n8 : Normal mode while SFIS Enable\n9 : Direct Retry while SFIS Enable"),
+    "O1": ("描述執行的command", "建議以 主體#-#動作 格式填寫"),
+    "P1": ("設定 Item TestID", "需參照 TestItem list 填入對應TestID，\n該欄位除定義為 Marco 外，不可為空白"),
+}
+
+
+def _apply_station_header_tooltips(ws_st, preserved_dvs=None):
+    """Attaches preserved DataValidations or standard 16-column Centimani header tooltips onto A1:P1."""
+    if preserved_dvs:
+        for dv in preserved_dvs:
+            ws_st.add_data_validation(_copy_style(dv))
+        return
+    for cell_ref, (p_title, p_body) in STATION_HEADER_TOOLTIPS.items():
+        dv = DataValidation(showInputMessage=True, promptTitle=p_title, prompt=p_body)
+        ws_st.add_data_validation(dv)
+        dv.add(cell_ref)
+
+
+def _write_station_sheet_contents(ws_st, steps, fixed_cell_map, preserved_dvs=None):
+    """Writes a 16-column Station sheet consistently across In-Place and Brand-New exports, preserving hidden rows."""
+    total_steps = len(steps)
+    ws_st.append([f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:])
+    for idx, step in enumerate(steps):
+        step["Index"] = f"{idx:03d}"
+        row_vals = [
+            step.get(h, "") if (step.get(h, "") is not None and str(step.get(h, "")) != "") else None
+            for h in STATION_HEADERS_16
+        ]
+        ws_st.append(row_vals)
+        if step.get("_hidden"):
+            ws_st.row_dimensions[idx + 2].hidden = True
+    apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=fixed_cell_map)
+    _apply_station_header_tooltips(ws_st, preserved_dvs=preserved_dvs)
+
+
+def _write_marco_sheet_contents(ws_m, m_steps, fixed_cell_map):
+    """Writes an 11-column Marco subroutine sheet consistently, preserving hidden rows."""
+    ws_m.append([f"Index_{len(m_steps)}"] + MARCO_HEADERS_11[1:])
+    for idx, step in enumerate(m_steps):
+        step["Index"] = f"{idx:02d}"
+        row_vals = [
+            step.get(h, "") if (step.get(h, "") is not None and str(step.get(h, "")) != "") else None
+            for h in MARCO_HEADERS_11
+        ]
+        ws_m.append(row_vals)
+        if step.get("_hidden"):
+            ws_m.row_dimensions[idx + 2].hidden = True
+    apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=fixed_cell_map)
+
+
+def _read_bounded_rows(ws_sheet, max_col=17, max_empty_streak=50, hard_limit=5000, include_hidden=False):
     """
     Streams rows from a worksheet and stops early after `max_empty_streak` consecutive blank rows.
     Prevents 30~60s freezes when an Excel sheet has formatting or DataValidation dragged down to row 1,048,576.
+    When `include_hidden=True`, returns `(rows, hidden_flags)` tracking `row_dimensions[r_idx].hidden`.
     """
     rows = []
+    hidden_flags = []
     empty_streak = 0
     for r_idx, r in enumerate(ws_sheet.iter_rows(max_col=max_col, values_only=True), start=1):
         if r_idx > hard_limit:
@@ -64,7 +131,10 @@ def _read_bounded_rows(ws_sheet, max_col=17, max_empty_streak=50, hard_limit=500
             continue
         empty_streak = 0
         rows.append(r)
-    return rows
+        if include_hidden:
+            dim = ws_sheet.row_dimensions.get(r_idx)
+            hidden_flags.append(bool(dim and dim.hidden))
+    return (rows, hidden_flags) if include_hidden else rows
 
 
 def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
@@ -311,27 +381,16 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
         # Write or update Station sheets (16 columns including TestID) in In-Place mode
         STATION_TAB_COLORS = ["2563EB", "16A34A", "D97706", "7C3AED", "0891B2", "DB2777", "DC2626", "0D9488"]
         for st_idx, (st_name, steps) in enumerate(workspace.get("stations", {}).items()):
+            preserved_dvs = None
             if st_name in wb.sheetnames:
                 idx_pos = wb.sheetnames.index(st_name)
+                preserved_dvs = list(wb[st_name].data_validations.dataValidation)
                 wb.remove(wb[st_name])
                 ws_st = wb.create_sheet(title=st_name, index=idx_pos)
             else:
                 ws_st = wb.create_sheet(title=st_name)
             ws_st.sheet_properties.tabColor = STATION_TAB_COLORS[st_idx % len(STATION_TAB_COLORS)]
-
-            total_steps = len(steps)
-            st_headers = [f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:]
-            ws_st.append(st_headers)
-
-            for idx, step in enumerate(steps):
-                step["Index"] = f"{idx:03d}"
-                row_vals = []
-                for h in STATION_HEADERS_16:
-                    val = step.get(h, "")
-                    row_vals.append(val if (val is not None and str(val) != "") else None)
-                ws_st.append(row_vals)
-
-            apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=sheet_fixed_map.get(st_name, {}))
+            _write_station_sheet_contents(ws_st, steps, sheet_fixed_map.get(st_name, {}), preserved_dvs=preserved_dvs)
 
         # Write or update Marco sheets (11 columns: Index_NN + Send..TestID) in In-Place mode
         for m_name, m_steps in workspace.get("marcos", {}).items():
@@ -343,16 +402,7 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
                 ws_m = wb.create_sheet(title=m_name, index=idx_pos)
             else:
                 ws_m = wb.create_sheet(title=m_name)
-            m_headers = [f"Index_{len(m_steps)}"] + MARCO_HEADERS_11[1:]
-            ws_m.append(m_headers)
-            for idx, step in enumerate(m_steps):
-                step["Index"] = f"{idx:02d}"
-                row_vals = []
-                for h in MARCO_HEADERS_11:
-                    val = step.get(h, "")
-                    row_vals.append(val if (val is not None and str(val) != "") else None)
-                ws_m.append(row_vals)
-            apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=sheet_fixed_map.get(m_name, {}))
+            _write_marco_sheet_contents(ws_m, m_steps, sheet_fixed_map.get(m_name, {}))
 
         # Format other sheets cleanly with Calibri 11 + wrap_text without losing any columns
         for s_other in wb.sheetnames:
@@ -415,34 +465,14 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     for st_idx, (st_name, steps) in enumerate(workspace.get("stations", {}).items()):
         ws_st = wb.create_sheet(title=st_name)
         ws_st.sheet_properties.tabColor = STATION_TAB_COLORS[st_idx % len(STATION_TAB_COLORS)]
-        total_steps = len(steps)
-        st_headers = [f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:]
-        ws_st.append(st_headers)
-
-        for idx, step in enumerate(steps):
-            step["Index"] = f"{idx:03d}"
-            row_vals = []
-            for h in STATION_HEADERS_16:
-                val = step.get(h, "")
-                row_vals.append(val if (val is not None and str(val) != "") else None)
-            ws_st.append(row_vals)
-        apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=sheet_fixed_map.get(st_name, {}))
+        _write_station_sheet_contents(ws_st, steps, sheet_fixed_map.get(st_name, {}))
 
     # 6. Marco Sheets (11 columns: Index_NN + Send..TestID)
     for m_name, m_steps in workspace.get("marcos", {}).items():
         if not isinstance(m_steps, list):
             continue
         ws_m = wb.create_sheet(title=m_name)
-        m_headers = [f"Index_{len(m_steps)}"] + MARCO_HEADERS_11[1:]
-        ws_m.append(m_headers)
-        for idx, step in enumerate(m_steps):
-            step["Index"] = f"{idx:02d}"
-            row_vals = []
-            for h in MARCO_HEADERS_11:
-                val = step.get(h, "")
-                row_vals.append(val if (val is not None and str(val) != "") else None)
-            ws_m.append(row_vals)
-        apply_sheet_formatting(ws_m, is_station=False, fixed_cell_map=sheet_fixed_map.get(m_name, {}))
+        _write_marco_sheet_contents(ws_m, m_steps, sheet_fixed_map.get(m_name, {}))
 
     _set_active_worksheet(wb, workspace, active_sheet)
 
@@ -527,7 +557,7 @@ def import_excel_to_workspace(xlsx_path):
     for s_name in wb.sheetnames:
         if s_name in ["Properties", "DUTs", "Switch", "Instrument", "PathLoss"]:
             continue
-        rows = _read_bounded_rows(wb[s_name], max_col=17, max_empty_streak=50, hard_limit=5000)
+        rows, hidden_flags = _read_bounded_rows(wb[s_name], max_col=17, max_empty_streak=50, hard_limit=5000, include_hidden=True)
         if not rows:
             continue
         headers = [str(c).strip() if c is not None else "" for c in rows[0][:17]]
@@ -537,7 +567,7 @@ def import_excel_to_workspace(xlsx_path):
             if first_station is None:
                 first_station = s_name
             step_list = []
-            for r in rows[1:]:
+            for r, is_hid in zip(rows[1:], hidden_flags[1:]):
                 if not any(r[:16]):
                     continue
                 r_pad = list(r[:16]) + [None] * max(0, 16 - len(r[:16]))
@@ -545,12 +575,14 @@ def import_excel_to_workspace(xlsx_path):
                 for c_i, h_key in enumerate(STATION_HEADERS_16):
                     v = r_pad[c_i]
                     step_item[h_key] = str(v).strip() if v is not None else ""
+                if is_hid:
+                    step_item["_hidden"] = True
                 step_list.append(step_item)
             ws_data["stations"][s_name] = step_list
         elif "Send" in headers:
             # 11-Column Marco Sheet (parse full steps list for auditing, jump editing, and dry-run)
             m_list = []
-            for r in rows[1:]:
+            for r, is_hid in zip(rows[1:], hidden_flags[1:]):
                 if not any(r[:11]):
                     continue
                 r_pad = list(r[:11]) + [None] * max(0, 11 - len(r[:11]))
@@ -558,6 +590,8 @@ def import_excel_to_workspace(xlsx_path):
                 for c_i, h_key in enumerate(MARCO_HEADERS_11):
                     v = r_pad[c_i]
                     m_item[h_key] = str(v).strip() if v is not None else ""
+                if is_hid:
+                    m_item["_hidden"] = True
                 m_list.append(m_item)
             ws_data["marcos"][s_name] = m_list
 

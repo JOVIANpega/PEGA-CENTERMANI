@@ -788,6 +788,72 @@ def run_all_verifications():
             check(any(str(d.get("Station", "")).startswith("FT1,") for d in missing_dut_ws.get("duts", [])),
                   "auto_fix_workspace 自動為缺漏測站補齊 DUTs 列")
 
+            # [v0.8.016] 驗證依照 4 目錄知識庫改寫之核心邏輯：
+            # 1) Golden Mother 預設不幽靈掛載 NI6008-1，且 vnxRFSW / DevUart 正確標記 Sub=1
+            from core.golden_data import get_golden_mother as _get_gm_v16
+            gm_v16 = _get_gm_v16("CLEAN_PROJ", "ST1")
+            gm_inst_map = {str(i.get("Name", "")): i for i in gm_v16.get("instruments", [])}
+            check(gm_inst_map.get("NI6008-1", {}).get("Mount", "BAD") == "",
+                  "Golden Mother 預設不自動 Mount NI6008-1（無儀器站別不幽靈載入）")
+            check(gm_inst_map.get("vnxRFSW", {}).get("Sub") == "1" and gm_inst_map.get("DevUart", {}).get("Sub") == "1",
+                  "Golden Mother 正確設定 vnxRFSW 與 DevUart 為共用子裝置 (Sub=1)")
+
+            # 2) 插入標準儀器 (NI6008-1 / RF / FeasaLED) 必寫 Col F (Switch)，而 Sub=1 (vnxRFSW) 改用 :ObtainSubDevice / :sDev.* 且 Col E/F 留空
+            wb_ni_chk = openpyxl.load_workbook(ask_res["excel_path"], data_only=True)
+            ni_sw_vals = [str(r[5] or "").strip() for r in wb_ni_chk["MB"].iter_rows(min_row=2, values_only=True) if r and str(r[6] or "").strip() == ":ObtainDevice"]
+            wb_ni_chk.close()
+            check("NI6008-1" in ni_sw_vals,
+                  "插入 NI6008-1 範本時於 :ObtainDevice 列同步寫入 Col F (Switch=NI6008-1)", str(ni_sw_vals))
+
+            sub_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "vnxRFSW", "title_name": "Switch Ant0"}],
+                "project_name": "SUB_RFSW",
+                "station_name": "OTA",
+                "open_excel": False,
+            })
+            wb_sub_chk = openpyxl.load_workbook(sub_res["excel_path"], data_only=True)
+            ota_rows = list(wb_sub_chk["OTA"].iter_rows(min_row=2, values_only=True))
+            ota_dvs = list(wb_sub_chk["OTA"].data_validations.dataValidation)
+            wb_sub_chk.close()
+            check(any(':ObtainSubDevice,"vnxRFSW"' in str(r[6] or "") and str(r[4] or "") == "" and str(r[5] or "") == "" for r in ota_rows),
+                  "Sub=1 裝置 (vnxRFSW) 自動產出 :ObtainSubDevice 與 :sDev.* 且 Col E/F 留空")
+            check(len(ota_dvs) >= 16,
+                  "新建 Station 工作表自動附上官方 16 欄中文 DataValidation Tooltip", f"DVs={len(ota_dvs)}")
+
+            # 3) audit_workspace 正確豁免 Marco 空白 TestID、抓出 Switch 指向未 Mount 裝置 (PS2005 vs PSS1503) 與 Title 句點筆誤 (0.THERMAL,1)
+            v16_ws = {
+                "project_name": "V16_AUD", "station_name": "Test",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [{"Mount": "Test", "Name": "PSS1503-1", "Sub": "", "ControlDLL": "PPH1503.dll", "Functions": "SON,WIFI 2.4G", "Version": "1.0.3.0"}],
+                "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "V16$Test", "Station": "Test,1"}],
+                "marcos": {"TX": [{"Index": "00", "Send": ':Delay,"10"', "Reply": "0", "ExecMode": "0", "Description": "Dly", "TestID": "B7PL025"}]},
+                "stations": {"Test": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                    {"Index": "002", "Phase": "1", "Title": "0,PowerOn", "Instrument": "SON", "Switch": "PS2005-{1}", "Send": ":ObtainDevice", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "", "Title": "", "Send": ":ReleaseDevice", "ExecMode": "3", "TestID": "B7PL025"},
+                    {"Index": "004", "Phase": "2", "Title": "0.THERMAL,1", "Marco": "TX", "Instrument": "WIFI 2.4G", "Switch": "PSS1503-1", "Send": "arg0", "ExecMode": "1", "TestID": ""},
+                    {"Index": "005", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025", "_hidden": True},
+                ]},
+            }
+            rep_v16 = _audit_ws(v16_ws)
+            check(rep_v16.get("error_count", -1) == 0,
+                  "audit_workspace 對 Marco 呼叫列空白 TestID 予以及格豁免 (0 Error)", str(rep_v16.get("errors", [])))
+            check(any("PS2005-{1}" in w for w in rep_v16.get("warnings", [])) and any("0.THERMAL,1" in w for w in rep_v16.get("warnings", [])),
+                  "audit_workspace 主動攔截 Switch 指向未 Mount 裝置與 Title 句點筆誤", str(rep_v16.get("warnings", [])))
+            from core.excel_engine import export_workspace_to_excel as _exp_v16, import_excel_to_workspace as _imp_v16
+            import tempfile as _tf_v16
+            with _tf_v16.TemporaryDirectory() as _hid_dir:
+                hid_out = os.path.join(_hid_dir, "hidden_roundtrip.xlsx")
+                _exp_v16(v16_ws, hid_out, active_sheet="Test")
+                wb_hid = openpyxl.load_workbook(hid_out)
+                is_r7_hidden = bool(wb_hid["Test"].row_dimensions[7].hidden)
+                wb_hid.close()
+                ws_re_hid = _imp_v16(hid_out)
+                check(is_r7_hidden and ws_re_hid["stations"]["Test"][5].get("_hidden") is True,
+                      "匯入/匯出完整保留 Excel 隱藏列 (_hidden / row_dimensions.hidden)")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

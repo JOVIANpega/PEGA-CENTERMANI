@@ -642,9 +642,9 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         ref_str = ";\n".join(f"${nm}" for nm in names)
         ch_desc = ", ".join(f"AI{ch}({nm})" for ch, nm in zip(channels, names))
         steps = [
-            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": f':Dev.VOLTAGE,"RSE,1000,{",".join(channels)}"', "Reply": "0", "EndPrompt": "", "Ref": ref_str, "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": f"INST#-#Read {ch_desc}", "TestID": "BRPW033"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
+            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.VOLTAGE,"RSE,1000,{",".join(channels)}"', "Reply": "0", "EndPrompt": "", "Ref": ref_str, "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": f"INST#-#Read {ch_desc}", "TestID": "BRPW033"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
         ]
         for r, nm in zip(rails, names):
             vmin = str(r.get("min", "0")).strip() or "0"
@@ -771,7 +771,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
                 "Phase": "9" if len(steps) == 0 else "",
                 "Title": f"0,{lbl}",
                 "Marco": "WIFI Tx MCS",
-                "Instrument": row_inst, "Switch": "",
+                "Instrument": row_inst, "Switch": "InstIQApiA" if row_inst else "",
                 "Send": f"{ch},{bw},{mcs},{ant},{tpwr},{pmin},{pmax},{emin},{emax},{lbl}",
                 "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "",
                 "ExecMode": "1", "Description": f"RF#-#{lbl}", "TestID": "WFOT036"
@@ -789,7 +789,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
                 "Phase": "9" if len(steps) == 0 else "",
                 "Title": f"0,{lbl}",
                 "Marco": "WIFI Rx MCS",
-                "Instrument": row_inst, "Switch": "",
+                "Instrument": row_inst, "Switch": "InstIQApiA" if row_inst else "",
                 "Send": f"{ch},{bw},{mcs},{ant},{rxlvl},{lbl}",
                 "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "",
                 "ExecMode": "1", "Description": f"RF#-#{lbl}", "TestID": "WFOT036"
@@ -831,7 +831,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         vmin = str(vd.get("min", "11.40")).strip() or "11.40"
         vmax = str(vd.get("max", "12.60")).strip() or "12.60"
         return [
-            {"Phase": "2", "Title": f"0,Measure {nm},3", "Marco": "", "Instrument": "Voltage", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "2", "Title": f"0,Measure {nm},3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.VOLTAGE,"DIFF,2000,{ch}"', "Reply": "0", "EndPrompt": "", "Ref": f"${nm}", "Validation": f"({nm},%f,{vmin},{vmax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"DUT#-#Measure {nm} ({vmin}V~{vmax}V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
         ]
@@ -848,7 +848,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         imax = str(ld.get("int_max", "99999")).strip() or "99999"
         ws["global_ini"]["Settings"]["LED_AZ1"] = port
         return [
-            {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
+            {"Phase": "8", "Title": "0,Check LED Color & Intensity,3", "Marco": "", "Instrument": "LED_Test", "Switch": "FeasaLED", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "LED#-#Obtain Feasa LED Lock", "TestID": "BRME027"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.CaptureAndRead,"{ch}"', "Reply": "0", "EndPrompt": "", "Ref": "$LED_Wave;\n$LED_Int", "Validation": f"(LED_Wave,%f,{wmin},{wmax});\n(LED_Int,%f,{imin},{imax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"LED#-#Verify Ch{ch} Wavelength({wmin}~{wmax}) & Intensity", "TestID": "IOLE015"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "LED#-#Release Feasa LED Lock", "TestID": "BRME027"},
         ]
@@ -1608,7 +1608,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.015")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.016")
 
                 self._send_json({
                     "status": "ok",
@@ -1737,18 +1737,29 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                                 row_copy["Description"] = ov["description"]
                         steps.append(row_copy)
 
-                # Keep only instruments actually referenced by selected blocks (cleaner mother workbook)
+                # Keep only instruments actually referenced by selected blocks (cleaner mother workbook) and set Mount=st
                 used_inst_funcs = {str(s.get("Instrument", "")).strip().upper() for s in steps if str(s.get("Instrument", "")).strip()}
-                if used_inst_funcs:
-                    filtered_insts = []
-                    seen_funcs = set()
-                    for inst in ws.get("instruments", []):
-                        inst_funcs = [f.strip().upper() for f in str(inst.get("Functions", "")).split(",") if f.strip()]
-                        matched = [fn for fn in inst_funcs if fn in used_inst_funcs and fn not in seen_funcs]
-                        if matched:
-                            seen_funcs.update(matched)
-                            filtered_insts.append(inst)
-                    ws["instruments"] = filtered_insts
+                used_sw_names = {str(s.get("Switch", "")).strip().split(",")[0].strip().lower() for s in steps if str(s.get("Switch", "")).strip()}
+                filtered_insts = []
+                func_to_inst_name = {}
+                seen_funcs = set()
+                for inst in ws.get("instruments", []):
+                    inst_name_low = str(inst.get("Name", "")).strip().lower()
+                    inst_funcs = [f.strip().upper() for f in str(inst.get("Functions", "")).split(",") if f.strip()]
+                    matched = [fn for fn in inst_funcs if fn in used_inst_funcs and fn not in seen_funcs]
+                    if matched or inst_name_low in used_sw_names:
+                        inst["Mount"] = st
+                        seen_funcs.update(matched)
+                        for fn in matched:
+                            func_to_inst_name.setdefault(fn, inst.get("Name", ""))
+                        filtered_insts.append(inst)
+                ws["instruments"] = filtered_insts
+                # Fill missing Col F (Switch) on Instrument rows (e.g. POWERSWITCH) with mounted device Name
+                for st_row in steps:
+                    if str(st_row.get("Instrument", "")).strip() and not str(st_row.get("Switch", "")).strip():
+                        fn_up = str(st_row.get("Instrument", "")).strip().upper()
+                        if fn_up in func_to_inst_name and func_to_inst_name[fn_up]:
+                            st_row["Switch"] = func_to_inst_name[fn_up]
 
                 # Ensure non-teardown Phases are strictly contiguous (0, 1, 2, 3...) with no gaps
                 if steps and str(steps[0].get("Phase", "")).strip() == "":
@@ -1859,7 +1870,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.015")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.016")
 
                 self._send_json({
                     "status": "ok",
@@ -2029,15 +2040,26 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     for s in ws.get("stations", {}).get(st_name, [])
                     if str(s.get("Instrument", "")).strip()
                 }
+                func_to_mounted = {}
                 for inst_r in ws.get("instruments", []):
-                    if not str(inst_r.get("Mount", "")).strip():
-                        funcs_tokens = [f.strip().lower() for f in str(inst_r.get("Functions", "")).split(",") if f.strip()]
-                        if any(ft in used_test_types for ft in funcs_tokens):
-                            # Prefer instruments whose DLL exists locally
-                            if inst_r.get("dll_exists", True):
-                                inst_r["Mount"] = st_name
-                                used_test_types.difference_update(funcs_tokens)
+                    funcs_tokens = [f.strip().lower() for f in str(inst_r.get("Functions", "")).split(",") if f.strip()]
+                    if str(inst_r.get("Mount", "")).strip():
+                        for ft in funcs_tokens:
+                            func_to_mounted.setdefault(ft, inst_r.get("Name", ""))
+                        continue
+                    if any(ft in used_test_types for ft in funcs_tokens):
+                        # Prefer instruments whose DLL exists locally
+                        if inst_r.get("dll_exists", True):
+                            inst_r["Mount"] = st_name
+                            used_test_types.difference_update(funcs_tokens)
+                            for ft in funcs_tokens:
+                                func_to_mounted.setdefault(ft, inst_r.get("Name", ""))
                 ws["instruments"] = [i for i in ws.get("instruments", []) if str(i.get("Mount", "")).strip()]
+                for s_row in ws.get("stations", {}).get(st_name, []):
+                    if str(s_row.get("Instrument", "")).strip() and not str(s_row.get("Switch", "")).strip():
+                        fn_low = str(s_row.get("Instrument", "")).strip().lower()
+                        if fn_low in func_to_mounted and func_to_mounted[fn_low]:
+                            s_row["Switch"] = func_to_mounted[fn_low]
 
                 # 4. 全自動檢查與錯誤修復 (Auto Audit & Repair)
                 audit_rep = audit_workspace(ws)
@@ -2090,7 +2112,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.015")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.016")
 
                 self._send_json({
                     "status": "ok",
@@ -2245,7 +2267,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.015) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.016) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
