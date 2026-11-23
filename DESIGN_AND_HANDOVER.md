@@ -114,3 +114,26 @@
    - 修正 `FeasaLED` 等非第一分類儀器誤開成 `NI-6009` 人機的問題；多台儀器可逐一完成互動人機設定後，再統一匯出開啟 Excel。
 5. **TestID / Error Code 速查頁面優化（`Build v0.7.0`）**：
    - 新增常用快搜標籤（`電壓/電源`、`WiFi/RF`、`藍牙/BT`、`LED`、`UART/SSH`、`SFIS`、`Sensor`）、精簡搜尋列按鈕、右側目標步驟依積木摺疊分組、以及未載入 Excel 時的直接選檔引導。
+
+---
+
+## 八、2026-11-23 更新紀錄（Build v0.7.2 ～ Build v0.8.002）
+
+1. **書籤三「儀器撲克牌庫 ＋ 可拖拉垂直序列」與懶人快速版全面修復**：
+   - 左欄改版為小尺寸長方形撲克牌卡片（每行精簡並排，頂部具分類標籤），右欄為可拖拉排序之測試序列，並將分類區標題升級為金色底條以強化視覺區分。
+   - 修正「⚡ 懶人快速版」與母體產出之多項 Centimani 實機相容性問題：
+     - `Instrument` 欄位改為寫入合法 `TestType`（如 `LED_Test`、`DC`），而非儀器 `Name`（避免 `Don't Support the TestType`）。
+     - `DUTs` 工作表 `DUT Name` 規範為 `ProjectName$StationName` 格式。
+     - `Instrument` 工作表僅保留實際選用之儀器（不殘留未選儀器），同時自動保留 Phase 97 `POWERSWITCH` 所需之 `IPOWER2401`，並對齊本機 `Device\` 真實 DLL 版號。
+     - 匯出自動透過 `LoadScript.dll` 計算寫入 64 碼 `[Checksum]`，並修復 `DebugMode=0` 保留與 `Mount` 清空儲存格邏輯。
+
+2. **跨檔案複製整張 Sheet（100% 保留完整格式）**：
+   - 新增 `/api/list_excel_sheets` 與 `/api/copy_sheet_across_files`，優先呼叫本機 Excel 原生複製（保留欄寬、合併格、顏色、框線、公式與驗證），無 Excel 時以 `openpyxl` 備援；複製前自動將目標檔備份為 `.bak`，並鎖定開啟新複製之 Sheet。
+
+3. **本機 `centimani_dir` 自動偵測與全站點實機 DLL 檢查（`Build v0.8.1` ～ `Build v0.8.002`）**：
+   - 啟動時自動掃描專案內含 `LoadScript.dll` / `Device/` 之目錄並持久化於 `centimani_studio/config.json`，不再反覆詢問；設定面板亦可手動指定或變更目錄（`POST /api/pick_centimani_dir`）。
+   - 於 [golden_data.py](centimani_studio/core/golden_data.py) 新增共用 `check_workspace_missing_dlls()`，同時檢查 `instruments` 與 `switches` 所有 `ControlDLL`（如 `InstIQApi_A.dll`、`DigitIO6509.dll`）；書籤三撲克牌直接標示 `❌ 缺 DLL` 紅框徽章，且書籤一、書籤二、書籤三匯出 API 皆回傳 `missing_dlls`。
+
+4. **統一匯出確認彈窗與三位數版本序號（`Build v0.8.002`）**：
+   - 匯出時一律先自動開啟輸出資料夾，Excel 則先以置中 `#exportConfirmModal`（標準 `.modal-backdrop` / `.modal-panel`，支援 `✕ 關閉`、點遮罩與 `Esc` 關閉）顯示缺漏 DLL 黃底紅框警示，並由使用者選擇「📊 立即開啟 Excel」或「暫不開啟 Excel」。
+   - Build 版本號改採三位數流水序號格式（`Build v0.8.001` ➔ `Build v0.8.002`），全功能自動驗收擴充至 **62 / 62 項 100% 通過**（並於 Headless Edge CDP 完成 DOM 渲染與關閉按鈕實測）。

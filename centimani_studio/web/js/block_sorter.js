@@ -838,7 +838,7 @@ async function bsApplyAndOpenExcel() {
           user_choices: STATE.userChoices || {},
           dry_run: false,
           active_sheet: BS_STATE.sheetName,
-          open_excel: true
+          open_excel: false
         })
       });
       return await resFix.json();
@@ -846,10 +846,10 @@ async function bsApplyAndOpenExcel() {
 
     const dataFix = (typeof withLoadingTimer === 'function')
       ? await withLoadingTimer(
-          `正在套用 [${BS_STATE.sheetName}] Phase 排序、標記淡藍底色並喚醒開啟 Excel`,
+          `正在套用 [${BS_STATE.sheetName}] Phase 排序、標記淡藍底色並開啟輸出目錄`,
           runExportFlow,
           1200,
-          '正在重排 Phase 積木順序、標記柔和淡藍底色 (#E8F4FD)、重算 Checksum 並置頂開啟 Excel 視窗...'
+          '正在重排 Phase 積木順序、標記柔和淡藍底色 (#E8F4FD)、重算 Checksum 並開啟輸出目錄...'
         )
       : await runExportFlow();
 
@@ -865,13 +865,24 @@ async function bsApplyAndOpenExcel() {
     closeBlockSorterModal();
 
     const fixedCount = (dataFix.fixed_logs || []).length;
-    alert(
-      `🎉 順序套用與腳本修復成功！\n\n` +
-      `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}（修改過順序/Phase 的區塊已標上「柔和淡藍色底色 #E8F4FD」）。\n` +
-      `2. 腳本邏輯自動修復完成：共修正 ${fixedCount} 處潛在問題（自動修復儲存格已標上「亮黃色底色 #FEF08A」）。\n` +
-      `3. 已生成標準檔案並自動以 Excel 開啟於 [${BS_STATE.sheetName}] 工作表：\n` +
-      `   ${dataFix.excel_path}`
-    );
+    if (typeof showExportCompleteModal === 'function') {
+      showExportCompleteModal({
+        title: `🎉 [${BS_STATE.sheetName}] 順序套用與修復匯出完成（已開啟輸出資料夾）`,
+        excelPath: dataFix.excel_path,
+        outputDir: dataFix.output_dir,
+        centimaniDir: dataFix.centimani_dir,
+        centimaniDirExists: dataFix.centimani_dir_exists,
+        missingDlls: dataFix.missing_dlls,
+        summaryHtml: `<div>• <b>Phase 積木：</b>${BS_STATE.currentBlocks.length} 個區塊${autoRenum ? '（已順編並標註淡藍底色 #E8F4FD）' : ''}，自動修復 ${fixedCount} 處</div>`
+      });
+    } else {
+      alert(
+        `🎉 順序套用與腳本修復成功！\n\n` +
+        `1. Phase 積木重排完成：共 ${BS_STATE.currentBlocks.length} 個區塊已更新${autoRenum ? '，已依序順編 Phase 號碼' : ''}。\n` +
+        `2. 腳本邏輯自動修復完成：共修正 ${fixedCount} 處潛在問題。\n` +
+        `3. 已生成標準檔案並開啟目錄：\n   ${dataFix.excel_path}`
+      );
+    }
 
   } catch (err) {
     console.error('bsApplyAndOpenExcel error:', err);

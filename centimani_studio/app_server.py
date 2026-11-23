@@ -95,7 +95,8 @@ DEFAULT_SETTINGS = {
     "auto_checksum": True,
     "tic_generic_only": False,
     "intro_font_size": 15,
-    "skip_guides": {}
+    "skip_guides": {},
+    "centimani_dir": ""
 }
 
 
@@ -971,7 +972,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "files": files
             })
         elif parsed.path == "/api/get_settings":
-            self._send_json({"status": "ok", "settings": get_app_settings()})
+            from core.golden_data import get_configured_centimani_dir
+            s = get_app_settings()
+            if not s.get("centimani_dir"):
+                s["centimani_dir"] = get_configured_centimani_dir()
+            self._send_json({"status": "ok", "settings": s})
         elif parsed.path == "/api/instrument_catalog":
             gm = get_golden_mother()
             prof_path = os.path.join(BASE_DIR, "core", "instrument_profiles.json")
@@ -1002,6 +1007,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             selected_path = pick_file_native()
             if not selected_path:
                 self._send_json({"status": "cancel"})
+                return
+            if payload.get("path_only"):
+                self._send_json({"status": "ok", "file_path": selected_path})
                 return
             ws = import_excel_to_workspace(selected_path)
             rep = audit_workspace(ws)
@@ -1515,6 +1523,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if open_excel and os.path.exists(actual_xlsx_path):
                     launch_excel_file_async(actual_xlsx_path)
 
+                from core.golden_data import check_workspace_missing_dlls
+                dll_chk = check_workspace_missing_dlls(ws_re)
+
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
@@ -1525,7 +1536,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "fixed_logs": fixed_logs,
                     "isn_info": extract_isn_info(ws_re),
                     "workspace": ws_re,
-                    "report": rep_re
+                    "report": rep_re,
+                    **dll_chk
                 })
 
             elif parsed.path == "/api/save_and_open_ini":
@@ -1719,10 +1731,13 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
                 chk = "已自動寫入 [Checksum]"
 
-                if get_app_settings().get("auto_open_folder", True):
-                    open_folder_in_explorer(target_dir)
+                open_folder_in_explorer(target_dir)
 
-                launch_excel_file_async(actual_xlsx)
+                if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
+                    launch_excel_file_async(actual_xlsx)
+
+                from core.golden_data import check_workspace_missing_dlls
+                dll_chk = check_workspace_missing_dlls(ws)
 
                 self._send_json({
                     "status": "ok",
@@ -1731,7 +1746,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
                     "checksum": chk or "已自動寫入 [Checksum]",
-                    "isn_info": extract_isn_info(ws)
+                    "isn_info": extract_isn_info(ws),
+                    **dll_chk
                 })
 
             elif parsed.path == "/api/generate_inst_template_standalone":
@@ -1765,8 +1781,12 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             init_steps.append(dict(s_row))
 
                 ws["stations"] = {st_name: init_steps}
+                for inst_r in ws.get("instruments", []):
+                    inst_r["Mount"] = ""
 
                 # 3. 連續載入目標儀器測項（支援標準上下限、NI-6009 多通道 HMI、IQxel RF HMI 與自訂步驟 HMI）
+                auto_sample_mode = bool(payload.get("auto_sample_mode", False))
+                rf_inst_names = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
                     t_name = str(it.get("title_name", "")).strip() or f"Test_{i_name}_{idx_item + 1}"
@@ -1794,6 +1814,58 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             rx_tests=rb.get("rx_tests", []),
                             after_block_idx=-1
                         )
+                    elif auto_sample_mode and i_name == "NI6008-1":
+                        insert_ni6009_block(
+                            ws, st_name,
+                            mode="RSE", sample_ms="1000", dev_id="Dev1",
+                            title_name=f"{t_name}_Sample",
+                            channels=[
+                                {"ch": 0, "name": "VCC_3V3", "dl": "3.13", "ul": "3.47"},
+                                {"ch": 1, "name": "VCC_5V0", "dl": "4.75", "ul": "5.25"},
+                                {"ch": 2, "name": "VCC_1V8", "dl": "1.71", "ul": "1.89"},
+                            ],
+                            after_block_idx=-1
+                        )
+                    elif auto_sample_mode and i_name in rf_inst_names:
+                        insert_rf_iqxel_block(
+                            ws, st_name,
+                            inst_name=i_name,
+                            title_name=f"{t_name}_RF_Sample",
+                            settings_str="",
+                            tx_tests=[
+                                {"channel": "6", "bw": "20", "mcs": "7", "antenna": "1", "target_pwr": "15", "pwr_min": "13", "pwr_max": "17", "evm_min": "-50", "evm_max": "-28"},
+                                {"channel": "36", "bw": "40", "mcs": "9", "antenna": "1", "target_pwr": "14", "pwr_min": "12", "pwr_max": "16", "evm_min": "-50", "evm_max": "-30"},
+                            ],
+                            rx_tests=[
+                                {"channel": "11", "bw": "20", "mcs": "7", "antenna": "1", "per_min": "0", "per_max": "10"},
+                            ],
+                            after_block_idx=-1
+                        )
+                    elif auto_sample_mode and not it.get("custom_steps"):
+                        if i_name == "FeasaLED":
+                            sample_steps = [
+                                {"Send": ":ObtainDevice", "ExecMode": "0", "Description": f"PC#-#Obtain {i_name}", "TestID": "BRME027"},
+                                {"Send": ':Dev.CaptureAndRead,"01"', "Ref": "$LED_Wave_1;\n$LED_Int_1", "Validation": "(LED_Wave_1,%f,515,535);\n(LED_Int_1,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH01 Green", "TestID": "IOLE015"},
+                                {"Send": ':Dev.CaptureAndRead,"02"', "Ref": "$LED_Wave_2;\n$LED_Int_2", "Validation": "(LED_Wave_2,%f,615,640);\n(LED_Int_2,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH02 Red", "TestID": "IOLE015"},
+                                {"Send": ':Dev.CaptureAndRead,"03"', "Ref": "$LED_Wave_3;\n$LED_Int_3", "Validation": "(LED_Wave_3,%f,450,475);\n(LED_Int_3,%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH03 Blue", "TestID": "IOLE015"},
+                                {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {i_name}", "TestID": "BRME027"},
+                            ]
+                        else:
+                            sample_steps = [
+                                {"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {i_name}", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"1"', "Validation": f"({i_name}_M1,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 1: Primary Measure", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"2"', "Validation": f"({i_name}_M2,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 2: Secondary Verify", "TestID": "B7PL025"},
+                                {"Send": ':Dev.Measure,"3"', "Validation": f"({i_name}_M3,%f,{d_val or '0.0'},{u_val or '5.0'})", "ExecMode": "2:0", "Description": f"DUT#-#{i_name} Sample Step 3: Boundary Check", "TestID": "B7PL025"},
+                                {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {i_name}", "TestID": "B7PL025"},
+                            ]
+                        insert_instrument_title_block(
+                            ws, st_name, i_name, t_name,
+                            after_block_idx=-1,
+                            dl_val=d_val,
+                            ul_val=u_val,
+                            custom_steps=sample_steps,
+                            globals_patch=it.get("globals_patch")
+                        )
                     else:
                         insert_instrument_title_block(
                             ws, st_name, i_name, t_name,
@@ -1804,9 +1876,26 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             globals_patch=it.get("globals_patch")
                         )
 
+                # 自動補掛載 MB 工作表實際用到 (如 Phase 97 之 POWERSWITCH) 且未掛載的儀器，並過濾未使用的儀器避免 DLL 缺失報錯
+                used_test_types = {
+                    str(s.get("Instrument", "")).strip().lower()
+                    for s in ws.get("stations", {}).get(st_name, [])
+                    if str(s.get("Instrument", "")).strip()
+                }
+                for inst_r in ws.get("instruments", []):
+                    if not str(inst_r.get("Mount", "")).strip():
+                        funcs_tokens = [f.strip().lower() for f in str(inst_r.get("Functions", "")).split(",") if f.strip()]
+                        if any(ft in used_test_types for ft in funcs_tokens):
+                            # Prefer instruments whose DLL exists locally
+                            if inst_r.get("dll_exists", True):
+                                inst_r["Mount"] = st_name
+                                used_test_types.difference_update(funcs_tokens)
+                ws["instruments"] = [i for i in ws.get("instruments", []) if str(i.get("Mount", "")).strip()]
+
                 # 4. 全自動檢查與錯誤修復 (Auto Audit & Repair)
                 audit_rep = audit_workspace(ws)
-                auto_fix_workspace(ws)
+                fix_logs = auto_fix_workspace(ws)
+                post_audit = audit_workspace(ws)
 
                 # 5. 輸出 Excel (預設開啟於測試站 st_name 分頁) 與 INI，自動寫入 Checksum
                 lead_inst = items[0].get("inst_name", "INST") if items else "INST"
@@ -1825,11 +1914,15 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
 
-                # 6. 自動開啟目標目錄與喚醒 Excel 給使用者檢視
-                if get_app_settings().get("auto_open_folder", True):
-                    open_folder_in_explorer(target_dir)
+                # 6. 匯出時一律自動開啟目標目錄，Excel 依前端確認視窗決定是否開啟
+                open_folder_in_explorer(target_dir)
 
-                launch_excel_file_async(actual_xlsx)
+                if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
+                    launch_excel_file_async(actual_xlsx)
+
+                # 匯出前實機 DLL 檢查（確認本機 Centimani 目錄與所選儀器 DLL 是否齊備）
+                from core.golden_data import check_workspace_missing_dlls
+                dll_chk = check_workspace_missing_dlls(ws)
 
                 self._send_json({
                     "status": "ok",
@@ -1837,12 +1930,97 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "excel_path": actual_xlsx,
                     "inst_name": lead_inst,
                     "total_items": len(items),
-                    "audit_report": audit_rep
+                    "total_steps": len(ws.get("stations", {}).get(st_name, [])),
+                    "auto_fixed_count": len(fix_logs) if isinstance(fix_logs, list) else 0,
+                    "audit_report": post_audit,
+                    **dll_chk
+                })
+            elif parsed.path == "/api/list_excel_sheets":
+                from core.excel_engine import list_excel_sheet_names
+                excel_path = payload.get("excel_path", "").strip()
+                if not excel_path or not os.path.exists(excel_path):
+                    self._send_json({"status": "error", "message": "找不到指定的 Excel 檔案"}, 404)
+                    return
+                sheets = list_excel_sheet_names(excel_path)
+                self._send_json({"status": "ok", "excel_path": excel_path, "sheets": sheets})
+            elif parsed.path == "/api/copy_sheet_across_files":
+                from core.excel_engine import copy_sheet_between_excels
+                src_path = payload.get("source_excel_path", "").strip()
+                src_sheet = payload.get("source_sheet_name", "").strip()
+                dst_path = payload.get("target_excel_path", "").strip()
+                dst_sheet = payload.get("target_sheet_name", "").strip() or src_sheet
+                overwrite = bool(payload.get("overwrite", False))
+                use_com = bool(payload.get("use_excel_com", True))
+                open_excel = bool(payload.get("open_excel", True))
+
+                if not src_path or not src_sheet or not dst_path:
+                    self._send_json({"status": "error", "message": "請完整指定來源 Excel、來源 Sheet 與目標 Excel"}, 400)
+                    return
+
+                res = copy_sheet_between_excels(
+                    src_path,
+                    src_sheet,
+                    dst_path,
+                    target_sheet_name=dst_sheet,
+                    overwrite=overwrite,
+                    use_excel_com=use_com,
+                )
+                if os.path.exists(dst_path):
+                    open_folder_in_explorer(os.path.dirname(dst_path))
+                    if open_excel:
+                        launch_excel_file_async(dst_path)
+                self._send_json(res)
+            elif parsed.path == "/api/pick_centimani_dir":
+                from core.golden_data import _get_local_dll_versions
+                folder = pick_folder_native("選擇本機 Centimani 主程式目錄 (含 Device\\ 資料夾與 LoadScript.dll)")
+                if not folder:
+                    self._send_json({"status": "cancel"})
+                    return
+                save_app_settings({"centimani_dir": folder})
+                _get_local_dll_versions(force_refresh=True)
+                gm = get_golden_mother()
+                self._send_json({
+                    "status": "ok",
+                    "centimani_dir": folder,
+                    "instruments": gm.get("instruments", [])
                 })
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
         except Exception as e:
             self._send_json({"status": "error", "message": str(e)}, 500)
+
+
+def _maximize_studio_window_async():
+    """Finds the Centimani Studio browser window and maximizes it via Win32 API (works even if browser is already running)."""
+    def _worker():
+        import time
+        import ctypes
+        for _ in range(10):
+            time.sleep(0.5)
+            try:
+                user32 = ctypes.windll.user32
+                found = []
+
+                @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+                def _enum_cb(hwnd, _lparam):
+                    if user32.IsWindowVisible(hwnd):
+                        length = user32.GetWindowTextLengthW(hwnd)
+                        if length > 0:
+                            buf = ctypes.create_unicode_buffer(length + 1)
+                            user32.GetWindowTextW(hwnd, buf, length + 1)
+                            if "Centimani Studio" in buf.value:
+                                found.append(hwnd)
+                    return True
+
+                user32.EnumWindows(_enum_cb, 0)
+                if found:
+                    SW_MAXIMIZE = 3
+                    user32.ShowWindow(found[0], SW_MAXIMIZE)
+                    user32.SetForegroundWindow(found[0])
+                    return
+            except Exception:
+                return
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 def launch_fullscreen_browser(url):
@@ -1854,6 +2032,7 @@ def launch_fullscreen_browser(url):
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe")
     ]
+    launched = False
     for exe in browser_candidates:
         if os.path.exists(exe):
             flags = ["--start-maximized", "--new-window"] if use_fs else ["--new-window"]
@@ -1861,16 +2040,21 @@ def launch_fullscreen_browser(url):
                 subprocess.Popen([exe] + flags + ["--app=" + url])
             else:
                 subprocess.Popen([exe] + flags + [url])
-            return
-    webbrowser.open(url)
+            launched = True
+            break
+    if not launched:
+        webbrowser.open(url)
+    if use_fs:
+        _maximize_studio_window_async()
 
 
 def run_server(port=8765):
-    from core.golden_data import get_valid_test_ids
+    from core.golden_data import get_valid_test_ids, get_configured_centimani_dir
     threading.Thread(target=get_valid_test_ids, daemon=True).start()
+    threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.7.1) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.002) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

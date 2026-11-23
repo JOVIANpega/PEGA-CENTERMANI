@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.7.1</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:11.5px; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.002</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -89,8 +89,8 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:13px; color:#14532D; line-height:1.6;">
-            <li><b>書籤一</b>：首次 4 步驟建立新腳本母體</li>
-            <li><b>書籤二</b>：既有 Excel 無限次編修與加儀器</li>
+            <li><b>模式一</b>：既有 Excel 無限次編修與加儀器</li>
+            <li><b>模式二</b>：首次 4 步驟建立新腳本母體</li>
             <li>34 款儀器人機、跳轉、通訊與全域微調</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1073,6 +1073,9 @@
             <span style="font-size:12.5px; color:#475569;">（點擊可載入其他腳本進行編修）</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button class="btn" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
+              📋 跨檔案複製整張 Sheet
+            </button>
             <button id="btnEditorOpenExcel" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCurrentExcelFile()">
               📂 開啟目前原檔
             </button>
@@ -1095,6 +1098,9 @@
         <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
           <button class="btn btn-primary-blue" style="padding:10px 24px; font-size:calc(var(--app-font-size, 15px) * 1.05); font-weight:800; box-shadow:0 4px 10px rgba(37,99,235,0.25);" onclick="document.getElementById('localExcelPickerInput').click()">
             📂 選擇要編修的 TestFlow.xlsx
+          </button>
+          <button class="btn" style="padding:10px 18px; font-size:calc(var(--app-font-size, 15px) * 1.0); font-weight:800; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B;" onclick="openCopySheetModal()">
+            📋 跨檔案複製整張 Sheet（格式不跑掉）
           </button>
         </div>
 
@@ -1169,47 +1175,66 @@
           <input id="tab3UlInput" type="text">
         </div>
 
-        <!-- ==================== STEP 1：上軌道 + 下積木庫 ==================== -->
+        <!-- ==================== STEP 1：左積木庫 + 右垂直測試流程序列 ==================== -->
         <div id="tab3Step1Box">
-          <!-- 上方：已選測項軌道 (Drop Zone) -->
-          <div id="tab3DeckDropZone"
-            ondragover="event.preventDefault(); this.style.borderColor='#7C3AED'; this.style.background='#F5F3FF';"
-            ondragleave="this.style.borderColor='#A78BFA'; this.style.background='#FAF5FF';"
-            ondrop="tab3HandleDropToTrack(event); this.style.borderColor='#A78BFA'; this.style.background='#FAF5FF';"
-            style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:10px; padding:12px 14px; margin-bottom:14px; transition:all 0.15s;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-              <div style="font-weight:900; font-size:14px; color:#4C1D95;">
-                ✅ 已選測項軌道（依此順序寫入 Excel，<span id="tab3TrackCount">0</span> 項）
+          <div class="tab3-split-layout" style="margin-bottom:14px;">
+            <!-- 左欄：34 款儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
+            <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:12px; padding:12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <div style="font-weight:900; font-size:14px; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
               </div>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <button onclick="tab3ClearQueue()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#475569;">🧹 清空軌道</button>
-                <button onclick="tab3GoStep(2)" class="btn btn-primary-green" style="padding:6px 16px; font-size:13px; font-weight:800;">
-                  下一步：細部規格設定 ▶
-                </button>
-              </div>
+              <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 34 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
+                style="width:100%; box-sizing:border-box; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:7px; font-size:12.5px; margin-bottom:8px;">
+              <div id="tab3CatPills" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;"></div>
+              <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(122px, 1fr)); gap:8px; max-height:430px; overflow-y:auto; padding-right:4px;"></div>
             </div>
-            <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; gap:8px; min-height:54px; align-items:center;">
-              <div style="color:#7C3AED; font-size:13px; font-weight:600; opacity:0.8;">👆 請從下方把常用的儀器積木拖曳到此處，或直接點擊卡片上的「＋ 加入」</div>
+
+            <!-- 右欄：垂直長區塊序列槽 (由上往下執行) -->
+            <div id="tab3DeckDropZone"
+              ondragover="event.preventDefault(); this.classList.add('lego-drop-active'); tab3ShowDropGhost(true);"
+              ondragleave="if(!this.contains(event.relatedTarget)){ this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); }"
+              ondrop="this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); tab3HandleDropToTrack(event);"
+              style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:12px; padding:14px 16px; min-height:500px; display:flex; flex-direction:column; transition:all 0.18s;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; border-bottom:1px solid #DDD6FE; padding-bottom:10px;">
+                <div style="font-weight:900; font-size:14.5px; color:#4C1D95;">
+                  🧱 右欄：垂直測試序列（由上往下執行 · <span id="tab3TrackCount">0</span> 台）
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <button onclick="tab3ClearQueue()" class="btn" style="padding:5px 11px; font-size:12.5px; background:#FFFFFF; color:#475569;">🧹 清空</button>
+                  <button onclick="tab3OpenModeChoice()" class="btn btn-primary-green" style="padding:7px 16px; font-size:13.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.25);">
+                    ✅ 確認以上儀器清單 ➔
+                  </button>
+                </div>
+              </div>
+              <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:10px; flex:1; min-height:380px;">
+                <div style="color:#7C3AED; font-size:13.5px; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">
+                  👈 請從左側把想要的儀器長積木拖曳到此處<br>
+                  <span style="font-size:12px; color:#64748B; font-weight:500;">放開即磁吸接上；上下拖拉積木可自由調換執行順序</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 下方：34 款儀器積木庫 -->
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:12px 14px;">
-            <!-- 最常用 Top 6 置頂列 -->
-            <div style="margin-bottom:10px;">
-              <div style="font-weight:800; font-size:13px; color:#B45309; margin-bottom:6px;">⭐ 最常用儀器（置頂快選，可直接拖曳或點 ＋ 加入）：</div>
-              <div id="tab3PopularCards" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <!-- 確認清單後的二選一出口 (懶人自動範例 vs 專業細部設定) -->
+          <div id="tab3ModeChoiceBox" style="display:none; background:linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%); border:2px solid #818CF8; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <div style="font-weight:900; font-size:14.5px; color:#1E1B4B;">🎯 已確認儀器清單！請選擇接下來的產生方式：</div>
+              <button onclick="document.getElementById('tab3ModeChoiceBox').style.display='none'" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#64748B;">收起選項</button>
             </div>
-
-            <!-- 分類篩選與搜尋列 -->
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:8px; border-top:1px solid #E2E8F0; margin-bottom:10px;">
-              <div id="tab3CatPills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-              <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 34 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
-                style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:12.5px; min-width:220px;">
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <button onclick="tab3GenerateAutoSample()" class="tab3-choice-card" style="border-color:#22C55E; background:linear-gradient(180deg,#FFFFFF 0%,#F0FDF4 100%);">
+                <div style="font-size:15px; font-weight:900; color:#15803D; margin-bottom:4px;">⚡ 懶人快速版：自動產生範例 Excel</div>
+                <div style="font-size:12.5px; color:#334155; line-height:1.45;">
+                  免進複雜設定，系統依您選的儀器<b>自動幫每台產生至少 3 個代表性測試項目</b>，寫入並體檢無誤後直接彈出目錄與 Excel！
+                </div>
+              </button>
+              <button onclick="tab3GoStep(2)" class="tab3-choice-card" style="border-color:#7C3AED; background:linear-gradient(180deg,#FFFFFF 0%,#F5F3FF 100%);">
+                <div style="font-size:15px; font-weight:900; color:#5B21B6; margin-bottom:4px;">🎛️ 專業細部版：逐台挑選測試項目</div>
+                <div style="font-size:12.5px; color:#334155; line-height:1.45;">
+                  進入下一頁針對每台儀器進行細部設定（例如 <b>RF WiFi/BT 頻段測項</b>、<b>NI-6009 腳位</b>、<b>FeasaLED 通道</b>），設定完再產出並體檢開啟！
+                </div>
+              </button>
             </div>
-
-            <!-- 全部 / 分類儀器積木網格 -->
-            <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(195px, 1fr)); gap:8px; max-height:330px; overflow-y:auto; padding-right:4px;"></div>
           </div>
         </div>
 
@@ -1447,10 +1472,87 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.7.1"></script>
-<script src="/js/audit_editors.js?v=0.7.1"></script>
-<script src="/js/flow_guide.js?v=0.7.1"></script>
-<script src="/js/block_sorter.js?v=0.7.1"></script>
+<!-- 跨檔案整張 Sheet 複製 (保留完整格式) Modal -->
+<div id="copySheetModal" class="modal-backdrop">
+  <div class="modal-panel" style="max-width:680px; background:#FFFFFF; padding:20px 22px; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
+      <div style="font-size:16.5px; font-weight:900; color:#0F172A;">📋 跨檔案複製整張 Sheet（100% 保留完整格式）</div>
+      <button onclick="document.getElementById('copySheetModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;">✕ 關閉</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px; font-size:13.5px; color:#334155;">
+      <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:8px 12px; font-size:12.5px; color:#1E40AF;">
+        優先呼叫本機 Excel 原生複製引擎（保留欄寬、合併格、顏色、邊框、公式與資料驗證），並自動備份目標檔為 <code>.bak</code>。
+      </div>
+
+      <div>
+        <label style="font-weight:800; display:block; margin-bottom:4px;">1. 來源 Excel 檔案（要從哪個檔案複製 Sheet）：</label>
+        <select id="csSrcQuickSel" onchange="if(this.value){document.getElementById('csSrcPath').value=this.value; csLoadSheets(this.value);}" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:5px; font-size:12.5px; margin-bottom:6px; background:#F8FAFC;">
+          <option value="">⚡ 快速選取最近 / 專案內 Excel...</option>
+        </select>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="csSrcPath" class="mono" placeholder="或貼上 / 點右側按鈕選取來源 .xlsx" style="flex:1; padding:6px 10px; border:1px solid #CBD5E1; border-radius:5px; font-size:12.5px;" onchange="csLoadSheets(this.value)">
+          <button type="button" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;" onclick="csPickFile('src')">📂 瀏覽來源</button>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-weight:800; display:block; margin-bottom:4px;">2. 選擇要複製的來源 Sheet：</label>
+        <select id="csSrcSheetSel" onchange="document.getElementById('csTargetSheetName').value = this.value;" style="width:100%; padding:7px 10px; border:1px solid #CBD5E1; border-radius:5px; font-size:13px; font-weight:700;">
+          <option value="">（請先選取來源 Excel）</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-weight:800; display:block; margin-bottom:4px;">3. 目標 Excel 檔案（要複製到哪個檔案）：</label>
+        <select id="csDstQuickSel" onchange="if(this.value){document.getElementById('csDstPath').value=this.value;}" style="width:100%; padding:6px 10px; border:1px solid #94A3B8; border-radius:5px; font-size:12.5px; margin-bottom:6px; background:#F8FAFC;">
+          <option value="">⚡ 快速選取最近 / 專案內 Excel...</option>
+        </select>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="csDstPath" class="mono" placeholder="或貼上 / 點右側按鈕選取目標 .xlsx" style="flex:1; padding:6px 10px; border:1px solid #CBD5E1; border-radius:5px; font-size:12.5px;">
+          <button type="button" class="btn btn-primary-blue" style="padding:6px 12px; font-size:12.5px;" onclick="csPickFile('dst')">📂 瀏覽目標</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <label style="font-weight:800; display:block; margin-bottom:4px;">4. 貼上後的 Sheet 名稱（最多 31 字）：</label>
+          <input type="text" id="csTargetSheetName" maxlength="31" placeholder="預設同來源 Sheet 名稱" style="width:100%; padding:6px 10px; border:1px solid #CBD5E1; border-radius:5px; font-size:13px;">
+        </div>
+        <label style="display:flex; align-items:center; gap:6px; font-weight:700; cursor:pointer; padding-bottom:6px;">
+          <input type="checkbox" id="csOverwrite"> 若目標已有同名 Sheet 則覆蓋
+        </label>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid #E2E8F0; padding-top:12px;">
+      <button onclick="document.getElementById('copySheetModal').classList.remove('open')" class="btn">取消</button>
+      <button onclick="csExecuteCopy()" class="btn btn-primary-green" style="font-weight:800;">✨ 複製整張 Sheet 並匯出驗證</button>
+    </div>
+  </div>
+</div>
+
+<!-- 匯出完成確認視窗（一律先開啟目錄，再詢問是否開啟 Excel + 顯示實機 DLL 檢查提醒） -->
+<div id="exportConfirmModal" class="modal-backdrop" onclick="if(event.target===this) closeExportConfirmModal()">
+  <div class="modal-panel" style="max-width:620px; width:95vw; background:#FFFFFF; border:2px solid #2563EB; padding:18px 22px; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:12px;">
+      <h3 id="ecModalTitle" style="margin:0; font-size:16px; color:#0F172A;">🎉 檔案匯出完成（已自動開啟輸出資料夾）</h3>
+      <button type="button" onclick="closeExportConfirmModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:12.5px;">✕ 關閉</button>
+    </div>
+    <div id="ecModalBody" style="font-size:13px; color:#334155; line-height:1.6;"></div>
+    <div id="ecModalDllWarn" style="display:none; margin-top:12px; padding:10px 14px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:8px; color:#7F1D1D; font-size:13px; font-weight:700; line-height:1.55;"></div>
+    <div style="margin-top:14px; padding:10px 12px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; color:#1E3A8A; font-size:13.5px; font-weight:700;">
+      ❓ 是否立即以 Microsoft Excel 開啟此檔案進行檢視？
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px; border-top:1px solid #E2E8F0; padding-top:12px;">
+      <button type="button" onclick="closeExportConfirmModal()" class="btn" style="padding:8px 16px;">暫不開啟 Excel</button>
+      <button type="button" onclick="confirmOpenExportedExcel()" class="btn btn-primary-green" style="padding:8px 20px; font-weight:800;">📊 立即開啟 Excel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/inst_hmi.js?v=0.8.002"></script>
+<script src="/js/audit_editors.js?v=0.8.002"></script>
+<script src="/js/flow_guide.js?v=0.8.002"></script>
+<script src="/js/block_sorter.js?v=0.8.002"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2550,7 +2652,7 @@ function switchGenSubMode(mode) {
 
 let TAB3_QUEUE = [];
 let TAB3_STEP = 1;
-let TAB3_CAT_FILTER = null;
+let TAB3_CAT_FILTER = 'POPULAR';
 let TAB3_DRAG_PAYLOAD = null; // { type: 'catalog', name } | { type: 'track', idx }
 let TAB3_ACTIVE_EDIT_IDX = -1;
 
@@ -2638,9 +2740,45 @@ function tab3MoveQueueItem(fromIdx, toIdx) {
   renderTab3Queue();
 }
 
+function tab3GetInstTheme(instName) {
+  const n = String(instName || '').toLowerCase();
+  if (['instiqapia', 'xelm8-b', 'mt8870a', 'e4418b', 'u2004a', 'osp120', 'san9000', 'vnxrfsw'].includes(n)) {
+    return { color: '#7C3AED', badge: '#EDE9FE', text: '#5B21B6', tag: '📡 RF' };
+  }
+  if (['ipower', 'e3631a', 'chroma62000', 'it6302', 'relay', 'usbswitch'].some(k => n.includes(k))) {
+    return { color: '#D97706', badge: '#FEF3C7', text: '#92400E', tag: '⚡ 電源' };
+  }
+  if (['ni6008', 'agilent34401', 'keithley', 'daq', 'dmm'].some(k => n.includes(k))) {
+    return { color: '#2563EB', badge: '#DBEAFE', text: '#1E40AF', tag: '📏 量測' };
+  }
+  if (['feasaled', 'audio', 'led', 'ir', 'air'].some(k => n.includes(k))) {
+    return { color: '#059669', badge: '#D1FAE5', text: '#065F46', tag: '🎛️ 感測' };
+  }
+  return { color: '#475569', badge: '#F1F5F9', text: '#334155', tag: '🔌 通訊' };
+}
+
+function tab3ShowDropGhost(show) {
+  const l = document.getElementById('tab3QueueList');
+  if (!l) return;
+  const old = document.getElementById('tab3SnapGhost');
+  if (show) {
+    if (!old) {
+      const g = document.createElement('div');
+      g.id = 'tab3SnapGhost';
+      g.className = 'lego-snap-ghost';
+      g.style.minHeight = '146px';
+      g.textContent = '✨ 放開即磁吸接上';
+      l.appendChild(g);
+    }
+  } else if (old) {
+    old.remove();
+  }
+}
+
 function tab3HandleDropToTrack(e, targetIdx = null) {
   e.preventDefault();
   e.stopPropagation();
+  tab3ShowDropGhost(false);
   if (!TAB3_DRAG_PAYLOAD) return;
   if (TAB3_DRAG_PAYLOAD.type === 'catalog') {
     tab3AddInstBlock(TAB3_DRAG_PAYLOAD.name);
@@ -2653,79 +2791,90 @@ function tab3HandleDropToTrack(e, targetIdx = null) {
   TAB3_DRAG_PAYLOAD = null;
 }
 
+function tab3OpenModeChoice() {
+  if (TAB3_QUEUE.length === 0) {
+    alert('請先從下方拖曳或點擊「＋ 加入」至少 1 台儀器到上方軌道！');
+    return;
+  }
+  const box = document.getElementById('tab3ModeChoiceBox');
+  if (box) {
+    box.style.display = 'block';
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 function renderTab3Queue() {
   const l = document.getElementById('tab3QueueList');
   const cnt = document.getElementById('tab3TrackCount');
   if (cnt) cnt.textContent = String(TAB3_QUEUE.length);
   if (!l) return;
   if (TAB3_QUEUE.length === 0) {
-    l.innerHTML = `<div style="color:#7C3AED; font-size:13px; font-weight:600; opacity:0.8;">👆 請從下方把常用的儀器積木拖曳到此處，或直接點擊卡片上的「＋ 加入」</div>`;
+    const choiceBox = document.getElementById('tab3ModeChoiceBox');
+    if (choiceBox) choiceBox.style.display = 'none';
+    l.innerHTML = `<div style="color:#7C3AED; font-size:13.5px; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">👈 請從左側把想要的儀器長積木拖曳到此處<br><span style="font-size:12px; color:#64748B; font-weight:500;">放開即磁吸接上；上下拖拉積木可自由調換執行順序</span></div>`;
     return;
   }
-  l.innerHTML = TAB3_QUEUE.map((it, idx) => `
-    <div draggable="true"
-      ondragstart="TAB3_DRAG_PAYLOAD={type:'track', idx:${idx}}; event.dataTransfer.effectAllowed='move';"
-      ondragover="event.preventDefault(); this.style.borderColor='#7C3AED';"
-      ondragleave="this.style.borderColor='#8B5CF6';"
-      ondrop="this.style.borderColor='#8B5CF6'; tab3HandleDropToTrack(event, ${idx});"
-      style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:2px solid #8B5CF6; border-radius:8px; padding:7px 11px; cursor:grab; box-shadow:0 2px 6px rgba(109,40,217,0.1);">
-      <span style="background:#7C3AED; color:#FFF; font-weight:900; font-size:11.5px; padding:2px 7px; border-radius:999px;">#${idx + 1}</span>
-      <div>
-        <div class="mono" style="font-weight:900; font-size:13px; color:#4C1D95;">${it.inst_name}</div>
-        <div style="font-size:11.5px; color:#475569; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${it.title_name}</div>
+  l.innerHTML = TAB3_QUEUE.map((it, idx) => {
+    const th = tab3GetInstTheme(it.inst_name);
+    const stepNo = String(idx + 1).padStart(2, '0');
+    return `
+      ${idx > 0 ? '<div class="lego-plus-joiner" style="margin:0 2px;"><span>＋</span></div>' : ''}
+      <div class="lego-poker-card selected-poker pop-in" draggable="true"
+        ondragstart="TAB3_DRAG_PAYLOAD={type:'track', idx:${idx}}; this.classList.add('dragging'); event.dataTransfer.effectAllowed='move';"
+        ondragend="this.classList.remove('dragging');"
+        ondragover="event.preventDefault(); this.classList.add('drag-over-target');"
+        ondragleave="this.classList.remove('drag-over-target');"
+        ondrop="this.classList.remove('drag-over-target'); tab3HandleDropToTrack(event, ${idx});"
+        style="border-color:${th.color}; border-top-color:${th.color};">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
+            <span style="background:${th.color}; color:#FFF; font-weight:900; font-size:10px; padding:1px 6px; border-radius:999px;">#${stepNo}</span>
+            <span style="background:${th.badge}; color:${th.text}; font-size:10px; font-weight:800; padding:1px 5px; border-radius:999px;">${th.tag}</span>
+          </div>
+          <div class="lego-gold-title mono" title="${it.inst_name}">${it.inst_name}</div>
+          <div style="font-size:10.5px; color:${th.text}; font-weight:700; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${it.title_name}</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #E2E8F0; padding-top:4px;">
+          <span style="font-size:10px; color:#94A3B8; font-weight:700;">⋮⋮</span>
+          <button onclick="tab3RemoveQueueItem(${idx})" title="移除此卡片" class="btn" style="padding:1px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none;">🗑</button>
+        </div>
       </div>
-      <button onclick="tab3AddInstBlock('${it.inst_name}')" title="再複製加入一台" class="btn" style="padding:2px 6px; font-size:11px; background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE;">＋</button>
-      <button onclick="tab3RemoveQueueItem(${idx})" title="移除" class="btn" style="padding:2px 6px; font-size:11px; background:#FEE2E2; color:#991B1B; border:none;">✕</button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function tab3RenderCatalogDeck() {
-  const popEl = document.getElementById('tab3PopularCards');
   const pillsEl = document.getElementById('tab3CatPills');
   const deckEl = document.getElementById('tab3CatalogDeck');
   if (!deckEl) return;
 
   const catalog = STATE.instCatalog || [];
-  const popularNames = ['NI6008-1', 'FeasaLED', 'InstIQApiA', 'iPower', 'Agilent34401A', 'Relay'];
-  const popularItems = popularNames.map(n => catalog.find(i => i.Name === n)).filter(Boolean);
-
-  if (popEl) {
-    popEl.innerHTML = popularItems.map(inst => `
-      <div draggable="true"
-        ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; event.dataTransfer.effectAllowed='copy';"
-        style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:6px 10px; cursor:grab;">
-        <div>
-          <div class="mono" style="font-weight:900; font-size:12.5px; color:#92400E;">⭐ ${inst.Name}</div>
-          <div style="font-size:11px; color:#78350F; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${inst.Desc || inst.Functions || ''}</div>
-        </div>
-        <button onclick="tab3AddInstBlock('${inst.Name}')" class="btn" style="padding:3px 9px; font-size:11.5px; background:#F59E0B; color:#FFF; border:none; font-weight:800;">＋ 加入</button>
-      </div>
-    `).join('');
-  }
+  const popularNames = ['NI6008-1', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'iPower', 'Relay'];
 
   if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
-    const pills = [...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label })), { id: 'ALL', label: `全部展開 (${catalog.length})` }];
+    const pills = [
+      { id: 'POPULAR', label: '⭐ 常用 (6)' },
+      ...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label.split(' / ')[0] })),
+      { id: 'ALL', label: `全部 (${catalog.length})` }
+    ];
     pillsEl.innerHTML = pills.map(p => `
-      <button onclick="TAB3_CAT_FILTER=(TAB3_CAT_FILTER==='${p.id}'?null:'${p.id}'); tab3RenderCatalogDeck();" class="btn"
-        style="padding:5px 12px; font-size:12.5px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
-        ${TAB3_CAT_FILTER === p.id ? '▾ ' : '▸ '}${p.label}
+      <button onclick="TAB3_CAT_FILTER='${p.id}'; tab3RenderCatalogDeck();" class="btn"
+        style="padding:4px 10px; font-size:12px; font-weight:800; border-radius:999px; ${TAB3_CAT_FILTER === p.id ? 'background:#6D28D9; color:#FFF; border-color:#6D28D9;' : 'background:#FFF; color:#334155; border-color:#CBD5E1;'}">
+        ${p.label}
       </button>
     `).join('');
   }
 
   const q = ((document.getElementById('tab3DeckSearch') || {}).value || '').trim().toLowerCase();
-  if (!TAB3_CAT_FILTER && !q) {
-    deckEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#64748B; padding:14px; font-size:13px; background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:8px;">👆 請點擊上方任一分類膠囊（例如：<b>量測電壓 / 電流</b> 或 <b>RF 無線</b>）展開該類儀器積木，或直接於右側搜尋名稱。</div>';
-    return;
-  }
-
   let filtered = catalog;
-  if (TAB3_CAT_FILTER && TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
-    const catObj = INST_CATEGORIES.find(c => c.id === TAB3_CAT_FILTER);
-    if (catObj) filtered = filtered.filter(i => catObj.names.includes(i.Name));
-  }
-  if (q) {
+  if (!q) {
+    if (TAB3_CAT_FILTER === 'POPULAR') {
+      filtered = popularNames.map(n => catalog.find(i => i.Name === n)).filter(Boolean);
+    } else if (TAB3_CAT_FILTER && TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
+      const catObj = INST_CATEGORIES.find(c => c.id === TAB3_CAT_FILTER);
+      if (catObj) filtered = filtered.filter(i => catObj.names.includes(i.Name));
+    }
+  } else {
     filtered = filtered.filter(i =>
       String(i.Name || '').toLowerCase().includes(q) ||
       String(i.Desc || '').toLowerCase().includes(q) ||
@@ -2733,20 +2882,33 @@ function tab3RenderCatalogDeck() {
     );
   }
 
-  deckEl.innerHTML = filtered.map(inst => `
-    <div draggable="true"
-      ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; event.dataTransfer.effectAllowed='copy';"
-      style="background:#FFFFFF; border:1.5px solid #CBD5E1; border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px; cursor:grab;">
-      <div>
-        <div class="mono" style="font-weight:800; font-size:13px; color:#1E293B;">${inst.Name}</div>
-        <div style="font-size:11.5px; color:#64748B; line-height:1.35; margin-top:2px;">${inst.Desc || inst.Functions || ''}</div>
+  deckEl.innerHTML = filtered.map(inst => {
+    const th = tab3GetInstTheme(inst.Name);
+    const missingDll = (inst.dll_exists === false);
+    const dllName = inst.ControlDLL || '';
+    const cardTitleAttr = missingDll
+      ? `❌ 本機 Device 資料夾缺少 ${dllName}，請手動貼到 CENTERMAINA_TRY\\Device\\ 後再實機執行`
+      : `拖曳至右側牌疊，或點下方 ＋ 加入`;
+    return `
+      <div class="lego-poker-card" draggable="true"
+        ondragstart="TAB3_DRAG_PAYLOAD={type:'catalog', name:'${inst.Name}'}; this.classList.add('dragging'); event.dataTransfer.effectAllowed='copy';"
+        ondragend="this.classList.remove('dragging');"
+        title="${cardTitleAttr}"
+        style="border-top-color:${missingDll ? '#DC2626' : th.color}; ${missingDll ? 'border-color:#FCA5A5; background:linear-gradient(180deg,#FFF5F5 0%,#FEF2F2 100%);' : ''}">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
+            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:10px; font-weight:900; padding:1px 5px; border-radius:999px;">${missingDll ? '❌ 缺 DLL' : th.tag}</span>
+            <button onclick="event.stopPropagation(); openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:0px 5px; font-size:10.5px; background:#F8FAFC; color:#475569;" title="查看儀器簡介">📖</button>
+          </div>
+          <div class="lego-gold-title mono" title="${inst.Name}">${inst.Name}</div>
+          <div style="font-size:10.5px; color:${missingDll ? '#991B1B' : '#64748B'}; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${missingDll ? ('缺 ' + dllName) : (inst.Desc || inst.Functions || '')}</div>
+        </div>
+        <button onclick="event.stopPropagation(); tab3AddInstBlock('${inst.Name}')" class="btn" style="width:100%; padding:3px 6px; font-size:11.5px; background:${th.badge}; color:${th.text}; border:1.5px solid ${th.color}; font-weight:900; border-radius:6px;">
+          ＋ 加入
+        </button>
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-        <button onclick="openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:2px 7px; font-size:11px; background:#F8FAFC; color:#475569;">📖 簡介</button>
-        <button onclick="tab3AddInstBlock('${inst.Name}')" class="btn" style="padding:3px 10px; font-size:11.5px; background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD; font-weight:800;">＋ 加入</button>
-      </div>
-    </div>
-  `).join('') || '<div style="grid-column:1/-1; text-align:center; color:#64748B; padding:20px;">找不到符合關鍵字的儀器</div>';
+    `;
+  }).join('') || '<div style="grid-column:1/-1; text-align:center; color:#64748B; padding:24px;">找不到符合關鍵字的儀器</div>';
 }
 
 function tab3RenderDetailCards() {
@@ -2787,7 +2949,15 @@ function tab3OpenHmiForInst(instName, queueIdx = -1) {
   tab3OpenHmi(instName);
 }
 
-async function tab3GenerateStandalone(extraHmiItem = null) {
+async function tab3GenerateAutoSample() {
+  if (TAB3_QUEUE.length === 0) {
+    alert('請先至少加入 1 台儀器！');
+    return;
+  }
+  await tab3GenerateStandalone(null, true);
+}
+
+async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = false) {
   let itemsToInsert = [];
   if (TAB3_QUEUE.length > 0) {
     itemsToInsert = [...TAB3_QUEUE];
@@ -2819,7 +2989,7 @@ async function tab3GenerateStandalone(extraHmiItem = null) {
 
   try {
     const data = await withLoadingTimer(
-      `正在匯出母體範本（共 ${itemsToInsert.length} 項測項）並喚醒開啟 Excel`,
+      `正在匯出母體範本（共 ${itemsToInsert.length} 項測項）並開啟輸出目錄`,
       async () => {
         const res = await fetch('/api/generate_inst_template_standalone', {
           method: 'POST',
@@ -2827,13 +2997,15 @@ async function tab3GenerateStandalone(extraHmiItem = null) {
           body: JSON.stringify({
             items: itemsToInsert,
             project_name: 'INST_MOTHER',
-            station_name: 'MB'
+            station_name: 'MB',
+            auto_sample_mode: autoSampleMode,
+            open_excel: false
           })
         });
         return await res.json();
       },
       1200,
-      '正在寫入 16 欄母體 Excel、執行全自動語法體檢、計算 Checksum 並置頂開啟 Excel 視窗...'
+      '正在寫入 16 欄母體 Excel、執行全自動語法體檢、計算 Checksum 並開啟輸出目錄...'
     );
     if (data.status !== 'ok') {
       alert('產生失敗：' + (data.message || '未知錯誤'));
@@ -2842,20 +3014,49 @@ async function tab3GenerateStandalone(extraHmiItem = null) {
     }
 
     if (outBox) {
-      outBox.style.background = '#F0FDF4';
-      outBox.style.borderColor = '#86EFAC';
+      const errCnt = (data.audit_report && data.audit_report.summary) ? (data.audit_report.summary.errors || 0) : 0;
+      const modeTag = autoSampleMode ? '⚡ 懶人範例模式（每台 ≥ 3 測項）' : '🎛️ 專業細部模式';
+      const missingList = Array.isArray(data.missing_dlls) ? data.missing_dlls : [];
+      const hasDllWarn = (!data.centimani_dir_exists) || missingList.length > 0;
+      let dllWarnHtml = '';
+      if (!data.centimani_dir_exists) {
+        dllWarnHtml = `
+          <div style="margin-top:8px; padding:8px 12px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:6px; color:#7F1D1D; font-weight:700;">
+            ⚠️ 尚未設定本機 Centimani 主程式目錄（<code>Device\\</code>），無法檢查實機 DLL 是否齊備。
+            <button onclick="pickCentimaniDir()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 指定 Centimani 主程式目錄</button>
+          </div>`;
+      } else if (missingList.length > 0) {
+        const mText = missingList.map(m => `${m.inst} (缺 ${m.dll})`).join('、');
+        dllWarnHtml = `
+          <div style="margin-top:8px; padding:8px 12px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:6px; color:#7F1D1D; font-weight:700;">
+            ⚠️ 實機 DLL 檢查提醒：目前目錄 (<span class="mono">${data.centimani_dir}\\Device\\</span>) 缺少以下 DLL，上機測試時將會報錯：<br>
+            <span class="mono">${mText}</span>
+            <button onclick="pickCentimaniDir()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button>
+          </div>`;
+      }
+      outBox.style.background = (errCnt === 0 && !hasDllWarn) ? '#F0FDF4' : '#FFFBEB';
+      outBox.style.borderColor = (errCnt === 0 && !hasDllWarn) ? '#86EFAC' : '#F59E0B';
       outBox.innerHTML = `
         <div style="font-size:14px; color:#166534; font-weight:800; margin-bottom:6px;">
-          🎉 成功以母體自動產出儀器測試範本（共連續插入 ${data.total_items || itemsToInsert.length} 項測項），並已自動開啟 Excel 與目標資料夾！
+          🎉 [${modeTag}] 成功產出儀器測試範本（${data.total_items || itemsToInsert.length} 台儀器 / 共 ${data.total_steps || '-'} 列步驟），並已自動開啟輸出目錄！
         </div>
         <div style="font-size:12.5px; color:#334155; line-height:1.6;">
-          • <b>儀器項目：</b><span class="mono">${data.inst_name}</span> (共 ${data.total_items || itemsToInsert.length} 測項)<br>
           • <b>輸出目錄：</b><span class="mono">${data.output_dir}</span><br>
           • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
-          • <b>腳本體檢：</b><span style="color:#15803D; font-weight:700;">✅ 自動防呆檢查通過 (已補齊 16 欄邊界、連續 Phase 順編、前置路由、Phase 97 結束碼與 Checksum)</span>
+          • <b>自動檢查結果：</b><span style="color:${errCnt === 0 ? '#15803D' : '#B45309'}; font-weight:800;">${errCnt === 0 ? '✅ 0 Error (全自動體檢通過、Phase 順編、Phase 97 收尾與 Checksum 已寫入)' : '⚠️ 尚有 ' + errCnt + ' 項待確認 (已自動修復 ' + (data.auto_fixed_count || 0) + ' 項)'}</span>
         </div>
+        ${dllWarnHtml}
       `;
     }
+    showExportCompleteModal({
+      title: '🎉 儀器測試範本匯出完成（已開啟輸出資料夾）',
+      excelPath: data.excel_path,
+      outputDir: data.output_dir,
+      centimaniDir: data.centimani_dir,
+      centimaniDirExists: data.centimani_dir_exists,
+      missingDlls: data.missing_dlls,
+      summaryHtml: `<div>• <b>儀器 / 步驟數：</b>${data.total_items || itemsToInsert.length} 台儀器 / ${data.total_steps || '-'} 列</div>`
+    });
   } catch (err) {
     alert('呼叫伺服器時發生異常：' + (err && err.message ? err.message : err));
     if (outBox) outBox.style.display = 'none';
@@ -4974,13 +5175,13 @@ async function applyFixAndExport(dryRun) {
           user_choices: STATE.userChoices,
           dry_run: dryRun,
           active_sheet: targetSheet,
-          open_excel: true
+          open_excel: false
         })
       });
       return await res.json();
     },
     1200,
-    '正在寫入 Excel 高亮標記、自動計算 System.ini 64 碼 Checksum 並置頂開啟 Excel 視窗...'
+    '正在寫入 Excel 高亮標記、自動計算 System.ini 64 碼 Checksum 並開啟輸出目錄...'
   );
   if (data.status !== 'ok') {
     alert('修復匯出失敗：' + (data.message || ''));
@@ -5031,14 +5232,23 @@ async function applyFixAndExport(dryRun) {
   const alertBox = document.getElementById('auditAlertBox');
   alertBox.style.display = 'block';
   alertBox.innerHTML = `
-    ✅ <strong>修復匯出完成！已自動開啟輸出資料夾與 Excel 活頁簿進行檢視</strong><br>
+    ✅ <strong>修復匯出完成！已自動開啟輸出資料夾進行檢視</strong><br>
     📂 所在資料夾：<span class="mono">${data.output_dir}</span><br>
-    📄 已開啟檔案：<span class="mono" style="color:#0F172A; font-weight:700;">${data.excel_path}</span>
+    📄 匯出檔案：<span class="mono" style="color:#0F172A; font-weight:700;">${data.excel_path}</span>
     ${instVerifyHtml}
     ${logsHtml}
     <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:8px 0;">
     ${alertBox.innerHTML}
   `;
+  showExportCompleteModal({
+    title: '🎉 腳本修復匯出完成（已開啟輸出資料夾）',
+    excelPath: data.excel_path,
+    outputDir: data.output_dir,
+    centimaniDir: data.centimani_dir,
+    centimaniDirExists: data.centimani_dir_exists,
+    missingDlls: data.missing_dlls,
+    summaryHtml: `<div>• <b>自動修復異動：</b>${logs.length} 項</div>`
+  });
 }
 
 let WIZ_STEP = 1;
@@ -5500,6 +5710,7 @@ async function generateNewMother(dryRun) {
           rf_blocks: STATE.genRfBlocks || [],
           system_ini_overrides: STATE.genSystemIni || {},
           dry_run: dryRun,
+          open_excel: false,
           testid_overrides: MOTHER_TESTID_OVERRIDES,
           wizard_config: {
             isn_length: isnLen,
@@ -5535,6 +5746,14 @@ async function generateNewMother(dryRun) {
     📄 <span class="mono">${data.excel_path}</span><br>
     ${formatIsnHtml(data.isn_info)}
   `;
+  showExportCompleteModal({
+    title: '🎉 新母體測試包匯出完成（已開啟輸出資料夾）',
+    excelPath: data.excel_path,
+    outputDir: data.output_dir,
+    centimaniDir: data.centimani_dir,
+    centimaniDirExists: data.centimani_dir_exists,
+    missingDlls: data.missing_dlls
+  });
 }
 
 let SI_MODE = 'gen';
@@ -5659,6 +5878,190 @@ async function confirmCommModal() {
     toggleGlobalEditorPanel('ini_diff', 'review');
   }
 }
+
+async function openCopySheetModal() {
+  const currPath = (STATE && STATE.workspace && STATE.workspace.source_file) ? STATE.workspace.source_file : '';
+  const dstInput = document.getElementById('csDstPath');
+  if (currPath && !dstInput.value) dstInput.value = currPath;
+  document.getElementById('copySheetModal').classList.add('open');
+
+  try {
+    const res = await fetch('/api/init');
+    const data = await res.json();
+    const recents = (data && Array.isArray(data.recent_files)) ? data.recent_files : [];
+    const opts = '<option value="">⚡ 快速選取最近 / 專案內 Excel...</option>' +
+      recents.map(f => `<option value="${String(f.path || '').replace(/"/g, '&quot;')}">${f.folder ? '[' + f.folder + '] ' : ''}${f.name}</option>`).join('');
+    const s1 = document.getElementById('csSrcQuickSel');
+    const s2 = document.getElementById('csDstQuickSel');
+    if (s1) s1.innerHTML = opts;
+    if (s2) s2.innerHTML = opts;
+  } catch (e) {}
+}
+
+async function csPickFile(role) {
+  try {
+    const res = await fetch('/api/pick_file', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ path_only: true }) });
+    const data = await res.json();
+    if (data.status === 'ok' && data.file_path) {
+      if (role === 'src') {
+        document.getElementById('csSrcPath').value = data.file_path;
+        await csLoadSheets(data.file_path);
+      } else {
+        document.getElementById('csDstPath').value = data.file_path;
+      }
+    }
+  } catch (err) {
+    alert('開啟檔案選取視窗失敗：' + (err && err.message ? err.message : err));
+  }
+}
+
+async function csLoadSheets(excelPath) {
+  const sel = document.getElementById('csSrcSheetSel');
+  if (!excelPath) {
+    sel.innerHTML = '<option value="">（請先選取來源 Excel）</option>';
+    return;
+  }
+  const res = await fetch('/api/list_excel_sheets', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ excel_path: excelPath })
+  });
+  const data = await res.json();
+  if (data.status === 'ok' && Array.isArray(data.sheets) && data.sheets.length > 0) {
+    sel.innerHTML = data.sheets.map(s => `<option value="${s}">${s}</option>`).join('');
+    document.getElementById('csTargetSheetName').value = data.sheets[0];
+  } else {
+    sel.innerHTML = '<option value="">（無法讀取工作表）</option>';
+  }
+}
+
+async function csExecuteCopy() {
+  const srcPath = document.getElementById('csSrcPath').value.trim();
+  const srcSheet = document.getElementById('csSrcSheetSel').value.trim();
+  const dstPath = document.getElementById('csDstPath').value.trim();
+  const dstSheet = document.getElementById('csTargetSheetName').value.trim() || srcSheet;
+  const overwrite = document.getElementById('csOverwrite').checked;
+
+  if (!srcPath || !srcSheet || !dstPath) {
+    alert('請先選取來源 Excel、來源 Sheet 與目標 Excel！');
+    return;
+  }
+  await withLoadingTimer('正在跨檔案複製整張 Sheet（保留完整格式）並開啟 Excel...', async () => {
+    const res = await fetch('/api/copy_sheet_across_files', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        source_excel_path: srcPath,
+        source_sheet_name: srcSheet,
+        target_excel_path: dstPath,
+        target_sheet_name: dstSheet,
+        overwrite: overwrite,
+        use_excel_com: true,
+        open_excel: false
+      })
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      alert('複製失敗：' + (data.message || '未知錯誤'));
+      return;
+    }
+    document.getElementById('copySheetModal').classList.remove('open');
+    const dstDir = (data.target_excel_path || '').replace(/[\\/][^\\/]+$/, '');
+    showExportCompleteModal({
+      title: `✅ 已成功複製工作表 [${data.copied_sheet}]（已開啟資料夾）`,
+      excelPath: data.target_excel_path,
+      outputDir: dstDir,
+      centimaniDirExists: true,
+      missingDlls: [],
+      summaryHtml: `<div>• <b>複製引擎：</b>${data.engine || 'openpyxl'}</div>`
+    });
+  });
+}
+
+let _PENDING_EXPORT_EXCEL_PATH = '';
+function showExportCompleteModal(opts = {}) {
+  const modal = document.getElementById('exportConfirmModal');
+  if (!modal) return;
+  _PENDING_EXPORT_EXCEL_PATH = opts.excelPath || '';
+  const titleEl = document.getElementById('ecModalTitle');
+  const bodyEl = document.getElementById('ecModalBody');
+  const warnEl = document.getElementById('ecModalDllWarn');
+  if (titleEl) titleEl.textContent = opts.title || '🎉 檔案匯出完成（已自動開啟輸出資料夾）';
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div>• <b>已開啟輸出目錄：</b><span class="mono">${opts.outputDir || '-'}</span></div>
+      <div>• <b>匯出 Excel 檔案：</b><span class="mono" style="color:#0F172A; font-weight:700;">${opts.excelPath || '-'}</span></div>
+      ${opts.summaryHtml || ''}
+    `;
+  }
+  const missingList = Array.isArray(opts.missingDlls) ? opts.missingDlls : [];
+  const hasDir = (opts.centimaniDirExists !== false);
+  if (warnEl) {
+    if (!hasDir) {
+      warnEl.style.display = 'block';
+      warnEl.innerHTML = `
+        ⚠️ <b>尚未指定本機 Centimani 主程式目錄（<code>Device\\</code>）</b>，無法驗證實機 DLL 是否齊備。
+        <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 指定 Centimani 主程式目錄</button></div>
+      `;
+    } else if (missingList.length > 0) {
+      const mText = missingList.map(m => `${m.inst || '儀器'} (缺 ${m.dll})`).join('、');
+      warnEl.style.display = 'block';
+      warnEl.innerHTML = `
+        ⚠️ <b>實機 DLL 檢查提醒：</b>目前目錄 (<span class="mono">${opts.centimaniDir || ''}\\Device\\</span>) 缺少以下 DLL，上機載入 CentimaniSystem.exe 時將會報錯：<br>
+        <span class="mono" style="color:#991B1B;">${mText}</span>
+        <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button></div>
+      `;
+    } else {
+      warnEl.style.display = 'none';
+      warnEl.innerHTML = '';
+    }
+  }
+  modal.classList.add('open');
+}
+
+function closeExportConfirmModal() {
+  const modal = document.getElementById('exportConfirmModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function confirmOpenExportedExcel() {
+  const target = _PENDING_EXPORT_EXCEL_PATH;
+  closeExportConfirmModal();
+  if (!target) return;
+  const res = await fetch('/api/open_excel_file', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ file_path: target })
+  });
+  const d = await res.json();
+  if (d.status !== 'ok') alert(d.message || '無法開啟 Excel 檔案');
+}
+
+async function pickCentimaniDir() {
+  try {
+    const res = await fetch('/api/pick_centimani_dir', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      if (Array.isArray(data.instruments)) {
+        STATE.instCatalog = data.instruments;
+        if (typeof tab3RenderCatalogDeck === 'function') tab3RenderCatalogDeck();
+      }
+      if (typeof APP_SETTINGS !== 'undefined') APP_SETTINGS.centimani_dir = data.centimani_dir;
+      if (typeof renderSettingsPanel === 'function' && CURRENT_TAB === 'settings') renderSettingsPanel();
+      alert('✅ 已記憶 Centimani 主程式目錄：\n' + data.centimani_dir + '\n並已重新檢查本機 DLL 狀態！');
+    }
+  } catch (err) {
+    alert('設定 Centimani 目錄失敗：' + (err && err.message ? err.message : err));
+  }
+}
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeExportConfirmModal();
+    const csM = document.getElementById('copySheetModal');
+    if (csM && csM.classList.contains('open')) csM.classList.remove('open');
+  }
+});
 
 window.addEventListener('DOMContentLoaded', initPage);
 </script>

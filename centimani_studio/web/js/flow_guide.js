@@ -568,6 +568,14 @@ function renderSettingsPanel() {
             <button onclick="saveAppSettings({intro_font_size:19}); applyLoadedSettings({intro_font_size:19}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:12.5px; ${fs===19?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">特大 (19px)</button>
           </div>
         </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px;">
+          <div style="flex:1; min-width:220px;">
+            <div style="font-weight:700; color:#0F172A;">本機 Centimani 主程式目錄（檢查 <code>Device\\*.dll</code> 與 <code>LoadScript.dll</code>）</div>
+            <div class="mono" style="font-size:12px; color:#334155; margin-top:2px; word-break:break-all;">${s.centimani_dir || '尚未指定（啟動時自動搜尋專案目錄內）'}</div>
+          </div>
+          <button onclick="pickCentimaniDir()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:12.5px;">📁 指定 / 變更目錄</button>
+        </div>
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid #E2E8F0;">

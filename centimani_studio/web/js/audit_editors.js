@@ -1119,7 +1119,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
             ⬅ 返回 5 格設定入口
           </button>
-          <span style="font-weight:900; font-size:15.5px; color:#78350F;">🎛️ 04 / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
+          <span style="font-weight:900; font-size:15.5px; color:#78350F;">🎛️ 05-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
         </div>
         <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px; font-weight:800;">
           ✔ 套用設定並更新體檢

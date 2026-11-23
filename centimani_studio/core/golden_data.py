@@ -48,7 +48,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
         conn3_name = "UARTF" if slot == 1 else f"UARTF_{slot}"
         duts_rows.append({
             "Load": f"*$(LOAD_{slot})",
-            "DUT Name": f"{project_name}${station_name}_{slot}",
+            "DUT Name": f"{project_name}${station_name}",
             "Station": f"{station_name},{slot}",
             "Parameter": f"*$(PCIP_{slot}),*$(DUTIP_{slot}),{slot}",
             "SFIS_DeviceID": f"*$(DEVID_{slot})",
@@ -59,7 +59,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             "Connection4(Type,Name,ConnectString)": ""
         })
 
-    return {
+    return _sync_real_dll_versions({
         "project_name": project_name,
         "station_name": station_name,
         "properties": [
@@ -82,9 +82,9 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
         "instruments": [
             {"Mount": "", "Name": "IPOWER2401", "Sub": "", "ControlDLL": "iPower2401.dll", "Settings": "192.168.201.11,192.168.201.3,9999,1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch 2401"},
             {"Mount": "", "Name": "IPRO800", "Sub": "", "ControlDLL": "iPowerPro800.dll", "Settings": "*$(PCUART_P),1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch Pro800"},
-            {"Mount": station_name, "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.0.2.1", "Switch": "", "Desc": "DAQ device NI6008/6009"},
-            {"Mount": "", "Name": "Agilent34401A", "Sub": "", "ControlDLL": "Agilent34401A.dll", "Settings": "GPIB,GPIB0::16::INSTR", "Functions": "DC,AC,FREQ", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent 34401A Multimeter (Device\\Agilent34401A.dll)"},
-            {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "1.0.0.0", "Switch": "", "Desc": "LED analyser FeasaLED"},
+            {"Mount": station_name, "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"},
+            {"Mount": "", "Name": "Agilent34401A", "Sub": "", "ControlDLL": "Agilent34401A.dll", "Settings": "GPIB,GPIB0::16::INSTR", "Functions": "DC,AC,FREQ", "Version": "1.0.0.2", "Switch": "", "Desc": "Agilent 34401A Multimeter (Device\\Agilent34401A.dll)"},
+            {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "2.1.0.1", "Switch": "", "Desc": "LED analyser FeasaLED"},
             {"Mount": "", "Name": "NI4461", "Sub": "", "ControlDLL": "DaqNI4461.dll", "Settings": "Dev2", "Functions": "VOIP,RMS", "Version": "1.0.0.0", "Switch": "", "Desc": "DAQ device NI4461 Audio"},
             {"Mount": "", "Name": "QRDecode", "Sub": "", "ControlDLL": "QRDecode.dll", "Settings": "", "Functions": "QRCode", "Version": "1.0.0.0", "Switch": "", "Desc": "Decode QR Code"},
             {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"},
@@ -94,9 +94,9 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "Chroma6310A", "Sub": "", "ControlDLL": "Chroma6310A.dll", "Settings": "", "Functions": "DCLoad", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma DC Electronic Load"},
             {"Mount": "", "Name": "KEITHLEY2302", "Sub": "", "ControlDLL": "KEITHLEY2302.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2302 Battery Simulator"},
             {"Mount": "", "Name": "PPH1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Supply PPH1503"},
-            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Supply PSS2005"},
+            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "", "Functions": "DC", "Version": "1.0.0.1", "Switch": "", "Desc": "Power Supply PSS2005"},
             {"Mount": "", "Name": "GDM906x", "Sub": "", "ControlDLL": "GDM906x.dll", "Settings": "", "Functions": "DMM", "Version": "1.0.0.0", "Switch": "", "Desc": "GW Instek GDM906x Multimeter"},
-            {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ", "Version": "1.0.0.0", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
+            {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ", "Version": "1.0.0.1", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
             {"Mount": "", "Name": "E4418B", "Sub": "", "ControlDLL": "PMeterE4418B.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent E4418B Power Meter"},
             {"Mount": "", "Name": "U2004A", "Sub": "", "ControlDLL": "U2004A.dll", "Settings": "", "Functions": "PMeter", "Version": "1.0.0.0", "Switch": "", "Desc": "Keysight U2004A USB Power Sensor"},
             {"Mount": "", "Name": "OSP120", "Sub": "", "ControlDLL": "NFT.dll", "Settings": "", "Functions": "RFSW", "Version": "1.0.0.0", "Switch": "", "Desc": "R&S OSP120 RF Switch"},
@@ -110,9 +110,9 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
             {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
             {"Mount": "", "Name": "ScpTDS3014B", "Sub": "", "ControlDLL": "ScpTDS3014B.dll", "Settings": "", "Functions": "Scope", "Version": "1.0.0.0", "Switch": "", "Desc": "Tektronix TDS3014B Oscilloscope"},
-            {"Mount": "", "Name": "DevUart", "Sub": "", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.0.0", "Switch": "", "Desc": "SubDevice UART Controller"},
+            {"Mount": "", "Name": "DevUart", "Sub": "", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller"},
             {"Mount": "", "Name": "AutoTFTP", "Sub": "", "ControlDLL": "AutoTFTP.dll", "Settings": "", "Functions": "TFTP", "Version": "1.0.0.0", "Switch": "", "Desc": "Auto TFTP Server"},
-            {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.0.0", "Switch": "", "Desc": "Device Queue Sync"},
+            {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.1.0", "Switch": "", "Desc": "Device Queue Sync"},
             {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"}
         ],
         "stations": {
@@ -166,6 +166,126 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             "CSVReport_Enable": "1",
             "TestItemCodeFile": "Test Item Code V2.04_20250310.xlsx"
         }
+    })
+
+
+def get_configured_centimani_dir():
+    """
+    Returns the Centimani main program directory (containing Device/ and LoadScript.dll).
+    Reads `centimani_dir` from config.json; if unset/missing, auto-scans PROJECT_ROOT
+    and saves the discovered path into config.json so the user isn't prompted repeatedly.
+    """
+    import json
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    proj_root = os.path.dirname(base_dir)
+    cfg_path = os.path.join(base_dir, "config.json")
+    cfg = {}
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f) or {}
+        except Exception:
+            cfg = {}
+    saved_dir = str(cfg.get("centimani_dir", "")).strip()
+    if saved_dir and os.path.isdir(saved_dir):
+        return saved_dir
+
+    # Auto-detect inside PROJECT_ROOT
+    candidates = [
+        os.path.join(proj_root, "CENTERMAINA_TRY"),
+        os.path.join(proj_root, "Centimani_1.5.3_sample"),
+    ]
+    for d_name in os.listdir(proj_root):
+        d_path = os.path.join(proj_root, d_name)
+        if os.path.isdir(d_path) and d_path not in candidates:
+            if os.path.exists(os.path.join(d_path, "LoadScript.dll")) or os.path.isdir(os.path.join(d_path, "Device")):
+                candidates.append(d_path)
+
+    for cand in candidates:
+        if os.path.isdir(cand) and (os.path.exists(os.path.join(cand, "LoadScript.dll")) or os.path.isdir(os.path.join(cand, "Device"))):
+            cfg["centimani_dir"] = cand
+            try:
+                with open(cfg_path, "w", encoding="utf-8") as f:
+                    json.dump(cfg, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            return cand
+    return ""
+
+
+def _get_local_dll_versions(force_refresh=False):
+    """Reads actual FileVersion of local Centimani Device/Switch DLLs (cached)."""
+    if not force_refresh and hasattr(_get_local_dll_versions, "_cache"):
+        return _get_local_dll_versions._cache
+    versions = {}
+    try:
+        import glob
+        import win32api
+        proj_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        search_dirs = []
+        cm_dir = get_configured_centimani_dir()
+        if cm_dir:
+            search_dirs.append(cm_dir)
+        for sub in ("CENTERMAINA_TRY", "Centimani_1.5.3_sample"):
+            p = os.path.join(proj_root, sub)
+            if p not in search_dirs:
+                search_dirs.append(p)
+        for base_d in search_dirs:
+            if not os.path.exists(base_d):
+                continue
+            for dll_p in glob.glob(os.path.join(base_d, "**", "*.dll"), recursive=True):
+                d_name = os.path.basename(dll_p).lower()
+                if d_name in versions:
+                    continue
+                try:
+                    info = win32api.GetFileVersionInfo(dll_p, "\\")
+                    ver = f"{win32api.HIWORD(info['FileVersionMS'])}.{win32api.LOWORD(info['FileVersionMS'])}.{win32api.HIWORD(info['FileVersionLS'])}.{win32api.LOWORD(info['FileVersionLS'])}"
+                    versions[d_name] = ver
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    _get_local_dll_versions._cache = versions
+    return versions
+
+
+def _sync_real_dll_versions(mother_dict):
+    dll_vers = _get_local_dll_versions()
+    for sec in ("instruments", "switches"):
+        for item in mother_dict.get(sec, []):
+            dll_n = str(item.get("ControlDLL", "")).strip().lower()
+            if dll_vers:
+                item["dll_exists"] = (dll_n in dll_vers) if dll_n else True
+                if dll_n and dll_n in dll_vers:
+                    item["Version"] = dll_vers[dll_n]
+            else:
+                item["dll_exists"] = True
+    return mother_dict
+
+
+def check_workspace_missing_dlls(ws: dict) -> dict:
+    """檢查 workspace 中所有 Instrument / Switch 對應的 ControlDLL 是否存在於本機 Centimani Device/ 目錄。"""
+    cm_dir = get_configured_centimani_dir()
+    cm_dir_exists = bool(cm_dir and os.path.isdir(cm_dir))
+    dll_vers = _get_local_dll_versions(force_refresh=True) if cm_dir_exists else {}
+    missing_dlls = []
+    seen = set()
+    for sec in ("instruments", "switches"):
+        for inst_r in ws.get(sec, []):
+            d_fn = str(inst_r.get("ControlDLL", "")).strip()
+            name = str(inst_r.get("Name", "")).strip()
+            if not d_fn:
+                continue
+            key = (name.lower(), d_fn.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            if not cm_dir_exists or d_fn.lower() not in dll_vers:
+                missing_dlls.append({"inst": name, "dll": d_fn})
+    return {
+        "centimani_dir": cm_dir,
+        "centimani_dir_exists": cm_dir_exists,
+        "missing_dlls": missing_dlls,
     }
 
 

@@ -24,6 +24,8 @@ def copy_test_item_code_to_output(output_dir, tic_filename="Test Item Code V2.04
 
     search_roots = [
         os.path.join(PROJECT_ROOT, "Centimani_1.5.3_sample", "System"),
+        os.path.join(PROJECT_ROOT, "TEST_SECRIPT"),
+        os.path.join(PROJECT_ROOT, "CENTERMAINA_TRY", "System"),
         os.path.join(PROJECT_ROOT, "SCRIPTS"),
         r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS",
     ]
@@ -122,8 +124,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 raw_sys = open(cand_sys, "r", encoding="utf-8", errors="ignore").read()
                 raw_sys = re.sub(r"(?m)^NewFormatScriptFile=.*$", f"NewFormatScriptFile={excel_filename}", raw_sys)
                 raw_sys = re.sub(r"(?m)^TestItemCodeFile=.*$", f"TestItemCodeFile={actual_tic_name}", raw_sys)
-                raw_sys = re.sub(r"(?m)^DebugMode=.*$", "DebugMode=1", raw_sys)
-                for k_ov in ("SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
+                for k_ov in ("DebugMode", "RetryCount", "StationList", "StationName", "SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
                     if k_ov in sys_cfg and str(sys_cfg[k_ov]).strip() != "":
                         v_ov = str(sys_cfg[k_ov]).strip()
                         if re.search(rf"(?m)^{re.escape(k_ov)}=.*$", raw_sys):

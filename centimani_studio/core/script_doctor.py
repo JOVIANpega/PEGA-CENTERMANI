@@ -1365,7 +1365,9 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
         insert_idx = p97_idx
 
     # 4. Build independent Title block rows according to instrument function
-    funcs = str(inst_meta.get("Functions", "")).upper()
+    funcs_raw = str(inst_meta.get("Functions", "")).strip()
+    funcs = funcs_raw.upper()
+    primary_test_type = funcs_raw.split(",")[0].strip() if funcs_raw else inst_name
     clean_title = (title_name or f"{inst_name} Test").strip()
     t_header = f"0,{clean_title},3"
 
@@ -1383,7 +1385,7 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
             block_rows.append(_row(
                 phase=str(next_p) if idx_cs == 0 else "",
                 title=t_header if idx_cs == 0 else "",
-                inst=str(cs.get("Instrument", inst_name)),
+                inst=str(cs.get("Instrument", primary_test_type)),
                 send=str(cs.get("Send", "")),
                 ref=str(cs.get("Ref", "")),
                 val=str(cs.get("Validation", "")),
@@ -1392,7 +1394,7 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 tid=str(cs.get("TestID", "B7PL025"))
             ))
     else:
-        inst_col = "LED_Test" if "LED_TEST" in funcs else inst_name
+        inst_col = "LED_Test" if "LED_TEST" in funcs else primary_test_type
         block_rows = [
             _row(phase=str(next_p), title=t_header, inst=inst_col, send=":ObtainDevice", exec_mode="0" if "LED_TEST" in funcs else "1", desc=f"PC#-#Obtain {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")
         ]
@@ -1409,18 +1411,18 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 tid="IOLE015"
             ))
         elif "POWERSWITCH" in funcs:
-            block_rows.append(_row(inst=inst_name, send=':Dev.SwitchOFF,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power OFF"))
+            block_rows.append(_row(inst=inst_col, send=':Dev.SwitchOFF,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power OFF"))
             block_rows.append(_row(send=':Delay,"500"', exec_mode="0", desc="PC#-#Wait 500ms"))
-            block_rows.append(_row(inst=inst_name, send=':Dev.SwitchON,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power ON"))
+            block_rows.append(_row(inst=inst_col, send=':Dev.SwitchON,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power ON"))
         elif any(k in funcs for k in ("VOLTAGE", "DC", "DMM", "DAQ", "PMETER")):
             dl = str(dl_val).strip() or "0.0"
             ul = str(ul_val).strip() or "5.0"
             key_base = clean_title.replace(",", "_")
-            block_rows.append(_row(inst=inst_name, send=':Dev.Measure,"1"', val=f"({key_base}_CH1,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch1 ({dl}~{ul})"))
-            block_rows.append(_row(inst=inst_name, send=':Dev.Measure,"2"', val=f"({key_base}_CH2,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch2 ({dl}~{ul})"))
+            block_rows.append(_row(inst=inst_col, send=':Dev.Measure,"1"', val=f"({key_base}_CH1,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch1 ({dl}~{ul})"))
+            block_rows.append(_row(inst=inst_col, send=':Dev.Measure,"2"', val=f"({key_base}_CH2,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} Ch2 ({dl}~{ul})"))
         else:
             val_str = f"({clean_title.replace(',', '_')},%f,{dl_val},{ul_val})" if (dl_val or ul_val) else ""
-            block_rows.append(_row(inst=inst_name, send=f':Dev.Run,""', val=val_str, exec_mode="2:0", desc=f"DUT#-#{clean_title}"))
+            block_rows.append(_row(inst=inst_col, send=f':Dev.Run,""', val=val_str, exec_mode="2:0", desc=f"DUT#-#{clean_title}"))
 
         block_rows.append(
             _row(inst=inst_col, send=":ReleaseDevice", exec_mode="3", desc=f"PC#-#Release {inst_name}", tid="BRME027" if "LED_TEST" in funcs else "B7PL025")

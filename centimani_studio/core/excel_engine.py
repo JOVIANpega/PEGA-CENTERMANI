@@ -7,7 +7,9 @@ Supports both:
    PathLoss, and Connection1..10 columns while highlighting repaired cells in yellow with notes).
 """
 import os
+import shutil
 import datetime
+from copy import copy as _copy_style
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.comments import Comment
@@ -262,10 +264,9 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
                         seen_keys.add(d_val)
                     if ver_col and match_item.get("Version"):
                         ws_inst.cell(row=r, column=ver_col, value=match_item.get("Version"))
-                    if mount_col and match_item.get("Mount") is not None:
+                    if mount_col and "Mount" in match_item and match_item.get("Mount") is not None:
                         m_str = str(match_item.get("Mount", "")).strip()
-                        if m_str:
-                            ws_inst.cell(row=r, column=mount_col, value=m_str)
+                        ws_inst.cell(row=r, column=mount_col).value = m_str if m_str else None
                     if set_col and match_item.get("Settings"):
                         ws_inst.cell(row=r, column=set_col, value=match_item.get("Settings"))
 
@@ -629,3 +630,182 @@ def extract_blocks_from_excel(xlsx_path):
             curr_blk["steps"].append(step)
 
     return extracted
+
+
+def list_excel_sheet_names(xlsx_path):
+    """Returns all worksheet names in an Excel file quickly using read_only mode."""
+    if not xlsx_path or not os.path.exists(xlsx_path):
+        return []
+    wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
+    try:
+        return list(wb.sheetnames)
+    finally:
+        wb.close()
+
+
+def _resolve_target_sheet_name(existing_names, desired_name, overwrite=False):
+    """Resolves a safe worksheet name (<=31 chars) when copying into a workbook."""
+    base = (desired_name or "CopiedSheet").strip()[:31]
+    if overwrite or base not in existing_names:
+        return base
+    for i in range(1, 100):
+        suffix = f"_{i}"
+        cand = base[: 31 - len(suffix)] + suffix
+        if cand not in existing_names:
+            return cand
+    return base[:27] + "_new"
+
+
+def _copy_sheet_openpyxl(source_excel_path, source_sheet_name, target_excel_path, target_sheet_name, overwrite=False):
+    """Fallback pure-Python deep copy preserving styles, column widths, row heights, merges, and freeze panes."""
+    src_wb = openpyxl.load_workbook(source_excel_path, data_only=False)
+    dst_wb = openpyxl.load_workbook(target_excel_path, data_only=False)
+    try:
+        if source_sheet_name not in src_wb.sheetnames:
+            raise ValueError(f"來源檔案找不到工作表：{source_sheet_name}")
+        src_ws = src_wb[source_sheet_name]
+        final_name = _resolve_target_sheet_name(dst_wb.sheetnames, target_sheet_name or source_sheet_name, overwrite=overwrite)
+
+        if overwrite and final_name in dst_wb.sheetnames:
+            idx_pos = dst_wb.sheetnames.index(final_name)
+            dst_wb.remove(dst_wb[final_name])
+            dst_ws = dst_wb.create_sheet(title=final_name, index=idx_pos)
+        else:
+            dst_ws = dst_wb.create_sheet(title=final_name)
+
+        max_r = min(src_ws.max_row or 1, 15000)
+        max_c = min(src_ws.max_column or 1, 100)
+        for r in range(1, max_r + 1):
+            for c in range(1, max_c + 1):
+                s_cell = src_ws.cell(row=r, column=c)
+                d_cell = dst_ws.cell(row=r, column=c, value=s_cell.value)
+                if s_cell.has_style:
+                    d_cell.font = _copy_style(s_cell.font)
+                    d_cell.fill = _copy_style(s_cell.fill)
+                    d_cell.border = _copy_style(s_cell.border)
+                    d_cell.alignment = _copy_style(s_cell.alignment)
+                    d_cell.number_format = s_cell.number_format
+                if s_cell.comment:
+                    d_cell.comment = Comment(s_cell.comment.text, s_cell.comment.author)
+
+        for col_letter, dim in src_ws.column_dimensions.items():
+            d_dim = dst_ws.column_dimensions[col_letter]
+            if dim.width is not None:
+                d_dim.width = dim.width
+            d_dim.hidden = dim.hidden
+
+        for r_idx, dim in src_ws.row_dimensions.items():
+            d_dim = dst_ws.row_dimensions[r_idx]
+            if dim.height is not None:
+                d_dim.height = dim.height
+            d_dim.hidden = dim.hidden
+
+        for m_range in src_ws.merged_cells.ranges:
+            dst_ws.merge_cells(str(m_range))
+
+        dst_ws.freeze_panes = src_ws.freeze_panes
+        if src_ws.sheet_properties.tabColor is not None:
+            dst_ws.sheet_properties.tabColor = _copy_style(src_ws.sheet_properties.tabColor)
+
+        _set_active_worksheet(dst_wb, None, active_sheet=final_name)
+        dst_wb.save(target_excel_path)
+        return final_name
+    finally:
+        src_wb.close()
+        dst_wb.close()
+
+
+def copy_sheet_between_excels(
+    source_excel_path,
+    source_sheet_name,
+    target_excel_path,
+    target_sheet_name=None,
+    overwrite=False,
+    use_excel_com=True,
+    create_backup=True,
+):
+    """
+    Copies an entire worksheet from source_excel_path into target_excel_path
+    while preserving full formatting (widths, borders, fills, merges, formulas).
+    Uses native Excel COM (win32com) when available, with openpyxl deep-copy fallback.
+    """
+    src_abs = os.path.abspath(source_excel_path)
+    dst_abs = os.path.abspath(target_excel_path)
+    if not os.path.exists(src_abs):
+        raise FileNotFoundError(f"找不到來源 Excel：{src_abs}")
+    if not os.path.exists(dst_abs):
+        raise FileNotFoundError(f"找不到目標 Excel：{dst_abs}")
+
+    if create_backup:
+        bak_path = dst_abs + ".bak"
+        shutil.copy2(dst_abs, bak_path)
+
+    desired = (target_sheet_name or source_sheet_name).strip()
+    if use_excel_com:
+        excel = None
+        src_wb = None
+        dst_wb = None
+        try:
+            import pythoncom
+            import win32com.client
+            pythoncom.CoInitialize()
+            excel = win32com.client.DispatchEx("Excel.Application")
+            excel.Visible = False
+            excel.DisplayAlerts = False
+            excel.ScreenUpdating = False
+
+            src_wb = excel.Workbooks.Open(src_abs, ReadOnly=True)
+            dst_wb = excel.Workbooks.Open(dst_abs)
+
+            src_names = [s.Name for s in src_wb.Sheets]
+            if source_sheet_name not in src_names:
+                raise ValueError(f"來源檔案找不到工作表：{source_sheet_name}")
+
+            dst_names = [s.Name for s in dst_wb.Sheets]
+            final_name = _resolve_target_sheet_name(dst_names, desired, overwrite=overwrite)
+            if overwrite and final_name in dst_names and len(dst_names) > 1:
+                dst_wb.Sheets(final_name).Delete()
+
+            src_ws = src_wb.Sheets(source_sheet_name)
+            src_ws.Copy(After=dst_wb.Sheets(dst_wb.Sheets.Count))
+            copied_ws = dst_wb.Sheets(dst_wb.Sheets.Count)
+            copied_ws.Name = final_name
+            copied_ws.Activate()
+            dst_wb.Save()
+            return {
+                "status": "ok",
+                "target_excel_path": dst_abs,
+                "copied_sheet": final_name,
+                "engine": "excel_com",
+            }
+        except Exception:
+            pass
+        finally:
+            try:
+                if src_wb is not None:
+                    src_wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+            try:
+                if dst_wb is not None:
+                    dst_wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+            try:
+                if excel is not None:
+                    excel.Quit()
+            except Exception:
+                pass
+            try:
+                import pythoncom
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
+
+    final_name = _copy_sheet_openpyxl(src_abs, source_sheet_name, dst_abs, desired, overwrite=overwrite)
+    return {
+        "status": "ok",
+        "target_excel_path": dst_abs,
+        "copied_sheet": final_name,
+        "engine": "openpyxl",
+    }

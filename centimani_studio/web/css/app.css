@@ -1508,3 +1508,234 @@ button:not(:disabled):hover {
 #modalBlockSorter .bs-card-hover-btn {
   font-size: calc(var(--app-font-size, 15px) * 0.7);
 }
+
+/* ======================== 書籤三：華麗磁性積木對接效果 (Lego Snap-Ghost) ======================== */
+@keyframes legoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.45); border-color: #8B5CF6; background: #F5F3FF; }
+  50% { box-shadow: 0 0 16px 3px rgba(124, 58, 237, 0.25); border-color: #6D28D9; background: #EDE9FE; }
+}
+@keyframes legoPopIn {
+  0% { transform: scale(0.86) translateY(-4px); opacity: 0.4; }
+  65% { transform: scale(1.04) translateY(0); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.lego-block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 2px solid #CBD5E1;
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: grab;
+  box-shadow: 0 3px 0 rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.06);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, opacity 0.15s ease;
+  user-select: none;
+}
+.lego-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 rgba(15, 23, 42, 0.12), 0 8px 18px rgba(124, 58, 237, 0.14);
+}
+.lego-block:active,
+.lego-block.dragging {
+  cursor: grabbing;
+  opacity: 0.65;
+  transform: scale(0.97);
+}
+.lego-block.pop-in {
+  animation: legoPopIn 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lego-block.drag-over-target {
+  box-shadow: -6px 0 0 0 #7C3AED, 0 6px 18px rgba(124, 58, 237, 0.28);
+  transform: translateX(4px);
+}
+.lego-connector {
+  display: inline-flex;
+  align-items: center;
+  color: #7C3AED;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -1px;
+  user-select: none;
+  opacity: 0.85;
+}
+.lego-snap-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 155px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 2px dashed #7C3AED;
+  border-radius: 10px;
+  color: #5B21B6;
+  font-size: 12.5px;
+  font-weight: 900;
+  animation: legoPulse 1.2s infinite ease-in-out;
+  pointer-events: none;
+}
+.lego-drop-active {
+  border-color: #6D28D9 !important;
+  background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%) !important;
+  box-shadow: inset 0 0 0 2px rgba(124, 58, 237, 0.25), 0 6px 20px rgba(124, 58, 237, 0.14);
+}
+.tab3-choice-card {
+  flex: 1;
+  min-width: 260px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 2px solid #CBD5E1;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  text-align: left;
+}
+.tab3-choice-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+.tab3-split-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(340px, 1.12fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .tab3-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.lego-v-block {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(90deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1.8px solid #CBD5E1;
+  border-left-width: 7px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: grab;
+  box-shadow: 0 3px 0 rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, margin 0.18s ease, border-color 0.16s ease, opacity 0.15s ease;
+  user-select: none;
+}
+.lego-v-block:hover {
+  transform: translateX(3px);
+  box-shadow: 0 4px 0 rgba(15, 23, 42, 0.1), 0 8px 18px rgba(124, 58, 237, 0.14);
+}
+.lego-v-block.dragging {
+  cursor: grabbing;
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+.lego-v-block.pop-in {
+  animation: legoPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lego-v-block.drag-over-v {
+  margin-top: 14px;
+  box-shadow: 0 -6px 0 0 #7C3AED, 0 8px 20px rgba(124, 58, 237, 0.25);
+}
+.lego-v-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  color: #7C3AED;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+  text-shadow: 0 0 8px rgba(124, 58, 237, 0.35);
+}
+.lego-v-ghost {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 46px;
+  margin-top: 8px;
+  border: 2px dashed #7C3AED;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5B21B6;
+  font-size: 12.5px;
+  font-weight: 900;
+  animation: legoPulse 1.2s infinite ease-in-out;
+  pointer-events: none;
+}
+.lego-poker-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 118px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1.8px solid #CBD5E1;
+  border-top-width: 5px;
+  border-radius: 10px;
+  padding: 7px 8px;
+  cursor: grab;
+  box-shadow: 0 3px 0 rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.06);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.15s ease;
+  user-select: none;
+}
+.lego-poker-card.selected-poker {
+  width: 134px;
+  min-height: 122px;
+  flex: 0 0 134px;
+  box-sizing: border-box;
+}
+.lego-gold-title {
+  background: linear-gradient(90deg, #FEF08A 0%, #FDE047 100%);
+  color: #78350F;
+  border: 1px solid #FACC15;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lego-poker-card.drag-over-target {
+  box-shadow: -6px 0 0 0 #7C3AED, 0 8px 20px rgba(124, 58, 237, 0.25);
+  transform: translateX(4px);
+}
+.lego-poker-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 0 rgba(15, 23, 42, 0.1), 0 10px 20px rgba(124, 58, 237, 0.15);
+}
+.lego-poker-card.dragging {
+  cursor: grabbing;
+  opacity: 0.55;
+  transform: scale(0.96);
+}
+.lego-plus-joiner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+  user-select: none;
+}
+.lego-plus-joiner span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #EDE9FE;
+  border: 1.5px solid #A78BFA;
+  color: #5B21B6;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.16);
+}
