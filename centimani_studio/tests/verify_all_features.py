@@ -1341,6 +1341,16 @@ def run_all_verifications():
                   and 'function handleAuditFileDrop(' in index_html,
                   "01 腳本健檢進場畫面已套用「選項 C」：拖放橫條 + Top 3 快選 + 全寬可搜尋資料表")
 
+            # [v0.8.027] 驗證單一整合選檔按鈕 + 健檢結果「選項 1」左側工作表直欄＆右側主工作桌
+            check('id="btnAuditPickExcel"' in index_html
+                  and '站內瀏覽選檔' not in index_html
+                  and 'id="auditResultsGrid"' in index_html
+                  and 'audit-sheet-rail' in index_html
+                  and 'audit-marco-group' in index_html
+                  and '.audit-results-grid' in app_css
+                  and '.audit-sheet-rail' in app_css,
+                  "01 健檢選檔按鈕已收斂為單一『選擇 Excel 檔案』且結果頁升級為「選項 1」左右雙欄（Marco 子表自動收折）")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

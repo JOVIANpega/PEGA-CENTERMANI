@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.026">
+<link rel="stylesheet" href="/css/app.css?v=0.8.027">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.026</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.027</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -181,12 +181,8 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; flex-wrap:wrap;">
         <input type="file" id="auditDirectUploadInput" accept=".xlsx,.xlsm" style="display:none;" onchange="uploadExcelForAudit(this)">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary-blue" onclick="document.getElementById('auditDirectUploadInput').click()" title="上傳副本進行體檢（不改動原資料夾檔案；如需原地寫回 *_FIXED.xlsx 請用右側站內瀏覽）">
-            📂 選取單一 Excel (上傳副本)
-          </button>
-
-          <button class="btn" style="background:#FFFFFF; color:#1E293B; border-color:#94A3B8;" onclick="openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) })" title="直接在網頁內瀏覽本機資料夾（記憶真實路徑，修復後可直接寫回原資料夾並讀取同層 INI）">
-            🗂️ 站內瀏覽選檔 (原路徑)
+          <button id="btnAuditPickExcel" class="btn btn-primary-blue" onclick="pickExcelNative()" title="開啟 Windows 原生選檔視窗直接讀取本機檔案（寫回原資料夾）；若取消則自動開啟站內瀏覽器">
+            📂 選擇 Excel 檔案
           </button>
 
           <button class="btn" style="background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="pickFolderAndScan()" title="遞迴掃描專案資料夾內所有站別腳本，並支援一鍵整包批次修復">
@@ -210,7 +206,7 @@
       <div style="display:flex; align-items:center; gap:8px; width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
         <span style="font-weight:700; color:#475569; font-size:0.87rem; white-space:nowrap;">📍 目前檔案：</span>
         <span id="pickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
-          尚未選擇檔案（點擊上方「📂 選取單一 Excel」或從下方最近紀錄一鍵載入健檢）
+          尚未選擇檔案（點擊上方「📂 選擇 Excel 檔案」、拖曳檔案或從下方清單點選）
         </span>
         <button id="btnRefreshCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:0.83rem; background:#F1F5F9; color:#334155; border-color:#94A3B8; white-space:nowrap;" onclick="refreshCurrentExcelFile()" title="Excel 手動微調存檔後，點此重新讀取體檢">
           🔄 重新檢視
@@ -277,33 +273,39 @@
     <!-- 整包資料夾批次掃描結果總表 -->
     <div id="batchFolderBox" style="display:none; border:1.5px solid #38BDF8; border-radius:8px; padding:12px 14px; background:#F0F9FF; margin-bottom:12px;"></div>
 
-    <!-- 狀態與路徑提示氣泡 -->
-    <div id="auditAlertBox" class="alert-banner" style="display:none;"></div>
+    <!-- 狀態與路徑提示氣泡（精簡橫幅） -->
+    <div id="auditAlertBox" class="alert-banner" style="display:none; margin-bottom:10px; padding:8px 12px;"></div>
 
-    <!-- 多測試站 Sheet 健康度標籤列 -->
-    <div id="sheetFilterBar" class="sheet-tab-bar" style="display:none;"></div>
+    <!-- 選項 1：左側工作表健康度直欄 ＋ 右側錯誤清單主工作桌 -->
+    <div id="auditResultsGrid" class="audit-results-grid" style="display:none;">
+      <!-- 左側直欄：工作表健康度切換（異常置頂、Marco 子表預設折疊） -->
+      <div id="sheetFilterBar" class="audit-sheet-rail" style="display:none;"></div>
 
-    <!-- 白話跳轉流程摘要區（異常置頂展開，正常自動收合） -->
-    <div id="jumpSummaryContainer" style="display:none; margin-bottom:10px;"></div>
+      <!-- 右側主工作桌：跳轉分支 + 問題明細與自動修補對策 -->
+      <div class="audit-right-main">
+        <!-- 白話跳轉流程摘要區（異常置頂展開，正常自動收合） -->
+        <div id="jumpSummaryContainer" style="display:none; margin-bottom:8px;"></div>
 
-    <!-- 錯誤明細展開勾選框 (平常不顯示，打勾才展開修復對策) -->
-    <div id="toggleDetailBar" style="display:none; align-items:center; gap:8px; margin: 0 0 10px 4px;">
-      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#334155; font-size:14px; user-select:none;">
-        <input type="checkbox" id="chkShowDetails" checked onchange="toggleDetailVisibility()" style="cursor:pointer; width:17px; height:17px;">
-        顯示各測試站錯誤與人工確認明細（有問題之站別預設展開，綠燈站別自動收合）
-      </label>
-    </div>
+        <!-- 錯誤明細展開勾選框 (平常不顯示，打勾才展開修復對策) -->
+        <div id="toggleDetailBar" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 8px 2px;">
+          <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:700; color:#334155; font-size:0.86rem; user-select:none;">
+            <input type="checkbox" id="chkShowDetails" checked onchange="toggleDetailVisibility()" style="cursor:pointer; width:16px; height:16px;">
+            顯示各測試站錯誤與人工確認明細（異常站別預設展開，綠燈站別自動收合）
+          </label>
+        </div>
 
-    <!-- 點選題區塊（若有步號越界，列出推薦答案） -->
-    <div id="choiceContainer" style="display:none;">
-      <h3 style="margin:4px 0 8px 0; color:#92400E;">🎯 步號跳轉 / 鎖定確認題（已幫您預設選好【智慧推薦答案】，直接點上方綠色按鈕即可套用）：</h3>
-      <div id="choiceCardList"></div>
-    </div>
+        <!-- 點選題區塊（若有步號越界，列出推薦答案） -->
+        <div id="choiceContainer" style="display:none;">
+          <h3 style="margin:4px 0 8px 0; color:#92400E;">🎯 步號跳轉 / 鎖定確認題（已幫您預設選好【智慧推薦答案】，直接點上方綠色按鈕即可套用）：</h3>
+          <div id="choiceCardList"></div>
+        </div>
 
-    <!-- 問題明細與自動修復預覽清單 (平常預設隱藏，勾選才顯示) -->
-    <div id="issueDetailBox" style="display:none; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px; background:#F8FAFC; margin-top:8px;">
-      <h3 style="margin:0 0 8px 0; color:var(--slate-900);">🛠️ 系統抓到的問題與自動修補對策（存檔時自動套用）：</h3>
-      <div id="issueItems" style="font-size:13.5px; line-height:1.6;"></div>
+        <!-- 問題明細與自動修復預覽清單 -->
+        <div id="issueDetailBox" style="display:none; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px; background:#F8FAFC;">
+          <h3 style="margin:0 0 8px 0; font-size:0.98rem; color:var(--slate-900);">🛠️ 系統抓到的問題與自動修補對策（存檔時自動套用）：</h3>
+          <div id="issueItems" style="font-size:13.5px; line-height:1.6;"></div>
+        </div>
+      </div>
     </div>
   </div> <!-- 關閉 panelAudit 容器，讓後續 Modal 成為全域頂層對話框 -->
 
@@ -1862,11 +1864,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.026"></script>
-<script src="/js/audit_editors.js?v=0.8.026"></script>
-<script src="/js/flow_guide.js?v=0.8.026"></script>
-<script src="/js/block_sorter.js?v=0.8.026"></script>
-<script src="/js/script_qa.js?v=0.8.026"></script>
+<script src="/js/inst_hmi.js?v=0.8.027"></script>
+<script src="/js/audit_editors.js?v=0.8.027"></script>
+<script src="/js/flow_guide.js?v=0.8.027"></script>
+<script src="/js/block_sorter.js?v=0.8.027"></script>
+<script src="/js/script_qa.js?v=0.8.027"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -4140,13 +4142,13 @@ async function pickExcelNative() {
       return;
     }
     if (data.status !== 'ok') {
-      alert(data.message || '檔案選取失敗');
+      openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) });
       return;
     }
     _applyAuditLoadedPayload(data);
   } catch (err) {
     console.error('pickExcelNative error:', err);
-    alert('讀取 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
+    openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) });
   } finally {
     STATE.isPickingFile = false;
   }
@@ -4177,6 +4179,10 @@ async function pickFolderAndScan() {
 function renderBatchFolderBox() {
   const emptyAudit = document.getElementById('auditEmptyRecentBox');
   if (emptyAudit) emptyAudit.style.display = 'none';
+  const ab = document.getElementById('auditAlertBox');
+  if (ab) ab.style.display = 'none';
+  const rg = document.getElementById('auditResultsGrid');
+  if (rg) rg.style.display = 'none';
   const box = document.getElementById('batchFolderBox');
   const items = STATE.batchItems || [];
   if (items.length === 0) {
@@ -4327,6 +4333,8 @@ function renderAuditResults() {
   if (typeof syncEditorView === 'function') syncEditorView();
   const emptyAudit = document.getElementById('auditEmptyRecentBox');
   if (emptyAudit) emptyAudit.style.display = 'none';
+  const resultsGrid = document.getElementById('auditResultsGrid');
+  if (resultsGrid) resultsGrid.style.display = 'grid';
   const rep = STATE.report;
   const cards = rep.choice_cards || [];
   const errors = rep.errors || [];
@@ -4377,57 +4385,82 @@ function renderAuditResults() {
 
   let statusBadge = '';
   const autoNote = autoFixWarnings.length > 0
-    ? ` <span style="color:#0369A1; font-size:0.88rem;">（另有 🤖 ${autoFixWarnings.length} 項機械式格式問題，將於點擊右上角「💾 一鍵修好並匯出 (*_FIXED.xlsx)」時自動修補）</span>`
+    ? ` <span style="color:#0369A1; font-size:0.84rem;">（🤖 匯出自動校正 ${autoFixWarnings.length} 項）</span>`
     : '';
   if (errors.length === 0 && manualWarnings.length === 0) {
-    statusBadge = `<span style="color:#166534; font-size:16px;">🟢 檢查結果：無須人工介入的邏輯錯誤或警告！</span>${autoNote}`;
+    statusBadge = `<span style="color:#166534; font-size:0.98rem;">🟢 無須人工處理的錯誤或警告</span>${autoNote}`;
   } else if (errors.length > 0) {
-    statusBadge = `<span style="color:#991B1B; font-size:16px;">🔴 檢查結果：抓出 <strong>${errors.length} 個錯誤</strong>、<strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
+    statusBadge = `<span style="color:#991B1B; font-size:0.98rem;">🔴 抓出 <strong>${errors.length} 錯</strong> · <strong>${manualWarnings.length} 需人工確認</strong></span>${autoNote}`;
   } else {
-    statusBadge = `<span style="color:#92400E; font-size:16px;">🟡 檢查結果：抓出 <strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
+    statusBadge = `<span style="color:#92400E; font-size:0.98rem;">🟡 抓出 <strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
   }
 
   const phaseIssues = rep.phase_order_issues || [];
   const phaseIssueBanner = phaseIssues.length > 0 ? `
-    <div style="margin-top:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-      <div style="font-size:13px; color:#92400E; font-weight:700;">
+    <div style="margin-top:6px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px; padding:6px 10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="font-size:12.5px; color:#92400E; font-weight:700;">
         ⚠️ 偵測到 <b>${phaseIssues.length} 處 Phase 編號順序倒退或錯位</b>（例如：<b>${phaseIssues[0].sheet}</b> 第 ${phaseIssues[0].start_row} 列 <code>[${phaseIssues[0].title}]</code> — ${phaseIssues[0].reason}）
       </div>
-      <button type="button" class="btn" style="background:#FACC15; color:#0F172A; border-color:#CA8A04; font-weight:800; padding:5px 12px; font-size:12.5px;" onclick="openBlockSorterModal('${phaseIssues[0].sheet}')">
+      <button type="button" class="btn" style="background:#FACC15; color:#0F172A; border-color:#CA8A04; font-weight:800; padding:4px 10px; font-size:12px;" onclick="openBlockSorterModal('${phaseIssues[0].sheet}')">
         🧱 開啟積木排序器調整順序 ▶
       </button>
     </div>
   ` : '';
 
   alertBox.innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; justify-content:space-between;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between;">
       <div>${statusBadge}</div>
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         ${formatIsnHtml(STATE.isnInfo)}
-        <button type="button" onclick="openBlockSorterModal()" class="btn" style="padding:3px 10px; font-size:12.5px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700;">🧱 積木順序排序 ▶</button>
+        <button type="button" onclick="openBlockSorterModal()" class="btn" style="padding:3px 9px; font-size:12px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700;">🧱 積木排序</button>
+        <span class="mono" style="font-size:11.5px; color:#475569; background:rgba(255,255,255,0.7); border:1px solid #CBD5E1; border-radius:4px; padding:2px 7px;" title="修復後寫回原目錄並重算 System.ini Checksum">👉 同目錄 *_FIXED.xlsx</span>
       </div>
     </div>
     ${phaseIssueBanner}
-    <div style="margin-top:4px; font-size:13px;">
-      👉 匯出位置：同目錄 <span class="mono">*_FIXED.xlsx</span>（自動寫入 Checksum 至 <span class="mono">System.ini</span>）
-    </div>
   `;
 
-  // Render multi-sheet health filter bar (compact badges; auto-fix count in tooltip)
+  // 選項 1 左側工作表直欄：異常站別置頂，正常 Marco 子表預設折疊不洗版
   const sheetBar = document.getElementById('sheetFilterBar');
   const sheetStats = rep.sheet_stats || [];
   if (sheetStats.length > 0) {
     sheetBar.style.display = 'flex';
     const activeF = STATE.activeSheetFilter || 'ALL';
-    let sHtml = `<button class="sheet-pill ${activeF === 'ALL' ? 'active' : ''}" onclick="setSheetFilter('ALL')">📋 全部工作表 (${sheetStats.length})</button>`;
-    sheetStats.forEach(ss => {
+    const mkPill = (ss, compact = false) => {
       const tip = ss.auto_fix_count > 0 ? `含 ${ss.auto_fix_count} 項機械式自動修補項目` : '無自動修補項目';
       const badge = (ss.errors === 0 && ss.warnings === 0)
-        ? `<span style="color:#15803D;">🟢OK</span>`
-        : `${ss.errors > 0 ? `<span style="color:#B91C1C;">🔴${ss.errors}</span>` : ''} ${ss.warnings > 0 ? `<span style="color:#B45309;">🟡${ss.warnings}</span>` : ''}`;
-      const tag = ss.sheet_type === 'Marco' ? ' <span style="color:#64748B;font-size:11px;">(Marco)</span>' : '';
-      sHtml += `<button class="sheet-pill ${activeF === ss.sheet ? 'active' : ''}" title="${tip}" onclick="setSheetFilter('${ss.sheet.replace(/'/g, "\\'")}')">${ss.sheet}${tag} ${badge}</button>`;
+        ? `<span style="color:#15803D; font-size:0.78rem;">🟢OK</span>`
+        : `<span style="white-space:nowrap;">${ss.errors > 0 ? `<span style="color:#B91C1C;">🔴${ss.errors}</span>` : ''} ${ss.warnings > 0 ? `<span style="color:#B45309;">🟡${ss.warnings}</span>` : ''}</span>`;
+      const escName = ss.sheet.replace(/'/g, "\\'");
+      const label = compact ? ss.sheet : `${ss.sheet}${ss.sheet_type === 'Marco' ? ' <span style="color:#64748B;font-size:11px;">(M)</span>' : ''}`;
+      return `<button class="sheet-pill ${activeF === ss.sheet ? 'active' : ''}" title="${tip}" onclick="setSheetFilter('${escName}')"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${label}</span>${badge}</button>`;
+    };
+
+    const sortedStats = [...sheetStats].sort((a, b) => {
+      const aBad = (a.errors > 0 || a.warnings > 0) ? 0 : 1;
+      const bBad = (b.errors > 0 || b.warnings > 0) ? 0 : 1;
+      return aBad - bBad;
     });
+    const cleanMarcos = sortedStats.filter(ss => ss.sheet_type === 'Marco' && ss.errors === 0 && ss.warnings === 0);
+    const primarySheets = sortedStats.filter(ss => !(ss.sheet_type === 'Marco' && ss.errors === 0 && ss.warnings === 0));
+
+    let sHtml = `
+      <div class="audit-sheet-rail-title">📑 工作表健康度 (${sheetStats.length})</div>
+      <button class="sheet-pill ${activeF === 'ALL' ? 'active' : ''}" onclick="setSheetFilter('ALL')">
+        <span>📋 全部工作表</span><span class="mono" style="font-size:0.78rem;">${sheetStats.length}</span>
+      </button>
+    `;
+    primarySheets.forEach(ss => { sHtml += mkPill(ss, false); });
+    if (cleanMarcos.length > 0) {
+      const marcoActive = cleanMarcos.some(ss => ss.sheet === activeF);
+      sHtml += `
+        <details class="audit-marco-group" ${marcoActive ? 'open' : ''}>
+          <summary>🟢 Marco 子表 (${cleanMarcos.length} · 全綠)</summary>
+          <div class="audit-marco-list">
+            ${cleanMarcos.map(ss => mkPill(ss, true)).join('')}
+          </div>
+        </details>
+      `;
+    }
     sheetBar.innerHTML = sHtml;
   } else {
     sheetBar.style.display = 'none';
