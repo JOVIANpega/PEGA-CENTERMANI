@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.025">
+<link rel="stylesheet" href="/css/app.css?v=0.8.026">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.025</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.026</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -73,7 +73,7 @@
       </div>
     </div>
 
-    <!-- 橫向手風琴展開卡 (5 張：4 大功能 + 系統設定) -->
+    <!-- 橫向手風琴展開卡 (5 張：去按鈕清爽版，點擊卡片直接進入工作區) -->
     <div id="homeScheme2" class="acc-row">
       <div id="accCard_audit" class="acc-card active" data-theme="blue" onmouseenter="setActiveAccCard('audit')" onclick="enterModule('audit')">
         <div>
@@ -83,15 +83,12 @@
           <div class="acc-sub">Audit &amp; Auto-Fix</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#0C4A6E; line-height:1.6;">
-            <li>單檔體檢與整包資料夾批次掃描</li>
-            <li>紅黃燈錯誤報告與跳轉分支樹檢查</li>
-            <li>一鍵補碼修復簽章，或帶入 02 編修</li>
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#0C4A6E; line-height:1.7;">
+            <li>單檔體檢、拖放載入與整包資料夾批次掃描</li>
+            <li>紅黃燈錯誤報告、跳轉分支檢查與 MD 規範診斷</li>
+            <li>一鍵補碼修復簽章，或帶入編修中心繼續調整</li>
           </ul>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('audit', pickExcelNative);" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📂 選取 Excel</button>
-            <button onclick="event.stopPropagation(); enterModule('audit', pickFolderAndScan);" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">📁 掃描資料夾</button>
-          </div>
+          <div class="acc-enter-hint" style="color:#0369A1;">點擊卡片進入 ▶</div>
         </div>
       </div>
 
@@ -103,19 +100,13 @@
           <div class="acc-sub">Builder (0→1) &amp; Editor (1→N)</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.6;">
-            <li><b>既有腳本編修</b>：既有 Excel 5 合 1 編修與跨檔複製</li>
-            <li><b>產生首次使用空範本</b>：4 步驟建立新母體乾淨基礎骨架</li>
-            <li><b>插入儀器範本</b>：34+ 款儀器撲克牌庫（含懶人快速版／人機）</li>
-            <li><b>問編寫問題 &amp; 實機驗證</b>：指令百科、SFIS (ISN/GET/WRITE) 與 DLLtest 驗證</li>
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
+            <li><b>既有腳本編修</b>：5 合 1 快捷編修與跨檔複製整張 Sheet</li>
+            <li><b>產生首次使用空範本</b>：4 步驟建立新母體基礎骨架</li>
+            <li><b>插入儀器範本</b>：撲克牌雙欄快速挑選／互動人機</li>
+            <li><b>問編寫問題 &amp; 實機驗證</b>：寫法百科、SFIS 與 DLLtest</li>
           </ul>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📝 既有腳本編修</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">🌱 產生新母體</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('inst'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFBEB; color:#92400E; border-color:#F59E0B;">🧪 儀器範本</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('qa'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border-color:#818CF8;">💬 問編寫問題</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('tools'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFF1F2; color:#9F1239; border-color:#FB7185;">🛡️ 實機驗證 (SFIS / DLL)</button>
-          </div>
+          <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
         </div>
       </div>
 
@@ -127,12 +118,12 @@
           <div class="acc-sub">Failure Log Analyzer</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.6;">
-            <li>匯入產線 FAIL Log 或貼上錯誤片段</li>
-            <li>秒抓超標數據、規格差距與瓶頸耗時</li>
-            <li>一鍵複製乾淨異常摘要報告</li>
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#78350F; line-height:1.7;">
+            <li>匯入產線 FAIL Log 或直接貼上錯誤訊息片段</li>
+            <li>快速定位超標數據、規格差距、驅動缺失與耗時瓶頸</li>
+            <li>整理純文字測試異常結論報告方便回報</li>
           </ul>
-          <button onclick="event.stopPropagation(); enterModule('diagnose');" class="btn btn-jump" style="padding:6px 14px; font-size:0.85rem;">📄 匯入 Log 診斷 ▶</button>
+          <div class="acc-enter-hint" style="color:#B45309;">點擊卡片進入 ▶</div>
         </div>
       </div>
 
@@ -144,12 +135,12 @@
           <div class="acc-sub">Error Code Lookup (V2.04)</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.6;">
-            <li>預設自動載入最新版 <b>V2.04</b>（免選檔）</li>
-            <li>中英文關鍵字即時搜尋 Error Code / 通用碼</li>
-            <li>一鍵複製或套用至測試腳本</li>
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#312E81; line-height:1.7;">
+            <li>啟動自動預載最新官方代碼表（免手動選檔）</li>
+            <li>中英文關鍵字與 7 碼代碼即時搜尋、篩選通用碼</li>
+            <li>支援雙欄複製或直接套用回 Excel 腳本</li>
           </ul>
-          <button onclick="event.stopPropagation(); enterModule('tic');" class="btn btn-dry" style="padding:6px 14px; font-size:0.85rem;">🔍 查詢 Error Code / TestID ▶</button>
+          <div class="acc-enter-hint" style="color:#4338CA;">點擊卡片進入 ▶</div>
         </div>
       </div>
 
@@ -161,18 +152,18 @@
           <div class="acc-sub">Preferences &amp; Options</div>
         </div>
         <div class="acc-body">
-          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#334155; line-height:1.6;">
-            <li>啟動全螢幕與「流程圖導覽」顯示開關</li>
-            <li>匯出自動開資料夾與全域字體大小 (13~19px)</li>
-            <li>本機 Centimani 主程式目錄（實機 DLL 檢查）</li>
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#334155; line-height:1.7;">
+            <li>啟動視窗模式與操作流程導覽顯示開關</li>
+            <li>匯出後自動開啟資料夾與全域字體大小調整</li>
+            <li>設定並記憶本機 Centimani 主程式目錄與 DLL 環境</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchTab('settings');" class="btn" style="padding:6px 14px; font-size:0.85rem; background:#334155; color:#FFFFFF; border-color:#1E293B;">⚙️ 開啟系統設定 ▶</button>
+          <div class="acc-enter-hint" style="color:#9F1239;">點擊卡片進入 ▶</div>
         </div>
       </div>
     </div>
 
     <div id="homeStatusFooter" style="margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:9px 14px; font-size:0.87rem; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-      <span>📊 系統狀態：已載入 34 款儀器型錄（含 NI-6009 / FeasaLED / iPower / DMM / DIO / IQxel RF）</span>
+      <span id="homeEnvSummaryLabel">📊 系統狀態：已載入儀器型錄（自動比對本機 Centimani 實機 DLL 與系統驅動）</span>
       <span>📚 預設 Error Code 表：<span id="homeTicLabel" class="mono" style="font-weight:700; color:#0F172A;">Test Item Code V2.04</span></span>
     </div>
   </div>
@@ -190,12 +181,12 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; flex-wrap:wrap;">
         <input type="file" id="auditDirectUploadInput" accept=".xlsx,.xlsm" style="display:none;" onchange="uploadExcelForAudit(this)">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary-blue" onclick="document.getElementById('auditDirectUploadInput').click()" title="使用瀏覽器原生選檔視窗直接開啟並檢查本機 Excel（100% 前景彈出）">
-            📂 選取單一 Excel
+          <button class="btn btn-primary-blue" onclick="document.getElementById('auditDirectUploadInput').click()" title="上傳副本進行體檢（不改動原資料夾檔案；如需原地寫回 *_FIXED.xlsx 請用右側站內瀏覽）">
+            📂 選取單一 Excel (上傳副本)
           </button>
 
-          <button class="btn" style="background:#FFFFFF; color:#1E293B; border-color:#94A3B8;" onclick="openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) })" title="直接在網頁內瀏覽專案目錄並點選 .xlsx 進行體檢">
-            🗂️ 站內瀏覽選檔
+          <button class="btn" style="background:#FFFFFF; color:#1E293B; border-color:#94A3B8;" onclick="openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) })" title="直接在網頁內瀏覽本機資料夾（記憶真實路徑，修復後可直接寫回原資料夾並讀取同層 INI）">
+            🗂️ 站內瀏覽選檔 (原路徑)
           </button>
 
           <button class="btn" style="background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="pickFolderAndScan()" title="遞迴掃描專案資料夾內所有站別腳本，並支援一鍵整包批次修復">
@@ -230,21 +221,56 @@
       </div>
     </div>
 
-    <!-- 尚未載入檔案時的快捷最近紀錄與引導卡片（避免進入 01 時畫面空白） -->
-    <div id="auditEmptyRecentBox" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:20px; margin-bottom:12px;">
-      <div style="text-align:center; margin-bottom:14px;">
-        <div style="font-size:1.8rem; margin-bottom:4px;">🔍</div>
-        <div style="font-weight:900; font-size:1.08rem; color:#0F172A;">選取或點選最近 TestFlow.xlsx 立即開始健檢</div>
-        <div style="font-size:0.87rem; color:#64748B; margin-top:4px;">自動檢查 16 欄格式、缺漏 7 碼 TestID、PASS/FAIL 跳轉分支與 System.ini Checksum</div>
+    <!-- 尚未載入檔案時的選項 C 進場工作台（拖放橫幅 ＋ Top 3 快選 ＋ 全寬可搜尋 TestFlow 清單） -->
+    <div id="auditEmptyRecentBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:16px 18px; margin-bottom:12px;">
+      <div id="auditDropZoneStrip" class="audit-drop-strip"
+           ondragover="event.preventDefault(); this.classList.add('drag-over');"
+           ondragleave="this.classList.remove('drag-over');"
+           ondrop="handleAuditFileDrop(event, this)">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:1.25rem;">📥</span>
+          <div>
+            <div style="font-weight:800; font-size:0.93rem; color:#0F172A;">支援將 <code>TestFlow.xlsx</code> 直接拖曳到此區塊載入健檢</div>
+            <div style="font-size:0.8rem; color:#64748B;">自動檢查 16 欄結構、DUTs 重名 / 缺 Title、ExecMode 8~11、TestID 缺漏與 Checksum</div>
+          </div>
+        </div>
+        <span style="font-size:0.78rem; color:#475569; font-weight:700;">已自動排除 Test Item Code 與 <code>~$</code> 暫存檔</span>
       </div>
-      <div style="max-width:780px; margin:0 auto; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.88rem; font-weight:800; color:#1E293B;">⚡ 最近使用 / 專案內腳本（點擊右側直接健檢）：</span>
-          <span style="font-size:0.78rem; color:#64748B;">點擊立即載入檢查</span>
+
+      <div style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+        <span style="font-weight:800; font-size:0.9rem; color:#1E293B;">⏱️ 最近異動 / 剛檢視（Top 3 快速接續）</span>
+        <span style="font-size:0.78rem; color:#64748B;">點擊任一張卡片直接載入健檢</span>
+      </div>
+      <div id="auditRecentTop3" class="audit-top3-grid">
+        <div style="font-size:0.82rem; color:#94A3B8; padding:10px;">正在偵測最近腳本...</div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+        <span style="font-weight:800; font-size:0.9rem; color:#1E293B;">📂 專案內全部 TestFlow 清單</span>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input id="auditRecentSearchInput" type="text" placeholder="🔍 搜尋檔名關鍵字..." oninput="filterAuditRecentTable()"
+                 style="padding:5px 10px; border:1px solid #94A3B8; border-radius:6px; font-size:0.84rem; min-width:200px;">
+          <select id="auditRecentFolderSel" onchange="filterAuditRecentTable()"
+                  style="padding:5px 10px; border:1px solid #94A3B8; border-radius:6px; font-size:0.84rem; background:#FFFFFF;">
+            <option value="ALL">全部資料夾</option>
+          </select>
         </div>
-        <div id="auditRecentFilesList" style="display:flex; flex-direction:column; gap:6px;">
-          <div style="font-size:0.82rem; color:#94A3B8; text-align:center; padding:10px;">正在偵測最近腳本...</div>
-        </div>
+      </div>
+      <div style="border:1px solid #CBD5E1; border-radius:8px; overflow:hidden;">
+        <table class="audit-optc-table">
+          <thead>
+            <tr>
+              <th>檔案名稱（點擊任一列直接載入健檢）</th>
+              <th style="width:150px;">所屬資料夾</th>
+              <th style="width:95px; text-align:right;">檔案大小</th>
+              <th style="width:115px; text-align:center;">更新時間</th>
+              <th style="width:80px; text-align:center;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="auditRecentFilesList">
+            <tr><td colspan="5" style="text-align:center; color:#94A3B8; padding:14px;">正在偵測最近腳本...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -889,12 +915,12 @@
             <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與跨檔複製</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
               <li><b>5 合 1 快捷編修</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
               <li><b>跨檔複製與匯出體檢</b>：支援完整複製整張 Sheet，匯出時檢驗缺漏 DLL 並計算 Checksum</li>
               <li>支援直接開啟既有腳本、最近紀錄或從健檢結果一鍵帶入</li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('edit');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📝 進入既有腳本編修 ▶</button>
+            <div class="acc-enter-hint" style="color:#1D4ED8;">點擊卡片進入 ▶</div>
           </div>
         </div>
 
@@ -906,29 +932,29 @@
             <div class="acc-sub">全新案子從零建立基礎乾淨範本 (0 → 1)</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
               <li>引導式 <b>4 步驟</b>：基本/ISN → 勾選測項 → 填參數 → 總覽產出</li>
               <li>自動建立 Properties、DUTs、Switch、Instrument 與標準測試站</li>
               <li>同時生成配套 <code>Global.ini</code> 與 <code>System.ini</code></li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('create');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🌱 進入建立新母體 ▶</button>
+            <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
           </div>
         </div>
 
         <div id="genHubCard_inst" class="acc-card" data-theme="amber" onmouseenter="setActiveGenHubCard('inst')" onclick="switchGenSubMode('inst')">
           <div>
-            <div class="acc-num">03 / INSTRUMENTS (34+ 款)</div>
+            <div class="acc-num">03 / INSTRUMENTS</div>
             <div class="acc-icon">🧪</div>
             <div class="acc-title">插入儀器範本</div>
-            <div class="acc-sub">34+ 款儀器撲克牌庫（懶人快速版／互動人機）</div>
+            <div class="acc-sub">儀器撲克牌庫（懶人快速版／互動人機）</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
               <li>免選既有 Excel，從撲克牌庫點擊「+」或拖曳排好測試序列</li>
               <li>自動比對本機 <code>Device\\</code> 標示 <b>❌ 缺 DLL</b>，避免上機報錯</li>
               <li>支援 <b>⚡ 懶人快速版</b> 自動出範例，或進入 <b>🎛️ 專業細部人機</b></li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('inst');" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🧪 進入插入儀器範本 ▶</button>
+            <div class="acc-enter-hint" style="color:#B45309;">點擊卡片進入 ▶</div>
           </div>
         </div>
 
@@ -940,12 +966,12 @@
             <div class="acc-sub">寫 Phase / Title / 儀器 / 跳轉隨查百科</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
               <li><b>直接發問</b>：例如「怎麼暫停這一個 Phase」、「Instrument 何時留空」</li>
               <li><b>欄位機能矩陣</b>：一次列出 Phase / Title / ExecMode / Ref 所有可用寫法</li>
               <li>附真實產線 <code>perter_SCRIPT_11102026</code> 範例列，支援一鍵複製貼進 Excel</li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('qa');" class="btn" style="padding:7px 14px; font-size:0.88rem; font-weight:800; background:#4F46E5; color:#FFFFFF; border:none;">💬 進入問編寫問題 ▶</button>
+            <div class="acc-enter-hint" style="color:#4338CA;">點擊卡片進入 ▶</div>
           </div>
         </div>
 
@@ -957,12 +983,12 @@
             <div class="acc-sub">驗證 ISN 刷過 / GET / WRITE 與 DLL 單步測試</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#881337; line-height:1.65;">
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#881337; line-height:1.65;">
               <li><b>SFIS 三大關鍵實測</b>：確認 <b>ISN 刷過</b>（CheckRoute）、<b>GET</b>（撈版本/料號）與 <b>WRITE</b>（寫入過站）</li>
               <li><b>內網連線與主程式工具</b>：先測內網 <code>SFIS_WebLink</code>，再開啟 <code>CentimaniSFISTest.exe</code></li>
               <li><b>DLL 單步與驅動檢查</b>：開啟 <code>DLLtest.exe</code> 驗證儀器指令，檢查本機 NI-DAQmx 系統驅動是否已安裝</li>
             </ul>
-            <button onclick="event.stopPropagation(); switchGenSubMode('tools');" class="btn" style="padding:7px 14px; font-size:0.88rem; font-weight:800; background:#BE123C; color:#FFFFFF; border:none;">🛡️ 進入實機驗證 (SFIS / DLL) ▶</button>
+            <div class="acc-enter-hint" style="color:#BE123C;">點擊卡片進入 ▶</div>
           </div>
         </div>
       </div>
@@ -1836,11 +1862,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.025"></script>
-<script src="/js/audit_editors.js?v=0.8.025"></script>
-<script src="/js/flow_guide.js?v=0.8.025"></script>
-<script src="/js/block_sorter.js?v=0.8.025"></script>
-<script src="/js/script_qa.js?v=0.8.025"></script>
+<script src="/js/inst_hmi.js?v=0.8.026"></script>
+<script src="/js/audit_editors.js?v=0.8.026"></script>
+<script src="/js/flow_guide.js?v=0.8.026"></script>
+<script src="/js/block_sorter.js?v=0.8.026"></script>
+<script src="/js/script_qa.js?v=0.8.026"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3593,26 +3619,91 @@ function syncEditorView() {
 }
 
 function renderRecentFilesList(files) {
-  const mkHtml = (btnFn, btnLabel) => {
-    if (!files || files.length === 0) {
-      return `<div style="font-size:0.82rem; color:#94A3B8; text-align:center; padding:10px;">目前未找到最近使用之 TestFlow.xlsx 檔案</div>`;
-    }
-    return files.map(f => `
-      <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
-        <div style="display:flex; flex-direction:column; overflow:hidden;">
-          <span style="font-weight:700; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${f.path}">📄 ${f.name}</span>
-          <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">[${f.folder}] ${f.size_kb} KB</span>
-        </div>
-        <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:0.82rem; white-space:nowrap; font-weight:700;" onclick="${btnFn}('${encodeURIComponent(f.path)}')">
-          ${btnLabel}
-        </button>
-      </div>
-    `).join('');
-  };
+  const esc = s => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const cleanFiles = (Array.isArray(files) ? files : []).filter(f => {
+    const low = String(f.name || '').toLowerCase();
+    return low && !low.includes('test item code') && !low.startsWith('~$');
+  });
+
+  // 02 既有編修頁面清單保持相容
   const container = document.getElementById('editorRecentFilesList');
-  if (container) container.innerHTML = mkHtml('quickLoadFileFromRecent', '⚡ 立即載入編修');
-  const auditContainer = document.getElementById('auditRecentFilesList');
-  if (auditContainer) auditContainer.innerHTML = mkHtml('loadSpecificFile', '🔍 立即載入健檢');
+  if (container) {
+    if (cleanFiles.length === 0) {
+      container.innerHTML = `<div style="font-size:0.82rem; color:#94A3B8; text-align:center; padding:10px;">目前未找到最近使用之 TestFlow.xlsx 檔案</div>`;
+    } else {
+      container.innerHTML = cleanFiles.slice(0, 8).map(f => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
+          <div style="display:flex; flex-direction:column; overflow:hidden;">
+            <span style="font-weight:700; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(f.path)}">📄 ${esc(f.name)}</span>
+            <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">[${esc(f.folder)}] ${f.size_kb} KB</span>
+          </div>
+          <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:0.82rem; white-space:nowrap; font-weight:700;" onclick="quickLoadFileFromRecent('${encodeURIComponent(f.path)}')">
+            ⚡ 立即載入編修
+          </button>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 01 選項 C：Top 3 橫向快選卡 + 全寬可搜尋資料表
+  const top3El = document.getElementById('auditRecentTop3');
+  if (top3El) {
+    if (cleanFiles.length === 0) {
+      top3El.innerHTML = `<div style="grid-column:1/-1; font-size:0.84rem; color:#94A3B8; text-align:center; padding:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px;">尚未找到最近異動之 TestFlow.xlsx，請使用上方選檔或拖曳檔案至橫幅</div>`;
+    } else {
+      top3El.innerHTML = cleanFiles.slice(0, 3).map(f => `
+        <div class="audit-top3-card" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
+          <div style="font-weight:800; font-size:0.9rem; color:#0F172A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${esc(f.name)}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:#475569; font-family:Consolas,monospace;">
+            <span>[${esc(f.folder)}] · ${f.size_kb} KB</span>
+            <span style="color:#0369A1; font-weight:800;">健檢 ▶</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  const folderSel = document.getElementById('auditRecentFolderSel');
+  if (folderSel) {
+    const prevVal = folderSel.value || 'ALL';
+    const folders = Array.from(new Set(cleanFiles.map(f => f.folder).filter(Boolean)));
+    folderSel.innerHTML = `<option value="ALL">全部資料夾 (${cleanFiles.length})</option>` +
+      folders.map(fd => `<option value="${esc(fd)}">${esc(fd)}</option>`).join('');
+    if (prevVal === 'ALL' || folders.includes(prevVal)) folderSel.value = prevVal;
+  }
+
+  STATE.cleanRecentFiles = cleanFiles;
+  filterAuditRecentTable();
+}
+
+function filterAuditRecentTable() {
+  const tbody = document.getElementById('auditRecentFilesList');
+  if (!tbody) return;
+  const esc = s => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const files = Array.isArray(STATE.cleanRecentFiles) ? STATE.cleanRecentFiles : [];
+  const q = ((document.getElementById('auditRecentSearchInput') || {}).value || '').trim().toLowerCase();
+  const folderF = (document.getElementById('auditRecentFolderSel') || {}).value || 'ALL';
+
+  const rows = files.filter(f => {
+    if (folderF !== 'ALL' && f.folder !== folderF) return false;
+    if (q && !`${f.name} ${f.folder}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94A3B8; padding:16px;">沒有符合篩選條件的 TestFlow.xlsx 檔案</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(f => `
+    <tr class="audit-optc-row" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
+      <td style="font-weight:700;">📄 ${esc(f.name)}</td>
+      <td class="mono" style="color:#475569; font-size:0.82rem;">[${esc(f.folder)}]</td>
+      <td class="mono" style="text-align:right; color:#475569; font-size:0.82rem;">${f.size_kb} KB</td>
+      <td class="mono" style="text-align:center; color:#64748B; font-size:0.8rem;">${esc(f.mtime_str || '-')}</td>
+      <td style="text-align:center; color:#0369A1; font-weight:800; font-size:0.83rem;">健檢 ▶</td>
+    </tr>
+  `).join('');
 }
 
 async function quickLoadFileFromRecent(encPath) {
@@ -3993,25 +4084,46 @@ function _applyAuditLoadedPayload(data) {
   }
 }
 
-async function uploadExcelForAudit(inputEl) {
-  if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
-  const file = inputEl.files[0];
+async function _auditUploadFile(file) {
+  if (!file) return;
   const formData = new FormData();
   formData.append('excel_file', file);
+  const data = await withLoadingTimer('正在讀取並體檢所選 Excel 腳本', async () => {
+    const res = await fetch('/api/upload_and_audit', { method: 'POST', body: formData });
+    return await res.json();
+  });
+  if (data.status !== 'ok') {
+    alert(data.message || '載入與解析失敗');
+    return;
+  }
+  _applyAuditLoadedPayload(data);
+}
+
+async function uploadExcelForAudit(inputEl) {
+  if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
   try {
-    const data = await withLoadingTimer('正在讀取並體檢所選 Excel 腳本', async () => {
-      const res = await fetch('/api/upload_and_audit', { method: 'POST', body: formData });
-      return await res.json();
-    });
-    if (data.status !== 'ok') {
-      alert(data.message || '載入與解析失敗');
-      return;
-    }
-    _applyAuditLoadedPayload(data);
+    await _auditUploadFile(inputEl.files[0]);
   } catch (err) {
     alert('讀取 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
   } finally {
     inputEl.value = '';
+  }
+}
+
+async function handleAuditFileDrop(event, dropEl) {
+  event.preventDefault();
+  if (dropEl) dropEl.classList.remove('drag-over');
+  const files = event.dataTransfer && event.dataTransfer.files;
+  if (!files || files.length === 0) return;
+  const target = Array.from(files).find(f => /\.(xlsx|xlsm)$/i.test(f.name));
+  if (!target) {
+    alert('請拖曳 .xlsx 或 .xlsm 格式的 TestFlow 檔案');
+    return;
+  }
+  try {
+    await _auditUploadFile(target);
+  } catch (err) {
+    alert('拖曳載入 Excel 時發生錯誤：' + (err && err.message ? err.message : err));
   }
 }
 
@@ -6632,6 +6744,12 @@ function renderCentimaniEnvUi(profile) {
     sumEl.textContent = p.exists
       ? `${p.centimani_dir}  |  CentimaniSystem ${p.exe_version || '-'}  |  Device/Switch DLL: ${p.dll_count || 0} 支`
       : '尚未偵測到有效的 Centimani 目錄，請點右側選擇資料夾進行掃描';
+  }
+  const homeSumEl = document.getElementById('homeEnvSummaryLabel');
+  if (homeSumEl) {
+    homeSumEl.textContent = p.exists
+      ? `📊 本機環境：${p.dir_name || 'Centimani'} (v${p.exe_version || '-'}) · 實機可用 DLL ${p.dll_count || 0} 支 · NI-DAQmx ${p.ni_daqmx_installed ? '已安裝' : '未安裝'}`
+      : '📊 系統狀態：尚未指定本機 Centimani 主程式目錄';
   }
   if (typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
 }

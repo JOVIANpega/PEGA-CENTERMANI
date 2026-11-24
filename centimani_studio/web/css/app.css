@@ -988,7 +988,7 @@
 .acc-row {
   display: flex;
   gap: 14px;
-  min-height: 390px;
+  min-height: 320px;
   align-items: stretch;
 }
 @media (max-width: 960px) {
@@ -996,7 +996,7 @@
 }
 .acc-card {
   position: relative;
-  flex: 1 1 0%;
+  flex: 1.15 1 0%;
   min-width: 0;
   background: #E2E8F0;
   border: 1.5px solid #CBD5E1;
@@ -1016,24 +1016,24 @@
   color: #64748B;
 }
 .acc-card .acc-icon {
-  font-size: 2.4rem;
-  margin: 12px 0 8px 0;
+  font-size: 2.3rem;
+  margin: 10px 0 8px 0;
   filter: grayscale(100%);
   opacity: 0.72;
   transition: filter 0.24s ease, opacity 0.24s ease, transform 0.24s ease;
 }
 .acc-card .acc-title {
-  font-size: 1.13rem;
+  font-size: 1.12rem;
   font-weight: 700;
   color: #334155;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.32;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 .acc-card .acc-sub {
   font-size: 0.82rem;
   color: #64748B;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 .acc-card .acc-body {
   opacity: 0;
@@ -1043,9 +1043,16 @@
   transform: translateY(8px);
   transition: opacity 0.24s ease, max-height 0.3s ease, transform 0.24s ease;
 }
+.acc-enter-hint {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 800;
+  opacity: 0.78;
+}
 .acc-card.active,
 .acc-card:hover {
-  flex: 2.8 1 0%;
+  flex: 2.35 1 0%;
   box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.14);
 }
 .acc-card.active .acc-icon,
@@ -1897,4 +1904,74 @@ button:not(:disabled):hover {
   border-color: #6366F1 !important;
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(79, 70, 229, 0.14);
+}
+.audit-drop-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1.5px dashed #94A3B8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.audit-drop-strip.drag-over {
+  background: #E0F2FE;
+  border-color: #0284C7;
+}
+.audit-top3-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 900px) {
+  .audit-top3-grid { grid-template-columns: 1fr; }
+}
+.audit-top3-card {
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.audit-top3-card:hover {
+  background: #E0F2FE;
+  border-color: #0284C7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.12);
+}
+.audit-optc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  background: #FFFFFF;
+}
+.audit-optc-table th {
+  background: #F1F5F9;
+  color: #334155;
+  font-weight: 800;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1.5px solid #CBD5E1;
+}
+.audit-optc-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #E2E8F0;
+  color: #0F172A;
+}
+.audit-optc-row {
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+.audit-optc-row:hover {
+  background: #E0F2FE;
 }

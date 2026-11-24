@@ -138,8 +138,9 @@ def set_last_opened_dir(folder_path):
     save_app_settings({"last_dir": folder_path})
 
 
-def get_recent_excel_files(limit=8):
-    """取得最近目錄與預設專案資料夾內的 TestFlow Excel 檔案列表，供網頁免彈窗直接一鍵點擊載入"""
+def get_recent_excel_files(limit=24):
+    """取得最近目錄與預設專案資料夾內的 TestFlow Excel 檔案列表，自動排除代碼表與暫存檔"""
+    import datetime
     search_dirs = []
     last_d = get_last_opened_dir()
     if last_d and os.path.exists(last_d):
@@ -156,22 +157,29 @@ def get_recent_excel_files(limit=8):
     for d in search_dirs:
         try:
             for fname in os.listdir(d):
-                if fname.lower().endswith(".xlsx") and not fname.startswith("~"):
-                    full_p = os.path.join(d, fname)
-                    if full_p not in seen_paths and os.path.isfile(full_p):
-                        seen_paths.add(full_p)
-                        try:
-                            mtime = os.path.getmtime(full_p)
-                            size_kb = round(os.path.getsize(full_p) / 1024, 1)
-                            files_list.append({
-                                "name": fname,
-                                "path": full_p,
-                                "folder": os.path.basename(d),
-                                "size_kb": size_kb,
-                                "mtime": mtime
-                            })
-                        except Exception:
-                            pass
+                low_name = fname.lower()
+                if not low_name.endswith(".xlsx") or fname.startswith("~"):
+                    continue
+                if "test item code" in low_name or low_name.startswith("old_") or ".bak" in low_name:
+                    continue
+                full_p = os.path.join(d, fname)
+                norm_p = os.path.normcase(os.path.abspath(full_p))
+                if norm_p not in seen_paths and os.path.isfile(full_p):
+                    seen_paths.add(norm_p)
+                    try:
+                        mtime = os.path.getmtime(full_p)
+                        mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%m/%d %H:%M")
+                        size_kb = round(os.path.getsize(full_p) / 1024, 1)
+                        files_list.append({
+                            "name": fname,
+                            "path": full_p,
+                            "folder": os.path.basename(d),
+                            "size_kb": size_kb,
+                            "mtime": mtime,
+                            "mtime_str": mtime_str
+                        })
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -1639,7 +1647,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.025")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.026")
 
                 self._send_json({
                     "status": "ok",
@@ -1901,7 +1909,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.025")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.026")
 
                 self._send_json({
                     "status": "ok",
@@ -2150,7 +2158,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.025")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.026")
 
                 self._send_json({
                     "status": "ok",
@@ -2373,7 +2381,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.025) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.026) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

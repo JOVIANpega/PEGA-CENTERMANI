@@ -1316,6 +1316,31 @@ def run_all_verifications():
                   "/api/check_sfis_weblink 正確處理空白網址 (400) 與離線網址連通預檢回傳結構",
                   str(sfis_chk_res))
 
+            # [v0.8.026] 驗證手風琴「去按鈕清爽版」+ 防截斷 + 01 健檢「選項 C」排版 + 過濾 Test Item Code
+            recent_api_res = get_json("/api/recent_files")
+            recent_list = recent_api_res.get("recent_files") or []
+            has_tic_in_recent = any("test item code" in str(x.get("name", "")).lower() for x in recent_list)
+            norm_recent_paths = [os.path.normcase(os.path.abspath(str(x.get("path", "")))) for x in recent_list]
+            check(not has_tic_in_recent and len(norm_recent_paths) == len(set(norm_recent_paths)),
+                  "/api/recent_files 已自動過濾 Test Item Code 代碼表並去除重複路徑",
+                  f"count={len(recent_list)}")
+
+            home_sec = index_html.split('<div id="homeScheme2"')[1].split('<div id="homeStatusFooter"')[0]
+            hub_sec = index_html.split('<div id="genModeHub"')[1].split('<div id="genBackToModeHubBar"')[0]
+            title_css = app_css.split('.acc-card .acc-title')[1][:220]
+            check('<button' not in home_sec and '<button' not in hub_sec
+                  and 'acc-enter-hint' in home_sec and 'acc-enter-hint' in hub_sec
+                  and 'text-overflow: ellipsis' not in title_css,
+                  "首頁與編修中心手風琴已升級「去按鈕清爽版」且取消標題省略號截斷")
+
+            check('id="auditDropZoneStrip"' in index_html
+                  and 'id="auditRecentTop3"' in index_html
+                  and 'id="auditRecentSearchInput"' in index_html
+                  and 'id="auditRecentFolderSel"' in index_html
+                  and 'function filterAuditRecentTable()' in index_html
+                  and 'function handleAuditFileDrop(' in index_html,
+                  "01 腳本健檢進場畫面已套用「選項 C」：拖放橫條 + Top 3 快選 + 全寬可搜尋資料表")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
