@@ -1643,6 +1643,19 @@ def run_all_verifications():
                   and '.sfis-deck-card.active' in app_css,
                   "v0.8.045 SFIS 撲克牌組(鎖定 Login/CheckRoute/Logout 骨架)與右側聚焦檢查面板及終端佈局完整就緒")
 
+            # [v0.8.046] 驗證頂部動畫即時顯示 GET/WRITE 送出與吐回字串 + 修正上方按鈕拖入牌桌 + 5秒全流程動畫 + 移除冗餘 R/W
+            cat_sec = sfis_hmi_js.split("const SFIS_CATALOG_BLOCKS = [")[1].split("];")[0]
+            check("function sfisDragCatalogStart(" in sfis_hmi_js
+                  and "function sfisDropOnDeckContainer(" in sfis_hmi_js
+                  and 'id="sfisPokerDeckBox"' in sfis_hmi_js
+                  and "drop-catalog-over" in app_css
+                  and 'id="sfisAnimPayloadBar"' in sfis_hmi_js
+                  and "liveSendStr" in sfis_hmi_js and "liveRecvStr" in sfis_hmi_js
+                  and "5秒全流程動畫" in sfis_hmi_js
+                  and "Math.round(5000 / totalSteps)" in sfis_hmi_js
+                  and "kind: 'rw'" not in cat_sec,
+                  "v0.8.046 動畫區即時顯示 GET/WRITE 字串、5秒全流程一次跑完、上方膠囊可拖入牌桌且已移除冗餘 R/W")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

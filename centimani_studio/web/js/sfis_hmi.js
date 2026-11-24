@@ -92,7 +92,6 @@ const SFIS_CATALOG_BLOCKS = [
   { kind: 'getimac', icon: '📡', title: 'GET iMAC', desc: '取用配對 MAC 位址', theme: '#0D9488', bg: '#F0FDFA', border: '#5EEAD4' },
   { kind: 'getlabel', icon: '🏷', title: 'GET 標籤', desc: 'WTSP_GETLABEL 條碼查詢', theme: '#6366F1', bg: '#EEF2FF', border: '#A5B4FC' },
   { kind: 'savelink', icon: '📤', title: 'WRITE 寫欄位', desc: '⚠️ 可能推站慎按', theme: '#D97706', bg: '#FFFBEB', border: '#FCD34D' },
-  { kind: 'rw', icon: '🔄', title: 'R/W 寫＋回讀', desc: '寫後立即 GET 比對', theme: '#7C3AED', bg: '#F5F3FF', border: '#C4B5FD' },
   { kind: 'clear', icon: '🧹', title: 'CLEAR 清空試探', desc: '寫空值並回讀', theme: '#475569', bg: '#F8FAFC', border: '#CBD5E1' }
 ];
 
@@ -151,6 +150,9 @@ const SFIS_HMI_STATE = {
     phase: 'idle', // 'idle' | 'sending' | 'pass' | 'fail' | 'offline'
     stage: 'idle', // 'idle' | 'to_cloud' | 'to_db' | 'to_pc'
     packetText: '',
+    liveStepKind: '',
+    liveSendStr: '',
+    liveRecvStr: '',
     slowDemo: (localStorage.getItem('centimani_sfis_slow_demo') !== '0'),
     actionLabel: '待機就緒 — 點選左側卡片或按 ▶ 依序實測',
     opLoggedIn: null,
@@ -783,6 +785,8 @@ function sfisSetMockMode(isMock) {
   SFIS_HMI_STATE.anim.phase = 'idle';
   SFIS_HMI_STATE.anim.opLoggedIn = null;
   SFIS_HMI_STATE.anim.netConnected = isMock ? true : null;
+  SFIS_HMI_STATE.anim.liveSendStr = '';
+  SFIS_HMI_STATE.anim.liveRecvStr = '';
   SFIS_HMI_STATE.anim.logs = [];
   SFIS_HMI_STATE.items.forEach(it => {
     it.status = 'idle';
@@ -1036,6 +1040,51 @@ function sfisPrepCardDrag(cardEl, ev) {
   cardEl.setAttribute('draggable', blocked ? 'false' : 'true');
 }
 
+function _extractCatalogDragKind(ev) {
+  if (SFIS_HMI_STATE.dragCatalogKind) return SFIS_HMI_STATE.dragCatalogKind;
+  try {
+    const raw = ev && ev.dataTransfer ? ev.dataTransfer.getData('text/plain') : '';
+    if (raw && raw.startsWith('catalog:')) return raw.slice(8);
+  } catch (e) {}
+  return '';
+}
+
+function sfisDragCatalogStart(kind, ev) {
+  SFIS_HMI_STATE.dragCatalogKind = String(kind || '').trim();
+  SFIS_HMI_STATE.dragSrcIdx = -1;
+  if (ev && ev.dataTransfer) {
+    ev.dataTransfer.effectAllowed = 'copy';
+    ev.dataTransfer.setData('text/plain', 'catalog:' + SFIS_HMI_STATE.dragCatalogKind);
+  }
+}
+
+function sfisDeckContainerDragOver(ev) {
+  const cKind = _extractCatalogDragKind(ev);
+  if (!cKind && SFIS_HMI_STATE.dragSrcIdx < 0) return;
+  ev.preventDefault();
+  if (ev.dataTransfer) ev.dataTransfer.dropEffect = cKind ? 'copy' : 'move';
+  const box = document.getElementById('sfisPokerDeckBox');
+  if (box && cKind) box.classList.add('drop-catalog-over');
+}
+
+function sfisDeckContainerDragLeave(ev) {
+  const box = document.getElementById('sfisPokerDeckBox');
+  if (!box) return;
+  if (!ev || !ev.relatedTarget || !box.contains(ev.relatedTarget)) {
+    box.classList.remove('drop-catalog-over');
+  }
+}
+
+function sfisDropOnDeckContainer(ev) {
+  if (ev) { ev.preventDefault(); }
+  const cKind = _extractCatalogDragKind(ev);
+  sfisCardDragEnd();
+  SFIS_HMI_STATE.dragCatalogKind = '';
+  if (cKind) {
+    sfisAddItem(cKind);
+  }
+}
+
 function sfisDragItemStart(idx, ev) {
   const it = SFIS_HMI_STATE.items[idx];
   if (!it || it.locked) { if (ev) ev.preventDefault(); return; }
@@ -1050,9 +1099,29 @@ function sfisDragItemStart(idx, ev) {
 }
 
 function sfisCardDragOver(ev, targetIdx) {
-  ev.preventDefault();
+  const cKind = _extractCatalogDragKind(ev);
   const targetItem = SFIS_HMI_STATE.items[targetIdx];
-  if (!targetItem || targetItem.locked) return;
+  if (!targetItem) return;
+  if (cKind) {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+    const box = document.getElementById('sfisPokerDeckBox');
+    if (box) box.classList.add('drop-catalog-over');
+    const card = document.getElementById(`sfisDeckCard_${targetIdx}`) || document.getElementById(`sfisTrackCard_${targetIdx}`);
+    document.querySelectorAll('.sfis-deck-card, .sfis-track-card').forEach(c => {
+      c.classList.remove('drop-swap', 'drop-before', 'drop-after');
+    });
+    if (card) {
+      const r = card.getBoundingClientRect();
+      const isBefore = (ev.clientX - r.left) < (r.width / 2);
+      SFIS_HMI_STATE.dropTargetIdx = targetIdx;
+      SFIS_HMI_STATE.dropPos = isBefore ? 'before' : 'after';
+      card.classList.add(targetItem.locked === 'logout' ? 'drop-before' : ((targetItem.locked === 'login' || targetItem.locked === 'checkroute') ? 'drop-after' : (isBefore ? 'drop-before' : 'drop-after')));
+    }
+    return;
+  }
+  ev.preventDefault();
+  if (targetItem.locked) return;
   if (SFIS_HMI_STATE.dragSrcIdx < 0 || SFIS_HMI_STATE.dragSrcIdx === targetIdx) return;
   const card = document.getElementById(`sfisDeckCard_${targetIdx}`) || document.getElementById(`sfisTrackCard_${targetIdx}`);
   if (!card) return;
@@ -1079,6 +1148,9 @@ function sfisCardDragLeave(targetIdx) {
 function sfisCardDragEnd() {
   SFIS_HMI_STATE.dragSrcIdx = -1;
   SFIS_HMI_STATE.dropTargetIdx = -1;
+  SFIS_HMI_STATE.dragCatalogKind = '';
+  const box = document.getElementById('sfisPokerDeckBox');
+  if (box) box.classList.remove('drop-catalog-over');
   document.querySelectorAll('.sfis-deck-card, .sfis-track-card').forEach(c => {
     c.classList.remove('is-dragging', 'drop-swap', 'drop-before', 'drop-after');
   });
@@ -1087,13 +1159,20 @@ function sfisCardDragEnd() {
 function sfisDropOnTrack(targetIdx, ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   _enforceSfisSkeleton();
-  const cKind = SFIS_HMI_STATE.dragCatalogKind;
+  const cKind = _extractCatalogDragKind(ev);
   const srcIdx = SFIS_HMI_STATE.dragSrcIdx;
   const dropPos = SFIS_HMI_STATE.dropPos || 'before';
   sfisCardDragEnd();
   SFIS_HMI_STATE.dragCatalogKind = '';
   const tailIdx = Math.max(2, SFIS_HMI_STATE.items.length - 1);
-  if (cKind) { sfisAddItem(cKind, targetIdx); return; }
+  if (cKind) {
+    let insAt = tailIdx;
+    if (targetIdx <= 1) insAt = 2;
+    else if (targetIdx >= tailIdx) insAt = tailIdx;
+    else insAt = (dropPos === 'after') ? (targetIdx + 1) : targetIdx;
+    sfisAddItem(cKind, insAt);
+    return;
+  }
   const srcItem = SFIS_HMI_STATE.items[srcIdx];
   const tgtItem = SFIS_HMI_STATE.items[targetIdx];
   if (!srcItem || srcItem.locked) return;
@@ -1220,7 +1299,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.045') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.046') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1277,14 +1356,45 @@ async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = nu
 
   const totalAnimMs = (overrideAnimTotalMs !== null)
     ? overrideAnimTotalMs
-    : ((SFIS_HMI_STATE.anim.slowDemo !== false) ? 3000 : 0);
+    : ((SFIS_HMI_STATE.anim.slowDemo !== false) ? 1500 : 0);
   const segMs = totalAnimMs > 0 ? Math.round(totalAnimMs / 3) : 0;
+
+  let preSendStr = '';
+  let prePacketTxt = `⬆ ${meta.title}`;
+  if (it.kind === 'login') {
+    const stCode = String(it.login_status || '1') === '0' ? 0 : 1;
+    preSendStr = `WTSP_LOGINOUT(op="${SFIS_HMI_STATE.config.op}", dev="${SFIS_HMI_STATE.config.device_id}", status=${stCode})`;
+    prePacketTxt = stCode === 1 ? '⬆ Login 登入' : '⬆ Logout 登出';
+  } else if (it.kind === 'checkroute') {
+    preSendStr = `WTSP_CHKROUTE(ISN="${isn}", Dev="${SFIS_HMI_STATE.config.device_id}")`;
+    prePacketTxt = `⬆ CHKROUTE`;
+  } else if (it.kind === 'get' || it.kind === 'getversion') {
+    const stPre = _itemToBackendStep(it);
+    preSendStr = `GET [${stPre.ver_type}] ChkData="${stPre.chk_data || f}" ➔ Slot#${it.slot_code || '2'}`;
+    prePacketTxt = `⬆ GET ${stPre.chk_data || f || stPre.ver_type}`;
+  } else if (it.kind === 'getimac') {
+    preSendStr = `WTSP_GETIMAC(ISN="${isn}", Dev="${SFIS_HMI_STATE.config.device_id}")`;
+    prePacketTxt = `⬆ GET iMAC`;
+  } else if (it.kind === 'getlabel') {
+    preSendStr = `WTSP_GETLABEL(ISN="${isn}", type="${it.label_type || 'ISN'}")`;
+    prePacketTxt = `⬆ LABEL ${it.label_type || 'ISN'}`;
+  } else if (it.kind === 'savelink') {
+    const valPre = it.save_val || 'TEST_VAL';
+    preSendStr = `WRITE #SAVE:${f}="${valPre}"`;
+    prePacketTxt = `⬆ WRITE ${f}=${valPre}`.slice(0, 26);
+  } else if (it.kind === 'clear') {
+    preSendStr = `CLEAR #SAVE:${f}=;`;
+    prePacketTxt = `⬆ CLEAR ${f}`;
+  }
 
   it.status = 'running';
   it.resultMsg = '通訊傳輸中...';
   SFIS_HMI_STATE.anim.phase = 'sending';
   SFIS_HMI_STATE.anim.stage = 'to_cloud';
-  SFIS_HMI_STATE.anim.packetText = `⬆ ${meta.title}`;
+  SFIS_HMI_STATE.anim.liveStepKind = it.kind;
+  SFIS_HMI_STATE.anim.liveSendStr = preSendStr;
+  SFIS_HMI_STATE.anim.liveRecvStr = '⏳ 等待 SFIS 回傳字串...';
+  SFIS_HMI_STATE.anim.packetText = prePacketTxt;
   SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} PC ➔ 雲端發送中...`;
   renderSfisHmiWorkspace();
 
@@ -1355,13 +1465,27 @@ async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = nu
     const [{ data, sentCmd }] = await Promise.all([soapPromise, _sfisSleep(segMs)]);
     const ok = !!data.passed;
     const offline = !data.reachable || data.status === 'offline';
+    const slotsPre = data.slots || {};
+    const slotKeyMapPre = { '2': 'P_CAVER', '3': 'P_CBVER', '4': 'P_CCVER', '5': 'P_CDVER', '6': 'P_IAVER', '7': 'P_IBVER' };
+    const pickedSlotPre = (it.kind === 'get' || it.kind === 'getversion' || it.kind === 'getimac')
+      ? (slotsPre[slotKeyMapPre[String(it.slot_code || '2')]] || slotsPre.P_CAVER || slotsPre.P_CBVER || '')
+      : (slotsPre.P_CAVER || slotsPre.P_CBVER || '');
+    const liveRetStr = offline
+      ? (data.msg || '無法連通 SFIS 內網')
+      : (pickedSlotPre
+        ? `[${pickedSlotPre}] (${data.msg || 'P_RET=1'})`
+        : (data.raw_result || data.msg || (ok ? 'P_RET=1 PASS' : 'FAIL')));
+    const shortRetBadge = (pickedSlotPre || data.msg || '').replace(/[\r\n]+/g, ' ').slice(0, 24);
+    SFIS_HMI_STATE.anim.liveRecvStr = liveRetStr;
 
     if (segMs > 0) {
-      // 第 3 階段動畫：DB 吐回結果沿原路飛回 PC
+      // 第 3 階段動畫：DB 吐回 GET/WRITE 字串結果沿原路飛回 PC
       SFIS_HMI_STATE.anim.stage = 'to_pc';
       SFIS_HMI_STATE.anim.phase = offline ? 'offline' : (ok ? 'pass' : 'fail');
-      SFIS_HMI_STATE.anim.packetText = ok ? `⬇ P_RET=1 ✅` : (offline ? '⬇ 離線 ⚠️' : '⬇ FAIL ❌');
-      SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} SFIS DB ➔ 傳回結果至測試 PC...`;
+      SFIS_HMI_STATE.anim.packetText = ok
+        ? (shortRetBadge ? `⬇ ${shortRetBadge}` : '⬇ P_RET=1 ✅')
+        : (offline ? '⬇ 離線 ⚠️' : `⬇ ${shortRetBadge || 'FAIL ❌'}`);
+      SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} SFIS DB ➔ 吐回 ${shortRetBadge || '結果'}...`;
       renderSfisHmiWorkspace();
       await _sfisSleep(segMs);
     }
@@ -1422,7 +1546,9 @@ async function sfisHmiRunAll() {
   }
   SFIS_HMI_STATE.isRunning = true;
   renderSfisHmiWorkspace();
-  const perStepMs = (SFIS_HMI_STATE.anim.slowDemo !== false) ? 1200 : 0;
+  // 全流程動畫總長約控制在 5 秒左右一次跑完（依總步驟數均分每步動畫時間）
+  const totalSteps = Math.max(1, SFIS_HMI_STATE.items.length);
+  const perStepMs = (SFIS_HMI_STATE.anim.slowDemo !== false) ? Math.max(450, Math.round(5000 / totalSteps)) : 0;
   try {
     for (let i = 0; i < SFIS_HMI_STATE.items.length; i++) {
       const ok = await sfisHmiRunStep(i, true, perStepMs);
@@ -1439,7 +1565,7 @@ async function sfisHmiExport(mode) {
   const itemsPayload = SFIS_HMI_STATE.items.map(_itemToBackendStep);
   const nonLogin = itemsPayload.filter(x => x.kind !== 'login' && x.kind !== 'logout');
   if (nonLogin.length === 0) {
-    alert('右側至少需要 1 張會產出 Excel 步驟的積木（CheckRoute / GET / WRITE / R/W），Login 僅作連通與 System.ini 設定。');
+    alert('右側至少需要 1 張會產出 Excel 步驟的積木（CheckRoute / GET / WRITE），Login 僅作連通與 System.ini 設定。');
     return;
   }
   if (mode === 'insert_current' && (typeof STATE === 'undefined' || !STATE.workspace)) {
@@ -1718,11 +1844,13 @@ function renderSfisHmiWorkspace() {
       </tr>`;
   }).join('');
 
-  // 中間步驟按鈕：頭尾 Login/CheckRoute/Logout 固定鎖定，不提供重複加入
+  // 中間步驟按鈕：頭尾 Login/CheckRoute/Logout 固定鎖定，可點擊「＋」加入或直接按住拖曳至下方牌桌
   const quickAddBtns = SFIS_CATALOG_BLOCKS.filter(b => b.kind !== 'login' && b.kind !== 'checkroute').map(b => `
-    <button type="button" draggable="true" ondragstart="sfisDragCatalogStart('${b.kind}', event)"
-            onclick="sfisAddItem('${b.kind}')" title="${_escH(b.desc)}"
-            class="btn" style="padding:4px 9px; font-size:0.78rem; background:${b.bg}; color:${b.theme}; border:1px solid ${b.border}; font-weight:800;">
+    <button type="button" draggable="true"
+            ondragstart="sfisDragCatalogStart('${b.kind}', event)"
+            ondragend="sfisCardDragEnd()"
+            onclick="sfisAddItem('${b.kind}')" title="${_escH(b.desc)}（點擊＋加入或按住往下拖入牌桌）"
+            class="btn" style="padding:4px 9px; font-size:0.78rem; background:${b.bg}; color:${b.theme}; border:1px solid ${b.border}; font-weight:800; cursor:grab;">
       ＋ ${b.icon} ${_escH(b.title)}
     </button>`).join('');
 
@@ -1812,7 +1940,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.045');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.046');
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
@@ -1820,9 +1948,9 @@ function renderSfisHmiWorkspace() {
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
-            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後單步實測會展演 3 秒三段式封包來回（一鍵全測為每步 1.2 秒）；關閉則零延遲即時出結果">
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後按「依序實測全部步驟」會於約 5 秒內一次跑完全流程動畫（單步實測約 1.5 秒）；關閉則零延遲即時出結果">
               <input type="checkbox" ${a.slowDemo !== false ? 'checked' : ''} onchange="sfisToggleSlowDemo(this.checked)" style="width:13px; height:13px;">
-              <span>🎬 3秒動畫展演</span>
+              <span>🎬 5秒全流程動畫</span>
             </label>
           </div>
           <span style="padding:2px 9px; border-radius:999px; font-size:0.75rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
@@ -1853,7 +1981,7 @@ function renderSfisHmiWorkspace() {
             </div>
           </div>
           <div class="${a.stage === 'to_db' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
-            <span class="sfis-flow-label">${a.stage === 'to_db' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' ? '⬇ 回傳' : 'DB')}</span>
+            <span class="sfis-flow-label">${a.stage === 'to_db' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' && a.packetText ? `<span class="sfis-packet-badge ${isPass ? 'back-ok' : 'back-err'}">${_escH(a.packetText)}</span>` : 'DB')}</span>
             <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
           </div>
           <div class="sfis-node-card sfis-node-card-wide ${a.stage === 'to_db' ? 'glow-amber' : (isPass && a.stage !== 'to_cloud' ? 'glow-green' : ((isFail || isOffline) && a.stage !== 'to_cloud' ? 'glow-red' : ''))}">
@@ -1864,6 +1992,11 @@ function renderSfisHmiWorkspace() {
             </div>
           </div>
         </div>
+        ${(a.liveSendStr || a.liveRecvStr) ? `
+          <div id="sfisAnimPayloadBar" class="sfis-anim-payload-bar ${isPass && a.stage === 'idle' ? 'state-pass' : ((isFail || isOffline) && a.stage === 'idle' ? 'state-fail' : '')}">
+            <span style="color:#93C5FD; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46%;" title="${_escH(a.liveSendStr)}">📤 送出：<b>${_escH(a.liveSendStr || '-')}</b></span>
+            <span style="color:${isPass ? '#86EFAC' : ((isFail || isOffline) ? '#FCA5A5' : '#FDE68A')}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:52%;" title="${_escH(a.liveRecvStr)}">📥 吐回：<b>${_escH(a.liveRecvStr || '-')}</b></span>
+          </div>` : ''}
       </div>`;
 
   root.innerHTML = `
@@ -1961,7 +2094,11 @@ function renderSfisHmiWorkspace() {
             <div style="display:flex; flex-wrap:wrap; gap:5px;">${quickAddBtns}</div>
           </div>
 
-          <div style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px;">
+          <div id="sfisPokerDeckBox" class="sfis-deck-box"
+               ondragover="sfisDeckContainerDragOver(event)"
+               ondragleave="sfisDeckContainerDragLeave(event)"
+               ondrop="sfisDropOnDeckContainer(event)"
+               style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
               <span style="font-size:0.79rem; font-weight:900; color:#334155;">🃏 流程抽卡牌桌（共 ${s.items.length} 步・點任一卡片即於右側設定與檢視回傳）</span>
               <div style="display:inline-flex; gap:4px;">
