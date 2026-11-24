@@ -174,6 +174,35 @@ def build_soap_envelope(action: str, params: dict) -> str:
             + _tag("status", res_st)
             + _tag("CPKFlag", p.get("cpk_flag", ""))
         )
+    elif act == "WTSP_GETLABEL":
+        inner = (
+            _tag("programId", prog_id)
+            + _tag("programPassword", prog_pw)
+            + _tag("type", p.get("label_type", "ISN"))
+            + _tag("ISN", isn)
+            + _tag("DEV", device)
+            + _tag("status", int(p["status"]) if p.get("status") not in (None, "") else 1)
+        )
+    elif act == "WTSP_LOADKEY":
+        inner = (
+            _tag("programId", prog_id)
+            + _tag("programPassword", prog_pw)
+            + _tag("SNTYPE", p.get("sn_type", "MAC1"))
+            + _tag("DATA", isn or p.get("data", ""))
+            + _tag("OP", p.get("op", "S09166390"))
+        )
+    elif act == "WTSP_REPAIR":
+        inner = (
+            _tag("programId", prog_id)
+            + _tag("programPassword", prog_pw)
+            + _tag("TYPE", p.get("repair_type", "1"))
+            + _tag("ISN", isn)
+            + _tag("DEV", device)
+            + _tag("REASON", p.get("reason", "ZR"))
+            + _tag("DUTY", p.get("duty", "7C0"))
+            + _tag("NGRP", p.get("ngrp", "AUTO2A"))
+            + _tag("TSP", tsp)
+        )
     elif act == "GetDatabaseInformation":
         inner = ""
     else:
@@ -348,6 +377,199 @@ def call_sfis_soap(url: str, action: str, params: dict, timeout: float = 6.0) ->
         }
 
 
+_MOCK_SFIS_DB = {
+    "fields": {},   # {isn: {key: val}}
+    "routed": set(), # ISNs already passed WTSP_RESULT PASS
+}
+
+
+def reset_sfis_mock_db() -> dict:
+    """Reset in-memory offline SFIS simulator state (simulates PE resetting/clearing ISN routes)."""
+    _MOCK_SFIS_DB["fields"].clear()
+    _MOCK_SFIS_DB["routed"].clear()
+    return {"status": "ok", "message": "已重置本機模擬 SFIS 資料庫與過站狀態"}
+
+
+def call_sfis_mock_soap(action: str, params: dict) -> dict:
+    """
+    Offline SFIS simulator emitting authentic WEB_SFIS V2.0 / Centimani Log formats
+    including stacked [0..7] slots (P_RET, P_Msg, P_CAVER..P_IBVER) and semicolon payloads.
+    """
+    p = params or {}
+    act = str(action or "").strip()
+    isn = str(p.get("isn", "") or "2695160300001").strip()
+    device = str(p.get("device", "710001") or "710001").strip()
+    op = str(p.get("op", "S09166390") or "S09166390").strip()
+    envelope = build_soap_envelope(act, p)
+    isn_store = _MOCK_SFIS_DB["fields"].setdefault(isn, {
+        "SNA": "NULL",
+        "SNB": "TEST_SNB_DEFAULT",
+        "SNC": "PID_AURORA_1A",
+        "SND": "SSN_90AA2210",
+        "SNE": "NULL",
+        "SNF": "NULL",
+        "SNG": "NULL",
+        "MAC1": "48210B47E42C",
+        "SSN": f"SSN_{isn[-6:]}",
+    })
+
+    if act == "WTSP_LOGINOUT":
+        st_code = int(p["status"]) if p.get("status") not in (None, "") else 1
+        if st_code == 0:
+            raw = f"1Logout OK ({op} @ {device})"
+            return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                    "passed": True, "ret_code": "1", "msg": raw, "slots": {},
+                    "soap_request": envelope, "raw_result": raw}
+        raw = f"1Welcome using Pegatron SFIS:{op}(模擬OP){op}OP"
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": raw, "slots": {},
+                "soap_request": envelope, "raw_result": raw}
+
+    if act == "WTSP_CHKROUTE":
+        if isn in _MOCK_SFIS_DB["routed"]:
+            msg = f"Route Error: ISN [{isn}] 已於本機模擬資料庫過站完成（可按重置模擬DB模擬PE清站）"
+            raw = f"0\x1f{msg}"
+            return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                    "passed": False, "ret_code": "0", "msg": msg, "slots": {},
+                    "soap_request": envelope, "raw_result": raw}
+        msg = f"ISN [{isn}] Route OK @ Device [{device}] (模擬內網)"
+        raw = f"1\x1f{msg}"
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": {},
+                "soap_request": envelope, "raw_result": raw}
+
+    if act == "WTSP_GETVERSION":
+        vt = str(p.get("ver_type", "ISN_BASEINFO") or "ISN_BASEINFO").strip().upper()
+        c1 = str(p.get("chk_data", "") or "").strip()
+        c2 = str(p.get("chk_data2", "") or "").strip()
+        slots = {"P_CAVER": "", "P_CBVER": "", "P_CCVER": "", "P_CDVER": "", "P_IAVER": "", "P_IBVER": ""}
+        if vt == "ITEMINFO":
+            slots["P_CAVER"] = "1"
+            slots["P_CBVER"] = "PL_AURORA/PEGA;"
+            slots["P_CCVER"] = f"60_{isn}"
+            slots["P_CDVER"] = f"90AA221000S0_{isn[-5:]}"
+            msg = f"TYPE:[ITEMINFO] GET INFO ISN:[{isn}/60_{isn}] TYPE:[ITEMINFO] OK!!"
+        elif vt == "MOKP_SN":
+            slots["P_CAVER"] = f"SN:90AA221000S0_{isn[-5:]};IMEI:35888109{isn[-5:]};SW:V1.0.6;"
+            slots["P_CBVER"] = "90AA221000S0"
+            msg = f"TYPE:[MOKP_SN] OK!! ({c1 or 'MB'})"
+        elif vt == "GET_IVMAC_NEW":
+            slots["P_CAVER"] = f"GUID1:AA11{isn[-4:]};GUID2:BB22{isn[-4:]};MAC1:48210B47E42C;"
+            msg = "TYPE:[GET_IVMAC_NEW] OK!!"
+        elif vt == "ITEM_FEATURE_BASEINFO":
+            slots["P_CAVER"] = f"{isn};90AA-221000S0"
+            slots["P_CBVER"] = f"{isn};69B35-AURORA"
+            slots["P_CCVER"] = f";{c1 or 'AURORA'};{c2 or 'ModelNumber'};PL_AURORA1A;1;"
+            slots["P_CDVER"] = "N/A"
+            msg = "TYPE:[ITEM_FEATURE_BASEINFO] OK!!"
+        elif vt == "GETSN_BYRULE":
+            slots["P_CAVER"] = f"M{isn[-8:]}01,"
+            msg = f"TYPE:[GETSN_BYRULE] M{isn[-8:]}01, DATA GOT!!"
+        elif vt == "ASSIGN_SSN":
+            slots["P_CAVER"] = f"[ITEM2,CUSTITEMNM,1]SSN{isn[-7:]}"
+            msg = "TYPE:[ASSIGN_SSN] OK!!"
+        else:
+            val = isn_store.get(c1, isn_store.get(c1.upper(), f"MOCK_{c1 or 'DATA'}"))
+            slots["P_CAVER"] = val
+            slots["P_CBVER"] = f"90AA221000S0;{val};"
+            slots["P_CCVER"] = f"KEY:{c1 or 'MAC1'};VAL:{val};DATE:2026/11/24;"
+            msg = f"TYPE:[{vt}] DATA GOT!! ({c1 or 'ISN_BASEINFO'})"
+        raw = "\x1f".join(["1", msg, slots["P_CAVER"], slots["P_CBVER"], slots["P_CCVER"], slots["P_CDVER"], slots["P_IAVER"], slots["P_IBVER"]])
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": slots,
+                "soap_request": envelope, "raw_result": raw}
+
+    if act == "WTSP_GETIMAC":
+        macs = f"{isn_store.get('MAC1', '48210B47E42C')},48210B47E42D"
+        msg = f"GETIMAC OK ({macs})"
+        slots = {"P_CAVER": macs}
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": slots,
+                "soap_request": envelope, "raw_result": f"1\x1f{msg}\x1f{macs}"}
+
+    if act == "WTSP_GETLABEL":
+        lbl = f"ISN:{isn};PN:90AA221000S0;QTY:1;"
+        msg = f"GETLABEL OK ({lbl})"
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": {"P_CAVER": lbl},
+                "soap_request": envelope, "raw_result": f"1\x1f{msg}\x1f{lbl}"}
+
+    if act == "WTSP_RESULT":
+        data_str = str(p.get("data", "") or "").strip()
+        save_key = str(p.get("save_key", "") or "").strip()
+        save_val = str(p.get("save_val", "") or "")
+        if not data_str and save_key:
+            data_str = f"#SAVE:{save_key}={save_val};"
+        for m in re.finditer(r"#SAVE:([^=;]+)=([^;]*)", data_str, re.I):
+            k_n = m.group(1).strip().split(":")[0]
+            isn_store[k_n] = m.group(2).strip() or "NULL"
+        res_st = int(p["status"]) if p.get("status") not in (None, "") else 1
+        if res_st == 1:
+            _MOCK_SFIS_DB["routed"].add(isn)
+        msg = f"P_RET=1 RESULT SAVED (Mock): {data_str or 'PASS'}"
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": {},
+                "soap_request": envelope, "raw_result": f"1\x1f{msg}"}
+
+    if act in ("WTSP_LOADKEY", "WTSP_REPAIR"):
+        msg = f"{act} OK (Mock Simulator)"
+        return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+                "passed": True, "ret_code": "1", "msg": msg, "slots": {},
+                "soap_request": envelope, "raw_result": f"1\x1f{msg}"}
+
+    return {"status": "ok", "reachable": True, "is_mock": True, "http_code": 200,
+            "passed": True, "ret_code": "1", "msg": f"{act} Mock OK", "slots": {},
+            "soap_request": envelope, "raw_result": f"1\x1f{act} Mock OK"}
+
+
+def escape_centimani_ref_arg(raw: str) -> str:
+    """
+    Escape Centimani Ref helper function parameters per 'Ref輔助Function說明' (User Guide R20-R22):
+    " -> \", , -> \,, * -> \*, \ -> \\, / -> \/, : -> \:, ; -> \;, } -> }}
+    """
+    s = str(raw or "")
+    s = s.replace("\\", "\\\\")
+    for ch in ('"', ",", "*", "/", ":", ";"):
+        s = s.replace(ch, "\\" + ch)
+    s = s.replace("}", "}}")
+    return s
+
+
+def build_centimani_ref_expr(var_name: str, mode: str = "raw", **kw) -> str:
+    """Build a compliant Centimani Ref string-extraction formula."""
+    vn = str(var_name or "sfData").strip().lstrip("$") or "sfData"
+    m = str(mode or "raw").strip().lower()
+    if m == "split":
+        delim = escape_centimani_ref_arg(kw.get("delim", ";") or ";")
+        idx = str(int(kw.get("index", 0) or 0))
+        return f'${vn}:SplitString,"{delim}","{idx}":Trim;'
+    if m == "within":
+        left_s = escape_centimani_ref_arg(kw.get("left", "") or "")
+        right_s = escape_centimani_ref_arg(kw.get("right", "") or "")
+        idx = str(kw.get("index", "") or "")
+        return f'${vn}:WithinString,"{left_s}","{right_s}","{idx}":Trim;'
+    if m == "substr":
+        start = str(int(kw.get("start", 0) or 0))
+        length = str(int(kw.get("length", 12) or 12))
+        return f'${vn}:SubString,"{start}","{length}";'
+    if m == "ma":
+        tok = escape_centimani_ref_arg(kw.get("marker", "") or "")
+        return f'${vn}:maString,"{tok}":Trim;'
+    if m == "mb":
+        tok = escape_centimani_ref_arg(kw.get("marker", "") or "")
+        return f'${vn}:mbString,"{tok}":Trim;'
+    if m == "getmac2":
+        return f'${vn}:getMAC2;'
+    return f'${vn};'
+
+
+def escape_build_get_ref(item: dict, default_var: str) -> str:
+    explicit = str(item.get("ref_expr") or "").strip()
+    if explicit:
+        return explicit
+    return f"${default_var}:lwString;"
+
+
 def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: bool = True) -> list:
     """
     Convert SFIS HMI card sequence into Centimani-compliant TestFlow rows:
@@ -427,12 +649,11 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
         elif kind in ("getversion", "get"):
             ver_type, slot_code, chk1, chk2, ref_var = _resolve_get_params(item)
             send_cmd = f':SfGetVersion,"*(ISN)","{ver_type}","{slot_code}","{chk1}","{chk2}"'
-            is_first = (len(rows) == 0)
             _add(
                 f"0,SFIS GET {chk1 or ver_type}",
                 f"SFIS GetVersion ({ver_type} {chk1})".strip(),
                 send_cmd,
-                ref=f"${ref_var}:lwString;",
+                ref=escape_build_get_ref(item, ref_var),
                 tid="OTFX085",
                 em="8",
                 phase_val=str(phase_num),
@@ -444,11 +665,12 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             imac_num = str(item.get("imacnum", "1") or "1").strip()
             ref_var = str(item.get("ref_var", "sfMAC") or "sfMAC").strip().lstrip("$")
             send_cmd = f':SfGetiMAC,"*(ISN)","1","{imac_num}","{slot_code}"'
+            ref_val = str(item.get("ref_expr") or "").strip() or f'${ref_var}:SubString,"0","12":lwString;'
             _add(
                 "0,SFIS GET MAC",
                 "SFIS Get iMAC",
                 send_cmd,
-                ref=f'${ref_var}:SubString,"0","12":lwString;',
+                ref=ref_val,
                 tid="OTFX085",
                 em="8",
                 phase_val=str(phase_num),

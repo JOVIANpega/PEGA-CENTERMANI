@@ -75,10 +75,22 @@ const SFIS_PROXY_FIELDS = [
   { key: 'ITEMINFO_80', label: 'ITEMINFO 80階（料號/主序號）' }
 ];
 
+const SFIS_GETVERSION_TYPES = [
+  { value: 'ISN_BASEINFO', label: 'ISN_BASEINFO (SNA~SNG / MAC1 / SSN)' },
+  { value: 'ITEMINFO', label: 'ITEMINFO (關聯 60 / 80 階序號)' },
+  { value: 'MOKP_SN', label: 'MOKP_SN (關鍵組件明細 如 W3G / HD)' },
+  { value: 'GET_IVMAC_NEW', label: 'GET_IVMAC_NEW (GUID1/2 + MAC1)' },
+  { value: 'ITEM_FEATURE_BASEINFO', label: 'ITEM_FEATURE_BASEINFO (ModelNumber / EPG)' },
+  { value: 'GETSN_BYRULE', label: 'GETSN_BYRULE (依規則配號)' },
+  { value: 'ASSIGN_SSN', label: 'ASSIGN_SSN (配發出貨 SSN)' }
+];
+
 const SFIS_CATALOG_BLOCKS = [
   { kind: 'login', icon: '🔐', title: 'Login / Logout', desc: '測電腦與 OP 通否', theme: '#0284C7', bg: '#F0F9FF', border: '#7DD3FC' },
   { kind: 'checkroute', icon: '🔍', title: 'CheckRoute 過站', desc: '刷單顆 ISN 途程', theme: '#2563EB', bg: '#EFF6FF', border: '#93C5FD' },
-  { kind: 'get', icon: '📥', title: 'GET 讀欄位', desc: '無限次安全讀取', theme: '#059669', bg: '#ECFDF5', border: '#6EE7B7' },
+  { kind: 'get', icon: '📥', title: 'GET 查欄位', desc: '支援 0~7 堆疊拆解＋Ref 切字', theme: '#059669', bg: '#ECFDF5', border: '#6EE7B7' },
+  { kind: 'getimac', icon: '📡', title: 'GET iMAC', desc: '取用配對 MAC 位址', theme: '#0D9488', bg: '#F0FDFA', border: '#5EEAD4' },
+  { kind: 'getlabel', icon: '🏷', title: 'GET 標籤', desc: 'WTSP_GETLABEL 條碼查詢', theme: '#6366F1', bg: '#EEF2FF', border: '#A5B4FC' },
   { kind: 'savelink', icon: '📤', title: 'WRITE 寫欄位', desc: '⚠️ 可能推站慎按', theme: '#D97706', bg: '#FFFBEB', border: '#FCD34D' },
   { kind: 'rw', icon: '🔄', title: 'R/W 寫＋回讀', desc: '寫後立即 GET 比對', theme: '#7C3AED', bg: '#F5F3FF', border: '#C4B5FD' },
   { kind: 'clear', icon: '🧹', title: 'CLEAR 清空試探', desc: '寫空值並回讀', theme: '#475569', bg: '#F8FAFC', border: '#CBD5E1' }
@@ -109,6 +121,7 @@ function _getEffectivePlantUrl(plantId) {
 
 const SFIS_HMI_STATE = {
   activeSubTab: 'sfis', // 'sfis' | 'dll'
+  mockMode: false, // false = 實機工廠內網 | true = 本機模擬 SFIS 內網 (無網全測)
   profilesLoaded: false,
   showPlantEditor: false,
   selectedMoIdx: 0,
@@ -163,15 +176,110 @@ function _resolveCardField(it) {
   return (it.field_key || it.save_key || it.chk_data || 'SNA').trim();
 }
 
+function _escCentimaniArg(raw) {
+  let s = String(raw == null ? '' : raw);
+  s = s.replace(/\\/g, '\\\\');
+  s = s.replace(/([",*/:;])/g, '\\$1');
+  s = s.replace(/\}/g, '}}');
+  return s;
+}
+
+function _buildCentimaniRefExpr(it) {
+  const f = _resolveCardField(it);
+  const vn = String(it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, ''))).trim().replace(/^\$+/, '') || 'sfData';
+  const rm = it.ref_mode || 'raw';
+  if (rm === 'split') {
+    const delim = _escCentimaniArg(it.ref_delim || ';');
+    const idx = parseInt(it.ref_seg_idx || 0, 10) || 0;
+    return `$${vn}:SplitString,"${delim}","${idx}":Trim;`;
+  }
+  if (rm === 'within') {
+    const l = _escCentimaniArg(it.ref_left || '');
+    const r = _escCentimaniArg(it.ref_right || '');
+    return `$${vn}:WithinString,"${l}","${r}","":Trim;`;
+  }
+  if (rm === 'ma') {
+    const mk = _escCentimaniArg(it.ref_marker || ':');
+    return `$${vn}:maString,"${mk}":Trim;`;
+  }
+  if (rm === 'mb') {
+    const mk = _escCentimaniArg(it.ref_marker || ';');
+    return `$${vn}:mbString,"${mk}":Trim;`;
+  }
+  if (rm === 'substr') {
+    const st = parseInt(it.ref_sub_start || 0, 10) || 0;
+    const ln = parseInt(it.ref_sub_len || 12, 10) || 12;
+    return `$${vn}:SubString,"${st}","${ln}";`;
+  }
+  if (rm === 'getmac2') {
+    return `$${vn}:getMAC2;`;
+  }
+  return `$${vn}:lwString;`;
+}
+
+function _previewCentimaniSlice(rawText, it) {
+  const txt = String(rawText == null ? '' : rawText);
+  if (!txt) return '';
+  const rm = it.ref_mode || 'raw';
+  if (rm === 'split') {
+    const delim = it.ref_delim || ';';
+    const idx = parseInt(it.ref_seg_idx || 0, 10) || 0;
+    const parts = txt.split(delim);
+    return (parts[idx] != null ? parts[idx] : '').trim();
+  }
+  if (rm === 'within') {
+    const l = it.ref_left || '';
+    const r = it.ref_right || '';
+    const p1 = l ? txt.indexOf(l) : 0;
+    if (p1 < 0) return '(找不到左界)';
+    const start = p1 + l.length;
+    const p2 = r ? txt.indexOf(r, start) : txt.length;
+    return (p2 < 0 ? txt.slice(start) : txt.slice(start, p2)).trim();
+  }
+  if (rm === 'ma') {
+    const mk = it.ref_marker || ':';
+    const p = txt.indexOf(mk);
+    return p >= 0 ? txt.slice(p + mk.length).trim() : '(找不到關鍵字)';
+  }
+  if (rm === 'mb') {
+    const mk = it.ref_marker || ';';
+    const p = txt.indexOf(mk);
+    return p >= 0 ? txt.slice(0, p).trim() : txt;
+  }
+  if (rm === 'substr') {
+    const st = parseInt(it.ref_sub_start || 0, 10) || 0;
+    const ln = parseInt(it.ref_sub_len || 12, 10) || 12;
+    return txt.substr(st, ln);
+  }
+  if (rm === 'getmac2') {
+    const m = txt.replace(/[^0-9A-Fa-f]/g, '').match(/[0-9A-Fa-f]{12}/);
+    return m ? m[0].toUpperCase() : '(無12碼MAC)';
+  }
+  return txt;
+}
+
 function _itemToBackendStep(it) {
   const k = it.kind;
   const f = _resolveCardField(it);
-  if (k === 'get') {
-    if (f === 'ITEMINFO_60') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: '4', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf60ISN' };
-    if (f === 'ITEMINFO_80') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: '5', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf80ISN' };
-    if (f === 'SSN') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: '3', chk_data: 'SSN', chk_data2: '', ref_var: it.ref_var || 'sfSSN' };
-    return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: '2', chk_data: f, chk_data2: '', ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')) };
+  if (k === 'get' || k === 'getversion') {
+    const refExpr = _buildCentimaniRefExpr(it);
+    if (!it.ver_type && f === 'ITEMINFO_60') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '4', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf60ISN', ref_expr: refExpr };
+    if (!it.ver_type && f === 'ITEMINFO_80') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '5', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf80ISN', ref_expr: refExpr };
+    if (!it.ver_type && f === 'SSN') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: it.slot_code || '3', chk_data: 'SSN', chk_data2: '', ref_var: it.ref_var || 'sfSSN', ref_expr: refExpr };
+    const vt = it.ver_type || 'ISN_BASEINFO';
+    const chk1 = (vt === 'ITEMINFO') ? (it.chk_data || '') : (it.chk_data !== undefined && it.field_key === '__CUSTOM__' ? it.chk_data : (f === 'ITEMINFO_60' || f === 'ITEMINFO_80' ? '' : f));
+    return {
+      kind: 'getversion',
+      ver_type: vt,
+      slot_code: String(it.slot_code || '2'),
+      chk_data: it.ver_type === 'ITEM_FEATURE_BASEINFO' || it.ver_type === 'MOKP_SN' || it.ver_type === 'GETSN_BYRULE' ? (it.chk_data || f) : chk1,
+      chk_data2: it.chk_data2 || '',
+      ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')),
+      ref_expr: refExpr
+    };
   }
+  if (k === 'getimac') return { kind: 'getimac', slot_code: it.slot_code || '2', imacnum: '1', ref_var: it.ref_var || 'sfMAC', ref_expr: _buildCentimaniRefExpr(it) };
+  if (k === 'getlabel') return { kind: 'login' }; // WebService lookup helper
   if (k === 'savelink') return { kind: 'savelink', save_key: f, save_val: it.save_val || 'TEST_VAL' };
   if (k === 'rw') return { kind: 'rw', save_key: f, save_val: it.save_val || 'TEST_RW_01', ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')) };
   if (k === 'clear') return { kind: 'clear', save_key: f };
@@ -189,10 +297,15 @@ function _buildCardExcelPreview(it) {
       : 'SOAP: WTSP_LOGINOUT(status=1 登入) — System.ini SFIS_AutoLogin=1';
   }
   if (k === 'checkroute') return ':ShowISN,"*(ISN)" ➔ :SfCheckRoute  |  ExecMode: 8';
-  if (k === 'get') {
+  if (k === 'get' || k === 'getversion') {
     const st = _itemToBackendStep(it);
-    return `:SfGetVersion,"*(ISN)","${st.ver_type}","${st.slot_code}","${st.chk_data}",""  ➔  $${st.ref_var}  |  EM: 8`;
+    return `:SfGetVersion,"*(ISN)","${st.ver_type}","${st.slot_code}","${st.chk_data}","${st.chk_data2}"  |  Ref: ${st.ref_expr}  |  EM: 8`;
   }
+  if (k === 'getimac') {
+    const st = _itemToBackendStep(it);
+    return `:SfGetiMAC,"*(ISN)","1","1","${st.slot_code}"  |  Ref: ${st.ref_expr}  |  EM: 8`;
+  }
+  if (k === 'getlabel') return 'SOAP: WTSP_GETLABEL（線邊標籤資料查詢輔助，不寫入測試步驟）';
   if (k === 'savelink') return `:SfSaveLinkData,"${f}","${it.save_val || 'TEST_VAL'}"  |  EM: 8`;
   if (k === 'rw') return `:SfSaveLinkData,"${f}","${it.save_val || 'TEST_RW_01'}" ➔ :SfGetVersion(...,"${f}","")  |  EM: 8`;
   if (k === 'clear') return `:SfSaveLinkData,"${f}","" (試寫空值清空) + 回讀確認`;
@@ -585,7 +698,51 @@ function sfisCopyRecvString() {
   }
 }
 
+function sfisSetMockMode(isMock) {
+  SFIS_HMI_STATE.mockMode = !!isMock;
+  SFIS_HMI_STATE.anim.phase = 'idle';
+  SFIS_HMI_STATE.anim.netConnected = isMock ? true : null;
+  SFIS_HMI_STATE.anim.actionLabel = isMock
+    ? '🧪 已切至「本機模擬 SFIS 內網」— 無外網也能全測 0~7 堆疊與 Ref 切字'
+    : '🌐 已切回「實機工廠內網」— 將真實連線至 WebLink';
+  renderSfisHmiWorkspace();
+}
+
+async function sfisResetMockDb() {
+  try {
+    await fetch('/api/sfis_mock_reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    SFIS_HMI_STATE.usedIsns = [];
+    SFIS_HMI_STATE.anim.actionLabel = '↺ 已重置本機模擬資料庫與 ISN 過站狀態';
+    _pushResponseLog('↺ 重置模擬 DB', 'POST /api/sfis_mock_reset', { passed: true, reachable: true, ret_code: 'RESET_OK', msg: '已還原所有虛擬工單 ISN 過站與代用欄位值' });
+    renderSfisHmiWorkspace();
+  } catch (e) {}
+}
+
+function sfisPickSlotIndex(cardIdx, slotCode) {
+  const it = SFIS_HMI_STATE.items[cardIdx];
+  if (!it) return;
+  it.slot_code = String(slotCode);
+  renderSfisHmiWorkspace();
+}
+
+function sfisPickSegment(cardIdx, delim, segIdx) {
+  const it = SFIS_HMI_STATE.items[cardIdx];
+  if (!it) return;
+  it.ref_mode = 'split';
+  it.ref_delim = delim;
+  it.ref_seg_idx = segIdx;
+  renderSfisHmiWorkspace();
+}
+
 async function toolsCheckSfisLink() {
+  if (SFIS_HMI_STATE.mockMode) {
+    SFIS_HMI_STATE.anim.netConnected = true;
+    SFIS_HMI_STATE.anim.phase = 'pass';
+    SFIS_HMI_STATE.anim.actionLabel = '✅ 本機模擬 SFIS 內網就緒（無需連公司內網）';
+    _pushResponseLog('🔍 測內網連通 (模擬)', 'Mock Intranet Self-Check', { passed: true, reachable: true, ret_code: 'MOCK_200', msg: '本機模擬 SFIS Server 運作中（吐出真實 LOG 格式與 0~7 堆疊資料）' });
+    renderSfisHmiWorkspace();
+    return;
+  }
   const url = String(SFIS_HMI_STATE.config.url || '').trim();
   if (!url) { alert('請先選擇廠區或輸入 SFIS_WebLink 網址'); return; }
   SFIS_HMI_STATE.anim.phase = 'sending';
@@ -602,7 +759,7 @@ async function toolsCheckSfisLink() {
     SFIS_HMI_STATE.anim.phase = d.reachable ? 'pass' : 'offline';
     SFIS_HMI_STATE.anim.actionLabel = d.reachable
       ? `✅ 內網連通正常 (HTTP ${d.http_code})`
-      : '⚠️ 無法連通 SFIS（可能不在廠區內網）';
+      : '⚠️ 無法連通 SFIS（在外網可點上方切換「🧪 本機模擬 SFIS 內網」）';
     _pushResponseLog('🔍 測內網連通', `HTTP 預檢 ${url}`, {
       passed: !!d.reachable,
       reachable: !!d.reachable,
@@ -622,8 +779,26 @@ function sfisAddItem(kind, insertAt = -1) {
   const uid = 'sf_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
   let item = { uid, kind, status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
   if (kind === 'login') item.login_status = '1';
-  else if (kind === 'get') { item.field_key = 'SNA'; item.custom_field = ''; item.ref_var = 'sfSNA'; }
-  else if (kind === 'savelink') { item.field_key = 'SNA'; item.custom_field = ''; item.save_val = 'TEST_VAL_01'; }
+  else if (kind === 'get') {
+    item.ver_type = 'ISN_BASEINFO';
+    item.field_key = 'SNA';
+    item.custom_field = '';
+    item.chk_data = 'SNA';
+    item.chk_data2 = '';
+    item.slot_code = '2';
+    item.ref_var = 'sfSNA';
+    item.ref_mode = 'raw';
+    item.ref_delim = ';';
+    item.ref_seg_idx = 0;
+  } else if (kind === 'getimac') {
+    item.slot_code = '2';
+    item.ref_var = 'sfMAC';
+    item.ref_mode = 'substr';
+    item.ref_sub_start = 0;
+    item.ref_sub_len = 12;
+  } else if (kind === 'getlabel') {
+    item.label_type = 'ISN';
+  } else if (kind === 'savelink') { item.field_key = 'SNA'; item.custom_field = ''; item.save_val = 'TEST_VAL_01'; }
   else if (kind === 'rw') { item.field_key = 'SNB'; item.custom_field = ''; item.save_val = 'TEST_RW_01'; item.ref_var = 'sfSNB'; }
   else if (kind === 'clear') { item.field_key = 'SNA'; item.custom_field = ''; }
 
@@ -649,14 +824,30 @@ function sfisUpdateItemField(idx, field, value) {
   if (field === 'field_key' && value !== '__CUSTOM__') {
     const clean = String(value || 'Data').replace(/^ITEMINFO_/, 'Item').replace(/[^A-Za-z0-9_]/g, '');
     it.ref_var = 'sf' + clean;
+    if (value === 'ITEMINFO_60') { it.ver_type = 'ITEMINFO'; it.slot_code = '4'; it.chk_data = ''; }
+    else if (value === 'ITEMINFO_80') { it.ver_type = 'ITEMINFO'; it.slot_code = '5'; it.chk_data = ''; }
+    else if (value === 'SSN') { it.ver_type = 'ISN_BASEINFO'; it.slot_code = '3'; it.chk_data = 'SSN'; }
+    else { it.chk_data = value; }
   }
-  it.status = 'idle';
-  it.resultMsg = '';
-  if (field === 'field_key' || field === 'login_status') {
+  if (field === 'ver_type') {
+    if (value === 'ITEMINFO') { it.slot_code = '4'; it.chk_data = ''; it.chk_data2 = ''; }
+    else if (value === 'MOKP_SN') { it.slot_code = '2'; it.chk_data = 'W3G'; it.chk_data2 = ''; }
+    else if (value === 'GET_IVMAC_NEW') { it.slot_code = '2'; it.chk_data = ''; it.chk_data2 = ''; }
+    else if (value === 'ITEM_FEATURE_BASEINFO') { it.slot_code = '4'; it.chk_data = 'AURORA'; it.chk_data2 = 'ModelNumber'; }
+  }
+  if (['field_key', 'login_status', 'ver_type', 'ref_mode', 'slot_code', 'ref_delim'].includes(field)) {
     renderSfisHmiWorkspace();
   } else {
     const prevEl = document.getElementById(`sfisCardPrev_${idx}`);
     if (prevEl) prevEl.textContent = _buildCardExcelPreview(it);
+    const sliceEl = document.getElementById(`sfisSlicePrev_${idx}`);
+    if (sliceEl) {
+      const slotMap = { '2': 'P_CAVER', '3': 'P_CBVER', '4': 'P_CCVER', '5': 'P_CDVER', '6': 'P_IAVER', '7': 'P_IBVER' };
+      const sKey = slotMap[String(it.slot_code || '2')] || 'P_CAVER';
+      const rawTxt = (it.lastSlots && it.lastSlots[sKey]) || '';
+      const valCut = _previewCentimaniSlice(rawTxt, it);
+      sliceEl.textContent = rawTxt ? `預期切出：${valCut}  |  Ref: ${_buildCentimaniRefExpr(it)}` : `Ref: ${_buildCentimaniRefExpr(it)}`;
+    }
     sfisRenderLiveExcelPreview();
   }
 }
@@ -702,6 +893,7 @@ async function _callSingleSoap(action, extraParams = {}) {
     body: JSON.stringify({
       url: cfg.url,
       action,
+      mock: !!SFIS_HMI_STATE.mockMode,
       params: { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams }
     })
   });
@@ -750,6 +942,9 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
     } else if (it.kind === 'getimac') {
       sentCmd = `WTSP_GETIMAC(ISN="${isn}", device="${SFIS_HMI_STATE.config.device_id}")`;
       data = await _callSingleSoap('WTSP_GETIMAC', { imacnum: 1 });
+    } else if (it.kind === 'getlabel') {
+      sentCmd = `WTSP_GETLABEL(ISN="${isn}", type="${it.label_type || 'ISN'}", DEV="${SFIS_HMI_STATE.config.device_id}")`;
+      data = await _callSingleSoap('WTSP_GETLABEL', { label_type: it.label_type || 'ISN' });
     } else if (it.kind === 'savelink') {
       const val = it.save_val || 'TEST_VAL';
       sentCmd = `WTSP_RESULT(ISN="${isn}", data="#SAVE:${f}=${val};", status=1, TSP="PASS")`;
@@ -794,6 +989,9 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
       : (ok ? (valStr ? `✅ 值：${valStr} (${data.msg || 'PASS'})` : `✅ ${data.msg || 'PASS'}`) : `❌ ${data.msg || 'FAIL'}`);
     it.resultMsg = detailTxt;
     it.lastRaw = data.raw_result || data.msg || '';
+    it.lastRetCode = data.ret_code || '-';
+    it.lastMsg = data.msg || '';
+    it.lastSlots = slots;
     it.sentCmd = sentCmd;
     SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} ${meta.title} ➔ ${ok ? '✅ PASS' : (offline ? '⚠️ 離線' : '❌ FAIL')}`;
     if (ok && (it.kind === 'savelink' || it.kind === 'rw') && isn && !SFIS_HMI_STATE.usedIsns.includes(isn)) {
@@ -914,8 +1112,105 @@ function _renderSimpleCardInputs(it, idx) {
     ${isCustom ? `<input type="text" value="${_escH(it.custom_field || '')}" placeholder="例：BT1 / SN1" oninput="sfisUpdateItemField(${idx},'custom_field',this.value)" class="mono" style="width:110px; padding:3px 6px; border:1px solid #94A3B8; border-radius:5px; font-size:0.8rem;">` : ''}
   `;
 
-  if (it.kind === 'get' || it.kind === 'getversion') {
-    return `<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">${fieldSelectHtml}<span style="font-size:0.75rem; color:#047857;">✅ 無限次讀取，結果吐出至左側 Response</span></div>`;
+  if (it.kind === 'get' || it.kind === 'getversion' || it.kind === 'getimac') {
+    const isImac = (it.kind === 'getimac');
+    const vt = it.ver_type || 'ISN_BASEINFO';
+    const vtOpts = SFIS_GETVERSION_TYPES.map(t => `<option value="${t.value}" ${vt === t.value ? 'selected' : ''}>${_escH(t.label)}</option>`).join('');
+    const curSlotCode = String(it.slot_code || '2');
+    const slotList = [
+      { code: '2', name: 'P_CAVER' },
+      { code: '3', name: 'P_CBVER' },
+      { code: '4', name: 'P_CCVER' },
+      { code: '5', name: 'P_CDVER' },
+      { code: '6', name: 'P_IAVER' },
+      { code: '7', name: 'P_IBVER' }
+    ];
+    const hasRan = !!it.lastSlots;
+    const slotMap = { '2': 'P_CAVER', '3': 'P_CBVER', '4': 'P_CCVER', '5': 'P_CDVER', '6': 'P_IAVER', '7': 'P_IBVER' };
+    const pickedKey = slotMap[curSlotCode] || 'P_CAVER';
+    const pickedRawVal = (it.lastSlots && it.lastSlots[pickedKey]) ? String(it.lastSlots[pickedKey]) : '';
+    const slicedVal = pickedRawVal ? _previewCentimaniSlice(pickedRawVal, it) : '';
+    const refExprStr = _buildCentimaniRefExpr(it);
+
+    let slotsGridHtml = '';
+    if (hasRan) {
+      const slotRows = slotList.map(sl => {
+        const val = String((it.lastSlots && it.lastSlots[sl.name]) || '');
+        const isSel = (curSlotCode === sl.code);
+        return `
+          <div style="display:flex; align-items:center; gap:5px; padding:2px 5px; border-radius:4px; background:${isSel ? '#DBEAFE' : '#FFFFFF'}; border:1px solid ${isSel ? '#3B82F6' : '#E2E8F0'};">
+            <span class="mono" style="font-size:0.71rem; font-weight:900; color:#1E40AF; min-width:72px;">[${sl.code}] ${sl.name}</span>
+            <span class="mono" style="flex:1; font-size:0.72rem; color:${val ? '#0F172A' : '#94A3B8'}; word-break:break-all;">${_escH(val || '(空)')}</span>
+            <button type="button" onclick="sfisPickSlotIndex(${idx},'${sl.code}')" style="padding:1px 6px; font-size:0.69rem; border-radius:4px; border:1px solid ${isSel ? '#1D4ED8' : '#94A3B8'}; background:${isSel ? '#1D4ED8' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">
+              ${isSel ? `✓ 已選第${sl.code}格` : `選第${sl.code}格`}
+            </button>
+          </div>`;
+      }).join('');
+      slotsGridHtml = `
+        <div style="margin-top:6px; background:#F8FAFC; border:1px solid #BFDBFE; border-radius:6px; padding:6px 8px;">
+          <div style="font-size:0.72rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;">
+            🎯 SFIS [0~7] 堆疊回傳位置（[0]P_RET=${_escH(it.lastRetCode || '-')} · [1]P_Msg=${_escH((it.lastMsg || '').slice(0, 42))}）：
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">${slotRows}</div>
+        </div>`;
+    }
+
+    let segBtnsHtml = '';
+    if (pickedRawVal && (pickedRawVal.includes(';') || pickedRawVal.includes(','))) {
+      const autoDelim = pickedRawVal.includes(';') ? ';' : ',';
+      const segs = pickedRawVal.split(autoDelim).filter((x, i, a) => !(i === a.length - 1 && x === ''));
+      segBtnsHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; align-items:center;"><span style="font-size:0.71rem; color:#475569; font-weight:700;">快速點切段(${autoDelim === ';' ? '分號;' : '逗號,'})：</span>` +
+        segs.map((sg, si) => `<button type="button" onclick="sfisPickSegment(${idx},'${autoDelim}',${si})" style="padding:1px 6px; font-size:0.71rem; border-radius:4px; border:1px solid ${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#059669' : '#CBD5E1'}; background:${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;" class="mono">[${si}] ${_escH(sg)}</button>`).join('') + `</div>`;
+    }
+
+    const rm = it.ref_mode || 'raw';
+    const refExtraInputs = rm === 'split'
+      ? `<label style="font-size:0.72rem;">分隔字:<input type="text" value="${_escH(it.ref_delim || ';')}" oninput="sfisUpdateItemField(${idx},'ref_delim',this.value)" class="mono" style="width:36px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+         <label style="font-size:0.72rem;">第N段(0起):<input type="number" min="0" value="${parseInt(it.ref_seg_idx || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_seg_idx',this.value)" class="mono" style="width:42px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+      : (rm === 'within'
+        ? `<label style="font-size:0.72rem;">左界:<input type="text" value="${_escH(it.ref_left || 'SN:')}" oninput="sfisUpdateItemField(${idx},'ref_left',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+           <label style="font-size:0.72rem;">右界:<input type="text" value="${_escH(it.ref_right || ';')}" oninput="sfisUpdateItemField(${idx},'ref_right',this.value)" class="mono" style="width:65px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+        : (rm === 'ma' || rm === 'mb'
+          ? `<label style="font-size:0.72rem;">定位字:<input type="text" value="${_escH(it.ref_marker || (rm === 'ma' ? ':' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_marker',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+          : (rm === 'substr'
+            ? `<label style="font-size:0.72rem;">起始:<input type="number" min="0" value="${parseInt(it.ref_sub_start || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_sub_start',this.value)" class="mono" style="width:44px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+               <label style="font-size:0.72rem;">長度:<input type="number" min="1" value="${parseInt(it.ref_sub_len || 12, 10) || 12}" oninput="sfisUpdateItemField(${idx},'ref_sub_len',this.value)" class="mono" style="width:46px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+            : '')));
+
+    const topInputs = isImac
+      ? `<span style="font-size:0.78rem; font-weight:700; color:#0F766E;">WTSP_GETIMAC 配發/讀取 MAC（結果於第 2 格起）</span>`
+      : `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+           <label style="font-size:0.76rem; font-weight:700;">type:<select onchange="sfisUpdateItemField(${idx},'ver_type',this.value)" style="padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem; max-width:190px;">${vtOpts}</select></label>
+           ${vt === 'ISN_BASEINFO' ? fieldSelectHtml : `<label style="font-size:0.76rem; font-weight:700;">ChkData:<input type="text" value="${_escH(it.chk_data || '')}" oninput="sfisUpdateItemField(${idx},'chk_data',this.value)" class="mono" style="width:88px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem;"></label><label style="font-size:0.76rem; font-weight:700;">Chk2:<input type="text" value="${_escH(it.chk_data2 || '')}" oninput="sfisUpdateItemField(${idx},'chk_data2',this.value)" class="mono" style="width:85px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem;"></label>`}
+           <label style="font-size:0.76rem; font-weight:700;">取第<select onchange="sfisUpdateItemField(${idx},'slot_code',this.value)" style="padding:2px 4px; border:1px solid #3B82F6; border-radius:4px; font-size:0.77rem;">${slotList.map(sl => `<option value="${sl.code}" ${curSlotCode === sl.code ? 'selected' : ''}>${sl.code} (${sl.name})</option>`).join('')}</select>格</label>
+         </div>`;
+
+    return `
+      ${topInputs}
+      ${slotsGridHtml}
+      <div style="margin-top:6px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:6px; padding:5px 8px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.74rem; font-weight:800; color:#065F46;">✂️ Ref 找字串：</span>
+          <select onchange="sfisUpdateItemField(${idx},'ref_mode',this.value)" style="padding:2px 5px; border:1px solid #6EE7B7; border-radius:4px; font-size:0.75rem;">
+            <option value="raw" ${rm === 'raw' ? 'selected' : ''}>全取 (不切)</option>
+            <option value="split" ${rm === 'split' ? 'selected' : ''}>依分隔字切段 (:SplitString)</option>
+            <option value="within" ${rm === 'within' ? 'selected' : ''}>前後關鍵字夾取 (:WithinString)</option>
+            <option value="ma" ${rm === 'ma' ? 'selected' : ''}>抓特定字後面 (:maString)</option>
+            <option value="mb" ${rm === 'mb' ? 'selected' : ''}>抓特定字前面 (:mbString)</option>
+            <option value="substr" ${rm === 'substr' ? 'selected' : ''}>固定位置長度 (:SubString)</option>
+            <option value="getmac2" ${rm === 'getmac2' ? 'selected' : ''}>自動抓 12 碼 MAC (:getMAC2)</option>
+          </select>
+          ${refExtraInputs}
+          <label style="font-size:0.73rem; font-weight:700;">變數:<input type="text" value="${_escH(it.ref_var || 'sfData')}" oninput="sfisUpdateItemField(${idx},'ref_var',this.value)" class="mono" style="width:76px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+        </div>
+        ${segBtnsHtml}
+        <div id="sfisSlicePrev_${idx}" class="mono" style="margin-top:4px; font-size:0.72rem; color:#047857; font-weight:800; word-break:break-all;">
+          ${pickedRawVal ? `預期切出：${_escH(slicedVal)}  |  ` : ''}Ref 公式：${_escH(refExprStr)}
+        </div>
+      </div>`;
+  }
+  if (it.kind === 'getlabel') {
+    return `<label style="font-size:0.78rem; font-weight:700;">標籤 Type：<input type="text" value="${_escH(it.label_type || 'ISN')}" oninput="sfisUpdateItemField(${idx},'label_type',this.value)" class="mono" style="width:110px; padding:3px 6px; border:1px solid #94A3B8; border-radius:5px;"></label>`;
   }
   if (it.kind === 'savelink' || it.kind === 'rw') {
     return `
@@ -1044,6 +1339,18 @@ function renderSfisHmiWorkspace() {
 
   root.innerHTML = `
     <div style="background:#FFFFFF; border:1.5px solid #C7D2FE; border-radius:12px; padding:12px 14px;">
+      <!-- 頂部連線環境切換列：本機模擬 SFIS 內網 vs 實機工廠內網 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:7px 11px; border-radius:9px; background:${s.mockMode ? '#FEF3C7' : '#EFF6FF'}; border:1.5px solid ${s.mockMode ? '#F59E0B' : '#93C5FD'};">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="font-weight:900; font-size:0.84rem; color:#0F172A;">📡 通訊模式：</span>
+          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.79rem; ${!s.mockMode ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
+          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.79rem; ${s.mockMode ? 'background:#D97706; color:#FFFFFF; border-color:#D97706; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          ${s.mockMode ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FFFFFF; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.75rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
+        </div>
+      </div>
+
       <!-- 左右分割雙視窗：左 = 機台設定 + 動畫舞台 + 所有吐出字串監控；右 = 簡潔步驟控制 + 匯出 Excel -->
       <div class="sfis-split-layout">
 

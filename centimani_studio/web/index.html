@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.034">
+<link rel="stylesheet" href="/css/app.css?v=0.8.035">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.034</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.035</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1813,12 +1813,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.034"></script>
-<script src="/js/audit_editors.js?v=0.8.034"></script>
-<script src="/js/flow_guide.js?v=0.8.034"></script>
-<script src="/js/block_sorter.js?v=0.8.034"></script>
-<script src="/js/script_qa.js?v=0.8.034"></script>
-<script src="/js/sfis_hmi.js?v=0.8.034"></script>
+<script src="/js/inst_hmi.js?v=0.8.035"></script>
+<script src="/js/audit_editors.js?v=0.8.035"></script>
+<script src="/js/flow_guide.js?v=0.8.035"></script>
+<script src="/js/block_sorter.js?v=0.8.035"></script>
+<script src="/js/script_qa.js?v=0.8.035"></script>
+<script src="/js/sfis_hmi.js?v=0.8.035"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2927,7 +2927,12 @@ function switchGenSubMode(mode) {
   }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
   if (GEN_SUB_MODE === 'qa' && typeof initScriptQaPanel === 'function') initScriptQaPanel();
-  if (GEN_SUB_MODE === 'tools' && typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
+  if (GEN_SUB_MODE === 'tools') {
+    if (typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
+    if (typeof switchToolsVerifyTab === 'function') {
+      switchToolsVerifyTab((typeof SFIS_HMI_STATE !== 'undefined' && SFIS_HMI_STATE.activeSubTab) || 'sfis');
+    }
+  }
 }
 
 let TAB3_QUEUE = [];
@@ -6759,6 +6764,7 @@ function renderCentimaniEnvUi(profile) {
 }
 
 function renderToolsVerifyPanel() {
+  const p = (typeof CENTIMANI_ENV_PROFILE !== 'undefined' && CENTIMANI_ENV_PROFILE) ? CENTIMANI_ENV_PROFILE : {};
   const box = document.getElementById('toolsEnvInfoBox');
   const urlInp = document.getElementById('toolsSfisUrlInput');
   if (urlInp && !urlInp.value.trim()) {

@@ -1491,6 +1491,35 @@ def run_all_verifications():
                   and "sfisExpandMoIsns" in sfis_hmi_js and "sfisAddCustomPlant" in sfis_hmi_js,
                   "v0.8.034 TY3 桃園三廠網址、虛擬工單(26951603+5碼流水號)範本與廠區增修功能就緒")
 
+            # [v0.8.035] 驗證空白頁 Bug 修復 + 本機模擬 SFIS 內網 + 0~7 堆疊與 Centimani Ref 找字串轉義
+            check("const p = (typeof CENTIMANI_ENV_PROFILE" in index_html
+                  and "switchToolsVerifyTab" in index_html.split("if (GEN_SUB_MODE === 'tools')")[1].split("let TAB3_QUEUE")[0],
+                  "v0.8.035 已修復初次點入實機驗證空白 Bug（定義 CENTIMANI_ENV_PROFILE 並直接渲染 SFIS 子頁）")
+            post_json("/api/sfis_mock_reset", {})
+            mk_login = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_LOGINOUT", "params": {"op": "S09166390", "device": "710001", "status": 1}})
+            mk_item = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_GETVERSION", "params": {"isn": "2695160300001", "ver_type": "ITEMINFO"}})
+            mk_wr = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_RESULT", "params": {"isn": "2695160300001", "save_key": "SNA", "save_val": "MOCK_VAL_99", "status": 1}})
+            mk_rd = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_GETVERSION", "params": {"isn": "2695160300001", "ver_type": "ISN_BASEINFO", "chk_data": "SNA"}})
+            mk_blk = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_CHKROUTE", "params": {"isn": "2695160300001", "device": "710001"}})
+            post_json("/api/sfis_mock_reset", {})
+            mk_rst = post_json("/api/sfis_soap_test", {"mock": True, "action": "WTSP_CHKROUTE", "params": {"isn": "2695160300001", "device": "710001"}})
+            check(mk_login.get("passed") is True and "Pegatron SFIS" in mk_login.get("msg", "")
+                  and (mk_item.get("slots") or {}).get("P_CCVER") == "60_2695160300001"
+                  and (mk_item.get("slots") or {}).get("P_CDVER") == "90AA221000S0_00001"
+                  and mk_wr.get("passed") is True
+                  and (mk_rd.get("slots") or {}).get("P_CAVER") == "MOCK_VAL_99"
+                  and mk_blk.get("passed") is False and mk_rst.get("passed") is True,
+                  "v0.8.035 本機模擬 SFIS 內網支援 Login/ITEMINFO(0~7堆疊)/WRITE回讀驗證/過站阻擋與重置 DB")
+            ref_split = sfis_client.build_centimani_ref_expr("sf5G", "split", delim=";", index=1)
+            ref_within = sfis_client.build_centimani_ref_expr("sfSN", "within", left="SN:", right=";IMEI")
+            ref_steps = sfis_client.build_sfis_excel_steps([{"kind": "getversion", "ver_type": "MOKP_SN", "slot_code": "4", "chk_data": "W3G", "ref_expr": ref_within}])
+            check(ref_split == '$sf5G:SplitString,"\\;","1":Trim;'
+                  and ref_within == '$sfSN:WithinString,"SN\\:","\\;IMEI","":Trim;'
+                  and ref_steps[1]["Ref"] == '$sfSN:WithinString,"SN\\:","\\;IMEI","":Trim;'
+                  and ',\"4\",\"W3G\"' in ref_steps[1]["Send"]
+                  and "sfisPickSlotIndex" in sfis_hmi_js and "sfisPickSegment" in sfis_hmi_js and "sfisSetMockMode" in sfis_hmi_js,
+                  "v0.8.035 支援 0~7 堆疊選格、Centimani 官方 Ref 找字串轉義 (SplitString/WithinString) 與完整積木清單")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

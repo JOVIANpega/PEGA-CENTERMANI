@@ -1692,7 +1692,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.034")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.035")
 
                 self._send_json({
                     "status": "ok",
@@ -1954,7 +1954,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.034")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.035")
 
                 self._send_json({
                     "status": "ok",
@@ -2203,7 +2203,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.034")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.035")
 
                 self._send_json({
                     "status": "ok",
@@ -2357,18 +2357,22 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         "checked_url": chk_url, "message": f"無法連通 SFIS WebService（可能不在公司/產線內網）：{ue}"
                     })
             elif parsed.path == "/api/sfis_soap_test":
-                from core.sfis_client import call_sfis_soap
+                from core.sfis_client import call_sfis_soap, call_sfis_mock_soap
                 url = str(payload.get("url", "")).strip()
                 action = str(payload.get("action", "")).strip()
                 params = payload.get("params") or {}
-                if not url:
+                use_mock = bool(payload.get("mock", False))
+                if not use_mock and not url:
                     self._send_json({"status": "error", "message": "請先輸入 SFIS WebService 網址"}, 400)
                     return
                 try:
-                    res = call_sfis_soap(url, action, params)
+                    res = call_sfis_mock_soap(action, params) if use_mock else call_sfis_soap(url, action, params)
                     self._send_json(res)
                 except ValueError as ve:
                     self._send_json({"status": "error", "message": str(ve)}, 400)
+            elif parsed.path == "/api/sfis_mock_reset":
+                from core.sfis_client import reset_sfis_mock_db
+                self._send_json(reset_sfis_mock_db())
             elif parsed.path == "/api/export_sfis_hmi_script":
                 from core.sfis_client import build_sfis_excel_steps
                 from core.script_notes import generate_companion_logic_txt
@@ -2489,7 +2493,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.034")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.035")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2655,7 +2659,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.034) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.035) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
