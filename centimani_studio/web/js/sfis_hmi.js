@@ -1113,7 +1113,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.038') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.039') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1334,11 +1334,10 @@ function _renderSimpleCardInputs(it, idx) {
         <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.8rem; font-weight:700; padding:3px 9px; border-radius:6px; border:1px solid ${isOut ? '#0284C7' : '#CBD5E1'}; background:${isOut ? '#E0F2FE' : '#FFFFFF'};">
           <input type="radio" name="sfisLoginMod_${idx}" value="0" ${isOut ? 'checked' : ''} onchange="sfisUpdateItemField(${idx},'login_status','0')"> 🚪 Logout 登出
         </label>
-        <span style="font-size:0.76rem; color:#475569;">使用左側 OP (${_escH(SFIS_HMI_STATE.config.op)}) / Dev (${_escH(SFIS_HMI_STATE.config.device_id)})</span>
       </div>`;
   }
   if (it.kind === 'checkroute') {
-    return `<div style="font-size:0.79rem; color:#334155;">免額外填寫，自動檢查目前單顆 ISN 於此 DeviceID 之途程狀態。</div>`;
+    return '';
   }
 
   const fk = it.field_key || it.save_key || it.chk_data || 'SNA';
@@ -1481,7 +1480,7 @@ function _renderSimpleCardInputs(it, idx) {
       </div>`;
   }
   if (it.kind === 'clear') {
-    return `<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">${fieldSelectHtml}<span style="font-size:0.75rem; color:#64748B;">送空字串嘗試清除並回讀</span></div>`;
+    return `<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">${fieldSelectHtml}</div>`;
   }
   return '';
 }
@@ -1614,7 +1613,6 @@ function renderSfisHmiWorkspace() {
         </div>
         ${_renderSimpleCardInputs(it, idx)}
         ${offlineSwitchBtn}
-        <div id="sfisCardPrev_${idx}" class="mono" style="margin-top:4px; font-size:0.79rem; color:#64748B;">${_escH(_buildCardExcelPreview(it))}</div>
       </div>`;
   }).join('');
 
@@ -1632,7 +1630,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.038');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.039');
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">

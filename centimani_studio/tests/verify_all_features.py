@@ -1559,6 +1559,12 @@ def run_all_verifications():
                   and "sfis-empty-slots-fold" in sfis_hmi_js,
                   "v0.8.038 撲克牌積木排序條、移除右側重複吐回框、左下日誌無高度上限延伸與 GET 空欄位自動折疊全數通過")
 
+            # [v0.8.039] 驗證積木卡片去冗字：移除「免額外填寫...」與每卡指令預覽列 (保留底部整合預覽)
+            check("免額外填寫，自動檢查目前單顆 ISN" not in sfis_hmi_js
+                  and 'id="sfisCardPrev_' not in sfis_hmi_js
+                  and 'id="sfisLiveExcelPreview"' in sfis_hmi_js,
+                  "v0.8.039 已清除積木卡片內冗餘說明與重複指令行，維持單卡精簡外觀")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
