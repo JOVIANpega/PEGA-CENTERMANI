@@ -1168,7 +1168,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.043') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.044') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1724,13 +1724,66 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.043');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.044');
+
+  const stageBannerHtml = `
+      <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
+      <div id="sfisTopStageWrap" style="background:${stageWrapBg}; border:1.5px solid ${stageWrapBorder}; border-radius:10px; padding:7px 11px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後單步實測會展演 3 秒三段式封包來回（一鍵全測為每步 1.2 秒）；關閉則零延遲即時出結果">
+              <input type="checkbox" ${a.slowDemo !== false ? 'checked' : ''} onchange="sfisToggleSlowDemo(this.checked)" style="width:13px; height:13px;">
+              <span>🎬 3秒動畫展演</span>
+            </label>
+          </div>
+          <span style="padding:2px 9px; border-radius:999px; font-size:0.75rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
+        </div>
+        <div class="sfis-anim-stage">
+          <div class="sfis-node-card sfis-node-card-wide ${a.stage === 'to_cloud' ? 'pulse-blue' : (isPass && a.stage === 'idle' ? 'glow-green' : ((isFail || isOffline) && a.stage === 'idle' ? 'glow-red' : ''))}">
+            <img src="/images/PC.png" alt="Test PC" style="width:42px; height:42px; object-fit:contain; flex-shrink:0;">
+            <div style="min-width:0;">
+              <div style="font-weight:900; font-size:0.8rem; color:#0F172A;">測試 PC <span style="font-size:0.71rem; color:${opColor};"><i class="sfis-led" style="background:${netColor};"></i>${opText}</span></div>
+              <div class="mono" style="font-size:0.71rem; color:#334155; display:flex; align-items:center; gap:5px; margin-top:2px;">
+                <span>Dev:<b id="sfisPcDevTxt">${_escH(cfg.device_id)}</b></span>
+                <span style="color:#854D0E; background:#FEF9C3; padding:0 4px; border-radius:3px; max-width:118px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${_escH(cfg.isn)}"><b id="sfisPcIsnTxt">${_escH(cfg.isn || '-')}</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="${a.stage === 'to_cloud' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
+            <span class="sfis-flow-label">${a.stage === 'to_cloud' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' && a.packetText ? `<span class="sfis-packet-badge ${isPass ? 'back-ok' : 'back-err'}">${_escH(a.packetText)}</span>` : (isPass ? '✅ 通' : 'SOAP'))}</span>
+            <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
+          </div>
+          <div class="sfis-node-card sfis-node-card-wide sfis-cloud-card ${(a.stage === 'to_cloud' || a.stage === 'to_db' || a.stage === 'to_pc') ? 'cloud-active' : ''}">
+            <img src="/images/cloud.png" alt="Cloud" style="width:44px; height:36px; object-fit:contain; flex-shrink:0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:0.75rem; font-weight:900; color:#0F172A;">WebService</span>
+              <div style="display:flex; gap:3px; font-size:0.68rem; font-weight:800;">
+                <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#2563EB' : '#F1F5F9'}; color:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#FFFFFF' : '#64748B'};">⬆發</span>
+                <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_pc' || isPass) ? '#16A34A' : (isFail ? '#DC2626' : '#F1F5F9')}; color:${(a.stage === 'to_pc' || isPass || isFail) ? '#FFFFFF' : '#64748B'};">⬇回</span>
+              </div>
+            </div>
+          </div>
+          <div class="${a.stage === 'to_db' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
+            <span class="sfis-flow-label">${a.stage === 'to_db' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' ? '⬇ 回傳' : 'DB')}</span>
+            <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
+          </div>
+          <div class="sfis-node-card sfis-node-card-wide ${a.stage === 'to_db' ? 'glow-amber' : (isPass && a.stage !== 'to_cloud' ? 'glow-green' : ((isFail || isOffline) && a.stage !== 'to_cloud' ? 'glow-red' : ''))}">
+            <img src="/images/database.png" alt="SFIS DB" style="width:38px; height:42px; object-fit:contain; flex-shrink:0;">
+            <div>
+              <div style="font-weight:900; font-size:0.8rem; color:#0F172A;">SFIS DB</div>
+              <div style="font-size:0.72rem; font-weight:800; color:#1D4ED8;">${_escH(curPlant.label.split(' ')[0])} <span style="font-weight:700; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${a.stage === 'to_db' ? '處理中...' : (isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機')))}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
       ${serverStale ? '<div style="margin-bottom:8px; padding:5px 10px; border-radius:7px; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; font-size:0.79rem; font-weight:800;">⚠️ 偵測到後端伺服器仍為舊版，請重雙擊 啟動_Centimani腳本工具.bat（模擬目前由瀏覽器引擎自動接手）</div>' : ''}
+      ${stageBannerHtml}
 
-      <!-- 可拖曳調寬左右雙視窗：左 = 機台設定 + 動畫舞台 + 折疊式吐回字串終端；右 = 簡潔步驟控制 + 匯出 Excel -->
+      <!-- 可拖曳調寬左右雙視窗：左 = 機台設定 + 折疊吐回字串終端；右 = 增加步驟 + 單一垂直可拖曳清單 + 匯出 Excel -->
       <div id="sfisSplitLayout" class="sfis-split-layout" style="--sfis-left-w:${s.leftPanePct || 46}%;">
 
         <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 折疊吐回字串終端 -->
@@ -1816,51 +1869,7 @@ function renderSfisHmiWorkspace() {
             </details>
           </div>
 
-          <!-- 動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
-          <div style="background:${stageWrapBg}; border:1.5px solid ${stageWrapBorder}; border-radius:10px; padding:9px 10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px;">
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後單步實測會展演 3 秒三段式封包來回（一鍵全測為每步 1.2 秒）；關閉則零延遲即時出結果">
-                  <input type="checkbox" ${a.slowDemo !== false ? 'checked' : ''} onchange="sfisToggleSlowDemo(this.checked)" style="width:13px; height:13px;">
-                  <span>🎬 3秒動畫展演</span>
-                </label>
-              </div>
-              <span style="padding:2px 8px; border-radius:999px; font-size:0.74rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
-            </div>
-            <div class="sfis-anim-stage">
-              <div class="sfis-node-card ${a.stage === 'to_cloud' ? 'pulse-blue' : (isPass && a.stage === 'idle' ? 'glow-green' : ((isFail || isOffline) && a.stage === 'idle' ? 'glow-red' : ''))}" style="padding:7px 5px;">
-                <img src="/images/PC.png" alt="Test PC" style="width:56px; height:56px; object-fit:contain;">
-                <div style="font-weight:900; font-size:0.8rem; color:#0F172A; margin-top:2px;">測試 PC</div>
-                <div style="font-size:0.71rem; color:${opColor}; font-weight:800; margin-top:2px;"><i class="sfis-led" style="background:${netColor};"></i>${opText}</div>
-                <div class="mono" style="font-size:0.69rem; color:#334155;">Dev:<b id="sfisPcDevTxt">${_escH(cfg.device_id)}</b></div>
-                <div class="mono" style="font-size:0.68rem; color:#854D0E; background:#FEF9C3; padding:1px 4px; border-radius:3px; max-width:108px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${_escH(cfg.isn)}"><b id="sfisPcIsnTxt">${_escH(cfg.isn || '-')}</b></div>
-              </div>
-              <div class="${a.stage === 'to_cloud' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
-                <span class="sfis-flow-label">${a.stage === 'to_cloud' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' && a.packetText ? `<span class="sfis-packet-badge ${isPass ? 'back-ok' : 'back-err'}">${_escH(a.packetText)}</span>` : (isPass ? '✅ 通' : 'SOAP'))}</span>
-                <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
-              </div>
-              <div class="sfis-node-card sfis-cloud-card ${(a.stage === 'to_cloud' || a.stage === 'to_db' || a.stage === 'to_pc') ? 'cloud-active' : ''}" style="padding:7px 5px;">
-                <img src="/images/cloud.png" alt="Cloud" style="width:62px; height:50px; object-fit:contain;">
-                <div style="display:flex; gap:3px; margin-top:3px; font-size:0.68rem; font-weight:800;">
-                  <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#2563EB' : '#F1F5F9'}; color:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#FFFFFF' : '#64748B'};">⬆發</span>
-                  <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_pc' || isPass) ? '#16A34A' : (isFail ? '#DC2626' : '#F1F5F9')}; color:${(a.stage === 'to_pc' || isPass || isFail) ? '#FFFFFF' : '#64748B'};">⬇回</span>
-                </div>
-              </div>
-              <div class="${a.stage === 'to_db' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
-                <span class="sfis-flow-label">${a.stage === 'to_db' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' ? '⬇ 回傳' : 'DB')}</span>
-                <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
-              </div>
-              <div class="sfis-node-card ${a.stage === 'to_db' ? 'glow-amber' : (isPass && a.stage !== 'to_cloud' ? 'glow-green' : ((isFail || isOffline) && a.stage !== 'to_cloud' ? 'glow-red' : ''))}" style="padding:7px 5px;">
-                <img src="/images/database.png" alt="SFIS DB" style="width:52px; height:56px; object-fit:contain;">
-                <div style="font-weight:900; font-size:0.8rem; color:#0F172A; margin-top:2px;">SFIS DB</div>
-                <div style="font-size:0.7rem; font-weight:800; color:#1D4ED8;">${_escH(curPlant.label.split(' ')[0])}</div>
-                <div style="font-size:0.69rem; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${a.stage === 'to_db' ? '處理中...' : (isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機')))}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 折疊式：所有積木動作實際吐出字串總覽區（長度依積木多寡自然向下延伸不限高度） -->
+          <!-- 折疊式：所有積木動作實際吐出字串總覽區（緊貼設定區下方，長度依積木多寡自然延伸不限高度） -->
           <details id="sfisResponseDetails" ${a.responseExpanded ? 'open' : ''} ontoggle="SFIS_HMI_STATE.anim.responseExpanded=this.open"
                    style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:9px 11px;">
             <summary style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; list-style:none;">

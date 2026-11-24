@@ -2101,11 +2101,17 @@ button:not(:disabled):hover {
 }
 .sfis-anim-stage {
   display: grid;
-  grid-template-columns: minmax(115px, 1fr) 56px minmax(110px, 1fr) 56px minmax(115px, 1fr);
+  grid-template-columns: minmax(175px, auto) minmax(80px, 1fr) minmax(130px, auto) minmax(80px, 1fr) minmax(165px, auto);
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
-@media (max-width: 720px) {
+.sfis-node-card-wide {
+  flex-direction: row !important;
+  text-align: left !important;
+  gap: 8px;
+  padding: 6px 10px !important;
+}
+@media (max-width: 900px) {
   .sfis-anim-stage {
     grid-template-columns: 1fr;
   }

@@ -1609,6 +1609,12 @@ def run_all_verifications():
                   and "drop-before" in app_css and "drop-after" in app_css,
                   "v0.8.043 已整合為單一垂直可拖曳＋↑↓箭頭積木清單，消除重複橫向排列")
 
+            # [v0.8.044] 驗證方案 1：跨雙欄頂部寬幅即時動畫舞台 (#sfisTopStageWrap 位於 #sfisSplitLayout 上方)
+            check('id="sfisTopStageWrap"' in sfis_hmi_js
+                  and sfis_hmi_js.find('id="sfisTopStageWrap"') < sfis_hmi_js.find('id="sfisSplitLayout"')
+                  and "sfis-node-card-wide" in app_css and "sfis-node-card-wide" in sfis_hmi_js,
+                  "v0.8.044 方案 1 跨雙欄頂部寬幅動畫舞台與左下終端空間騰空完成")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
