@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.031">
+<link rel="stylesheet" href="/css/app.css?v=0.8.032">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.031</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.032</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -997,7 +997,7 @@
         </button>
         <span id="genCurrentModeTitle" style="font-weight:900; font-size:0.97rem; color:#0F172A;"></span>
       </div>
-      <div class="source-mode-bar" style="margin:0;">
+      <div class="source-mode-bar" style="margin:0; display:none;" aria-hidden="true">
         <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 既有腳本編修</button>
         <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 產生首次使用空範本</button>
         <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 儀器範本</button>
@@ -1813,12 +1813,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.031"></script>
-<script src="/js/audit_editors.js?v=0.8.031"></script>
-<script src="/js/flow_guide.js?v=0.8.031"></script>
-<script src="/js/block_sorter.js?v=0.8.031"></script>
-<script src="/js/script_qa.js?v=0.8.031"></script>
-<script src="/js/sfis_hmi.js?v=0.8.031"></script>
+<script src="/js/inst_hmi.js?v=0.8.032"></script>
+<script src="/js/audit_editors.js?v=0.8.032"></script>
+<script src="/js/flow_guide.js?v=0.8.032"></script>
+<script src="/js/block_sorter.js?v=0.8.032"></script>
+<script src="/js/script_qa.js?v=0.8.032"></script>
+<script src="/js/sfis_hmi.js?v=0.8.032"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {

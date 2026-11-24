@@ -1674,7 +1674,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.031")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.032")
 
                 self._send_json({
                     "status": "ok",
@@ -1936,7 +1936,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.031")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.032")
 
                 self._send_json({
                     "status": "ok",
@@ -2185,7 +2185,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.031")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.032")
 
                 self._send_json({
                     "status": "ok",
@@ -2400,6 +2400,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     if tsp:
                         sys_ini["SFIS_TSP"] = tsp
                     sys_ini["SFIS_Enable"] = sfis_en
+                    if "skip_save_on_fail" in cfg:
+                        sys_ini["SFIS_SkipSaveResultOnFail"] = "1" if cfg.get("skip_save_on_fail") else "0"
                     glb_set = ws.setdefault("global_ini", {}).setdefault("Settings", {})
                     glb_set["DEVID_1"] = dev_id
                     if ws.get("duts"):
@@ -2455,6 +2457,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if url:
                     sys_ini["SFIS_WebLink"] = url
                 sys_ini["SFIS_TSP"] = tsp
+                sys_ini["SFIS_AutoLogin"] = "1"
+                sys_ini["SFIS_SkipSaveResultOnFail"] = "1" if cfg.get("skip_save_on_fail", True) else "0"
                 sys_ini["StationName"] = st
                 sys_ini["StationName_Mode"] = "fixed"
 
@@ -2467,7 +2471,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.031")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.032")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2553,7 +2557,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.031) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.032) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

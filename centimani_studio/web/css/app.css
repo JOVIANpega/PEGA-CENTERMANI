@@ -2052,3 +2052,112 @@ button:not(:disabled):hover {
   display: flex;
   flex-direction: column;
 }
+
+/* SFIS 動畫感模擬測試舞台 (PC ⇄ 雙向雲 ⇄ DB) */
+.sfis-anim-stage {
+  display: grid;
+  grid-template-columns: 185px 1fr 175px 1fr 185px;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 980px) {
+  .sfis-anim-stage {
+    grid-template-columns: 1fr;
+  }
+  .sfis-flow-line {
+    padding: 4px 0;
+  }
+}
+.sfis-node-card {
+  background: #FFFFFF;
+  border: 2px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.sfis-node-card.pulse-blue {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  transform: translateY(-2px);
+}
+.sfis-node-card.glow-green {
+  border-color: #16A34A;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.18);
+}
+.sfis-node-card.glow-red {
+  border-color: #DC2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.18);
+}
+.sfis-cloud-card.cloud-active {
+  border-color: #0284C7;
+  background: #F0F9FF;
+  animation: sfisCloudFloat 1.1s ease-in-out infinite alternate;
+}
+.sfis-led {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 3px;
+}
+.sfis-flow-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 60px;
+}
+.sfis-flow-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #475569;
+  white-space: nowrap;
+}
+.sfis-flow-rail {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, #CBD5E1 0 8px, transparent 8px 14px);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sfis-packet {
+  display: none;
+  position: absolute;
+  top: -2px;
+  width: 16px;
+  height: 10px;
+  border-radius: 999px;
+  background: #2563EB;
+  box-shadow: 0 0 8px #38BDF8;
+}
+.sfis-flow-line.sending .sfis-flow-rail {
+  background: linear-gradient(90deg, #BFDBFE, #3B82F6, #BFDBFE);
+}
+.sfis-flow-line.sending .sfis-packet {
+  display: block;
+  animation: sfisPacketRight 0.9s linear infinite;
+}
+.sfis-flow-line.sending .sfis-packet.delay {
+  animation-delay: 0.3s;
+}
+.sfis-flow-line.pass .sfis-flow-rail {
+  background: #86EFAC;
+}
+.sfis-flow-line.fail .sfis-flow-rail {
+  background: #FCA5A5;
+}
+@keyframes sfisPacketRight {
+  0% { left: -16px; }
+  100% { left: 100%; }
+}
+@keyframes sfisCloudFloat {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-4px); }
+}

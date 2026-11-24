@@ -20,6 +20,31 @@ SFIS_PLANT_PRESETS = [
         "url": "http://172.18.202.12/SFISWebService/SFISTSPWebService.asmx",
         "default_device": "710001",
         "default_tsp": "PEGA,2",
+        "editable_hint": "台北內網預設；可在上方網址欄自行改填廠區實際 IP",
+    },
+    {
+        "id": "PTB_PROD",
+        "label": "重慶 PTB 正式",
+        "url": "http://10.176.33.13/SFISWebService/SFISTSPWebService.asmx",
+        "default_device": "710001",
+        "default_tsp": "ATLAS,2",
+        "editable_hint": "PTB 正式機 (SCRIPTS/System.ini 實測網址)",
+    },
+    {
+        "id": "PTB_QA",
+        "label": "重慶 PTB 測試 (QA)",
+        "url": "http://172.24.255.10/SFISWebService_BTARDB0QA/SFISTSPWebService.asmx",
+        "default_device": "710001",
+        "default_tsp": "ATLAS,2",
+        "editable_hint": "PTB 測試機 BTARDB0QA (CentimaniSFISTest 預設)",
+    },
+    {
+        "id": "PTB_F1",
+        "label": "PTB F1 (可自填IP)",
+        "url": "http://172.24.255.113/SFISWebService/SFISTSPWebService.asmx",
+        "default_device": "710001",
+        "default_tsp": "ATLAS,2",
+        "editable_hint": "PTB F1 預留範本（請直接修改上方 IP/WebLink，系統會自動記住）",
     },
     {
         "id": "PTSN_PXD",
@@ -27,34 +52,23 @@ SFIS_PLANT_PRESETS = [
         "url": "http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx",
         "default_device": "710001",
         "default_tsp": "ATLAS,2",
+        "editable_hint": "蘇州 PTSN / PXD 正式機",
+    },
+    {
+        "id": "PTSN_SZ",
+        "label": "蘇州 SZ (.248.15)",
+        "url": "http://172.24.248.15/SFISWebService/SFISTSPWebService.asmx",
+        "default_device": "710001",
+        "default_tsp": "ATLAS,2",
+        "editable_hint": "蘇州 SFIS .248.15 (CentimaniSFISTest PSZ 預設)",
     },
     {
         "id": "SZASCD0QA",
         "label": "蘇州 QA (SZASCD0QA)",
-        "url": "http://172.24.255.89/SFISTSP_SZASCD0QA/SFISTSPWebService.asmx",
+        "url": "http://172.24.255.10/SFISWebService_SZASCD0QA/SFISTSPWebService.asmx",
         "default_device": "430079",
-        "default_tsp": "SGC,2",
-    },
-    {
-        "id": "PTB",
-        "label": "重慶 PTB",
-        "url": "http://ptb-sftsp-n1.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx",
-        "default_device": "710001",
         "default_tsp": "ATLAS,2",
-    },
-    {
-        "id": "SAGEMCOM",
-        "label": "SAGEMCOM",
-        "url": "http://172.22.255.160/SFISWebService/SFISTSPWebService.asmx",
-        "default_device": "419131",
-        "default_tsp": "DIW350,2",
-    },
-    {
-        "id": "ADB_X740",
-        "label": "ADB_X740",
-        "url": "http://172.22.255.161/sfiswebservice/sfistspwebservice.asmx",
-        "default_device": "421430",
-        "default_tsp": "X740,2",
+        "editable_hint": "蘇州 QA 測試機",
     },
 ]
 
@@ -94,6 +108,7 @@ def build_soap_envelope(action: str, params: dict) -> str:
 
     act = str(action or "").strip()
     if act == "WTSP_LOGINOUT":
+        login_st = int(p["status"]) if p.get("status") not in (None, "") else 1
         inner = (
             _tag("programId", prog_id)
             + _tag("programPassword", prog_pw)
@@ -101,7 +116,7 @@ def build_soap_envelope(action: str, params: dict) -> str:
             + _tag("password", p.get("password", ""))
             + _tag("device", device)
             + _tag("TSP", tsp)
-            + _tag("status", int(p.get("status", 1) or 1))
+            + _tag("status", login_st)
         )
     elif act == "WTSP_CHKROUTE":
         inner = (
@@ -135,9 +150,10 @@ def build_soap_envelope(action: str, params: dict) -> str:
     elif act == "WTSP_RESULT":
         data_str = str(p.get("data", "") or "").strip()
         save_key = str(p.get("save_key", "") or "").strip()
-        save_val = str(p.get("save_val", "") or "").strip()
+        save_val = str(p.get("save_val", "") or "")
         if not data_str and save_key:
             data_str = f"#SAVE:{save_key}={save_val};"
+        res_st = int(p["status"]) if p.get("status") not in (None, "") else 1
         inner = (
             _tag("programId", prog_id)
             + _tag("programPassword", prog_pw)
@@ -146,7 +162,7 @@ def build_soap_envelope(action: str, params: dict) -> str:
             + _tag("device", device)
             + _tag("TSP", p.get("result_tsp", "PASS"))
             + _tag("data", data_str)
-            + _tag("status", int(p.get("status", 1) or 1))
+            + _tag("status", res_st)
             + _tag("CPKFlag", p.get("cpk_flag", ""))
         )
     elif act == "GetDatabaseInformation":
@@ -354,9 +370,25 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             "TestID": tid,
         })
 
+    def _resolve_get_params(it: dict):
+        fk = str(it.get("field_key", "") or "").strip()
+        fk_u = fk.upper()
+        if fk_u == "ITEMINFO_60":
+            return "ITEMINFO", "4", "", "", str(it.get("ref_var") or "sf60ISN").strip().lstrip("$")
+        if fk_u == "ITEMINFO_80":
+            return "ITEMINFO", "5", "", "", str(it.get("ref_var") or "sf80ISN").strip().lstrip("$")
+        if fk_u == "SSN":
+            return "ISN_BASEINFO", "3", "SSN", "", str(it.get("ref_var") or "sfSSN").strip().lstrip("$")
+        vt = str(it.get("ver_type", "ISN_BASEINFO") or "ISN_BASEINFO").strip()
+        sc = str(it.get("slot_code", "2") or "2").strip()
+        c1 = str(it.get("chk_data", fk or "MAC1") or "").strip()
+        c2 = str(it.get("chk_data2", "") or "").strip()
+        rv = str(it.get("ref_var") or (f"sf_{fk}" if fk else "sfData")).strip().lstrip("$")
+        return vt, sc, c1, c2, rv
+
     for item in (items or []):
         kind = str(item.get("kind", "")).strip().lower()
-        if kind == "login":
+        if kind in ("login", "logout"):
             # Centimani logs into SFIS automatically via System.ini SFIS_AutoLogin=1
             continue
 
@@ -383,17 +415,13 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                 )
             phase_num += 1
 
-        elif kind == "getversion":
-            ver_type = str(item.get("ver_type", "ISN_BASEINFO") or "ISN_BASEINFO").strip()
-            slot_code = str(item.get("slot_code", "2") or "2").strip()
-            chk1 = str(item.get("chk_data", "") or "").strip()
-            chk2 = str(item.get("chk_data2", "") or "").strip()
-            ref_var = str(item.get("ref_var", "sfData") or "sfData").strip().lstrip("$")
+        elif kind in ("getversion", "get"):
+            ver_type, slot_code, chk1, chk2, ref_var = _resolve_get_params(item)
             send_cmd = f':SfGetVersion,"*(ISN)","{ver_type}","{slot_code}","{chk1}","{chk2}"'
             is_first = (len(rows) == 0)
             _add(
-                f"0,SFIS GET {ver_type}" if (is_first or rows[-1]["Phase"] != "") else f"0,SFIS GET {ver_type}",
-                f"SFIS GetVersion ({ver_type} {chk1})",
+                f"0,SFIS GET {chk1 or ver_type}",
+                f"SFIS GetVersion ({ver_type} {chk1})".strip(),
                 send_cmd,
                 ref=f"${ref_var}:lwString;",
                 tid="OTFX085",
@@ -419,14 +447,51 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             phase_num += 1
 
         elif kind == "savelink":
-            raw_key = str(item.get("save_key", "SNB") or "SNB").strip()
-            save_key = re.sub(r"^#SAVE:", "", raw_key, flags=re.IGNORECASE).strip() or "SNB"
+            raw_key = str(item.get("save_key", "SNA") or "SNA").strip()
+            save_key = re.sub(r"^#SAVE:", "", raw_key, flags=re.IGNORECASE).strip() or "SNA"
             save_val = str(item.get("save_val", "*(gUUID)") or "*(gUUID)").strip()
             send_cmd = f':SfSaveLinkData,"{save_key}","{save_val}"'
             _add(
                 f"0,SFIS WRITE {save_key}",
                 f"SFIS SaveLinkData ({save_key})",
                 send_cmd,
+                tid="OTFX064",
+                em="8",
+                phase_val=str(phase_num),
+            )
+            phase_num += 1
+
+        elif kind == "rw":
+            raw_key = str(item.get("save_key") or item.get("field_key") or "SNA").strip()
+            save_key = re.sub(r"^#SAVE:", "", raw_key, flags=re.IGNORECASE).strip() or "SNA"
+            save_val = str(item.get("save_val", "TEST_VAL") or "TEST_VAL").strip()
+            ref_var = str(item.get("ref_var") or f"sf_{save_key}").strip().lstrip("$")
+            _add(
+                f"0,SFIS R/W {save_key}",
+                f"SFIS SaveLinkData ({save_key})",
+                f':SfSaveLinkData,"{save_key}","{save_val}"',
+                tid="OTFX064",
+                em="8",
+                phase_val=str(phase_num),
+            )
+            _add(
+                "",
+                f"SFIS ReadBack Verify ({save_key})",
+                f':SfGetVersion,"*(ISN)","ISN_BASEINFO","2","{save_key}",""',
+                ref=f"${ref_var}:lwString;",
+                tid="OTFX085",
+                em="8",
+                phase_val="",
+            )
+            phase_num += 1
+
+        elif kind == "clear":
+            raw_key = str(item.get("save_key") or item.get("field_key") or "SNA").strip()
+            save_key = re.sub(r"^#SAVE:", "", raw_key, flags=re.IGNORECASE).strip() or "SNA"
+            _add(
+                f"0,SFIS CLEAR {save_key}",
+                f"SFIS Clear Proxy Field ({save_key})",
+                f':SfSaveLinkData,"{save_key}",""',
                 tid="OTFX064",
                 em="8",
                 phase_val=str(phase_num),

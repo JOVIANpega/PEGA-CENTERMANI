@@ -1451,6 +1451,27 @@ def run_all_verifications():
                   and 'sfisHmiRunStep' in sfis_hmi_js and 'sfisHmiExport' in sfis_hmi_js,
                   "UI 已完整載入 sfis_hmi.js 雙欄拖曳互動人機與 SOAP/Excel 按鈕")
 
+            # [v0.8.032] 驗證極簡頂部返回列、廠區快選汰換(含PTB/PTSN/無SAGEMCOM/ADB_X740)、Logout(status=0)、SkipSaveResultOnFail INI 與 3 張動畫舞台圖片
+            logout_env = sfis_client.build_soap_envelope("WTSP_LOGINOUT", {"op": "S09166390", "device": "710001", "status": 0})
+            rw_steps = sfis_client.build_sfis_excel_steps([{"kind": "rw", "field_key": "SNA", "save_val": "TEST_RW"}])
+            preset_ids = {p["id"] for p in sfis_client.SFIS_PLANT_PRESETS}
+            sfis_sys_ini = open(os.path.join(sfis_exp["output_dir"], "System.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check('<status>0</status>' in logout_env
+                  and any(":SfSaveLinkData,\"SNA\",\"TEST_RW\"" in r.get("Send", "") for r in rw_steps)
+                  and any(":SfGetVersion,\"*(ISN)\",\"ISN_BASEINFO\",\"2\",\"SNA\",\"\"" in r.get("Send", "") for r in rw_steps)
+                  and {"TAIPEI", "PTB_PROD", "PTB_QA", "PTB_F1", "PTSN_PXD"}.issubset(preset_ids)
+                  and "SAGEMCOM" not in preset_ids and "ADB_X740" not in preset_ids,
+                  "v0.8.032 sfis_client 支援 OP Logout(status=0)、R/W 寫入回讀步驟與新版 PTB/PTSN 廠區清單",
+                  str(sorted(preset_ids)))
+            check("SFIS_SkipSaveResultOnFail=1" in sfis_sys_ini,
+                  "v0.8.032 匯出 SFIS 驗證檔 System.ini 預設開啟 SFIS_SkipSaveResultOnFail=1（失敗不上傳保護 ISN）")
+            hub_bar_sec = index_html.split('id="genBackToModeHubBar"')[1].split('<div id="genModeCreate"')[0]
+            app_css = open(os.path.join(STUDIO_DIR, "web", "css", "app.css"), "r", encoding="utf-8").read()
+            check('display:none;' in hub_bar_sec and '/images/PC.png' in sfis_hmi_js
+                  and '/images/cloud.png' in sfis_hmi_js and '/images/database.png' in sfis_hmi_js
+                  and '.sfis-anim-stage' in app_css and 'sfisSelectHistory' in sfis_hmi_js,
+                  "v0.8.032 頂部隱藏多餘書籤列、並完整載入 PC/Cloud/DB 三節點動畫舞台與吐出字串監控")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
