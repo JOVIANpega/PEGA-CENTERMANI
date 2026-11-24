@@ -20,7 +20,7 @@ def _extract_produced_vars(row):
     for m in re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)", ref_str):
         out.add(m)
     send_str = str(row.get("Send") or "")
-    for m in re.findall(r':SetVal\s*,\s*"\$([A-Za-z_][A-Za-z0-9_]*)"', send_str, flags=re.IGNORECASE):
+    for m in re.findall(r':Set(?:Opr|Cdti)?Val\s*,\s*"\$([A-Za-z_][A-Za-z0-9_]*)"', send_str, flags=re.IGNORECASE):
         out.add(m)
     return out
 
@@ -29,8 +29,8 @@ def _extract_used_vars(row):
     out = set()
     send_str = str(row.get("Send") or "")
     val_str = str(row.get("Validation") or "")
-    # Ignore :SetVal target variable when scanning Send for usages
-    cleaned_send = re.sub(r':SetVal\s*,\s*"\$[A-Za-z_][A-Za-z0-9_]*"', '', send_str, flags=re.IGNORECASE)
+    # Ignore :SetVal/:SetOprVal/:SetCdtiVal target variable when scanning Send for usages
+    cleaned_send = re.sub(r':Set(?:Opr|Cdti)?Val\s*,\s*"\$[A-Za-z_][A-Za-z0-9_]*"', '', send_str, flags=re.IGNORECASE)
     for text in (cleaned_send, val_str):
         # Match *(Var) or *$(Var) or $Var (excluding Global.ini *$(...))
         for m in re.findall(r"(?<!\*)\$([A-Za-z_][A-Za-z0-9_]*)", text):

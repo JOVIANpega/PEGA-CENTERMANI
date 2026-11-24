@@ -854,6 +854,55 @@ def run_all_verifications():
                 check(is_r7_hidden and ws_re_hid["stations"]["Test"][5].get("_hidden") is True,
                       "匯入/匯出完整保留 Excel 隱藏列 (_hidden / row_dimensions.hidden)")
 
+            # [v0.8.017] 驗證依照 07~11 目錄知識庫改寫之核心邏輯：
+            # 1) Golden 母體包含 RST (TrustSystem Acoustic)
+            # 2) audit_workspace 掃描 Title / Waiting / ExecMode 中之 *$(VAR)
+            # 3) audit_workspace 依當前 Station 隔離檢查 DUTs Parameter {N} 上限（防多工站誤判）
+            # 4) auto_fix_workspace 為 TIMEOUT/RETRY/LOCKTEST 補齊安全預設值
+            # 5) block_sorter 正確萃取 :SetOprVal / :SetCdtiVal 產出變數
+            from core.golden_data import get_golden_mother as _ggm_v17
+            mother_v17 = _ggm_v17("V17_PROJ", "Acoustic")
+            check(any(r.get("Name") == "RST" and r.get("ControlDLL") == "RST.dll" for r in mother_v17.get("instruments", [])),
+                  "Golden 母體已收錄 09. ACOUSTIC 標準 TrustSystem 儀器 RST")
+            v17_ws = {
+                "project_name": "V17_MULTI", "station_name": "UF_A",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [
+                    {"Load": "*$(LOAD_1)", "DUT Name": "V17$UF_A", "Station": "UF_A,0", "Parameter": "P0,P1,P2"},
+                    {"Load": "*$(LOAD_1)", "DUT Name": "V17$UF_B", "Station": "UF_B,0", "Parameter": "ONLY_ONE"},
+                ],
+                "marcos": {},
+                "stations": {
+                    "UF_A": [
+                        {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(SN2)"', "ExecMode": "1", "TestID": "B7PL025"},
+                        {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                        {"Index": "002", "Phase": "1", "Title": "2,BLEMISH,*$(BLEMISH_RETRY)", "Send": ':Utility.CMD,"{2}"', "Waiting": "*$(Record_Timeout)", "ExecMode": "*$(execmode_n)", "TestID": "B7PL025"},
+                        {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                    ],
+                    "UF_B": [
+                        {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(sf80SN)"', "ExecMode": "1", "TestID": "B7PL025"},
+                        {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                        {"Index": "002", "Phase": "1", "Title": "*$(LOCKTEST),Lock", "Send": ':Utility.CMD,"{2}"', "ExecMode": "1", "TestID": "B7PL025"},
+                        {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                    ],
+                },
+            }
+            rep_v17 = _audit_ws(v17_ws)
+            w_v17 = rep_v17.get("warnings", [])
+            check(any("BLEMISH_RETRY" in w for w in w_v17) and any("Record_Timeout" in w for w in w_v17) and any("execmode_n" in w for w in w_v17) and any("LOCKTEST" in w for w in w_v17),
+                  "audit_workspace 完整掃描 Title / Waiting / ExecMode 中的 *$(VAR) 是否宣告於 [Scripts]", str(w_v17))
+            check(any("UF_B" in w and "{2}" in w for w in w_v17) and not any("UF_A" in w and "{2}" in w for w in w_v17),
+                  "audit_workspace 多工站 DUTs Parameter {N} 依 Station 各自隔離判定（UF_B 誤用 {2} 報警，UF_A 合法放行）", str(w_v17))
+            from core.script_doctor import auto_fix_workspace as _fix_v17
+            _fix_v17(v17_ws)
+            sc_v17 = v17_ws["global_ini"]["Scripts"]
+            check(sc_v17.get("Record_Timeout") == "5000" and sc_v17.get("BLEMISH_RETRY") == "3" and sc_v17.get("LOCKTEST") == "2" and sc_v17.get("execmode_n") == "6",
+                  "auto_fix_workspace 為 Timeout/Retry/Lock/ExecMode 動態變數補入安全預設值", str(sc_v17))
+            from core.block_sorter import _extract_produced_vars as _epv_v17
+            check(_epv_v17({"Send": ':SetOprVal,"$calcP","*(x)"'}) == {"calcP"},
+                  "block_sorter 正確將 :SetOprVal/$Var 識別為產出變數（供 Phase 排序相依分析）")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

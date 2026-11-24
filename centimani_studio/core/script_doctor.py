@@ -787,8 +787,9 @@ def audit_workspace(workspace):
                                 f"[{st_name} 第 {r_num} 列] 跨 Title 引用了變數 *({used_v})，但第 {def_row} 列定義時未加 '$' 前綴（離開該 Title 會被清空，系統可自動升級為 ${used_v}）"
                             )
 
-                # Rule 5B: Station *$(VAR) in Global.ini [Scripts]
-                for m_gvar in re.finditer(r"\*\$\(([^)]+)\)", row_all_str):
+                # Rule 5B: Station *$(VAR) in Global.ini [Scripts] (scan Send/Validation/Switch/Instrument AND Title/Waiting/ExecMode)
+                row_gvar_str = f"{row_all_str} {s_title} {s_wait} {s_mode}"
+                for m_gvar in re.finditer(r"\*\$\(([^)]+)\)", row_gvar_str):
                     gv = m_gvar.group(1).strip()
                     if gv not in scripts_vars:
                         if gv in settings_vars:
@@ -825,20 +826,26 @@ def audit_workspace(workspace):
                 else:
                     ni6008_single_Check_streak = 0
 
-                # Rule 11: CmdConsole@ external .py existence & DUTs Parameter {N} index check
+                # Rule 11: CmdConsole@ external .py existence & Station-scoped DUTs Parameter {N} index check
                 if s_mode != "6":
                     duts_rows = workspace.get("duts", [])
+                    st_dut_rows = [
+                        dr for dr in duts_rows
+                        if str(dr.get("Station", "")).split(",")[0].strip() == st_name
+                    ]
+                    scope_dut_rows = st_dut_rows if st_dut_rows else duts_rows
                     max_dut_params = 0
-                    for dr in duts_rows:
+                    for dr in scope_dut_rows:
                         p_str = str(dr.get("Parameter", "")).strip()
                         if p_str:
                             max_dut_params = max(max_dut_params, len([x for x in p_str.split(",") if x.strip() != ""]))
-                    if max_dut_params > 0:
+                    if max_dut_params > 0 or (st_dut_rows and not s_marco):
                         for m_p in re.finditer(r"\{(\d+)\}", f"{s_send} {s_ref}"):
                             p_idx = int(m_p.group(1))
                             if p_idx >= max_dut_params:
                                 warnings.append(
-                                    f"[{st_name} 第 {r_num} 列] 引用了 DUTs Parameter '{{{p_idx}}}'，但 DUTs 僅定義了 {max_dut_params} 個參數 (0~{max_dut_params - 1})"
+                                    f"[{st_name} 第 {r_num} 列] 引用了 DUTs Parameter '{{{p_idx}}}'，但站別 '{st_name}' 於 DUTs 僅定義了 {max_dut_params} 個參數"
+                                    + (f" (0~{max_dut_params - 1})" if max_dut_params > 0 else "（Parameter 為空）")
                                 )
                     if "cmdconsole@" in s_send.lower() and ".py" in s_send.lower() and src_file and os.path.exists(src_file):
                         m_py = re.search(r"([A-Za-z0-9_.\-]+\.py)", s_send, re.IGNORECASE)
@@ -937,6 +944,32 @@ def audit_workspace(workspace):
         "sheet_stats": sheet_stats,
         "phase_order_issues": phase_order_issues
     }
+
+
+def _infer_script_var_default(vname):
+    """Infer safe field default for dynamic Global.ini [Scripts] switches/timeouts/retries."""
+    up = vname.upper()
+    if "IP" in up and "SKIP" not in up:
+        return "192.168.1.10"
+    if any(k in up for k in ("TIMEOUT", "DELAY", "WAIT")):
+        return "5000"
+    if "RETRY" in up:
+        return "3"
+    if any(k in up for k in ("AULAB", "EXECMODE")):
+        return "6"
+    if any(k in up for k in ("LOCKTEST", "TITLESTATUS", "SPT")):
+        return "2"
+    return "DEFAULT_VAL"
+
+
+def _sync_missing_script_vars(step, scripts_dict, settings_dict, label_prefix, fixed_logs):
+    """Ensure every *$(VAR) referenced across any column of `step` is declared in [Scripts]."""
+    row_text = " ".join([str(v) for v in step.values() if v])
+    for m in re.finditer(r"\*\$\(([^)]+)\)", row_text):
+        vname = m.group(1).strip()
+        if vname not in scripts_dict:
+            scripts_dict[vname] = settings_dict.get(vname, _infer_script_var_default(vname))
+            fixed_logs.append(f"{label_prefix} 已自動將變數 *$({vname}) 補齊至 Global.ini [Scripts] 區段")
 
 
 def auto_fix_workspace(workspace, user_choices=None):
@@ -1342,12 +1375,7 @@ def auto_fix_workspace(workspace, user_choices=None):
                         })
 
                 # Sync Station *$(VAR) to Global.ini [Scripts]
-                row_text = " ".join([str(v) for v in step.values() if v])
-                for m in re.finditer(r"\*\$\(([^)]+)\)", row_text):
-                    vname = m.group(1).strip()
-                    if vname not in scripts_dict:
-                        scripts_dict[vname] = settings_dict.get(vname, "192.168.1.10" if "IP" in vname else "DEFAULT_VAL")
-                        fixed_logs.append(f"[{st_name} 第 {r_num} 列] 已自動將站位變數 *$({vname}) 補齊至 Global.ini [Scripts] 區段")
+                _sync_missing_script_vars(step, scripts_dict, settings_dict, f"[{st_name} 第 {r_num} 列]", fixed_logs)
 
     # 3. Repair each Marco Sheet (11-col)
     for m_name, m_steps in workspace.get("marcos", {}).items():
@@ -1377,12 +1405,7 @@ def auto_fix_workspace(workspace, user_choices=None):
                     "sheet": m_name, "row": r_num, "col_name": "ExecMode",
                     "old": s_mode, "new": "3", "note": f"原為 '{s_mode}'，修正 :ReleaseDevice 為 '3' (Continue)"
                 })
-            row_text = " ".join([str(v) for v in step.values() if v])
-            for m in re.finditer(r"\*\$\(([^)]+)\)", row_text):
-                vname = m.group(1).strip()
-                if vname not in scripts_dict:
-                    scripts_dict[vname] = settings_dict.get(vname, "DEFAULT_VAL")
-                    fixed_logs.append(f"[Marco:{m_name} 第 {r_num} 列] 已自動將變數 *$({vname}) 補齊至 Global.ini [Scripts] 區段")
+            _sync_missing_script_vars(step, scripts_dict, settings_dict, f"[Marco:{m_name} 第 {r_num} 列]", fixed_logs)
 
     workspace["_modified_cells"] = modified_cells
 
