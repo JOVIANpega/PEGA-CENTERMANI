@@ -1531,6 +1531,26 @@ def run_all_verifications():
                   and "document.documentElement.style.fontSize = valid + 'px'" in inst_hmi_js,
                   "v0.8.036 雙視窗拖曳調寬、吐回字串預設折疊、切換模擬清除離線錯誤、字體連動與正名實機驗證中心（SFIS) 全數通過")
 
+            # [v0.8.037] 驗證虛擬工單 INI 範本 (/api/pick_sfis_ini) + 模擬模式瀏覽器備援必 PASS + 模擬底色變換 (新增步驟不變色)
+            v_mo_ini = os.path.join(app_server.PROJECT_ROOT, "虛擬工單SFIS測試範本", "System.ini")
+            v_ini_res = post_json("/api/pick_sfis_ini", {"ini_path": v_mo_ini})
+            v_cfg = v_ini_res.get("config") or {}
+            init_meta = get_json("/api/init")
+            check(os.path.exists(v_mo_ini)
+                  and v_ini_res.get("status") == "ok"
+                  and v_cfg.get("device_id") == "710888"
+                  and v_cfg.get("station") == "FT1"
+                  and v_cfg.get("isn") == "2695160300002"
+                  and v_cfg.get("tsp") == "VALO360,2"
+                  and init_meta.get("server_build") == "Build v0.8.037",
+                  "v0.8.037 虛擬工單SFIS測試範本 (System.ini + Global.ini) 完整支援 /api/pick_sfis_ini 匯入與版本握手",
+                  str(v_ini_res))
+            check("_runLocalBrowserSfisMock" in sfis_hmi_js
+                  and "data.is_mock !== true" in sfis_hmi_js
+                  and "#FEF9C3" in sfis_hmi_js
+                  and 'id="sfisQuickAddBox" style="background:#FFFFFF;' in sfis_hmi_js,
+                  "v0.8.037 模擬內網具瀏覽器備援必 PASS 引擎＋人機顯著變色切換（新增步驟列維持白底不變色）")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

@@ -755,13 +755,17 @@ function sfisResetSplitWidth() {
 }
 
 async function sfisResetMockDb() {
+  _LOCAL_MOCK_SFIS_DB.routed.clear();
+  _LOCAL_MOCK_SFIS_DB.fields = {};
   try {
     await fetch('/api/sfis_mock_reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    SFIS_HMI_STATE.usedIsns = [];
-    SFIS_HMI_STATE.anim.actionLabel = '↺ 已重置本機模擬資料庫與 ISN 過站狀態';
-    _pushResponseLog('↺ 重置模擬 DB', 'POST /api/sfis_mock_reset', { passed: true, reachable: true, ret_code: 'RESET_OK', msg: '已還原所有虛擬工單 ISN 過站與代用欄位值' });
-    renderSfisHmiWorkspace();
   } catch (e) {}
+  SFIS_HMI_STATE.usedIsns = [];
+  SFIS_HMI_STATE.items.forEach(it => { it.status = 'idle'; it.resultMsg = ''; });
+  SFIS_HMI_STATE.anim.phase = 'idle';
+  SFIS_HMI_STATE.anim.actionLabel = '↺ 已重置本機模擬資料庫與 ISN 過站狀態';
+  _pushResponseLog('↺ 重置模擬 DB', 'Mock DB Reset', { passed: true, reachable: true, ret_code: 'RESET_OK', msg: '已還原所有虛擬工單 ISN 過站與代用欄位值' });
+  renderSfisHmiWorkspace();
 }
 
 function sfisPickSlotIndex(cardIdx, slotCode) {
@@ -931,19 +935,137 @@ function sfisDropOnTrack(targetIdx, ev) {
   }
 }
 
+const _LOCAL_MOCK_SFIS_DB = { routed: new Set(), fields: {} };
+
+function _runLocalBrowserSfisMock(action, params = {}) {
+  const p = params || {};
+  const act = String(action || '').trim();
+  const isn = String(p.isn || '2695160300001').trim() || '2695160300001';
+  const device = String(p.device || '710001').trim() || '710001';
+  const op = String(p.op || 'S09166390').trim() || 'S09166390';
+  if (!_LOCAL_MOCK_SFIS_DB.fields[isn]) {
+    _LOCAL_MOCK_SFIS_DB.fields[isn] = {
+      SNA: 'NULL', SNB: 'TEST_SNB_DEFAULT', SNC: 'PID_AURORA_1A',
+      SND: 'SSN_90AA2210', SNE: 'NULL', SNF: 'NULL', SNG: 'NULL',
+      MAC1: '48210B47E42C', SSN: `SSN_${isn.slice(-6)}`
+    };
+  }
+  const store = _LOCAL_MOCK_SFIS_DB.fields[isn];
+  const sep = '\x1f';
+  if (act === 'WTSP_LOGINOUT') {
+    const st = (p.status !== undefined && p.status !== '') ? parseInt(p.status, 10) : 1;
+    const raw = (st === 0) ? `1Logout OK (${op} @ ${device})` : `1Welcome using Pegatron SFIS:${op}(模擬OP)${op}OP`;
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg: raw, slots: {}, raw_result: raw };
+  }
+  if (act === 'WTSP_CHKROUTE') {
+    if (_LOCAL_MOCK_SFIS_DB.routed.has(isn)) {
+      const msg = `Route Error: ISN [${isn}] 已於本機模擬資料庫過站完成（可點重置模擬DB清站）`;
+      return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: false, ret_code: '0', msg, slots: {}, raw_result: `0${sep}${msg}` };
+    }
+    const msg = `ISN [${isn}] Route OK @ Device [${device}] (本機模擬內網)`;
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots: {}, raw_result: `1${sep}${msg}` };
+  }
+  if (act === 'WTSP_GETVERSION') {
+    const vt = String(p.ver_type || 'ISN_BASEINFO').trim().toUpperCase();
+    const c1 = String(p.chk_data || '').trim();
+    const c2 = String(p.chk_data2 || '').trim();
+    const slots = { P_CAVER: '', P_CBVER: '', P_CCVER: '', P_CDVER: '', P_IAVER: '', P_IBVER: '' };
+    let msg = '';
+    if (vt === 'ITEMINFO') {
+      slots.P_CAVER = '1';
+      slots.P_CBVER = 'PL_AURORA/PEGA;';
+      slots.P_CCVER = `60_${isn}`;
+      slots.P_CDVER = `90AA221000S0_${isn.slice(-5)}`;
+      msg = `TYPE:[ITEMINFO] GET INFO ISN:[${isn}/60_${isn}] TYPE:[ITEMINFO] OK!!`;
+    } else if (vt === 'MOKP_SN') {
+      slots.P_CAVER = `SN:90AA221000S0_${isn.slice(-5)};IMEI:35888109${isn.slice(-5)};SW:V1.0.6;`;
+      slots.P_CBVER = '90AA221000S0';
+      msg = `TYPE:[MOKP_SN] OK!! (${c1 || 'MB'})`;
+    } else if (vt === 'GET_IVMAC_NEW') {
+      slots.P_CAVER = `GUID1:AA11${isn.slice(-4)};GUID2:BB22${isn.slice(-4)};MAC1:48210B47E42C;`;
+      msg = 'TYPE:[GET_IVMAC_NEW] OK!!';
+    } else if (vt === 'ITEM_FEATURE_BASEINFO') {
+      slots.P_CAVER = `${isn};90AA-221000S0`;
+      slots.P_CBVER = `${isn};69B35-AURORA`;
+      slots.P_CCVER = `;${c1 || 'AURORA'};${c2 || 'ModelNumber'};PL_AURORA1A;1;`;
+      slots.P_CDVER = 'N/A';
+      msg = 'TYPE:[ITEM_FEATURE_BASEINFO] OK!!';
+    } else if (vt === 'GETSN_BYRULE') {
+      slots.P_CAVER = `M${isn.slice(-8)}01,`;
+      msg = `TYPE:[GETSN_BYRULE] M${isn.slice(-8)}01, DATA GOT!!`;
+    } else if (vt === 'ASSIGN_SSN') {
+      slots.P_CAVER = `[ITEM2,CUSTITEMNM,1]SSN${isn.slice(-7)}`;
+      msg = 'TYPE:[ASSIGN_SSN] OK!!';
+    } else {
+      const val = store[c1] || store[c1.toUpperCase()] || `MOCK_${c1 || 'DATA'}`;
+      slots.P_CAVER = val;
+      slots.P_CBVER = `90AA221000S0;${val};`;
+      slots.P_CCVER = `KEY:${c1 || 'MAC1'};VAL:${val};DATE:2026/11/24;`;
+      msg = `TYPE:[${vt}] DATA GOT!! (${c1 || 'ISN_BASEINFO'})`;
+    }
+    const raw = ['1', msg, slots.P_CAVER, slots.P_CBVER, slots.P_CCVER, slots.P_CDVER, slots.P_IAVER, slots.P_IBVER].join(sep);
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots, raw_result: raw };
+  }
+  if (act === 'WTSP_GETIMAC') {
+    const macs = `${store.MAC1 || '48210B47E42C'},48210B47E42D`;
+    const msg = `GETIMAC OK (${macs})`;
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots: { P_CAVER: macs }, raw_result: `1${sep}${msg}${sep}${macs}` };
+  }
+  if (act === 'WTSP_GETLABEL') {
+    const lbl = `ISN:${isn};PN:90AA221000S0;QTY:1;`;
+    const msg = `GETLABEL OK (${lbl})`;
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots: { P_CAVER: lbl }, raw_result: `1${sep}${msg}${sep}${lbl}` };
+  }
+  if (act === 'WTSP_RESULT') {
+    let dataStr = String(p.data || '').trim();
+    const sk = String(p.save_key || '').trim();
+    const sv = String(p.save_val || '');
+    if (!dataStr && sk) dataStr = `#SAVE:${sk}=${sv};`;
+    const rx = /#SAVE:([^=;]+)=([^;]*)/gi;
+    let m;
+    while ((m = rx.exec(dataStr)) !== null) {
+      const k = m[1].trim().split(':')[0];
+      store[k] = m[2].trim() || 'NULL';
+    }
+    const st = (p.status !== undefined && p.status !== '') ? parseInt(p.status, 10) : 1;
+    if (st === 1) _LOCAL_MOCK_SFIS_DB.routed.add(isn);
+    const msg = `P_RET=1 RESULT SAVED (Mock): ${dataStr || 'PASS'}`;
+    return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots: {}, raw_result: `1${sep}${msg}` };
+  }
+  const msg = `${act} Mock OK`;
+  return { status: 'ok', reachable: true, is_mock: true, http_code: 200, passed: true, ret_code: '1', msg, slots: {}, raw_result: `1${sep}${msg}` };
+}
+
 async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
-  const resp = await fetch('/api/sfis_soap_test', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      url: cfg.url,
-      action,
-      mock: !!SFIS_HMI_STATE.mockMode,
-      params: { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams }
-    })
-  });
-  return await resp.json();
+  const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
+  // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.037') {
+    return _runLocalBrowserSfisMock(action, fullParams);
+  }
+  try {
+    const resp = await fetch('/api/sfis_soap_test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: cfg.url,
+        action,
+        mock: !!SFIS_HMI_STATE.mockMode,
+        params: fullParams
+      })
+    });
+    const data = await resp.json();
+    // 雙重保險：即使舊版後端忽略 mock:true 誤跑實網而逾時，在模擬模式下仍自動接手回傳模擬 PASS
+    if (SFIS_HMI_STATE.mockMode && (!data || data.is_mock !== true)) {
+      return _runLocalBrowserSfisMock(action, fullParams);
+    }
+    return data;
+  } catch (err) {
+    if (SFIS_HMI_STATE.mockMode) {
+      return _runLocalBrowserSfisMock(action, fullParams);
+    }
+    throw err;
+  }
 }
 
 async function sfisHmiRunStep(idx, skipConfirm = false) {
@@ -1388,17 +1510,30 @@ function renderSfisHmiWorkspace() {
     ? `<span style="padding:1px 7px; border-radius:999px; font-size:0.76rem; font-weight:800; background:${latestLog.ok ? '#14532D' : (latestLog.offline ? '#78350F' : '#7F1D1D')}; color:${latestLog.ok ? '#86EFAC' : (latestLog.offline ? '#FDE68A' : '#FCA5A5')};">${_escH(latestLog.title)} · ${_escH(latestLog.summary)}</span>`
     : '<span style="font-size:0.76rem; color:#94A3B8;">尚無紀錄</span>';
 
+  const isMock = !!s.mockMode;
+  const hmiWrapBg = isMock ? 'linear-gradient(180deg, #FEF9C3 0%, #FDE68A 100%)' : '#FFFFFF';
+  const hmiWrapBorder = isMock ? '#D97706' : '#C7D2FE';
+  const cfgBoxBg = isMock ? '#FFFDF5' : '#F8FAFC';
+  const cfgBoxBorder = isMock ? '#F59E0B' : '#CBD5E1';
+  const stageWrapBg = isMock ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 100%)';
+  const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
+  const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
+  const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.037');
+
   root.innerHTML = `
-    <div class="sfis-hmi-wrap" style="background:#FFFFFF; border:1.5px solid #C7D2FE; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px);">
+    <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
       <!-- 頂部連線環境切換列：本機模擬 SFIS 內網 vs 實機工廠內網 -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:7px 11px; border-radius:9px; background:${s.mockMode ? '#FEF3C7' : '#EFF6FF'}; border:1.5px solid ${s.mockMode ? '#F59E0B' : '#93C5FD'};">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:7px 11px; border-radius:9px; background:${isMock ? '#FDE68A' : '#EFF6FF'}; border:1.5px solid ${isMock ? '#B45309' : '#93C5FD'};">
         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
           <span style="font-weight:900; font-size:0.88rem; color:#0F172A;">📡 通訊模式：</span>
-          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${!s.mockMode ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
-          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${s.mockMode ? 'background:#D97706; color:#FFFFFF; border-color:#D97706; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
+          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${!isMock ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
+          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${isMock ? 'background:#B45309; color:#FFFFFF; border-color:#92400E; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
+          ${isMock ? '<span style="background:#78350F; color:#FEF3C7; padding:2px 8px; border-radius:999px; font-size:0.77rem; font-weight:800;">🧪 模擬內網模式（必通演練）</span>' : ''}
+          ${serverStale ? '<span style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:800;">⚠️ 後端為舊版，請重啟 .bat（模擬已由前端自動接手）</span>' : ''}
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          ${s.mockMode ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.81rem; background:#FFFFFF; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.8rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
+          ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.81rem; background:#FFFFFF; color:#92400E; border-color:#B45309; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.8rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
         </div>
       </div>
 
@@ -1408,7 +1543,7 @@ function renderSfisHmiWorkspace() {
         <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 折疊吐回字串終端 -->
         <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
           <!-- 廠區下拉 + 新增改名 + INI 帶入 + 工具 -->
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:9px; padding:9px 11px;">
+          <div style="background:${cfgBoxBg}; border:1.5px solid ${cfgBoxBorder}; border-radius:9px; padding:9px 11px;">
             <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-bottom:7px;">
               <label style="flex:1; min-width:190px; font-size:0.85rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:5px;">
                 <span>🏭 廠區：</span>
@@ -1489,7 +1624,7 @@ function renderSfisHmiWorkspace() {
           </div>
 
           <!-- 動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
-          <div style="background:linear-gradient(135deg,#F8FAFC 0%,#EFF6FF 100%); border:1.5px solid #BFDBFE; border-radius:10px; padding:9px 10px;">
+          <div style="background:${stageWrapBg}; border:1.5px solid ${stageWrapBorder}; border-radius:10px; padding:9px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px;">
               <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
               <span style="padding:2px 8px; border-radius:999px; font-size:0.74rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
@@ -1548,10 +1683,10 @@ function renderSfisHmiWorkspace() {
         <!-- 中間可拖曳調寬分割線 -->
         <div class="sfis-split-resizer" onmousedown="sfisStartSplitDrag(event)" ondblclick="sfisResetSplitWidth()" title="左右拖曳調整雙視窗寬度（雙擊還原預設 46%）"></div>
 
-        <!-- 右視窗：快點/拖曳加入步驟膠囊 + 流程步驟清單 + 折疊匯出區 -->
+        <!-- 右視窗：快點/拖曳加入步驟膠囊(固定白底不隨模擬變色) + 流程步驟清單 + 折疊匯出區 -->
         <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
-          <!-- 輕量新增動作列（取代冗長左欄大清單） -->
-          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
+          <!-- 輕量新增動作列（固定清爽底色，不隨模擬模式變色） -->
+          <div id="sfisQuickAddBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 點擊或拖入下方增加驗證步驟：</span>
               <div style="display:flex; gap:6px;">
@@ -1566,7 +1701,7 @@ function renderSfisHmiWorkspace() {
 
           <!-- 步驟清單 -->
           <div ondragover="event.preventDefault()" ondrop="sfisDropOnTrack(${s.items.length}, event)"
-               style="background:#F8FAFC; border:2px dashed #93C5FD; border-radius:9px; padding:9px 10px; display:flex; flex-direction:column; gap:8px;">
+               style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px; display:flex; flex-direction:column; gap:8px;">
             ${trackCardsHtml || '<div style="text-align:center; padding:20px; color:#64748B; font-size:0.84rem;">目前白板是空的，請點擊上方「➕」按鈕加入想測的動作</div>'}
           </div>
 
