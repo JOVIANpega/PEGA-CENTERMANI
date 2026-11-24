@@ -1575,7 +1575,13 @@ def run_all_verifications():
                   and 'id="btnToolsBackToAcc"' in index_html
                   and "setActiveToolsHubCard" in sfis_hmi_js
                   and "通訊模式：" not in sfis_hmi_js,
-                  "v0.8.040 實機驗證中心 3 合 1 水平手風琴大卡牌入口與去書籤最大化工作區全數就緒")
+                  "v0.8.040 實機驗證中心水平手風琴大卡牌入口與去分頁最大化工作區全數就緒")
+
+            # [v0.8.041] 驗證全域清除所有「X 合 1」標註（包含既有編修與實機驗證中心）
+            audit_ed_js = open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read()
+            check("5 合 1" not in index_html and "3 合 1" not in index_html
+                  and "5 合 1" not in audit_ed_js and "5 合 1" not in flow_guide_js,
+                  "v0.8.041 全站已移除『5 合 1 / 3 合 1』標註，統一使用乾淨手風琴名稱")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

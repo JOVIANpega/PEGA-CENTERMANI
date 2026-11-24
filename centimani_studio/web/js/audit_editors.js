@@ -370,7 +370,7 @@ function _renderBackToHubBar(titleHtml, themeBg, themeBorder, rightHtml = '') {
     <div style="background:${themeBg}; border:1.5px solid ${themeBorder}; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 15px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 6px rgba(15,23,42,0.2); cursor:pointer;">
-          ⬅ 返回 5 合 1 主入口
+          ⬅ 返回編修主入口
         </button>
         <div style="font-weight:900; font-size:1.03rem; color:#0F172A; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           ${titleHtml}
@@ -455,7 +455,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   return `
     <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div>
-        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修 5 合 1 入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
+        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
         <div style="font-size:0.85rem; color:#64748B;">先於上方選定目標測試站，再點擊下方卡片進入修改（1～2 格設定 INI 環境、3～4 格調整流程順序與跳轉、5 格設定站別與儀器）。</div>
       </div>
     </div>
@@ -1143,7 +1143,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
+        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回編修主入口</button>
         <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 寫入並匯出 Excel (*_FIXED.xlsx)
         </button>

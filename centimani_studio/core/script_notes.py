@@ -8,7 +8,7 @@ import os
 import re
 
 
-def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.040"):
+def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.041"):
     """
     在匯出 Excel 同目錄產出白話版 `<檔名>_編寫與使用說明.txt`（不寫艱澀術語、不顯示空區塊）：
     1. 怎麼直接開始執行（站別 / 試跑或產線模式）

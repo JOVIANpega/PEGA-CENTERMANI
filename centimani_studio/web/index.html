@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.040">
+<link rel="stylesheet" href="/css/app.css?v=0.8.041">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.040</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.041</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -98,7 +98,7 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
-            <li><b>既有腳本編修</b>：5 合 1 快捷編修與跨檔複製整張 Sheet</li>
+            <li><b>既有腳本編修</b>：水平手風琴快捷編修與跨檔複製整張 Sheet</li>
             <li><b>產生首次使用空範本</b>：4 步驟建立新母體基礎骨架</li>
             <li><b>插入儀器範本</b>：撲克牌雙欄快速挑選／互動人機</li>
             <li><b>問編寫問題 &amp; 實機驗證</b>：寫法百科、SFIS 與 DLLtest</li>
@@ -911,7 +911,7 @@
           </div>
           <div class="acc-body">
             <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
-              <li><b>5 合 1 快捷編修</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
+              <li><b>快捷編修工作區</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
               <li><b>跨檔複製與匯出體檢</b>：支援完整複製整張 Sheet，匯出時檢驗缺漏 DLL 並計算 Checksum</li>
               <li>支援直接開啟既有腳本、最近紀錄或從健檢結果一鍵帶入</li>
             </ul>
@@ -1201,7 +1201,7 @@
       <div id="editorEmptyHint" style="background:#FFFFFF; border:1.5px dashed #94A3B8; border-radius:10px; padding:24px 20px; text-align:center; color:#475569;">
         <div style="font-size:2.13rem; margin-bottom:6px;">✏️</div>
         <div style="font-weight:800; font-size:calc(var(--app-font-size, 15px) * 1.15); color:#0F172A; margin-bottom:6px;">選擇一份既有的 TestFlow.xlsx 開始編修</div>
-        <div style="font-size:var(--app-font-size, 15px); margin-bottom:16px; color:#475569;">請選取既有 TestFlow.xlsx（或從下方最近紀錄快選）載入「5 合 1 水平手風琴」編修 INI、流程順序、跳轉與站別儀器；亦可直接進行跨檔案複製整張 Sheet。</div>
+        <div style="font-size:var(--app-font-size, 15px); margin-bottom:16px; color:#475569;">請選取既有 TestFlow.xlsx（或從下方最近紀錄快選）載入「水平手風琴工作區」編修 INI、流程順序、跳轉與站別儀器；亦可直接進行跨檔案複製整張 Sheet。</div>
         
         <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
           <button class="btn btn-primary-blue" style="padding:10px 24px; font-size:calc(var(--app-font-size, 15px) * 1.05); font-weight:800; box-shadow:0 4px 10px rgba(37,99,235,0.25);" onclick="document.getElementById('localExcelPickerInput').click()">
@@ -1241,7 +1241,7 @@
           </div>
         </div>
 
-        <!-- ③ 5 合 1 水平手風琴入口與全頁面設定區 -->
+        <!-- ③ 水平手風琴入口與全頁面設定區 -->
         <div id="auditGlobalEditor" style="display:block; margin-bottom:12px;"></div>
 
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
@@ -1475,7 +1475,7 @@
       </div>
     </div><!-- /genModeQa -->
 
-    <!-- 實機驗證中心 (3 合 1 水平手風琴入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
+    <!-- 實機驗證中心 (水平手風琴入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
     <div id="genModeTools" style="display:none;">
       <div id="toolsVerifyHub" style="display:block; margin-bottom:12px;">
         <div style="margin-bottom:8px; font-size:0.87rem; color:#475569; font-weight:700;">
@@ -1869,12 +1869,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.040"></script>
-<script src="/js/audit_editors.js?v=0.8.040"></script>
-<script src="/js/flow_guide.js?v=0.8.040"></script>
-<script src="/js/block_sorter.js?v=0.8.040"></script>
-<script src="/js/script_qa.js?v=0.8.040"></script>
-<script src="/js/sfis_hmi.js?v=0.8.040"></script>
+<script src="/js/inst_hmi.js?v=0.8.041"></script>
+<script src="/js/audit_editors.js?v=0.8.041"></script>
+<script src="/js/flow_guide.js?v=0.8.041"></script>
+<script src="/js/block_sorter.js?v=0.8.041"></script>
+<script src="/js/script_qa.js?v=0.8.041"></script>
+<script src="/js/sfis_hmi.js?v=0.8.041"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {

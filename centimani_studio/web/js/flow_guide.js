@@ -75,7 +75,7 @@ const FLOW_GUIDE_DATA = {
     btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
       { num: '①', title: '選擇 5 大作業模式', jumpIdx: 0, items: ['既有編修 / 新母體 / 儀器範本', '問編寫問題 / 實機驗證'] },
-      { num: '②', title: '既有腳本：5 合 1 編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
+      { num: '②', title: '既有腳本：手風琴編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
       { num: '③', title: '空範本：4 步建新母體', jumpIdx: 6, items: ['專案 / ISN / 廠區設定', '從 0 → 1 勾選骨架與參數'] },
       { num: '④', title: '儀器撲克牌庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
       { num: '⑤', title: '匯出與實機 DLL 檢查', jumpIdx: 12, items: ['必開目錄＋缺 DLL/驅動提醒', '對齊 DLL 版號與詢問開 Excel'] }
@@ -95,19 +95,19 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 1,
-        step: 'Step 3｜既有腳本 5 合 1（01 System.ini / 02 Global.ini）：支援獨立存檔彈記事本',
+        step: 'Step 3｜既有腳本編修（01 System.ini / 02 Global.ini）：支援獨立存檔彈記事本',
         desc: '點選第 1 格（System.ini）可使用「🛠️ 工程調試 (Debug=1)」/「🏭 正式量產 (Debug=0)」一鍵切換與出廠廠區 6 選 1（同時連動 SFIS_WebLink 與 iPLAS_Site）；第 2 格（Global.ini）提供一拖四槽位 LOAD_1~4、⚡ 一鍵同步 PC/DUT 同網段 IP 與 60+ 進階變數搜尋過濾。異動處原地黃底標示並可「💾 直接存檔並彈出 INI 記事本」免重匯整份 Excel。',
         img: '/images/guide_audit_7.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 4｜既有腳本 5 合 1（03 Flow Sort）：大牌桌排序、淡藍標記與指令預覽',
+        step: 'Step 4｜既有腳本編修（03 Flow Sort）：大牌桌排序、淡藍標記與指令預覽',
         desc: '點選第 3 格開啟積木排序器：可直接修改 Phase 數字插隊或拖拉對調，支援「📋 複製整段 / 🧹 刪除 / ＋ 插入新測項」與「⛶ 全螢幕大牌桌」，右側即時預覽 Command │ Send 指令與變數相依診斷；匯出時修改過順序的區塊標上柔和淡藍色 (#E8F4FD) 且開啟 Excel 自動鎖定該測試站 Sheet。',
         img: '/images/guide_audit_6.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 5｜既有腳本 5 合 1（04 Jump & Retry / 05 站別 ISN 與儀器掛載）',
+        step: 'Step 5｜既有腳本編修（04 Jump & Retry / 05 站別 ISN 與儀器掛載）',
         desc: '第 4 格可視覺化設定每步 PASS/FAIL 跳轉目標並附帶 SKU 分流範例與彩色 ExecMode (0~9) 速查；第 5 格支援一鍵「＋ 新增測試站」（同時自動建立對應 Excel 工作表）、批量調整全站 ISN 條碼位數，並在折疊區微調外部儀器掛載與連線設定。',
         img: '/images/guide_audit_3.png'
       },
@@ -160,7 +160,7 @@ const FLOW_GUIDE_DATA = {
         img: '/images/guide_audit_5b.png'
       }
     ],
-    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；支援既有 5 合 1 編修、從 0 建新母體、儀器撲克牌庫、寫法百科與 SFIS/DLL 實機驗證'
+    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；支援既有腳本快捷編修、從 0 建新母體、儀器撲克牌庫、寫法百科與 SFIS/DLL 實機驗證'
   },
   diagnose: {
     icon: '🩺',
