@@ -561,9 +561,10 @@ def import_excel_to_workspace(xlsx_path):
         if not rows:
             continue
         headers = [str(c).strip() if c is not None else "" for c in rows[0][:17]]
+        headers_low = [h.lower() for h in headers]
 
-        if "Phase" in headers:
-            # 16-Column Station Sheet
+        if "phase" in headers_low:
+            # 16-Column Station Sheet (case-insensitive to preserve legacy lowercase 'phase' sheets)
             if first_station is None:
                 first_station = s_name
             step_list = []
@@ -579,7 +580,7 @@ def import_excel_to_workspace(xlsx_path):
                     step_item["_hidden"] = True
                 step_list.append(step_item)
             ws_data["stations"][s_name] = step_list
-        elif "Send" in headers:
+        elif "send" in headers_low:
             # 11-Column Marco Sheet (parse full steps list for auditing, jump editing, and dry-run)
             m_list = []
             for r, is_hid in zip(rows[1:], hidden_flags[1:]):

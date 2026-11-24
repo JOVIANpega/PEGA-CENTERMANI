@@ -903,6 +903,72 @@ def run_all_verifications():
             check(_epv_v17({"Send": ':SetOprVal,"$calcP","*(x)"'}) == {"calcP"},
                   "block_sorter 正確將 :SetOprVal/$Var 識別為產出變數（供 Phase 排序相依分析）")
 
+            # [v0.8.018] 驗證 TEMP_SCRIPT 健檢強化與多儀器編號 NI6008-1 -> NI6008-2：
+            # 1) 多同款儀器 NI6008-1 + NI6008-2 自動寫入 NI6008-2 (*$(DAQ_2)=Dev2)、Switch=NI6008-2 及獨立 $VCC_3V3_2
+            # 2) 前端函式 tab3NextInstName / resolveBaseInstName 正確將第 2 張 NI6008 命名為 NI6008-2
+            # 3) excel_engine 大小寫不敏感識別小寫 'phase'（防 GWTalk RF/NFT 誤降格為 11 欄）
+            # 4) audit_workspace 攔截無 :ObtainDevice 直接呼叫 :Dev.*，以及 Mounted=空 卻寫 Instrument/Switch
+            ni2_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [
+                    {"inst_name": "NI6008-1", "title_name": "Measure 3.3V Rail"},
+                    {"inst_name": "NI6008-2", "title_name": "Measure 3.3V Rail_2"},
+                ],
+                "project_name": "MULTI_NI2",
+                "station_name": "MB",
+                "auto_sample_mode": True,
+                "use_ini_switch": True,
+                "open_excel": False,
+            })
+            check(ni2_res.get("status") == "ok", "NI6008-1 + NI6008-2 雙卡獨立命名匯出成功")
+            wb_ni2 = openpyxl.load_workbook(ni2_res["excel_path"], read_only=True, data_only=True)
+            ni2_insts = {str(r[1]): str(r[4]) for r in wb_ni2["Instrument"].iter_rows(min_row=2, values_only=True) if r and r[1]}
+            ni2_mb_rows = list(wb_ni2["MB"].iter_rows(min_row=2, values_only=True))
+            wb_ni2.close()
+            ni2_switches = [str(r[5] or "").strip() for r in ni2_mb_rows if r and r[5]]
+            ni2_refs = "\n".join(str(r[9] or "") for r in ni2_mb_rows if r and r[9])
+            glb_ni2 = open(os.path.join(ni2_res["output_dir"], "Global.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check("NI6008-1" in ni2_insts and "NI6008-2" in ni2_insts and ni2_insts.get("NI6008-2") == "*$(DAQ_2)" and "DAQ_2=Dev2" in glb_ni2,
+                  "NI6008-2 自動寫入 Instrument (*$(DAQ_2)) 與 Global.ini DAQ_2=Dev2", str(ni2_insts))
+            check("NI6008-1" in ni2_switches and "NI6008-2" in ni2_switches and "$VCC_3V3" in ni2_refs and "$VCC_3V3_2" in ni2_refs,
+                  "NI6008-1 / NI6008-2 各自綁定 Switch 且變數不重複 ($VCC_3V3 / $VCC_3V3_2)", str(ni2_switches))
+            _inst_hmi_js_p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "js", "inst_hmi.js")
+            check("function tab3NextInstName(" in index_html and "function resolveBaseInstName(" in open(_inst_hmi_js_p, encoding="utf-8").read(),
+                  "前端具備多張同名儀器自動遞增命名 (NI6008-2) 與 HMI Profile 回溯函式")
+
+            with _tf_v16.TemporaryDirectory() as _lc_dir:
+                lc_xlsx = os.path.join(_lc_dir, "lowercase_phase.xlsx")
+                wb_lc = openpyxl.Workbook()
+                ws_lc = wb_lc.active
+                ws_lc.title = "RF"
+                ws_lc.append(["Index_2", "phase", "Title", "Marco", "Instrument", "Switch", "Send", "Reply", "EndPrompt", "Ref", "Validation", "Prompt", "Waiting", "ExecMode", "Description", "TestID"])
+                ws_lc.append(["000", "0", "0,Route", "", "", "", ':ShowISN,"*(ISN)"', "0", "", "", "", "", "", "1", "ISN", "B7PL025"])
+                ws_lc.append(["001", "", "", "", "", "", ":SfCheckRoute", "0", "", "", "", "", "", "8", "Route", "OTFX064"])
+                wb_lc.save(lc_xlsx)
+                wb_lc.close()
+                ws_lc_imp = _imp_v16(lc_xlsx)
+                check("RF" in ws_lc_imp.get("stations", {}) and "RF" not in ws_lc_imp.get("marcos", {}),
+                      "excel_engine 正確以不分大小寫識別小寫 'phase' 工作站表，避免被降格成 11 欄 Marco")
+
+            v18_err_ws = {
+                "project_name": "GWT_CHK", "station_name": "BootUp",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [{"Mount": "NFT", "Name": "NI6008-1", "Functions": "Voltage", "Version": "1.1.2.0"}],
+                "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "GWT$BootUp", "Station": "BootUp,1"}],
+                "marcos": {},
+                "stations": {"BootUp": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                    {"Index": "002", "Phase": "1", "Title": "0,Volt", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ':Dev.VOLAGE,"RSE,1000,0"', "ExecMode": "1", "TestID": "B7PL025"},
+                ]},
+            }
+            rep_v18 = _audit_ws(v18_err_ws)
+            check(any("ObtainDevice" in e for e in rep_v18.get("errors", []))
+                  and any("VOLAGE" in w or "VOLTAGE" in w for w in rep_v18.get("warnings", []))
+                  and any("Mount 欄未包含站別 'BootUp'" in w for w in rep_v18.get("warnings", [])),
+                  "audit_workspace 主動攔截未先 :ObtainDevice 呼叫 :Dev.*、:Dev.VOLAGE 拼字與 Mount 空掛載站別",
+                  f"errs={rep_v18.get('errors')} warns={rep_v18.get('warnings')}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

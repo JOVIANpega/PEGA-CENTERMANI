@@ -12,6 +12,16 @@ const INTRO_STATE = {
   editGenIdx: -1,
   fontSize: parseInt(localStorage.getItem('centimani_intro_font_size') || '15', 10) || 15
 };
+function resolveBaseInstName(instName) {
+  const s = String(instName || '').trim();
+  if (!s || (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[s])) return s;
+  const m = s.match(/^(.*)-(\d+)$/);
+  if (m && typeof INST_INTRO_PROFILES !== 'undefined') {
+    if (INST_INTRO_PROFILES[m[1]]) return m[1];
+    if (INST_INTRO_PROFILES[`${m[1]}-1`]) return `${m[1]}-1`;
+  }
+  return s;
+}
 const INST_INTRO_PROFILES = {
   'NI6008-1': {
     title: 'NI USB-6009 / NI-6008 多功能資料擷取卡',
@@ -313,7 +323,8 @@ function openInstIntroPage(targetMode, instName = 'NI6008-1', editGenIdx = -1) {
   INTRO_STATE.targetMode = targetMode || 'audit';
   INTRO_STATE.instName = instName || 'NI6008-1';
   INTRO_STATE.editGenIdx = editGenIdx;
-  const prof = INST_INTRO_PROFILES[instName] || buildGenericProfile(instName);
+  const baseInst = resolveBaseInstName(INTRO_STATE.instName);
+  const prof = INST_INTRO_PROFILES[baseInst] || buildGenericProfile(INTRO_STATE.instName);
   const fs = INTRO_STATE.fontSize || 15;
 
   document.getElementById('introPageTitle').textContent = `📖 儀器介紹：${prof.title} (${prof.dll})`;
@@ -418,10 +429,11 @@ function closeInstIntroPage() {
 
 function proceedFromIntroToConfig() {
   document.getElementById('panelInstIntro').style.display = 'none';
-  const prof = INST_INTRO_PROFILES[INTRO_STATE.instName];
+  const baseInst = resolveBaseInstName(INTRO_STATE.instName);
+  const prof = INST_INTRO_PROFILES[baseInst];
   if (prof && prof.hasInteractiveHmi) {
-    if (INTRO_STATE.instName === 'NI6008-1') {
-      openNi6009Hmi(INTRO_STATE.targetMode, INTRO_STATE.editGenIdx);
+    if (baseInst === 'NI6008-1') {
+      openNi6009Hmi(INTRO_STATE.targetMode, INTRO_STATE.editGenIdx, INTRO_STATE.instName);
     } else {
       openInstHmi(INTRO_STATE.targetMode, INTRO_STATE.instName);
     }
@@ -470,7 +482,8 @@ const INST_HMI_STATE = {
 };
 
 function openInstHmi(targetMode, instName) {
-  const prof = INST_INTRO_PROFILES[instName] || buildGenericProfile(instName);
+  const baseInst = resolveBaseInstName(instName);
+  const prof = INST_INTRO_PROFILES[baseInst] || buildGenericProfile(instName);
   INST_HMI_STATE.targetMode = targetMode || 'audit';
   INST_HMI_STATE.instName = instName;
   INST_HMI_STATE.hmiType = prof.hmiType || 'feasa';
@@ -665,7 +678,7 @@ function buildInstHmiPayload() {
 
 function renderInstHmi() {
   const s = INST_HMI_STATE;
-  const prof = INST_INTRO_PROFILES[s.instName] || buildGenericProfile(s.instName);
+  const prof = INST_INTRO_PROFILES[resolveBaseInstName(s.instName)] || buildGenericProfile(s.instName);
   const left = document.getElementById('instHmiLeft');
   const right = document.getElementById('instHmiRight');
 

@@ -1608,7 +1608,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.017")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.018")
 
                 self._send_json({
                     "status": "ok",
@@ -1870,7 +1870,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.017")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.018")
 
                 self._send_json({
                     "status": "ok",
@@ -1930,26 +1930,30 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 inst_occ_counts = {}
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
-                    inst_occ_counts[i_name] = inst_occ_counts.get(i_name, 0) + 1
-                    occ_num = inst_occ_counts[i_name]
+                    base_family = re.sub(r"-\d+$", "", i_name)
+                    inst_occ_counts[base_family] = inst_occ_counts.get(base_family, 0) + 1
+                    occ_num = inst_occ_counts[base_family]
                     var_sfx = f"_{occ_num}" if occ_num > 1 else ""
                     t_name = str(it.get("title_name", "")).strip() or f"Test_{i_name}_{idx_item + 1}"
                     d_val = str(it.get("dl_val", "")).strip()
                     u_val = str(it.get("ul_val", "")).strip()
                     item_use_sw = bool(it.get("use_ini_switch", global_use_sw))
                     item_same_phase = bool(it.get("same_phase", False))
+                    m_ni = re.match(r"^NI6008(?:-(\d+))?$", i_name)
                     if it.get("ni6009_block"):
                         nb = it["ni6009_block"]
+                        ni_dev_def = f"Dev{m_ni.group(1)}" if (m_ni and m_ni.group(1)) else "Dev1"
                         insert_ni6009_block(
                             ws, st_name,
                             mode=nb.get("mode", "RSE"),
                             sample_ms=str(nb.get("sample_ms", "1000")),
-                            dev_id=str(nb.get("dev_id", "Dev1")),
+                            dev_id=str(nb.get("dev_id", ni_dev_def)),
                             title_name=str(nb.get("title_name", t_name)),
                             channels=nb.get("channels", []),
                             after_block_idx=-1,
                             same_phase=item_same_phase,
-                            use_ini_switch=item_use_sw
+                            use_ini_switch=item_use_sw,
+                            inst_name=str(nb.get("inst_name", i_name))
                         )
                     elif it.get("rf_block"):
                         rb = it["rf_block"]
@@ -1964,10 +1968,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             same_phase=item_same_phase,
                             use_ini_switch=item_use_sw
                         )
-                    elif auto_sample_mode and i_name == "NI6008-1":
+                    elif auto_sample_mode and m_ni:
+                        ni_dev_def = f"Dev{m_ni.group(1)}" if m_ni.group(1) else "Dev1"
                         insert_ni6009_block(
                             ws, st_name,
-                            mode="RSE", sample_ms="1000", dev_id="Dev1",
+                            mode="RSE", sample_ms="1000", dev_id=ni_dev_def,
                             title_name=f"{t_name}_Sample",
                             channels=[
                                 {"ch": 0, "name": f"VCC_3V3{var_sfx}", "dl": "3.13", "ul": "3.47"},
@@ -1976,9 +1981,10 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             ],
                             after_block_idx=-1,
                             same_phase=item_same_phase,
-                            use_ini_switch=item_use_sw
+                            use_ini_switch=item_use_sw,
+                            inst_name=i_name
                         )
-                    elif auto_sample_mode and i_name in rf_inst_names:
+                    elif auto_sample_mode and (i_name in rf_inst_names or base_family in rf_inst_names):
                         insert_rf_iqxel_block(
                             ws, st_name,
                             inst_name=i_name,
@@ -1996,7 +2002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             use_ini_switch=item_use_sw
                         )
                     elif auto_sample_mode and not it.get("custom_steps"):
-                        if i_name == "FeasaLED":
+                        if base_family == "FeasaLED":
                             sample_steps = [
                                 {"Send": ":ObtainDevice", "ExecMode": "0", "Description": f"PC#-#Obtain {i_name}", "TestID": "BRME027"},
                                 {"Send": ':Dev.CaptureAndRead,"01"', "Ref": f"$LED_Wave_1{var_sfx};\n$LED_Int_1{var_sfx}", "Validation": f"(LED_Wave_1{var_sfx},%f,515,535);\n(LED_Int_1{var_sfx},%f,1000,99999)", "ExecMode": "2:0", "Description": f"LED#-#{t_name} CH01 Green", "TestID": "IOLE015"},
@@ -2112,7 +2118,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.017")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.018")
 
                 self._send_json({
                     "status": "ok",
@@ -2267,7 +2273,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.017) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.018) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

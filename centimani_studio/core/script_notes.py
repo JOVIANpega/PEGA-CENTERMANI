@@ -8,7 +8,7 @@ import os
 import re
 
 
-def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.017"):
+def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.018"):
     """
     在匯出 Excel 同目錄產出精簡版 `<檔名>_編寫與使用說明.txt`，重點說明開關怎麼切換：
     1. 基本資訊與啟動站別 (StationName 指定 vs 留空當場選站)

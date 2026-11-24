@@ -609,7 +609,7 @@ def audit_workspace(workspace):
 
                 # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check
                 if all_inst_rows:
-                    if s_inst and mounted_insts and s_inst.lower() not in mounted_funcs_low:
+                    if s_inst and s_inst.lower() not in mounted_funcs_low:
                         if s_inst.lower() in all_inst_funcs_low:
                             warnings.append(
                                 f"[{st_name} 第 {r_num} 列] Instrument '{s_inst}' 存在於 Instrument 表，但對應裝置之 Mount 欄未包含站別 '{st_name}'"
@@ -618,7 +618,7 @@ def audit_workspace(workspace):
                             warnings.append(
                                 f"[{st_name} 第 {r_num} 列] Instrument '{s_inst}' 未出現於已掛載至 '{st_name}' 裝置的 Functions 清單中"
                             )
-                    if s_sw and mounted_insts:
+                    if s_sw:
                         sw_head = s_sw.split(",", 1)[0].strip().lower()
                         sw_base = re.sub(r"-\{\d+\}$", "", sw_head)
                         sw_matched = (
@@ -801,7 +801,7 @@ def audit_workspace(workspace):
                                 f"[{st_name} 第 {r_num} 列] 測試步驟引用了未在 Global.ini [Scripts] 宣告的變數 *$({gv})（系統可自動補入 [Scripts]）"
                             )
 
-                # Rule 7: :ObtainDevice / :ReleaseDevice pairing & ExecMode=3 (no false-positive Skip on re-entrant/multi-instrument Obtain)
+                # Rule 7: :ObtainDevice / :ReleaseDevice pairing & ExecMode=3 (also guard :Dev.* before :ObtainDevice)
                 if ":ObtainDevice" in s_send or ":ObtainSubDevice" in s_send:
                     obtain_lock_open = True
                     obtain_lock_row = r_num
@@ -810,6 +810,15 @@ def audit_workspace(workspace):
                     if s_mode not in ["3", "6"]:
                         warnings.append(
                             f"[{st_name} 第 {r_num} 列] :ReleaseDevice 的 ExecMode 應設為 '3' (Continue)，目前為 '{s_mode}'（系統可自動改為 3）"
+                        )
+                elif s_send.startswith(":Dev.") and s_mode != "6":
+                    if not obtain_lock_open:
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] 步驟呼叫 '{s_send.split(',')[0]}' 前尚未執行 :ObtainDevice（Centimani 實機將報錯 \"Don't obtain device.\"）"
+                        )
+                    if s_send.upper().startswith(":DEV.VOLAGE"):
+                        warnings.append(
+                            f"[{st_name} 第 {r_num} 列] 指令 '{s_send.split(',')[0]}' 疑似拼字錯誤，DaqUSBNi.dll 標準函式名稱為 ':Dev.VOLTAGE'"
                         )
 
                 # Rule 10: Cycle time optimization suggestions
@@ -1571,6 +1580,20 @@ def _make_ini_switch_var(workspace, inst_name, sheet_name=None):
     return key
 
 
+def _resolve_catalog_inst(catalog, inst_name):
+    """Look up exact catalog instrument or numbered multi-unit sibling (e.g. NI6008-2 -> NI6008-1, FeasaLED-2 -> FeasaLED)."""
+    exact = next((i for i in catalog if i.get("Name") == inst_name), None)
+    if exact:
+        return dict(exact)
+    stem = re.sub(r"-\d+$", "", str(inst_name or "").strip())
+    sibling = next((i for i in catalog if i.get("Name") == stem or i.get("Name") == f"{stem}-1"), None)
+    if sibling:
+        cloned = dict(sibling)
+        cloned["Name"] = inst_name
+        return cloned
+    return None
+
+
 def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, after_block_idx=-1, dl_val="", ul_val="", custom_steps=None, globals_patch=None, same_phase=False, use_ini_switch=False):
     """
     在既有測試站工作表中，以「獨立新 Title 區塊」插入指定儀器範本（嚴格插在既有 Title 區塊之後、Phase 97 之前），
@@ -1590,9 +1613,9 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
             if isinstance(kv, dict):
                 g_ini.setdefault(sec, {}).update({str(k): str(v) for k, v in kv.items()})
 
-    # 1. Lookup instrument metadata from full catalog (34 instruments)
+    # 1. Lookup instrument metadata from full catalog (supports numbered sibling like FeasaLED-2, PSS1503-2)
     catalog = get_golden_mother().get("instruments", [])
-    inst_meta = next((i for i in catalog if i.get("Name") == inst_name), None)
+    inst_meta = _resolve_catalog_inst(catalog, inst_name)
     if not inst_meta:
         inst_meta = {"Name": inst_name, "ControlDLL": f"{inst_name}.dll", "Settings": "", "Functions": inst_name, "Version": "1.0.0.0", "Switch": "", "Desc": inst_name}
 
@@ -1898,12 +1921,17 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
     steps = stations[sheet_name]
     target_inst_name = str(inst_name or "NI6008-1").strip() or "NI6008-1"
 
-    # 1. Ensure NI6008 device is in Instrument and mounted to sheet_name
+    # 1. Ensure NI6008 device (NI6008-1 / NI6008-2...) is in Instrument and mounted to sheet_name
     catalog = get_golden_mother().get("instruments", [])
-    inst_meta = next((i for i in catalog if i.get("Name") == target_inst_name), None) or {
+    m_daq_num = re.search(r"-(\d+)$", target_inst_name)
+    daq_idx = m_daq_num.group(1) if m_daq_num else "1"
+    daq_key = f"DAQ_{daq_idx}"
+    default_dev = f"Dev{daq_idx}"
+    inst_meta = _resolve_catalog_inst(catalog, target_inst_name) or {
         "Mount": sheet_name, "Name": target_inst_name, "Sub": "", "ControlDLL": "DaqUSBNi.dll",
-        "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"
+        "Settings": f"*$({daq_key})", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"
     }
+    inst_meta["Settings"] = f"*$({daq_key})"
     ws_insts = workspace.setdefault("instruments", [])
     existing = next((i for i in ws_insts if str(i.get("Name", "")).strip() == target_inst_name), None)
     if existing:
@@ -1912,12 +1940,14 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
         if sheet_name not in m_list:
             m_list.append(sheet_name)
             existing["Mount"] = ",".join(m_list)
+        if not str(existing.get("Settings", "")).strip():
+            existing["Settings"] = f"*$({daq_key})"
     else:
         new_inst = dict(inst_meta)
         new_inst["Mount"] = sheet_name
         ws_insts.append(new_inst)
 
-    workspace.setdefault("global_ini", {}).setdefault("Settings", {})["DAQ_1"] = str(dev_id or "Dev1").strip()
+    workspace.setdefault("global_ini", {}).setdefault("Settings", {})[daq_key] = str(dev_id or default_dev).strip()
 
     # 2. Next unused Phase (1..96) & insertion index before Phase 97
     used_p = {int(str(s.get("Phase", "")).strip()) for s in steps if str(s.get("Phase", "")).strip().isdigit() and 1 <= int(str(s.get("Phase", "")).strip()) <= 96}

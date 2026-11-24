@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.017">
+<link rel="stylesheet" href="/css/app.css?v=0.8.018">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.017</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.018</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1703,11 +1703,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.017"></script>
-<script src="/js/audit_editors.js?v=0.8.017"></script>
-<script src="/js/flow_guide.js?v=0.8.017"></script>
-<script src="/js/block_sorter.js?v=0.8.017"></script>
-<script src="/js/script_qa.js?v=0.8.017"></script>
+<script src="/js/inst_hmi.js?v=0.8.018"></script>
+<script src="/js/audit_editors.js?v=0.8.018"></script>
+<script src="/js/flow_guide.js?v=0.8.018"></script>
+<script src="/js/block_sorter.js?v=0.8.018"></script>
+<script src="/js/script_qa.js?v=0.8.018"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2819,7 +2819,11 @@ let TAB3_ACTIVE_EDIT_IDX = -1;
 
 async function tab3SaveHmiItemFromModal(payload) {
   if (TAB3_ACTIVE_EDIT_IDX >= 0 && TAB3_ACTIVE_EDIT_IDX < TAB3_QUEUE.length) {
+    const existingName = TAB3_QUEUE[TAB3_ACTIVE_EDIT_IDX].inst_name;
     Object.assign(TAB3_QUEUE[TAB3_ACTIVE_EDIT_IDX], payload, { _hmiConfigured: true });
+    if (existingName && payload && payload.inst_name && payload.inst_name !== existingName && typeof resolveBaseInstName === 'function' && resolveBaseInstName(existingName) === resolveBaseInstName(payload.inst_name)) {
+      TAB3_QUEUE[TAB3_ACTIVE_EDIT_IDX].inst_name = existingName;
+    }
     TAB3_ACTIVE_EDIT_IDX = -1;
     renderTab3Queue();
     if (TAB3_STEP === 2) tab3RenderDetailCards();
@@ -2856,15 +2860,40 @@ function tab3GoStep(step) {
   if (TAB3_STEP === 2) tab3RenderDetailCards();
 }
 
+function tab3ResolveCatalogInst(instName) {
+  const catalog = STATE.instCatalog || [];
+  let hit = catalog.find(i => i.Name === instName);
+  if (!hit && typeof resolveBaseInstName === 'function') {
+    const base = resolveBaseInstName(instName);
+    hit = catalog.find(i => i.Name === base);
+  }
+  if (!hit) {
+    const stem = String(instName || '').replace(/-\d+$/, '');
+    hit = catalog.find(i => i.Name === stem || i.Name === `${stem}-1`);
+  }
+  return hit || null;
+}
+
+function tab3NextInstName(instName) {
+  const existing = new Set(TAB3_QUEUE.map(x => String(x.inst_name || '').trim()));
+  if (!existing.has(instName)) return instName;
+  const stem = String(instName || '').replace(/-\d+$/, '');
+  let idxNum = 2;
+  while (existing.has(`${stem}-${idxNum}`)) idxNum += 1;
+  return `${stem}-${idxNum}`;
+}
+
 function tab3AddInstBlock(instName) {
   const cat = STATE.instCatalog || [];
-  const obj = cat.find(i => i.Name === instName) || { Name: instName };
+  const obj = tab3ResolveCatalogInst(instName) || { Name: instName };
   const def = (typeof _getInstDefaults === 'function') ? _getInstDefaults(obj) : { title: `Test_${instName}`, dl: '', ul: '' };
-  const sameCount = TAB3_QUEUE.filter(x => x.inst_name === instName).length;
+  const baseStem = String(instName || '').replace(/-\d+$/, '');
+  const sameCount = TAB3_QUEUE.filter(x => String(x.inst_name || '').replace(/-\d+$/, '') === baseStem).length;
+  const actualInstName = tab3NextInstName(instName);
   const titleName = sameCount > 0 ? `${def.title || instName}_${sameCount + 1}` : (def.title || `Test_${instName}`);
 
   TAB3_QUEUE.push({
-    inst_name: instName,
+    inst_name: actualInstName,
     title_name: titleName,
     dl_val: String(def.dl || ''),
     ul_val: String(def.ul || '')
@@ -2978,7 +3007,7 @@ function renderTab3Queue() {
   l.innerHTML = TAB3_QUEUE.map((it, idx) => {
     const th = tab3GetInstTheme(it.inst_name);
     const stepNo = String(idx + 1).padStart(2, '0');
-    const catInst = (STATE.instCatalog || []).find(i => i.Name === it.inst_name);
+    const catInst = tab3ResolveCatalogInst(it.inst_name);
     const missingDll = Boolean(catInst && catInst.dll_exists === false);
     const dllName = (catInst && catInst.ControlDLL) || '';
     const cardTitleAttr = missingDll
@@ -3092,8 +3121,9 @@ function tab3RenderDetailCards() {
   const box = document.getElementById('tab3DetailCards');
   if (!box) return;
   box.innerHTML = TAB3_QUEUE.map((it, idx) => {
-    const hasHmi = (it.inst_name === 'NI6008-1') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(it.inst_name));
-    const catInst = (STATE.instCatalog || []).find(i => i.Name === it.inst_name);
+    const baseInst = (typeof resolveBaseInstName === 'function') ? resolveBaseInstName(it.inst_name) : it.inst_name;
+    const hasHmi = (baseInst === 'NI6008-1') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(baseInst));
+    const catInst = tab3ResolveCatalogInst(it.inst_name);
     const missingDll = Boolean(catInst && catInst.dll_exists === false);
     const dllName = (catInst && catInst.ControlDLL) || '';
     return `
@@ -3287,9 +3317,10 @@ function tab3OpenIntro(explicitInstName = null) {
 
 function tab3OpenHmi(explicitInstName = null) {
   const inst = explicitInstName || (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
-  if (inst === 'NI6008-1') {
-    openNi6009Hmi('tab3');
-  } else if (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[inst] && INST_INTRO_PROFILES[inst].hasInteractiveHmi) {
+  const baseInst = (typeof resolveBaseInstName === 'function') ? resolveBaseInstName(inst) : inst;
+  if (baseInst === 'NI6008-1') {
+    openNi6009Hmi('tab3', -1, inst);
+  } else if (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[baseInst] && INST_INTRO_PROFILES[baseInst].hasInteractiveHmi) {
     openInstHmi('tab3', inst);
   } else {
     openInstIntroPage('tab3', inst);
@@ -5069,9 +5100,12 @@ const NI6_PINS = [
   { ch: 7, pin: 12, pairPin: 11, label: 'AI 7 (AI 3-)', topPct: 70.7, color: '#EA580C' }
 ];
 // [Moved to /js/inst_hmi.js]
-function openNi6009Hmi(targetMode, editGenIdx = -1) {
+function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
   NI6_STATE.targetMode = targetMode || 'audit';
   NI6_STATE.editGenIdx = editGenIdx;
+  NI6_STATE.instName = explicitInstName || 'NI6008-1';
+  const mDev = String(NI6_STATE.instName).match(/-(\d+)$/);
+  const devDef = (mDev && mDev[1]) ? `Dev${mDev[1]}` : 'Dev1';
   if (targetMode === 'wiz_volt') {
     NI6_STATE.mode = 'RSE';
     NI6_STATE.channels = (WIZ_VOLT_RAILS || []).map(r => {
@@ -5086,12 +5120,16 @@ function openNi6009Hmi(targetMode, editGenIdx = -1) {
     NI6_STATE.channels = (blk.channels || []).map(c => ({ ...c, preset: c.preset || 'custom' }));
     document.getElementById('ni6TitleInput').value = blk.title_name || 'Measure Voltage Test';
     document.getElementById('ni6SampleInput').value = blk.sample_ms || '1000';
-    document.getElementById('ni6DevInput').value = blk.dev_id || 'Dev1';
+    document.getElementById('ni6DevInput').value = blk.dev_id || devDef;
   } else {
     NI6_STATE.mode = 'RSE';
     NI6_STATE.channels = [
-      { ch: 0, name: 'VCC_3V3', dl: '3.15', ul: '3.45', preset: '3.3V' }
+      { ch: 0, name: (mDev && mDev[1] && mDev[1] !== '1') ? `VCC_3V3_${mDev[1]}` : 'VCC_3V3', dl: '3.15', ul: '3.45', preset: '3.3V' }
     ];
+    if (document.getElementById('ni6DevInput')) document.getElementById('ni6DevInput').value = devDef;
+    if (document.getElementById('ni6TitleInput') && targetMode === 'tab3' && TAB3_ACTIVE_EDIT_IDX >= 0 && TAB3_QUEUE[TAB3_ACTIVE_EDIT_IDX]) {
+      document.getElementById('ni6TitleInput').value = TAB3_QUEUE[TAB3_ACTIVE_EDIT_IDX].title_name || 'Measure Voltage Test';
+    }
   }
   document.querySelectorAll('input[name="ni6ModeRad"]').forEach(r => { r.checked = (r.value === NI6_STATE.mode); });
 
@@ -5323,10 +5361,11 @@ async function ni6ConfirmSubmit() {
   if (NI6_STATE.targetMode === 'tab3') {
     closeNi6009Hmi();
     if (typeof tab3SaveHmiItemFromModal === 'function') {
+      const tgtInstName = NI6_STATE.instName || 'NI6008-1';
       await tab3SaveHmiItemFromModal({
-        inst_name: 'NI6008-1',
+        inst_name: tgtInstName,
         title_name: payloadBlock.title_name,
-        ni6009_block: payloadBlock
+        ni6009_block: Object.assign({}, payloadBlock, { inst_name: tgtInstName })
       });
     }
     return;

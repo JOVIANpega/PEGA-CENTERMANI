@@ -149,6 +149,9 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
                 "DEVID_3": "825203",
                 "DEVID_4": "825204",
                 "DAQ_1": "Dev1",
+                "DAQ_2": "Dev2",
+                "DAQ_3": "Dev3",
+                "DAQ_4": "Dev4",
                 "LED_AZ1": "COM17",
                 "LED_Light1": "02"
             },
