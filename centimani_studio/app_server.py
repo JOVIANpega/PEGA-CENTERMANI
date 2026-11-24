@@ -1674,7 +1674,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.030")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.031")
 
                 self._send_json({
                     "status": "ok",
@@ -1936,7 +1936,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.030")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.031")
 
                 self._send_json({
                     "status": "ok",
@@ -2185,7 +2185,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.030")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.031")
 
                 self._send_json({
                     "status": "ok",
@@ -2338,6 +2338,151 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         "status": "ok", "reachable": False, "http_code": 0,
                         "checked_url": chk_url, "message": f"無法連通 SFIS WebService（可能不在公司/產線內網）：{ue}"
                     })
+            elif parsed.path == "/api/sfis_soap_test":
+                from core.sfis_client import call_sfis_soap
+                url = str(payload.get("url", "")).strip()
+                action = str(payload.get("action", "")).strip()
+                params = payload.get("params") or {}
+                if not url:
+                    self._send_json({"status": "error", "message": "請先輸入 SFIS WebService 網址"}, 400)
+                    return
+                try:
+                    res = call_sfis_soap(url, action, params)
+                    self._send_json(res)
+                except ValueError as ve:
+                    self._send_json({"status": "error", "message": str(ve)}, 400)
+            elif parsed.path == "/api/export_sfis_hmi_script":
+                from core.sfis_client import build_sfis_excel_steps
+                from core.script_notes import generate_companion_logic_txt
+                items = payload.get("items") or []
+                cfg = payload.get("config") or {}
+                mode = str(payload.get("mode", "new_template")).strip()
+                proj = str(cfg.get("project_name", "SFIS_TEST") or "SFIS_TEST").strip() or "SFIS_TEST"
+                st = str(cfg.get("station", "MB") or "MB").strip() or "MB"
+                url = str(cfg.get("url", "")).strip()
+                tsp = str(cfg.get("tsp", f"{proj[:6]},2") or f"{proj[:6]},2").strip()
+                dev_id = str(cfg.get("device_id", "710001") or "710001").strip()
+                sfis_en = str(cfg.get("sfis_enable", "1") or "1").strip()
+
+                sfis_steps = build_sfis_excel_steps(items, start_phase=0, include_show_isn=True)
+                if not sfis_steps:
+                    self._send_json({"status": "error", "message": "請至少保留 1 張非 Login 的 SFIS 測試積木（如 CheckRoute / GetVersion / SaveLinkData）"}, 400)
+                    return
+
+                if mode == "insert_current" and isinstance(payload.get("workspace"), dict):
+                    ws = payload["workspace"]
+                    stations = ws.setdefault("stations", {})
+                    target_st = st if st in stations else (next(iter(stations.keys()), st))
+                    existing = list(stations.get(target_st, []))
+                    # Keep Phase < 97 non-SFIS-ShowISN steps after inserted SFIS sequence or cleanly prepend at Phase 0
+                    non_teardown = []
+                    teardown = []
+                    cur_p = ""
+                    for r in existing:
+                        pr = str(r.get("Phase", "")).strip()
+                        if pr:
+                            cur_p = pr.split(":")[0].strip()
+                        if cur_p in ("97", "98", "99"):
+                            teardown.append(r)
+                        else:
+                            non_teardown.append(r)
+                    combined = sfis_steps + non_teardown + teardown
+                    next_p = 0
+                    for r in combined:
+                        ps = str(r.get("Phase", "")).strip()
+                        if ps and ps not in ("-1", "97", "98", "99"):
+                            r["Phase"] = str(next_p)
+                            next_p += 1
+                    stations[target_st] = combined
+                    sys_ini = ws.setdefault("system_ini", {})
+                    if url:
+                        sys_ini["SFIS_WebLink"] = url
+                    if tsp:
+                        sys_ini["SFIS_TSP"] = tsp
+                    sys_ini["SFIS_Enable"] = sfis_en
+                    glb_set = ws.setdefault("global_ini", {}).setdefault("Settings", {})
+                    glb_set["DEVID_1"] = dev_id
+                    if ws.get("duts"):
+                        for d_r in ws["duts"]:
+                            if str(d_r.get("Station", "")).split(",")[0].strip() == target_st:
+                                d_r["SFIS_DeviceID"] = "*$(DEVID_1)" if "DEVID_1" in str(d_r.get("SFIS_DeviceID", "")) else dev_id
+                    auto_fix_workspace(ws)
+                    rep = audit_workspace(ws)
+                    self._send_json({
+                        "status": "ok",
+                        "mode": "insert_current",
+                        "station": target_st,
+                        "inserted_count": len(sfis_steps),
+                        "workspace": ws,
+                        "report": rep,
+                    })
+                    return
+
+                ws = get_golden_mother(proj, st)
+                ws["duts"] = ws["duts"][:1]
+                ws["instruments"] = []
+                ws["switches"] = []
+                glb_set = ws.setdefault("global_ini", {}).setdefault("Settings", {})
+                glb_set["LOAD_1"] = "true"
+                glb_set["DEVID_1"] = dev_id
+                for slot in range(2, 5):
+                    for sfx in (f"LOAD_{slot}", f"PCIP_{slot}", f"DUTIP_{slot}", f"DUT_UR{slot}", f"PCUART_fixture_{slot}", f"DEVID_{slot}"):
+                        glb_set.pop(sfx, None)
+                if ws.get("duts"):
+                    ws["duts"][0]["SFIS_DeviceID"] = "*$(DEVID_1)"
+
+                phase97_row = {
+                    "Index": f"{len(sfis_steps):03d}",
+                    "Phase": "97",
+                    "Title": "1,End SFIS Verify,1",
+                    "Description": "Close prompt and finish SFIS check",
+                    "Instrument": "",
+                    "Switch": "",
+                    "Send": ":CloseMessage",
+                    "Reply": "",
+                    "EndPrompt": "",
+                    "Ref": "",
+                    "Validation": "",
+                    "Waiting": "0",
+                    "ExecMode": "3",
+                    "Parameter": "",
+                    "Marco": "",
+                    "TestID": "B7PL025",
+                }
+                ws["stations"] = {st: sfis_steps + [phase97_row]}
+                sys_ini = ws.setdefault("system_ini", {})
+                sys_ini["SFIS_Enable"] = sfis_en
+                if url:
+                    sys_ini["SFIS_WebLink"] = url
+                sys_ini["SFIS_TSP"] = tsp
+                sys_ini["StationName"] = st
+                sys_ini["StationName_Mode"] = "fixed"
+
+                auto_fix_workspace(ws)
+                rep = audit_workspace(ws)
+                folder_label = f"SFIS_Verify_{proj}_{st}"
+                target_dir = os.path.join(OUTPUT_ROOT, folder_label, "System")
+                os.makedirs(target_dir, exist_ok=True)
+                out_xlsx = os.path.join(target_dir, f"SFIS_{proj}_{st}.xlsx")
+                actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
+                actual_name = os.path.basename(actual_xlsx)
+                sync_and_generate_inis(ws, actual_name, target_dir)
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.031")
+                open_folder_in_explorer(target_dir)
+                if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
+                    launch_excel_file_async(actual_xlsx)
+                self._send_json({
+                    "status": "ok",
+                    "mode": "new_template",
+                    "excel_path": actual_xlsx,
+                    "output_dir": target_dir,
+                    "guide_txt_path": guide_txt_path,
+                    "audit_report": rep,
+                    "total_steps": len(ws["stations"][st]),
+                    "missing_dlls": [],
+                    "missing_drivers": [],
+                    "centimani_dir_exists": True,
+                })
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
         except Exception as e:
@@ -2408,7 +2553,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.030) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.031) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

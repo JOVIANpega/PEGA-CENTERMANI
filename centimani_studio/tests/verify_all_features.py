@@ -401,6 +401,7 @@ def run_all_verifications():
 
         # 6E: 檢查手風琴說明文與實際流程一致，且採用 rem 等比字體縮放規則
         flow_guide_js = open(os.path.join(STUDIO_DIR, "web", "js", "flow_guide.js"), "r", encoding="utf-8").read()
+        sfis_hmi_js = open(os.path.join(STUDIO_DIR, "web", "js", "sfis_hmi.js"), "r", encoding="utf-8").read()
         audit_editors_js = open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read()
         check(".acc-card .acc-title" in app_css and "rem" in app_css.split(".acc-card .acc-title")[1][:120],
               "手風琴標題/內文改用 rem 單位，隨系統字體設定 (13/15/17/19px) 等比縮放")
@@ -1272,7 +1273,7 @@ def run_all_verifications():
             check('id="genHubCard_tools"' in index_html
                   and 'id="genModeTools"' in index_html
                   and 'id="btnGenModeTools"' in index_html
-                  and 'toolsCheckSfisLink()' in index_html
+                  and 'toolsCheckSfisLink()' in sfis_hmi_js
                   and 'ISN 刷過' in index_html
                   and 'GET' in index_html
                   and 'WRITE' in index_html,
@@ -1398,6 +1399,57 @@ def run_all_verifications():
                   and ('#DC2626' in index_html and 'NI-DAQmx 未安裝' in index_html and '#DC2626' in flow_guide_js),
                   "頂部精簡＋重新整理開關、全站字體 rem 連動、手風琴加高穩固與 NI-DAQmx 紅字強調全數通過",
                   f"px_leftover_css={px_leftover_css}")
+
+            # [v0.8.031] 驗證 SFIS WebService 拖曳互動人機 + SOAP 實測引擎 + 直接匯出/插入 Excel
+            from core import sfis_client
+            soap_env = sfis_client.build_soap_envelope("WTSP_GETVERSION", {
+                "isn": "1B5723090000004", "device": "710001", "ver_type": "ISN_BASEINFO", "chk_data": "MAC1", "chk_data2": ""
+            })
+            parsed_soap = sfis_client.parse_soap_response(
+                "WTSP_GETVERSION",
+                '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>'
+                '<WTSP_GETVERSIONResponse xmlns="http://www.pegatroncorp.com/SFISWebService/">'
+                '<WTSP_GETVERSIONResult>1\x1fDATA GOT!!\x1f001122334455\x1fOK</WTSP_GETVERSIONResult>'
+                '</WTSP_GETVERSIONResponse></soap:Body></soap:Envelope>'
+            )
+            check('WTSP_GETVERSION' in soap_env and 'ISN_BASEINFO' in soap_env
+                  and parsed_soap.get("passed") is True and (parsed_soap.get("slots") or {}).get("P_CAVER") == "001122334455",
+                  "sfis_client SOAP XML 組包與 WTSP_GETVERSION 回傳槽位解析 (P_CAVER) 正確")
+
+            soap_api_res = post_json("/api/sfis_soap_test", {
+                "url": "http://127.0.0.1:1/SFISWebService/SFISTSPWebService.asmx",
+                "action": "WTSP_CHKROUTE",
+                "params": {"isn": "1B5723090000004", "device": "710001"}
+            })
+            check(soap_api_res.get("status") == "offline" and soap_api_res.get("reachable") is False and soap_api_res.get("passed") is False,
+                  "/api/sfis_soap_test 正確回報離線/無內網狀態而不當機")
+
+            sfis_items = [
+                {"kind": "checkroute"},
+                {"kind": "getversion", "ver_type": "ISN_BASEINFO", "slot_code": "2", "chk_data": "MAC1", "chk_data2": "", "ref_var": "sfMAC"},
+                {"kind": "savelink", "save_key": "SNB", "save_val": "*(gUUID)"},
+            ]
+            sfis_exp = post_json("/api/export_sfis_hmi_script", {
+                "mode": "new_template",
+                "items": sfis_items,
+                "config": {"url": "http://172.18.202.12/SFISWebService/SFISTSPWebService.asmx", "project_name": "VER_SFIS", "station": "MB", "device_id": "710001", "tsp": "VER_SFIS,2"}
+            })
+            wb_sf = openpyxl.load_workbook(sfis_exp["excel_path"])
+            sf_hdr = list(next(wb_sf["MB"].iter_rows(min_row=1, max_row=1, values_only=True)))
+            em_idx = sf_hdr.index("ExecMode") if "ExecMode" in sf_hdr else 13
+            sf_cmds = [str(row[6] or "") for row in wb_sf["MB"].iter_rows(min_row=2, values_only=True)]
+            sf_ems = [str(row[em_idx] or "") for row in wb_sf["MB"].iter_rows(min_row=2, values_only=True) if ":Sf" in str(row[6] or "")]
+            check(sfis_exp.get("status") == "ok" and wb_sf.active.title == "MB"
+                  and any(":ShowISN" in c for c in sf_cmds) and any(":SfCheckRoute" in c for c in sf_cmds)
+                  and any(":SfGetVersion" in c for c in sf_cmds) and any(":SfSaveLinkData" in c for c in sf_cmds)
+                  and all(em == "8" for em in sf_ems)
+                  and sfis_exp["audit_report"]["error_count"] == 0 and sfis_exp["audit_report"]["warning_count"] == 0,
+                  "SFIS 互動人機 /api/export_sfis_hmi_script 產出 0 Error / 0 Warning 標準 Excel（含 :ShowISN 與 ExecMode=8）",
+                  str(sf_cmds))
+
+            check('sfis_hmi.js' in index_html and 'id="toolsSubPaneSfis"' in index_html
+                  and 'sfisHmiRunStep' in sfis_hmi_js and 'sfisHmiExport' in sfis_hmi_js,
+                  "UI 已完整載入 sfis_hmi.js 雙欄拖曳互動人機與 SOAP/Excel 按鈕")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
