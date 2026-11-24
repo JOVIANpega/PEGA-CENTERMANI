@@ -54,12 +54,15 @@ def run_all_verifications():
     opened_folders = []
     launched_excels = []
     launched_inis = []
+    launched_tools = []
     orig_open_folder = app_server.open_folder_in_explorer
     orig_launch_excel = app_server.launch_excel_file_async
     orig_launch_ini = app_server.launch_ini_file_async
+    orig_launch_tool = app_server.launch_centimani_tool_async
     app_server.open_folder_in_explorer = lambda p: opened_folders.append(p)
     app_server.launch_excel_file_async = lambda p: launched_excels.append(p)
     app_server.launch_ini_file_async = lambda p: launched_inis.append(p)
+    app_server.launch_centimani_tool_async = lambda p, wd=None: launched_tools.append((p, wd)) or True
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), app_server.StudioRequestHandler)
     port = server.server_port
@@ -1229,6 +1232,41 @@ def run_all_verifications():
                   "補齊 MD 四大規範健檢：DUTs 連線重名 / Phase 起始缺 Title / 同 Phase 重複 Title / Reply 混用 && 與 ||",
                   f"errs={md_rep['errors']} warns={md_rep['warnings']}")
 
+            # [v0.8.024] 驗證首次掃描記憶主程式環境 + 書籤三嚴格依真實 DLL 過濾可用儀器 + 書籤一/三一鍵呼叫 SFIS / DLLtest
+            prof_init = init_res.get("centimani_profile") or {}
+            check(prof_init.get("exists") is True
+                  and prof_init.get("exe_version") == "1.2.1.2"
+                  and prof_init.get("dll_count", 0) >= 6
+                  and (prof_init.get("tools") or {}).get("CentimaniSFISTest.exe") is True
+                  and (prof_init.get("tools") or {}).get("DLLtest.exe") is True,
+                  "/api/init 正確回傳本機掃描之 Centimani 主程式版本、實機 DLL 數與輔助工具清單", str(prof_init))
+
+            scan_res = post_json("/api/scan_centimani_dir", {"confirm": True})
+            check(scan_res.get("status") == "ok" and (scan_res.get("centimani_profile") or {}).get("confirmed") is True,
+                  "/api/scan_centimani_dir 成功掃描並將主程式環境記憶為已確認狀態")
+
+            cat_by_n = {i["Name"]: i for i in (scan_res.get("instruments") or [])}
+            check(cat_by_n.get("NI6008", {}).get("is_usable") is True
+                  and cat_by_n.get("FeasaLED", {}).get("is_usable") is True
+                  and cat_by_n.get("MT8870A", {}).get("is_usable") is False
+                  and cat_by_n.get("DIO6509", {}).get("is_usable") is False,
+                  "書籤三 is_usable 嚴格只將本機實際存在 DLL 之儀器列為實機可用（缺 DLL 即使有範本也不誤列）")
+
+            launched_tools.clear()
+            sfis_t_res = post_json("/api/launch_centimani_tool", {"tool_name": "CentimaniSFISTest.exe"})
+            dll_t_res = post_json("/api/launch_centimani_tool", {"tool_name": "DLLtest.exe"})
+            check(sfis_t_res.get("status") == "ok" and dll_t_res.get("status") == "ok" and len(launched_tools) == 2,
+                  "/api/launch_centimani_tool 正確啟動 CentimaniSFISTest.exe 與 DLLtest.exe 並回傳白話使用說明",
+                  str(launched_tools))
+
+            check('id="topCentimaniBadge"' in index_html
+                  and 'id="firstScanCentimaniBanner"' in index_html
+                  and 'id="tab3AuxToolsBar"' in index_html
+                  and "openCentimaniAuxTool('CentimaniSFISTest.exe')" in index_html
+                  and "openCentimaniAuxTool('DLLtest.exe')" in index_html
+                  and "filtered.filter(i => i.dll_exists !== false)" in index_html,
+                  "UI 已具備頂部主程式環境徽章、首次掃描橫幅、書籤一/三 SFIS/DLLtest 按鈕，且 USABLE 僅列實機 DLL")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
@@ -1238,6 +1276,7 @@ def run_all_verifications():
         app_server.open_folder_in_explorer = orig_open_folder
         app_server.launch_excel_file_async = orig_launch_excel
         app_server.launch_ini_file_async = orig_launch_ini
+        app_server.launch_centimani_tool_async = orig_launch_tool
 
 
 if __name__ == "__main__":

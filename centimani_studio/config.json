@@ -9,5 +9,43 @@
     "audit": true
   },
   "centimani_dir": "D:\\PYTHON\\自動化編寫EXCEL\\Centmimani_Altas_TRY",
-  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\TEMP_SCRIPT"
+  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\TEMP_SCRIPT",
+  "centimani_profile": {
+    "centimani_dir": "D:\\PYTHON\\自動化編寫EXCEL\\Centmimani_Altas_TRY",
+    "dir_name": "Centmimani_Altas_TRY",
+    "exists": true,
+    "exe_version": "1.2.1.2",
+    "editor_version": "1.8.2.0",
+    "utility_version": "1.0.9.10",
+    "loadscript_version": "1.0.9.4",
+    "dll_count": 18,
+    "dll_names": [
+      "agilent34401a.dll",
+      "daqusbni.dll",
+      "devqueue.dll",
+      "devuart.dll",
+      "instiqapi_a--1.0.0.6.dll",
+      "instiqapi_a--1.0.1.1.dll",
+      "instiqapi_a.dll",
+      "instiqapi_b.dll",
+      "ipower2401.dll",
+      "led_analyser.dll",
+      "mda2700.dll",
+      "pegacapture.dll",
+      "pss2005.dll",
+      "rfswitch3001.dll",
+      "robotasker.dll",
+      "scpi_controller.dll",
+      "u2004a.dll",
+      "virtualtransmitter.dll"
+    ],
+    "tools": {
+      "CentimaniSFISTest.exe": true,
+      "DLLtest.exe": true,
+      "EditorScriptTool.exe": true
+    },
+    "confirmed": true,
+    "scanned_at": "2026-11-24 11:30:30"
+  },
+  "centimani_profile_confirmed": true
 }

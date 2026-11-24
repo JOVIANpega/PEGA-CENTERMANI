@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.023">
+<link rel="stylesheet" href="/css/app.css?v=0.8.024">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.023</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.024</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -22,11 +22,14 @@
       <button id="topNavSettings" class="top-nav-pill" style="display:none;" onclick="switchTab('settings')">⚙️ 系統設定</button>
     </div>
   </div>
-  <div style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#E2E8F0; white-space:nowrap;">
+  <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#E2E8F0; white-space:nowrap;">
+    <span id="topCentimaniBadge" style="background:#1E293B; color:#93C5FD; border:1px solid #475569; padding:3px 10px; border-radius:999px; font-family:Consolas, monospace; font-size:11.5px; font-weight:700;" title="目前已掃描記憶的 Centimani 主程式環境">📁 未掃描主程式</span>
+    <button type="button" class="btn" onclick="pickCentimaniDir()" style="background:#1D4ED8; color:#FFFFFF; border:1px solid #3B82F6; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;" title="選擇並掃描您電腦上的 Centimani 主程式目錄，只列出您有的 DLL">
+      🔄 掃描/切換主程式
+    </button>
     <button type="button" class="btn" onclick="location.reload(true)" style="background:#334155; color:#F8FAFC; border:1px solid #475569; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;" title="滑鼠點此直接強制重新整理頁面，免按鍵盤快捷鍵">
       🔄 重新整理
     </button>
-    <span style="color:#94A3B8;">產線相容：Centimani 1.5.3 ~ 2.0</span>
   </div>
 </div>
 
@@ -36,6 +39,18 @@
 
   <!-- ======================== 右側主工作區域 ======================== -->
   <div class="main-content">
+
+    <!-- 首次使用 / 主程式環境掃描記憶橫幅 -->
+    <div id="firstScanCentimaniBanner" style="display:none; background:#EFF6FF; border:1.8px solid #3B82F6; border-radius:10px; padding:10px 14px; margin-bottom:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div style="font-size:13px; color:#1E3A8A; line-height:1.5;">
+        <b>👋 首次環境確認：</b>因各機台 Centimani 主程式版本與 <code>Device\</code> 內的 DLL 不同，建議先掃描您電腦上的主程式目錄，系統會記住此電腦的環境並只列出本機實機可用的儀器：<br>
+        <span id="firstScanEnvSummary" class="mono" style="font-size:12px; color:#0F172A;">目前偵測：--</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="pickCentimaniDir()" style="background:#FFFFFF; color:#1D4ED8; border:1.5px solid #3B82F6; font-weight:800; padding:6px 12px;">📁 選擇我的 Centimani 目錄並掃描</button>
+        <button type="button" class="btn btn-primary-green" onclick="confirmCurrentCentimaniScan()" style="font-weight:800; padding:6px 14px;">✅ 確認使用此目錄（記住環境）</button>
+      </div>
+    </div>
 
 <!-- 全螢幕遮罩防呆層：解析中全介面鎖定 -->
 <div id="globalParsingOverlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); z-index:999999; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
@@ -1120,6 +1135,12 @@
             <button class="btn" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
               📋 跨檔案複製整張 Sheet
             </button>
+            <button id="btnTab1LaunchSfis" class="btn" style="background:#EEF2FF; color:#3730A3; border-color:#A5B4FC; font-weight:800;" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" title="開啟官方 SFIS WebService 連線測試工具">
+              🌐 測 SFIS 連線
+            </button>
+            <button id="btnTab1LaunchDll" class="btn" style="background:#F0FDF4; color:#166534; border-color:#86EFAC; font-weight:800;" onclick="openCentimaniAuxTool('DLLtest.exe')" title="開啟官方 DLL 單步測試工具">
+              🧪 單測 DLL 指令
+            </button>
             <button id="btnEditorOpenExcel" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCurrentExcelFile()">
               📂 開啟目前原檔
             </button>
@@ -1145,6 +1166,12 @@
           </button>
           <button class="btn" style="padding:10px 18px; font-size:calc(var(--app-font-size, 15px) * 1.0); font-weight:800; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B;" onclick="openCopySheetModal()">
             📋 跨檔案複製整張 Sheet（格式不跑掉）
+          </button>
+          <button class="btn" style="padding:10px 14px; font-size:0.88rem; font-weight:800; background:#EEF2FF; color:#3730A3; border:1px solid #A5B4FC;" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')">
+            🌐 測 SFIS 連線
+          </button>
+          <button class="btn" style="padding:10px 14px; font-size:0.88rem; font-weight:800; background:#F0FDF4; color:#166534; border:1px solid #86EFAC;" onclick="openCentimaniAuxTool('DLLtest.exe')">
+            🧪 單測 DLL 指令
           </button>
         </div>
 
@@ -1242,8 +1269,12 @@
           <div class="tab3-split-layout" style="margin-bottom:8px;">
             <!-- 左欄：儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
             <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:12px; padding:12px 14px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
                 <div style="font-weight:900; font-size:0.95rem; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
+                <div id="tab3AuxToolsBar" style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" onclick="openCentimaniAuxTool('DLLtest.exe')" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#F0FDF4; color:#166534; border:1px solid #86EFAC; font-weight:800;" title="開啟官方 DLLtest.exe 單測儀器 DLL 指令">🧪 單測 DLL</button>
+                  <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#EEF2FF; color:#3730A3; border:1px solid #A5B4FC; font-weight:800;" title="開啟官方 CentimaniSFISTest.exe 測試內網 SFIS 連線">🌐 測 SFIS</button>
+                </div>
               </div>
               <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 40 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
                 style="width:100%; box-sizing:border-box; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:7px; font-size:0.85rem; margin-bottom:8px;">
@@ -1705,11 +1736,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.023"></script>
-<script src="/js/audit_editors.js?v=0.8.023"></script>
-<script src="/js/flow_guide.js?v=0.8.023"></script>
-<script src="/js/block_sorter.js?v=0.8.023"></script>
-<script src="/js/script_qa.js?v=0.8.023"></script>
+<script src="/js/inst_hmi.js?v=0.8.024"></script>
+<script src="/js/audit_editors.js?v=0.8.024"></script>
+<script src="/js/flow_guide.js?v=0.8.024"></script>
+<script src="/js/block_sorter.js?v=0.8.024"></script>
+<script src="/js/script_qa.js?v=0.8.024"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3059,9 +3090,11 @@ function tab3RenderCatalogDeck() {
   const popularNames = ['NI6008', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'iPower', 'Relay'];
 
   if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
-    const usableCount = catalog.filter(i => i.is_usable !== false && (i.dll_exists !== false || i.has_template === true)).length;
+    const usableCount = catalog.filter(i => i.dll_exists !== false).length;
+    const tplOnlyCount = catalog.filter(i => i.dll_exists === false && i.has_template === true).length;
     const pills = [
-      { id: 'USABLE', label: `✅ 可使用設備 (${usableCount})` },
+      { id: 'USABLE', label: `✅ 本機實機可用 (${usableCount})` },
+      { id: 'TPL_ONLY', label: `📋 僅範本缺DLL (${tplOnlyCount})` },
       { id: 'POPULAR', label: '⭐ 常用 (6)' },
       ...INST_CATEGORIES.map(c => ({ id: c.id, label: c.label.split(' / ')[0] })),
       { id: 'ALL', label: `全部 (${catalog.length})` }
@@ -3078,7 +3111,9 @@ function tab3RenderCatalogDeck() {
   let filtered = catalog;
   if (!q) {
     if (TAB3_CAT_FILTER === 'USABLE') {
-      filtered = filtered.filter(i => i.is_usable !== false && (i.dll_exists !== false || i.has_template === true));
+      filtered = filtered.filter(i => i.dll_exists !== false);
+    } else if (TAB3_CAT_FILTER === 'TPL_ONLY') {
+      filtered = filtered.filter(i => i.dll_exists === false && i.has_template === true);
     } else if (TAB3_CAT_FILTER === 'POPULAR') {
       filtered = popularNames.map(n => catalog.find(i => i.Name === n)).filter(Boolean);
     } else if (TAB3_CAT_FILTER && TAB3_CAT_FILTER !== 'ALL' && typeof INST_CATEGORIES !== 'undefined') {
@@ -3658,6 +3693,9 @@ async function initPage() {
   }
   if (data.settings && typeof applyLoadedSettings === 'function') {
     applyLoadedSettings(data.settings);
+  }
+  if (data.centimani_profile && typeof renderCentimaniEnvUi === 'function') {
+    renderCentimaniEnvUi(data.centimani_profile);
   }
   if (data.tic_info) {
     updateTicActiveFileDisplay(data.tic_info);
@@ -6434,11 +6472,88 @@ async function pickCentimaniDir() {
         if (typeof tab3RenderCatalogDeck === 'function') tab3RenderCatalogDeck();
       }
       if (typeof APP_SETTINGS !== 'undefined') APP_SETTINGS.centimani_dir = data.centimani_dir;
+      if (data.centimani_profile) renderCentimaniEnvUi(data.centimani_profile);
       if (typeof renderSettingsPanel === 'function' && CURRENT_TAB === 'settings') renderSettingsPanel();
-      alert('✅ 已記憶 Centimani 主程式目錄：\n' + data.centimani_dir + '\n並已重新檢查本機 DLL 狀態！');
+      const prof = data.centimani_profile || {};
+      alert(`✅ 已掃描並記憶此電腦的 Centimani 主程式環境：\n目錄：${data.centimani_dir}\n主程式版本：${prof.exe_version || '未偵測'} ｜ 實機可用 DLL：${prof.dll_count ?? '-'} 支`);
     }
   } catch (err) {
     alert('設定 Centimani 目錄失敗：' + (err && err.message ? err.message : err));
+  }
+}
+
+function renderCentimaniEnvUi(profile) {
+  const p = profile || {};
+  const badge = document.getElementById('topCentimaniBadge');
+  if (badge) {
+    if (p.exists) {
+      const verTxt = p.exe_version ? `v${p.exe_version}` : '版本未知';
+      badge.textContent = `📁 ${p.dir_name || 'Centimani'} (${verTxt} · ${p.dll_count || 0} DLL)`;
+      badge.title = `目錄：${p.centimani_dir}\nCentimaniSystem.exe: ${p.exe_version || '-'}\nUtilityLibrary.dll: ${p.utility_version || '-'}\n掃描時間：${p.scanned_at || '-'}`;
+    } else {
+      badge.textContent = '⚠️ 尚未指定 Centimani 主程式目錄';
+    }
+  }
+  const banner = document.getElementById('firstScanCentimaniBanner');
+  const sumEl = document.getElementById('firstScanEnvSummary');
+  if (banner) {
+    banner.style.display = (!p.exists || !p.confirmed) ? 'flex' : 'none';
+  }
+  if (sumEl) {
+    sumEl.textContent = p.exists
+      ? `${p.centimani_dir}  |  CentimaniSystem ${p.exe_version || '-'}  |  Device/Switch DLL: ${p.dll_count || 0} 支`
+      : '尚未偵測到有效的 Centimani 目錄，請點右側選擇資料夾進行掃描';
+  }
+}
+
+async function confirmCurrentCentimaniScan() {
+  try {
+    const res = await fetch('/api/scan_centimani_dir', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ confirm: true })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      if (Array.isArray(data.instruments)) {
+        STATE.instCatalog = data.instruments;
+        if (typeof tab3RenderCatalogDeck === 'function') tab3RenderCatalogDeck();
+      }
+      if (data.centimani_profile) renderCentimaniEnvUi(data.centimani_profile);
+    } else {
+      alert(data.message || '掃描失敗');
+    }
+  } catch (err) {
+    alert('確認環境時發生錯誤：' + (err && err.message ? err.message : err));
+  }
+}
+
+async function openCentimaniAuxTool(toolName) {
+  try {
+    let extraMsg = '';
+    if (toolName === 'CentimaniSFISTest.exe' && STATE.workspace && STATE.workspace.system_ini && STATE.workspace.system_ini.SFIS_WebLink) {
+      try {
+        const chkRes = await fetch('/api/check_sfis_weblink', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ url: STATE.workspace.system_ini.SFIS_WebLink })
+        });
+        const chk = await chkRes.json();
+        if (chk.status === 'ok') {
+          extraMsg = `\n\n[內網 SFIS 預檢] ${chk.reachable ? '✅' : '⚠️'} ${chk.message}\n檢測網址：${chk.checked_url}`;
+        }
+      } catch (e) {}
+    }
+    const res = await fetch('/api/launch_centimani_tool', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ tool_name: toolName })
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') {
+      alert((data.message || '無法啟動工具') + extraMsg);
+      return;
+    }
+    alert(`🚀 ${data.guide_tip}${extraMsg}`);
+  } catch (err) {
+    alert('啟動輔助工具失敗：' + (err && err.message ? err.message : err));
   }
 }
 

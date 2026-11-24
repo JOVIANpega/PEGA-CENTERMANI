@@ -259,11 +259,93 @@ def _get_local_dll_versions(force_refresh=False):
                     ver = f"{win32api.HIWORD(info['FileVersionMS'])}.{win32api.LOWORD(info['FileVersionMS'])}.{win32api.HIWORD(info['FileVersionLS'])}.{win32api.LOWORD(info['FileVersionLS'])}"
                     versions[d_name] = ver
                 except Exception:
-                    pass
+                    versions[d_name] = "1.0.0.0"
     except Exception:
         pass
     _get_local_dll_versions._cache = versions
     return versions
+
+
+def _read_pe_version(file_path):
+    """Reads FileVersion string of a Windows EXE/DLL, or '' if missing/unreadable."""
+    if not file_path or not os.path.isfile(file_path):
+        return ""
+    try:
+        import win32api
+        info = win32api.GetFileVersionInfo(file_path, "\\")
+        return f"{win32api.HIWORD(info['FileVersionMS'])}.{win32api.LOWORD(info['FileVersionMS'])}.{win32api.HIWORD(info['FileVersionLS'])}.{win32api.LOWORD(info['FileVersionLS'])}"
+    except Exception:
+        return "未知版本"
+
+
+def scan_centimani_environment(target_dir=None, persist=True, confirmed=None):
+    """
+    掃描指定（或目前已設定）的 Centimani 主程式目錄，記錄主程式版本、UtilityLibrary/LoadScript 版本、
+    本機實際存在的 Device/Switch DLL 數量與清單，以及輔助工具 (CentimaniSFISTest.exe / DLLtest.exe) 是否存在。
+    """
+    import json
+    import datetime
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg_path = os.path.join(base_dir, "config.json")
+    cfg = {}
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f) or {}
+        except Exception:
+            cfg = {}
+
+    cm_dir = str(target_dir or "").strip() or get_configured_centimani_dir()
+    cm_exists = bool(cm_dir and os.path.isdir(cm_dir))
+    if target_dir and cm_exists:
+        cfg["centimani_dir"] = cm_dir
+        try:
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    dll_vers = _get_local_dll_versions(force_refresh=True) if cm_exists else {}
+    exe_ver = _read_pe_version(os.path.join(cm_dir, "CentimaniSystem.exe")) if cm_exists else ""
+    editor_ver = _read_pe_version(os.path.join(cm_dir, "EditorScriptTool.exe")) if cm_exists else ""
+    util_ver = _read_pe_version(os.path.join(cm_dir, "API", "UtilityLibrary.dll")) if cm_exists else ""
+    load_ver = _read_pe_version(os.path.join(cm_dir, "LoadScript.dll")) if cm_exists else ""
+
+    tools = {
+        "CentimaniSFISTest.exe": bool(cm_exists and os.path.isfile(os.path.join(cm_dir, "CentimaniSFISTest.exe"))),
+        "DLLtest.exe": bool(cm_exists and os.path.isfile(os.path.join(cm_dir, "DLLtest.exe"))),
+        "EditorScriptTool.exe": bool(cm_exists and os.path.isfile(os.path.join(cm_dir, "EditorScriptTool.exe"))),
+    }
+
+    was_confirmed = bool(cfg.get("centimani_profile_confirmed", False))
+    is_confirmed = bool(confirmed) if confirmed is not None else was_confirmed
+
+    profile = {
+        "centimani_dir": cm_dir,
+        "dir_name": os.path.basename(os.path.normpath(cm_dir)) if cm_dir else "",
+        "exists": cm_exists,
+        "exe_version": exe_ver,
+        "editor_version": editor_ver,
+        "utility_version": util_ver,
+        "loadscript_version": load_ver,
+        "dll_count": len(dll_vers),
+        "dll_names": sorted(dll_vers.keys()),
+        "tools": tools,
+        "confirmed": is_confirmed,
+        "scanned_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    if persist and cm_exists:
+        cfg["centimani_dir"] = cm_dir
+        cfg["centimani_profile"] = profile
+        if confirmed is not None:
+            cfg["centimani_profile_confirmed"] = bool(confirmed)
+        try:
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+    return profile
 
 
 TEMPLATED_INSTS = {
@@ -288,7 +370,8 @@ def _sync_real_dll_versions(mother_dict):
             else:
                 item["dll_exists"] = True
             item["has_template"] = has_tpl
-            item["is_usable"] = bool(item["dll_exists"] or has_tpl)
+            # Only instruments whose DLL physically exists in local Centimani Device/Switch count as real usable!
+            item["is_usable"] = bool(item["dll_exists"])
     return mother_dict
 
 

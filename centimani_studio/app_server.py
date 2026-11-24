@@ -609,6 +609,25 @@ def launch_ini_file_async(ini_paths):
     threading.Thread(target=_task, daemon=True).start()
 
 
+def launch_centimani_tool_async(exe_path, working_dir=None):
+    """Launches Centimani auxiliary tools (CentimaniSFISTest.exe / DLLtest.exe) cleanly without blocking."""
+    if not exe_path or not os.path.isfile(exe_path):
+        return False
+
+    def _task():
+        try:
+            cwd = working_dir if (working_dir and os.path.isdir(working_dir)) else os.path.dirname(exe_path)
+            subprocess.Popen([exe_path], cwd=cwd)
+        except Exception:
+            try:
+                os.startfile(exe_path)
+            except Exception:
+                pass
+
+    threading.Thread(target=_task, daemon=True).start()
+    return True
+
+
 def extract_isn_info(ws):
     """Extracts the configured ISN barcode digit length and rule from DUTs ScanBarcode."""
     import re
@@ -938,12 +957,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
         elif parsed.path == "/api/init":
+            from core.golden_data import scan_centimani_environment
             self._send_json({
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
                 "tic_info": get_active_tic_info(),
-                "settings": get_app_settings()
+                "settings": get_app_settings(),
+                "centimani_profile": scan_centimani_environment(persist=False)
             })
         elif parsed.path == "/api/recent_files":
             self._send_json({
@@ -1618,7 +1639,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.023")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.024")
 
                 self._send_json({
                     "status": "ok",
@@ -1880,7 +1901,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.023")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.024")
 
                 self._send_json({
                     "status": "ok",
@@ -2129,7 +2150,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.023")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.024")
 
                 self._send_json({
                     "status": "ok",
@@ -2201,19 +2222,87 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "isn_info": extract_isn_info(ws)
                 })
             elif parsed.path == "/api/pick_centimani_dir":
-                from core.golden_data import _get_local_dll_versions
+                from core.golden_data import scan_centimani_environment
                 folder = pick_folder_native("選擇本機 Centimani 主程式目錄 (含 Device\\ 資料夾與 LoadScript.dll)")
                 if not folder:
                     self._send_json({"status": "cancel"})
                     return
-                save_app_settings({"centimani_dir": folder})
-                _get_local_dll_versions(force_refresh=True)
+                profile = scan_centimani_environment(target_dir=folder, persist=True, confirmed=True)
                 gm = get_golden_mother()
                 self._send_json({
                     "status": "ok",
                     "centimani_dir": folder,
+                    "centimani_profile": profile,
                     "instruments": gm.get("instruments", [])
                 })
+            elif parsed.path == "/api/scan_centimani_dir":
+                from core.golden_data import scan_centimani_environment
+                target_dir = str(payload.get("centimani_dir", "")).strip() or None
+                confirm_flag = payload.get("confirm", True)
+                profile = scan_centimani_environment(target_dir=target_dir, persist=True, confirmed=bool(confirm_flag))
+                if not profile.get("exists"):
+                    self._send_json({"status": "error", "message": "找不到有效的 Centimani 主程式目錄，請先指定資料夾。"}, 404)
+                    return
+                gm = get_golden_mother()
+                self._send_json({
+                    "status": "ok",
+                    "centimani_dir": profile["centimani_dir"],
+                    "centimani_profile": profile,
+                    "instruments": gm.get("instruments", []),
+                    "settings": get_app_settings()
+                })
+            elif parsed.path == "/api/launch_centimani_tool":
+                from core.golden_data import get_configured_centimani_dir
+                tool_name = os.path.basename(str(payload.get("tool_name", "")).strip())
+                allowed_tools = {
+                    "CentimaniSFISTest.exe": "已啟動 SFIS 連線測試工具：選廠區或貼入 System.ini 的 SFIS_WebLink，點 Test 即可驗證內網 SFIS 是否正常連線與回寫。",
+                    "DLLtest.exe": "已啟動 DLL 單步測試工具：依序操作「Find DLL file (選 Device\\*.dll)」→「LoadSetting」→「Load」→「Execute」即可在開主程式前單測儀器指令。"
+                }
+                if tool_name not in allowed_tools:
+                    self._send_json({"status": "error", "message": f"不支援的工具名稱：{tool_name}"}, 400)
+                    return
+                cm_dir = get_configured_centimani_dir()
+                exe_path = os.path.join(cm_dir, tool_name) if cm_dir else ""
+                if not exe_path or not os.path.isfile(exe_path):
+                    self._send_json({"status": "error", "message": f"目前目錄 ({cm_dir}) 下找不到 {tool_name}，請確認該版本主程式是否附帶此工具。"}, 404)
+                    return
+                launch_centimani_tool_async(exe_path, cm_dir)
+                self._send_json({
+                    "status": "ok",
+                    "tool_name": tool_name,
+                    "exe_path": exe_path,
+                    "guide_tip": allowed_tools[tool_name]
+                })
+            elif parsed.path == "/api/check_sfis_weblink":
+                import urllib.request
+                import urllib.error
+                raw_link = str(payload.get("url", "")).strip()
+                if not raw_link:
+                    self._send_json({"status": "error", "message": "未提供 SFIS_WebLink 網址"}, 400)
+                    return
+                base_url = raw_link.split(",", 1)[0].strip()
+                if not base_url.lower().startswith(("http://", "https://")):
+                    self._send_json({"status": "ok", "reachable": False, "checked_url": base_url, "message": f"網址格式非 HTTP/HTTPS：{base_url}"})
+                    return
+                chk_url = base_url + ("?WSDL" if (base_url.lower().endswith(".asmx") and "?" not in base_url) else "")
+                try:
+                    req = urllib.request.Request(chk_url, method="GET")
+                    with urllib.request.urlopen(req, timeout=2.5) as resp:
+                        code = getattr(resp, "status", 200)
+                    self._send_json({
+                        "status": "ok", "reachable": True, "http_code": code,
+                        "checked_url": chk_url, "message": f"內網 SFIS WebService 回應正常 (HTTP {code})"
+                    })
+                except urllib.error.HTTPError as he:
+                    self._send_json({
+                        "status": "ok", "reachable": (he.code < 500), "http_code": he.code,
+                        "checked_url": chk_url, "message": f"伺服器回應 HTTP {he.code}（服務可連通，正式測試請在 CentimaniSFISTest.exe 帶入工單/ISN）"
+                    })
+                except Exception as ue:
+                    self._send_json({
+                        "status": "ok", "reachable": False, "http_code": 0,
+                        "checked_url": chk_url, "message": f"無法連通 SFIS WebService（可能不在公司/產線內網）：{ue}"
+                    })
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
         except Exception as e:
@@ -2284,7 +2373,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.023) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.024) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
