@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.019">
+<link rel="stylesheet" href="/css/app.css?v=0.8.020">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.019</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.020</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1715,11 +1715,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.019"></script>
-<script src="/js/audit_editors.js?v=0.8.019"></script>
-<script src="/js/flow_guide.js?v=0.8.019"></script>
-<script src="/js/block_sorter.js?v=0.8.019"></script>
-<script src="/js/script_qa.js?v=0.8.019"></script>
+<script src="/js/inst_hmi.js?v=0.8.020"></script>
+<script src="/js/audit_editors.js?v=0.8.020"></script>
+<script src="/js/flow_guide.js?v=0.8.020"></script>
+<script src="/js/block_sorter.js?v=0.8.020"></script>
+<script src="/js/script_qa.js?v=0.8.020"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3261,7 +3261,7 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
         const mText = missingList.map(m => `${m.inst} (缺 ${m.dll})`).join('、');
         dllWarnHtml = `
           <div style="margin-top:8px; padding:8px 12px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:6px; color:#7F1D1D; font-weight:700;">
-            ⚠️ 實機 DLL 檢查提醒：目前目錄 (<span class="mono">${data.centimani_dir}\\Device\\</span>) 缺少以下 DLL，上機測試時將會報錯：<br>
+            ⚠️ 實機 DLL 檢查提醒：目前目錄 (<span class="mono">${data.centimani_dir}\\Device\\</span>) 缺少以下 DLL（同款多台儀器如 NI6008 / NI6008-2 共用同一支 DLL），上機測試時將會報錯：<br>
             <span class="mono">${mText}</span>
             <button onclick="pickCentimaniDir()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button>
           </div>`;
@@ -6397,7 +6397,7 @@ function showExportCompleteModal(opts = {}) {
       const mText = missingList.map(m => `${m.inst || '儀器'} (缺 ${m.dll})`).join('、');
       warnEl.style.display = 'block';
       warnEl.innerHTML = `
-        ⚠️ <b>實機 DLL 檢查提醒：</b>目前目錄 (<span class="mono">${opts.centimaniDir || ''}\\Device\\</span>) 缺少以下 DLL，上機載入 CentimaniSystem.exe 時將會報錯：<br>
+        ⚠️ <b>實機 DLL 檢查提醒：</b>目前目錄 (<span class="mono">${opts.centimaniDir || ''}\\Device\\</span>) 缺少以下 DLL（同款多台儀器如 NI6008 / NI6008-2 共用同一支 DLL），上機載入 CentimaniSystem.exe 時將會報錯：<br>
         <span class="mono" style="color:#991B1B;">${mText}</span>
         <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button></div>
       `;

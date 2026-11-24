@@ -639,8 +639,8 @@ def run_all_verifications():
             check(sw_res.get("status") == "ok" and bool(sw_res.get("guide_txt_path")) and os.path.exists(sw_res.get("guide_txt_path", "")),
                   "匯出時自動產出隨附 <專案>_編寫與使用說明.txt 檔案", sw_res.get("guide_txt_path", ""))
             txt_body = open(sw_res["guide_txt_path"], "r", encoding="utf-8-sig").read()
-            check("EN_NI6008_1" in txt_body and "Global.ini [Scripts]" in txt_body and "Phase = -1" in txt_body,
-                  "精簡版隨附說明 .txt 正確列出 EN_NI6008_1 與 Phase=-1 開關使用說明")
+            check("EN_NI6008_1" in txt_body and "Global.ini [Scripts]" in txt_body and "目前無 Phase=-1" not in txt_body and "Checksum" not in txt_body,
+                  "白話版隨附說明 .txt 正確列出 EN_NI6008_1 用法，並隱藏無用空區塊與艱澀術語")
             wb_sw = openpyxl.load_workbook(sw_res["excel_path"], read_only=True, data_only=True)
             sw_titles = [str(r[2] or "").strip() for r in wb_sw["MB"].iter_rows(min_row=2, values_only=True) if r and r[2]]
             wb_sw.close()
@@ -1039,6 +1039,52 @@ def run_all_verifications():
                   and "BootUp" in str(messy_temp_ws["instruments"][0].get("Mount", "")),
                   "auto_fix_workspace 可一次自動修復 TEMP_SCRIPT 常見四大錯誤 (:ShowISN 順序 / :Dev.VOLTAGE / 補 :ObtainDevice / 補 Mount)",
                   f"errs={rep_after_messy['errors']} sends={fixed_sends_19}")
+
+            # [v0.8.020] 驗證同款多台儀器共用單一 DLL（不誤報 NI6008-2.dll / FeasaLED-2.dll，同 DLL 合併提醒，Phase=-1 暫停不報錯）+ 白話版說明書
+            from core.golden_data import _resolve_shared_control_dll as _res_shared_dll
+            _gm_cat = _get_gm_v16().get("instruments", [])
+            check(_res_shared_dll("NI6008-2", "NI6008-2.dll", _gm_cat, {"daqusbni.dll": "1.1.2.0"}) == "DaqUSBNi.dll"
+                  and _res_shared_dll("FeasaLED-2", "FeasaLED-2.dll", _gm_cat, {}) == "LED_analyser.dll",
+                  "多台編號儀器 (NI6008-2 / FeasaLED-2) 自動對應共用基底 DLL (DaqUSBNi.dll / LED_analyser.dll)")
+
+            multi_dll_ws = {
+                "instruments": [
+                    {"Name": "NI6008", "Mount": "MB", "ControlDLL": "DaqUSBNi.dll", "Functions": "Voltage"},
+                    {"Name": "NI6008-2", "Mount": "MB", "ControlDLL": "NI6008-2.dll", "Functions": "Voltage"},
+                    {"Name": "NI6008-3", "Mount": "MB", "ControlDLL": "NI6008-3.dll", "Functions": "Voltage"},
+                    {"Name": "FeasaLED-2", "Mount": "MB", "ControlDLL": "FeasaLED-2.dll", "Functions": "LED_Test"},
+                    {"Name": "InstIQApiA", "Mount": "MB", "ControlDLL": "InstIQApi_A.dll", "Functions": "MeasWIFI"},
+                    {"Name": "InstIQApiA-2", "Mount": "MB", "ControlDLL": "InstIQApi_A.dll", "Functions": "MeasWIFI"},
+                    {"Name": "MT8870A", "Mount": "", "ControlDLL": "InstAnritsu.dll", "Functions": "MeasWIFI"},
+                ],
+                "switches": [],
+                "stations": {"MB": [
+                    {"Phase": "-1", "Title": "0,Paused RF", "Instrument": "MT8870A", "ExecMode": "1"},
+                    {"Phase": "1", "Title": "0,Volt", "Instrument": "NI6008-2", "ExecMode": "1"},
+                ]},
+            }
+            multi_chk = _chk_dlls(multi_dll_ws)
+            multi_dll_names = [m["dll"] for m in multi_chk["missing_dlls"]]
+            iq_grp = next((m for m in multi_chk["missing_dlls"] if m["dll"] == "InstIQApi_A.dll"), None)
+            check("NI6008-2.dll" not in multi_dll_names
+                  and "NI6008-3.dll" not in multi_dll_names
+                  and "FeasaLED-2.dll" not in multi_dll_names
+                  and "DaqUSBNi.dll" not in multi_dll_names
+                  and "InstAnritsu.dll" not in multi_dll_names
+                  and iq_grp is not None and iq_grp.get("shared") is True and multi_dll_names.count("InstIQApi_A.dll") == 1,
+                  "多台共用 DLL 合併檢查通過：不重複列印同支缺少的 DLL、不誤報 NI6008-2/FeasaLED-2.dll 且 Phase=-1 暫停儀器不報錯",
+                  str(multi_chk["missing_dlls"]))
+
+            plain_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "NI6008", "title_name": "Measure 3.3V"}],
+                "project_name": "PLAIN_GUIDE", "station_name": "MB", "auto_sample_mode": True,
+                "use_ini_switch": False, "no_hw_phase_pause": False, "open_excel": False
+            })
+            plain_txt = open(plain_res["guide_txt_path"], "r", encoding="utf-8-sig").read()
+            ask_txt = open(ip_nohw_res["guide_txt_path"], "r", encoding="utf-8-sig").read()
+            check("1. 怎麼執行" in plain_txt and "Global.ini [Scripts]" not in plain_txt and "Phase = -1" not in plain_txt
+                  and "Phase = -1" in ask_txt and "回產線接好實機後" in ask_txt,
+                  "白話版操作說明在未啟用開關/暫停時精簡無冗字，啟用 Phase=-1 時清楚提示 2 步恢復法")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

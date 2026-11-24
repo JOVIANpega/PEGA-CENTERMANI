@@ -5,6 +5,7 @@ Integrates official rules from Centimani Script User Guide (2022/2023), Ver1.65 
 and real production blocks from VALO360, KANGAROO (MU310/Olympus), Raptor, and MiniBox.
 """
 import os
+import re
 import glob
 import openpyxl
 
@@ -279,32 +280,68 @@ def _sync_real_dll_versions(mother_dict):
     return mother_dict
 
 
+def _resolve_shared_control_dll(name: str, cur_dll: str, catalog_rows: list, dll_vers: dict) -> str:
+    """Resolve numbered multi-unit sibling (e.g. NI6008-2 / FeasaLED-2) to shared base catalog DLL."""
+    d_fn = str(cur_dll or "").strip()
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return d_fn
+    is_synthetic = d_fn and d_fn.lower() == f"{clean_name.lower()}.dll" and (not dll_vers or d_fn.lower() not in dll_vers)
+    if d_fn and not is_synthetic:
+        return d_fn
+    stem = re.sub(r"-\d+$", "", clean_name).strip().lower()
+    candidates = {clean_name.lower(), stem, f"{stem}-1"}
+    for cat in (catalog_rows or ()):
+        cat_name = str(cat.get("Name", "")).strip().lower()
+        cat_dll = str(cat.get("ControlDLL", "")).strip()
+        if cat_name in candidates and cat_dll:
+            return cat_dll
+    return d_fn
+
+
 def check_workspace_missing_dlls(ws: dict) -> dict:
-    """檢查 workspace 中實際有掛載 (Mount 非空) 或測站步驟有使用之 Instrument / Switch 對應的 ControlDLL 是否存在。"""
+    """檢查 workspace 中實際啟用（非 Phase=-1 / 非 ExecMode=6 略過）且有掛載或步驟使用之 Instrument / Switch 對應 ControlDLL 是否存在，同款多機自動合併為單一共享 DLL。"""
     cm_dir = get_configured_centimani_dir()
     cm_dir_exists = bool(cm_dir and os.path.isdir(cm_dir))
     dll_vers = _get_local_dll_versions(force_refresh=True) if cm_dir_exists else {}
+
+    mother = get_golden_mother()
+    cat_by_sec = {
+        "instruments": mother.get("instruments") or [],
+        "switches": mother.get("switches") or [],
+    }
 
     used_inst_tokens = set()
     used_sw_tokens = set()
     for rows in (ws.get("stations") or {}).values():
         if not isinstance(rows, list):
             continue
+        cur_phase = ""
         for r in rows:
+            p_raw = str(r.get("Phase", "")).strip()
+            if p_raw:
+                cur_phase = p_raw
+            if cur_phase == "-1":
+                continue
+            em = str(r.get("ExecMode", "")).strip()
+            if em == "6":
+                continue
             it = str(r.get("Instrument", "")).strip().lower()
             if it:
                 used_inst_tokens.add(it)
+                used_inst_tokens.add(it.split(",")[0].strip())
             sw = str(r.get("Switch", "")).strip().lower()
             if sw:
                 used_sw_tokens.add(sw)
+                used_sw_tokens.add(sw.split(",")[0].strip())
 
-    missing_dlls = []
-    seen = set()
+    missing_by_dll = {}
+    dll_order = []
     for sec in ("instruments", "switches"):
         for inst_r in ws.get(sec, []):
-            d_fn = str(inst_r.get("ControlDLL", "")).strip()
             name = str(inst_r.get("Name", "")).strip()
             mount = str(inst_r.get("Mount", "")).strip()
+            d_fn = _resolve_shared_control_dll(name, inst_r.get("ControlDLL", ""), cat_by_sec.get(sec), dll_vers)
             if not d_fn:
                 continue
             if sec == "instruments":
@@ -314,12 +351,31 @@ def check_workspace_missing_dlls(ws: dict) -> dict:
                 is_active = bool(mount) or (name.lower() in used_sw_tokens)
             if not is_active:
                 continue
-            key = (name.lower(), d_fn.lower())
-            if key in seen:
-                continue
-            seen.add(key)
             if not cm_dir_exists or d_fn.lower() not in dll_vers:
-                missing_dlls.append({"inst": name, "dll": d_fn})
+                dll_key = d_fn.lower()
+                if dll_key not in missing_by_dll:
+                    missing_by_dll[dll_key] = {"dll": d_fn, "insts": []}
+                    dll_order.append(dll_key)
+                if name and name not in missing_by_dll[dll_key]["insts"]:
+                    missing_by_dll[dll_key]["insts"].append(name)
+
+    missing_dlls = []
+    for dll_key in dll_order:
+        grp = missing_by_dll[dll_key]
+        inst_list = grp["insts"]
+        if len(inst_list) > 1:
+            inst_label = f"{'、'.join(inst_list)} 共用"
+        elif len(inst_list) == 1:
+            inst_label = inst_list[0]
+        else:
+            inst_label = "未命名儀器"
+        missing_dlls.append({
+            "inst": inst_label,
+            "dll": grp["dll"],
+            "shared": len(inst_list) > 1,
+            "insts": inst_list,
+        })
+
     return {
         "centimani_dir": cm_dir,
         "centimani_dir_exists": cm_dir_exists,
