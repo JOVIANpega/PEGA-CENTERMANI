@@ -1459,9 +1459,9 @@ def run_all_verifications():
             check('<status>0</status>' in logout_env
                   and any(":SfSaveLinkData,\"SNA\",\"TEST_RW\"" in r.get("Send", "") for r in rw_steps)
                   and any(":SfGetVersion,\"*(ISN)\",\"ISN_BASEINFO\",\"2\",\"SNA\",\"\"" in r.get("Send", "") for r in rw_steps)
-                  and {"TAIPEI", "PTB_PROD", "PTB_QA", "PTB_F1", "PTSN_PXD"}.issubset(preset_ids)
+                  and {"PTB_PROD", "PTB_QA", "PTB_F1", "TY3_PROD", "TY3_QA", "SUZHOU_PROD", "SUZHOU_QA"}.issubset(preset_ids)
                   and "SAGEMCOM" not in preset_ids and "ADB_X740" not in preset_ids,
-                  "v0.8.032 sfis_client 支援 OP Logout(status=0)、R/W 寫入回讀步驟與新版 PTB/PTSN 廠區清單",
+                  "v0.8.034 sfis_client 支援 OP Logout(status=0)、R/W 寫入回讀與 巴淡PTB/桃園TY3/蘇州 常用廠區清單",
                   str(sorted(preset_ids)))
             check("SFIS_SkipSaveResultOnFail=1" in sfis_sys_ini,
                   "v0.8.032 匯出 SFIS 驗證檔 System.ini 預設開啟 SFIS_SkipSaveResultOnFail=1（失敗不上傳保護 ISN）")
@@ -1479,6 +1479,17 @@ def run_all_verifications():
             check(ini_pick_res.get("status") == "ok" and "SFISTSPWebService.asmx" in (ini_pick_res.get("config") or {}).get("url", ""),
                   "v0.8.033 /api/pick_sfis_ini 正確解析 System.ini 與 Global.ini DEVID_1",
                   str(ini_pick_res))
+
+            # [v0.8.034] 驗證桃園三廠 TY3 WebLink (VALO360/0411_ER2_DONE) 與虛擬工單 5 碼流水號範本持久化 API
+            ty3_preset = next((p for p in sfis_client.SFIS_PLANT_PRESETS if p["id"] == "TY3_PROD"), {})
+            ty3_qa = next((p for p in sfis_client.SFIS_PLANT_PRESETS if p["id"] == "TY3_QA"), {})
+            prof_get = get_json("/api/sfis_hmi_profiles")
+            check("pxd-sftsp-n3.sfis.pegatroncorp.com" in ty3_preset.get("url", "")
+                  and "SFISWebService_XDNPDB0QA" in ty3_qa.get("url", "")
+                  and prof_get.get("status") == "ok"
+                  and any(m.get("mo") == "26951603" and m.get("seq_digits") == 5 for m in (prof_get.get("virtual_mos") or []))
+                  and "sfisExpandMoIsns" in sfis_hmi_js and "sfisAddCustomPlant" in sfis_hmi_js,
+                  "v0.8.034 TY3 桃園三廠網址、虛擬工單(26951603+5碼流水號)範本與廠區增修功能就緒")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

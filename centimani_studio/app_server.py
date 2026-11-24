@@ -1156,6 +1156,24 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             generic_only = qs.get("generic_only", ["0"])[0] in ("1", "true", "True")
             items = search_test_ids(q, limit=limit, generic_only=generic_only)
             self._send_json({"status": "ok", "items": items})
+        elif parsed.path == "/api/sfis_hmi_profiles":
+            from core.sfis_client import SFIS_PLANT_PRESETS, DEFAULT_VIRTUAL_MO_TEMPLATES
+            prof_file = os.path.join(BASE_DIR, "sfis_hmi_profiles.json")
+            saved = {}
+            if os.path.exists(prof_file):
+                try:
+                    with open(prof_file, "r", encoding="utf-8") as f:
+                        saved = json.load(f) or {}
+                except Exception:
+                    saved = {}
+            self._send_json({
+                "status": "ok",
+                "plants": saved.get("plants") or SFIS_PLANT_PRESETS,
+                "virtual_mos": saved.get("virtual_mos") or DEFAULT_VIRTUAL_MO_TEMPLATES,
+                "used_isns": saved.get("used_isns") or [],
+                "default_plants": SFIS_PLANT_PRESETS,
+                "default_virtual_mos": DEFAULT_VIRTUAL_MO_TEMPLATES,
+            })
         else:
             self._send_json({"error": "Not found"}, 404)
 
@@ -1674,7 +1692,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.033")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.034")
 
                 self._send_json({
                     "status": "ok",
@@ -1936,7 +1954,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.033")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.034")
 
                 self._send_json({
                     "status": "ok",
@@ -2185,7 +2203,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.033")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.034")
 
                 self._send_json({
                     "status": "ok",
@@ -2471,7 +2489,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.033")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.034")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2549,6 +2567,24 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         if k == "DEVID_1" and v:
                             parsed_cfg["device_id"] = v
                 self._send_json({"status": "ok", "config": parsed_cfg})
+            elif parsed.path == "/api/sfis_hmi_profiles":
+                prof_file = os.path.join(BASE_DIR, "sfis_hmi_profiles.json")
+                cur = {}
+                if os.path.exists(prof_file):
+                    try:
+                        with open(prof_file, "r", encoding="utf-8") as f:
+                            cur = json.load(f) or {}
+                    except Exception:
+                        cur = {}
+                if "plants" in payload and isinstance(payload["plants"], list):
+                    cur["plants"] = payload["plants"]
+                if "virtual_mos" in payload and isinstance(payload["virtual_mos"], list):
+                    cur["virtual_mos"] = payload["virtual_mos"]
+                if "used_isns" in payload and isinstance(payload["used_isns"], list):
+                    cur["used_isns"] = payload["used_isns"]
+                with open(prof_file, "w", encoding="utf-8") as f:
+                    json.dump(cur, f, ensure_ascii=False, indent=2)
+                self._send_json({"status": "ok", "saved": cur})
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
         except Exception as e:
@@ -2619,7 +2655,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.033) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.034) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

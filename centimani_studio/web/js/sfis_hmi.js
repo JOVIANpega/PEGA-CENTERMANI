@@ -1,6 +1,6 @@
 // SFIS WebService Split-Pane Animated HMI & Single-ISN Verification + Excel Script Builder
 
-const SFIS_PLANT_PRESETS = [
+let SFIS_PLANT_PRESETS = [
   {
     id: 'PTB_PROD',
     label: '巴淡 PTB 正式機 (10.176.33.13)',
@@ -17,39 +17,48 @@ const SFIS_PLANT_PRESETS = [
   },
   {
     id: 'PTB_F1',
-    label: '巴淡 PTB F1 (可自填修正 IP)',
+    label: '巴淡 PTB F1 (可編輯自填 IP)',
     url: 'http://172.24.255.113/SFISWebService/SFISTSPWebService.asmx',
     defaultDevice: '710001',
     defaultTsp: 'ATLAS,2'
   },
   {
-    id: 'TAIPEI',
-    label: '台北 TAIPEI (172.18.202.12)',
-    url: 'http://172.18.202.12/SFISWebService/SFISTSPWebService.asmx',
-    defaultDevice: '710001',
-    defaultTsp: 'PEGA,2'
-  },
-  {
-    id: 'PTSN_PXD',
-    label: '蘇州 PTSN (pxd-sftsp-n3)',
+    id: 'TY3_PROD',
+    label: '桃園三廠 TY3 正式機 (pxd-sftsp-n3)',
     url: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx',
     defaultDevice: '710001',
     defaultTsp: 'ATLAS,2'
   },
   {
-    id: 'PTSN_SZ',
-    label: '蘇州 SZ (.248.15)',
+    id: 'TY3_QA',
+    label: '桃園三廠 TY3 測試機 (XDNPDB0QA)',
+    url: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService_XDNPDB0QA/sfistspwebservice.asmx',
+    defaultDevice: '710001',
+    defaultTsp: 'ATLAS,2'
+  },
+  {
+    id: 'SUZHOU_PROD',
+    label: '蘇州正式機 (.248.15)',
     url: 'http://172.24.248.15/SFISWebService/SFISTSPWebService.asmx',
     defaultDevice: '710001',
     defaultTsp: 'ATLAS,2'
   },
   {
-    id: 'SZASCD0QA',
-    label: '蘇州 QA (SZASCD0QA)',
+    id: 'SUZHOU_QA',
+    label: '蘇州測試機 (SZASCD0QA)',
     url: 'http://172.24.255.10/SFISWebService_SZASCD0QA/SFISTSPWebService.asmx',
     defaultDevice: '430079',
     defaultTsp: 'ATLAS,2'
   }
+];
+
+const DEFAULT_VIRTUAL_MOS = [
+  { date: '9月21日', model: 'PL AURORA1A/V200/TAA', pn: '90AA221000S0', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951603', seq_digits: 5, seq_start: 1, note: 'TECO' },
+  { date: '9月21日', model: 'PL AURORA1B/V250/TAA', pn: '90AA221000K0', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951604', seq_digits: 5, seq_start: 1, note: 'TECO' },
+  { date: '9月21日', model: 'PL AURORA3A/V400/TAA', pn: '90AA221000B0', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951605', seq_digits: 5, seq_start: 1, note: 'TECO' },
+  { date: '9月21日', model: 'PL AURORA3B/V450/TAA', pn: '90AA221001B0', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951606', seq_digits: 5, seq_start: 1, note: 'TECO' },
+  { date: '9月21日', model: 'PL AURORA5A/V800/TAA', pn: '90AA221000Z0', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951607', seq_digits: 5, seq_start: 1, note: 'TECO' },
+  { date: '9月21日', model: 'PL AURORA5B/V850/TAA', pn: '90AA22100120', qty: 5, reason: 'Aurora SFIS 驗線', mo: '26951608', seq_digits: 5, seq_start: 1, note: 'TECO' }
 ];
 
 const SFIS_PROXY_FIELDS = [
@@ -100,6 +109,11 @@ function _getEffectivePlantUrl(plantId) {
 
 const SFIS_HMI_STATE = {
   activeSubTab: 'sfis', // 'sfis' | 'dll'
+  profilesLoaded: false,
+  showPlantEditor: false,
+  selectedMoIdx: 0,
+  virtualMos: JSON.parse(JSON.stringify(DEFAULT_VIRTUAL_MOS)),
+  usedIsns: [],
   plantId: 'PTB_PROD',
   config: {
     url: _getEffectivePlantUrl('PTB_PROD'),
@@ -108,10 +122,10 @@ const SFIS_HMI_STATE = {
     device_id: '710001',
     tsp: 'ATLAS,2',
     op: 'S09166390',
-    isn: '1B5723090000004',
+    isn: '2695160300001',
     skip_save_on_fail: true
   },
-  isnPoolText: '1B5723090000004\n1B5723090000005\n1B5723090000006',
+  isnPoolText: '2695160300001\n2695160300002\n2695160300003\n2695160300004\n2695160300005',
   // 精簡預設只有 2 步最常用動作（避免右側一開始擠滿，上方一排小按鈕可隨時加）
   items: [
     { uid: 'sf_1', kind: 'login', login_status: '1', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' },
@@ -185,6 +199,48 @@ function _buildCardExcelPreview(it) {
   return '';
 }
 
+async function _loadSfisProfilesOnce() {
+  if (SFIS_HMI_STATE.profilesLoaded) return;
+  SFIS_HMI_STATE.profilesLoaded = true;
+  try {
+    const res = await fetch('/api/sfis_hmi_profiles');
+    const d = await res.json();
+    if (d && d.status === 'ok') {
+      if (Array.isArray(d.plants) && d.plants.length) {
+        SFIS_PLANT_PRESETS = d.plants.map(p => ({
+          id: p.id,
+          label: p.label,
+          url: p.url,
+          defaultDevice: p.defaultDevice || p.default_device || '710001',
+          defaultTsp: p.defaultTsp || p.default_tsp || 'ATLAS,2'
+        }));
+      }
+      if (Array.isArray(d.virtual_mos) && d.virtual_mos.length) {
+        SFIS_HMI_STATE.virtualMos = d.virtual_mos;
+      }
+      if (Array.isArray(d.used_isns)) {
+        SFIS_HMI_STATE.usedIsns = d.used_isns;
+      }
+      const curP = SFIS_PLANT_PRESETS.find(x => x.id === SFIS_HMI_STATE.plantId) || SFIS_PLANT_PRESETS[0];
+      if (curP) {
+        SFIS_HMI_STATE.plantId = curP.id;
+        SFIS_HMI_STATE.config.url = _getEffectivePlantUrl(curP.id);
+      }
+      renderSfisHmiWorkspace();
+    }
+  } catch (e) {}
+}
+
+async function _saveSfisProfilesToBackend(partObj) {
+  try {
+    await fetch('/api/sfis_hmi_profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(partObj)
+    });
+  } catch (e) {}
+}
+
 function switchToolsVerifyTab(subTab) {
   SFIS_HMI_STATE.activeSubTab = (subTab === 'dll') ? 'dll' : 'sfis';
   const sfisPane = document.getElementById('toolsSubPaneSfis');
@@ -195,7 +251,10 @@ function switchToolsVerifyTab(subTab) {
   if (dllPane) dllPane.style.display = (SFIS_HMI_STATE.activeSubTab === 'dll') ? 'block' : 'none';
   if (btnSfis) btnSfis.className = 'source-mode-tab' + (SFIS_HMI_STATE.activeSubTab === 'sfis' ? ' active' : '');
   if (btnDll) btnDll.className = 'source-mode-tab' + (SFIS_HMI_STATE.activeSubTab === 'dll' ? ' active' : '');
-  if (SFIS_HMI_STATE.activeSubTab === 'sfis') renderSfisHmiWorkspace();
+  if (SFIS_HMI_STATE.activeSubTab === 'sfis') {
+    renderSfisHmiWorkspace();
+    _loadSfisProfilesOnce();
+  }
 }
 
 function sfisSelectPlant(plantId) {
@@ -203,8 +262,138 @@ function sfisSelectPlant(plantId) {
   if (!p) return;
   SFIS_HMI_STATE.plantId = p.id;
   SFIS_HMI_STATE.config.url = _getEffectivePlantUrl(p.id);
-  SFIS_HMI_STATE.config.device_id = p.defaultDevice;
-  SFIS_HMI_STATE.config.tsp = p.defaultTsp;
+  SFIS_HMI_STATE.config.device_id = p.defaultDevice || '710001';
+  SFIS_HMI_STATE.config.tsp = p.defaultTsp || 'ATLAS,2';
+  renderSfisHmiWorkspace();
+}
+
+function sfisTogglePlantEditor() {
+  SFIS_HMI_STATE.showPlantEditor = !SFIS_HMI_STATE.showPlantEditor;
+  renderSfisHmiWorkspace();
+}
+
+function sfisSaveEditedPlant() {
+  const lbl = (document.getElementById('sfisEdPlantLabel') || {}).value || '';
+  const url = (document.getElementById('sfisEdPlantUrl') || {}).value || '';
+  const dev = (document.getElementById('sfisEdPlantDev') || {}).value || '710001';
+  if (!lbl.trim() || !url.trim()) { alert('請填寫廠區名稱與 WebLink 網址'); return; }
+  const idx = SFIS_PLANT_PRESETS.findIndex(x => x.id === SFIS_HMI_STATE.plantId);
+  if (idx >= 0) {
+    SFIS_PLANT_PRESETS[idx].label = lbl.trim();
+    SFIS_PLANT_PRESETS[idx].url = url.trim();
+    SFIS_PLANT_PRESETS[idx].defaultDevice = dev.trim() || '710001';
+    SFIS_HMI_STATE.config.url = url.trim();
+    SFIS_HMI_STATE.config.device_id = dev.trim() || '710001';
+    _saveCustomPlantUrl(SFIS_PLANT_PRESETS[idx].id, url.trim());
+    _saveSfisProfilesToBackend({ plants: SFIS_PLANT_PRESETS });
+    SFIS_HMI_STATE.showPlantEditor = false;
+    renderSfisHmiWorkspace();
+  }
+}
+
+function sfisAddCustomPlant() {
+  const lbl = (document.getElementById('sfisEdPlantLabel') || {}).value || '';
+  const url = (document.getElementById('sfisEdPlantUrl') || {}).value || '';
+  const dev = (document.getElementById('sfisEdPlantDev') || {}).value || '710001';
+  if (!lbl.trim() || !url.trim()) { alert('請填寫新廠區名稱與 WebLink 網址'); return; }
+  const newId = 'CUSTOM_' + Date.now();
+  SFIS_PLANT_PRESETS.push({
+    id: newId,
+    label: lbl.trim(),
+    url: url.trim(),
+    defaultDevice: dev.trim() || '710001',
+    defaultTsp: SFIS_HMI_STATE.config.tsp || 'ATLAS,2'
+  });
+  SFIS_HMI_STATE.plantId = newId;
+  SFIS_HMI_STATE.config.url = url.trim();
+  SFIS_HMI_STATE.config.device_id = dev.trim() || '710001';
+  _saveCustomPlantUrl(newId, url.trim());
+  _saveSfisProfilesToBackend({ plants: SFIS_PLANT_PRESETS });
+  SFIS_HMI_STATE.showPlantEditor = false;
+  renderSfisHmiWorkspace();
+}
+
+function sfisDeleteCurrentPlant() {
+  if (SFIS_PLANT_PRESETS.length <= 1) { alert('至少需保留 1 個廠區選項'); return; }
+  const cur = SFIS_PLANT_PRESETS.find(x => x.id === SFIS_HMI_STATE.plantId);
+  if (!cur || !confirm(`確定從下拉選單移除「${cur.label}」嗎？`)) return;
+  SFIS_PLANT_PRESETS = SFIS_PLANT_PRESETS.filter(x => x.id !== cur.id);
+  SFIS_HMI_STATE.plantId = SFIS_PLANT_PRESETS[0].id;
+  SFIS_HMI_STATE.config.url = _getEffectivePlantUrl(SFIS_HMI_STATE.plantId);
+  _saveSfisProfilesToBackend({ plants: SFIS_PLANT_PRESETS });
+  SFIS_HMI_STATE.showPlantEditor = false;
+  renderSfisHmiWorkspace();
+}
+
+function sfisExpandMoIsns(moRow) {
+  if (!moRow || !moRow.mo) return [];
+  const base = String(moRow.mo).trim();
+  const qty = Math.min(50, Math.max(1, parseInt(moRow.qty || 5, 10) || 5));
+  const digits = Math.min(8, Math.max(1, parseInt(moRow.seq_digits || 5, 10) || 5));
+  const start = Math.max(0, parseInt(moRow.seq_start || 1, 10) || 1);
+  const out = [];
+  for (let i = 0; i < qty; i++) {
+    out.push(base + String(start + i).padStart(digits, '0'));
+  }
+  return out;
+}
+
+function sfisSelectMoRow(idx) {
+  SFIS_HMI_STATE.selectedMoIdx = idx;
+  const row = SFIS_HMI_STATE.virtualMos[idx];
+  if (row) {
+    const list = sfisExpandMoIsns(row);
+    if (list.length) {
+      SFIS_HMI_STATE.isnPoolText = list.join('\n');
+      const unused = list.find(x => !SFIS_HMI_STATE.usedIsns.includes(x));
+      SFIS_HMI_STATE.config.isn = unused || list[0];
+    }
+  }
+  renderSfisHmiWorkspace();
+}
+
+function sfisUpdateMoCell(idx, field, val) {
+  const row = SFIS_HMI_STATE.virtualMos[idx];
+  if (!row) return;
+  row[field] = (field === 'qty' || field === 'seq_digits' || field === 'seq_start') ? (parseInt(val, 10) || 1) : String(val || '');
+  _saveSfisProfilesToBackend({ virtual_mos: SFIS_HMI_STATE.virtualMos });
+  if (idx === SFIS_HMI_STATE.selectedMoIdx && (field === 'mo' || field === 'qty' || field === 'seq_digits' || field === 'seq_start')) {
+    const list = sfisExpandMoIsns(row);
+    if (list.length) SFIS_HMI_STATE.isnPoolText = list.join('\n');
+    renderSfisHmiWorkspace();
+  }
+}
+
+function sfisAddMoRow() {
+  SFIS_HMI_STATE.virtualMos.push({
+    date: '今日',
+    model: 'NEW_MODEL',
+    pn: '90AA...',
+    qty: 5,
+    reason: 'SFIS 驗線',
+    mo: '26951609',
+    seq_digits: 5,
+    seq_start: 1,
+    note: ''
+  });
+  SFIS_HMI_STATE.selectedMoIdx = SFIS_HMI_STATE.virtualMos.length - 1;
+  _saveSfisProfilesToBackend({ virtual_mos: SFIS_HMI_STATE.virtualMos });
+  renderSfisHmiWorkspace();
+}
+
+function sfisRemoveMoRow(idx) {
+  if (SFIS_HMI_STATE.virtualMos.length <= 1) return;
+  SFIS_HMI_STATE.virtualMos.splice(idx, 1);
+  SFIS_HMI_STATE.selectedMoIdx = Math.min(SFIS_HMI_STATE.selectedMoIdx, SFIS_HMI_STATE.virtualMos.length - 1);
+  _saveSfisProfilesToBackend({ virtual_mos: SFIS_HMI_STATE.virtualMos });
+  renderSfisHmiWorkspace();
+}
+
+function sfisToggleUsedIsn(isnVal) {
+  const idx = SFIS_HMI_STATE.usedIsns.indexOf(isnVal);
+  if (idx >= 0) SFIS_HMI_STATE.usedIsns.splice(idx, 1);
+  else SFIS_HMI_STATE.usedIsns.push(isnVal);
+  _saveSfisProfilesToBackend({ used_isns: SFIS_HMI_STATE.usedIsns });
   renderSfisHmiWorkspace();
 }
 
@@ -218,10 +407,10 @@ function _matchPlantIdByUrl(url) {
   }
   if (low.includes('10.176.33.13')) return 'PTB_PROD';
   if (low.includes('btardb0qa')) return 'PTB_QA';
-  if (low.includes('szascd0qa')) return 'SZASCD0QA';
-  if (low.includes('172.24.248.15')) return 'PTSN_SZ';
-  if (low.includes('pxd-sftsp')) return 'PTSN_PXD';
-  if (low.includes('172.18.202.12')) return 'TAIPEI';
+  if (low.includes('xdnpdb0qa')) return 'TY3_QA';
+  if (low.includes('pxd-sftsp')) return 'TY3_PROD';
+  if (low.includes('szascd0qa')) return 'SUZHOU_QA';
+  if (low.includes('172.24.248.15')) return 'SUZHOU_PROD';
   return SFIS_HMI_STATE.plantId;
 }
 
@@ -607,6 +796,10 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
     it.lastRaw = data.raw_result || data.msg || '';
     it.sentCmd = sentCmd;
     SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} ${meta.title} ➔ ${ok ? '✅ PASS' : (offline ? '⚠️ 離線' : '❌ FAIL')}`;
+    if (ok && (it.kind === 'savelink' || it.kind === 'rw') && isn && !SFIS_HMI_STATE.usedIsns.includes(isn)) {
+      SFIS_HMI_STATE.usedIsns.push(isn);
+      _saveSfisProfilesToBackend({ used_isns: SFIS_HMI_STATE.usedIsns });
+    }
     _pushResponseLog(`#${idx + 1} ${meta.title}`, sentCmd, data);
     renderSfisHmiWorkspace();
     return ok;
@@ -780,11 +973,36 @@ function renderSfisHmiWorkspace() {
     </div>`).join('')
     : '<div class="mono" style="font-size:0.78rem; color:#94A3B8; padding:6px 0;">尚無實測輸出。點擊右側任一步驟「⚡ 實測這步」或「🔍 測連通」，所有積木吐回的字串都會即時累積顯示在這裡。</div>';
 
-  const poolTokens = String(s.isnPoolText || '').split(/[\r\n,;]+/).map(x => x.trim()).filter(Boolean);
-  const poolBtns = poolTokens.map(tok => `
-    <button type="button" onclick="sfisPickIsnFromPool('${_escH(tok)}')" style="padding:2px 7px; border-radius:5px; font-size:0.75rem; border:1px solid ${tok === cfg.isn ? '#2563EB' : '#CBD5E1'}; background:${tok === cfg.isn ? '#DBEAFE' : '#FFFFFF'}; color:${tok === cfg.isn ? '#1E40AF' : '#334155'}; font-weight:${tok === cfg.isn ? '800' : '600'}; cursor:pointer;" class="mono">
-      ${tok === cfg.isn ? '🎯 ' : ''}${_escH(tok)}
-    </button>`).join('');
+  const curMo = s.virtualMos[s.selectedMoIdx] || s.virtualMos[0];
+  const expandedMoIsns = sfisExpandMoIsns(curMo);
+  const poolBtns = expandedMoIsns.map(tok => {
+    const isUsed = s.usedIsns.includes(tok);
+    const isCur = (tok === cfg.isn);
+    return `
+      <span style="display:inline-flex; align-items:center; gap:2px; border:1px solid ${isCur ? '#2563EB' : (isUsed ? '#94A3B8' : '#CBD5E1')}; background:${isCur ? '#DBEAFE' : (isUsed ? '#F1F5F9' : '#FFFFFF')}; border-radius:5px; padding:1px 4px;">
+        <button type="button" onclick="sfisPickIsnFromPool('${_escH(tok)}')" style="border:none; background:transparent; padding:1px 4px; font-size:0.75rem; color:${isCur ? '#1E40AF' : (isUsed ? '#64748B' : '#0F172A')}; font-weight:${isCur ? '800' : '600'}; cursor:pointer; text-decoration:${isUsed ? 'line-through' : 'none'};" class="mono">
+          ${isCur ? '🎯 ' : ''}${_escH(tok)}
+        </button>
+        <button type="button" onclick="sfisToggleUsedIsn('${_escH(tok)}')" title="${isUsed ? '取消已寫記號' : '手動標記已寫過'}" style="border:none; background:transparent; font-size:0.68rem; color:${isUsed ? '#16A34A' : '#94A3B8'}; cursor:pointer; padding:0 2px;">${isUsed ? '✓已用' : '○'}</button>
+      </span>`;
+  }).join('');
+
+  const moRowsHtml = s.virtualMos.map((m, mi) => {
+    const isSel = (mi === s.selectedMoIdx);
+    return `
+      <tr style="background:${isSel ? '#EFF6FF' : '#FFFFFF'};">
+        <td><input type="text" value="${_escH(m.date)}" onchange="sfisUpdateMoCell(${mi},'date',this.value)" style="width:52px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.model)}" onchange="sfisUpdateMoCell(${mi},'model',this.value)" style="width:128px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.pn)}" onchange="sfisUpdateMoCell(${mi},'pn',this.value)" class="mono" style="width:94px; font-size:0.71rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="number" min="1" max="50" value="${_escH(m.qty)}" onchange="sfisUpdateMoCell(${mi},'qty',this.value)" style="width:36px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.mo)}" onchange="sfisUpdateMoCell(${mi},'mo',this.value)" class="mono" style="width:74px; font-size:0.72rem; padding:2px 3px; border:1px solid #3B82F6; border-radius:3px; font-weight:800;"></td>
+        <td><input type="number" min="1" max="8" value="${_escH(m.seq_digits || 5)}" onchange="sfisUpdateMoCell(${mi},'seq_digits',this.value)" title="流水號位數" style="width:34px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td style="white-space:nowrap;">
+          <button type="button" onclick="sfisSelectMoRow(${mi})" style="padding:2px 6px; font-size:0.71rem; border-radius:4px; border:1px solid ${isSel ? '#2563EB' : '#94A3B8'}; background:${isSel ? '#2563EB' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">展開</button>
+          <button type="button" onclick="sfisRemoveMoRow(${mi})" style="padding:2px 4px; font-size:0.7rem; border-radius:4px; border:1px solid #FECACA; background:#FEF2F2; color:#DC2626; cursor:pointer;">✕</button>
+        </td>
+      </tr>`;
+  }).join('');
 
   const quickAddBtns = SFIS_CATALOG_BLOCKS.map(b => `
     <button type="button" draggable="true" ondragstart="sfisDragCatalogStart('${b.kind}', event)"
@@ -831,23 +1049,39 @@ function renderSfisHmiWorkspace() {
 
         <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 固定常駐吐回字串視窗 -->
         <div style="display:flex; flex-direction:column; gap:10px;">
-          <!-- 廠區下拉 + INI 帶入 + 工具 -->
+          <!-- 廠區下拉 + 新增改名 + INI 帶入 + 工具 -->
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:9px; padding:9px 11px;">
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:7px;">
-              <label style="flex:1; min-width:210px; font-size:0.8rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-bottom:7px;">
+              <label style="flex:1; min-width:190px; font-size:0.8rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:5px;">
                 <span>🏭 廠區：</span>
-                <select onchange="sfisSelectPlant(this.value)" style="flex:1; padding:5px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.82rem; background:#FFFFFF;">${plantOptions}</select>
+                <select onchange="sfisSelectPlant(this.value)" style="flex:1; padding:5px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.81rem; background:#FFFFFF;">${plantOptions}</select>
               </label>
-              <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:5px 10px; font-size:0.79rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;">📥 帶入現開 INI</button>
-              <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:5px 9px; font-size:0.78rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;">🌐 SFISTest</button>
+              <button type="button" onclick="sfisTogglePlantEditor()" class="btn" style="padding:5px 8px; font-size:0.76rem; background:${s.showPlantEditor ? '#DBEAFE' : '#FFFFFF'}; color:#1E40AF; border-color:#93C5FD; font-weight:800;" title="修改目前廠區名稱/IP 或新增廠區">✏️ 改/增廠區</button>
+              <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:5px 9px; font-size:0.78rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;">📥 帶入 INI</button>
+              <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:5px 8px; font-size:0.76rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;">🌐</button>
             </div>
+
+            ${s.showPlantEditor ? `
+              <div style="background:#EFF6FF; border:1px solid #93C5FD; border-radius:7px; padding:8px; margin-bottom:8px;">
+                <div style="font-size:0.75rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">✏️ 修改此廠區或新增為自訂廠區（自動儲存保留）：</div>
+                <div style="display:grid; grid-template-columns:1fr 85px; gap:5px; margin-bottom:5px;">
+                  <input id="sfisEdPlantLabel" type="text" value="${_escH(curPlant.label)}" placeholder="廠區顯示名稱" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
+                  <input id="sfisEdPlantDev" type="text" value="${_escH(curPlant.defaultDevice || '710001')}" placeholder="DevID" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
+                </div>
+                <input id="sfisEdPlantUrl" type="text" value="${_escH(cfg.url)}" placeholder="http://.../SFISTSPWebService.asmx" class="mono" style="width:100%; padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.77rem; box-sizing:border-box; margin-bottom:6px;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button type="button" onclick="sfisSaveEditedPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#2563EB; color:#FFFFFF; border:none;">💾 儲存修改</button>
+                  <button type="button" onclick="sfisAddCustomPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#059669; color:#FFFFFF; border:none;">＋ 另存為新廠區</button>
+                  <button type="button" onclick="sfisDeleteCurrentPlant()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除此項</button>
+                </div>
+              </div>` : ''}
 
             <div style="display:flex; gap:6px; align-items:center; margin-bottom:7px;">
               <input type="text" value="${_escH(cfg.url)}" oninput="sfisSyncConfig('url', this.value)" class="mono" placeholder="SFIS_WebLink (.asmx)" style="flex:1; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem; background:#FFFFFF;">
               <button type="button" onclick="toolsCheckSfisLink()" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#E0F2FE; color:#0369A1; border-color:#7DD3FC; font-weight:800;">🔍 測連通</button>
             </div>
 
-            <div style="display:grid; grid-template-columns:95px 115px 1fr; gap:6px;">
+            <div style="display:grid; grid-template-columns:92px 110px 1fr; gap:6px;">
               <label style="font-size:0.76rem; font-weight:800; color:#334155;">DeviceID
                 <input type="text" value="${_escH(cfg.device_id)}" oninput="sfisSyncConfig('device_id', this.value)" class="mono" style="width:100%; margin-top:2px; padding:4px 6px; border:1px solid #94A3B8; border-radius:5px; font-size:0.8rem; box-sizing:border-box;">
               </label>
@@ -859,16 +1093,35 @@ function renderSfisHmiWorkspace() {
               </label>
             </div>
 
-            <!-- 折疊：備用虛擬工單清冊 ＋ 進階匯出參數 -->
+            <!-- 折疊：虛擬工單清冊 (工單+流水號5碼 範本) ＋ 進階匯出參數 -->
             <details style="margin-top:7px;">
-              <summary style="cursor:pointer; font-size:0.76rem; font-weight:800; color:#475569;">📋 備用虛擬工單 ISN (${poolTokens.length}顆) / ⚙️ 進階 TSP 與專案名 ▾</summary>
-              <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CBD5E1; display:flex; flex-direction:column; gap:6px;">
+              <summary style="cursor:pointer; font-size:0.76rem; font-weight:800; color:#92400E;">📋 虛擬工單與 5 碼 ISN 範本 (MO: ${_escH(curMo ? curMo.mo : '')}・共 ${s.virtualMos.length} 筆，可修改) / ⚙️ 進階 ▾</summary>
+              <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CBD5E1; display:flex; flex-direction:column; gap:7px;">
                 <div>
-                  <div style="font-size:0.73rem; color:#92400E; font-weight:700; margin-bottom:3px;">貼入工廠給的 ISN 清單，點下列其中 1 顆切換到上方實測（不整批打光）：</div>
-                  <textarea rows="2" oninput="SFIS_HMI_STATE.isnPoolText=this.value" onblur="renderSfisHmiWorkspace()" class="mono" style="width:100%; padding:4px 6px; border:1px solid #FCD34D; border-radius:5px; font-size:0.76rem; box-sizing:border-box;">${_escH(s.isnPoolText)}</textarea>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:0.73rem; color:#92400E; font-weight:800;">規則：虛擬工單 ＋ 流水號（預設 5 碼如 <code>2695160300001~00005</code>，改寫自動存檔）</span>
+                    <button type="button" onclick="sfisAddMoRow()" style="padding:2px 7px; font-size:0.72rem; border-radius:4px; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; cursor:pointer; font-weight:800;">＋ 新增工單</button>
+                  </div>
+                  <div style="overflow-x:auto; border:1px solid #E2E8F0; border-radius:5px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.72rem; text-align:left;">
+                      <thead>
+                        <tr style="background:#F1F5F9; color:#334155;">
+                          <th style="padding:3px 4px;">日期</th>
+                          <th style="padding:3px 4px;">機種</th>
+                          <th style="padding:3px 4px;">料號</th>
+                          <th style="padding:3px 4px;">數量</th>
+                          <th style="padding:3px 4px;">虛擬工單</th>
+                          <th style="padding:3px 4px;">碼數</th>
+                          <th style="padding:3px 4px;">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>${moRowsHtml}</tbody>
+                    </table>
+                  </div>
+                  <div style="margin-top:5px; font-size:0.72rem; font-weight:800; color:#334155;">工單 [${_escH(curMo ? curMo.mo : '')}] 展開序號（點任 1 顆載入槍口實測）：</div>
                   <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${poolBtns}</div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px;">
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; border-top:1px dashed #CBD5E1; padding-top:6px;">
                   <label style="font-size:0.74rem; font-weight:700;">專案名稱<input type="text" value="${_escH(cfg.project_name)}" oninput="sfisSyncConfig('project_name', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
                   <label style="font-size:0.74rem; font-weight:700;">站別分頁<input type="text" value="${_escH(cfg.station)}" oninput="sfisSyncConfig('station', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
                   <label style="font-size:0.74rem; font-weight:700;">SFIS_TSP<input type="text" value="${_escH(cfg.tsp)}" oninput="sfisSyncConfig('tsp', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
