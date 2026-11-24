@@ -120,7 +120,7 @@ function _getEffectivePlantUrl(plantId) {
 }
 
 const SFIS_HMI_STATE = {
-  activeSubTab: 'sfis', // 'sfis' | 'dll'
+  activeSubTab: 'hub', // 'hub' | 'real' | 'mock' | 'dll'
   mockMode: false, // false = 實機工廠內網 | true = 本機模擬 SFIS 內網 (無網全測)
   leftPanePct: parseFloat(localStorage.getItem('centimani_sfis_left_pct') || '46') || 46,
   profilesLoaded: false,
@@ -359,17 +359,56 @@ async function _saveSfisProfilesToBackend(partObj) {
   } catch (e) {}
 }
 
+function setActiveToolsHubCard(key) {
+  ['real', 'mock', 'dll'].forEach(k => {
+    const el = document.getElementById('toolsHubCard_' + k);
+    if (el) el.classList.toggle('active', k === key);
+  });
+}
+
 function switchToolsVerifyTab(subTab) {
-  SFIS_HMI_STATE.activeSubTab = (subTab === 'dll') ? 'dll' : 'sfis';
+  let target = subTab || 'hub';
+  if (target === 'sfis') target = SFIS_HMI_STATE.mockMode ? 'mock' : 'real';
+  if (!['hub', 'real', 'mock', 'dll'].includes(target)) target = 'hub';
+
+  const wasMock = !!SFIS_HMI_STATE.mockMode;
+  SFIS_HMI_STATE.activeSubTab = target;
+  if (target === 'mock' || target === 'real') {
+    const nextMock = (target === 'mock');
+    SFIS_HMI_STATE.mockMode = nextMock;
+    if (nextMock !== wasMock) {
+      SFIS_HMI_STATE.anim.phase = 'idle';
+      SFIS_HMI_STATE.anim.opLoggedIn = null;
+      SFIS_HMI_STATE.anim.netConnected = nextMock ? true : null;
+      SFIS_HMI_STATE.anim.logs = [];
+      SFIS_HMI_STATE.items.forEach(it => { it.status = 'idle'; it.resultMsg = ''; it.lastRaw = ''; it.lastSlots = null; });
+      SFIS_HMI_STATE.anim.actionLabel = nextMock
+        ? '🧪 本機模擬 SFIS 內網就緒 — 按右側 ⚡ 即可無網全測'
+        : '🌐 實機工廠內網連線模式 — 將真實連線至 WebLink';
+    }
+  }
+
+  const hubEl = document.getElementById('toolsVerifyHub');
   const sfisPane = document.getElementById('toolsSubPaneSfis');
   const dllPane = document.getElementById('toolsSubPaneDll');
-  const btnSfis = document.getElementById('btnToolsTabSfis');
-  const btnDll = document.getElementById('btnToolsTabDll');
-  if (sfisPane) sfisPane.style.display = (SFIS_HMI_STATE.activeSubTab === 'sfis') ? 'block' : 'none';
-  if (dllPane) dllPane.style.display = (SFIS_HMI_STATE.activeSubTab === 'dll') ? 'block' : 'none';
-  if (btnSfis) btnSfis.className = 'source-mode-tab' + (SFIS_HMI_STATE.activeSubTab === 'sfis' ? ' active' : '');
-  if (btnDll) btnDll.className = 'source-mode-tab' + (SFIS_HMI_STATE.activeSubTab === 'dll' ? ' active' : '');
-  if (SFIS_HMI_STATE.activeSubTab === 'sfis') {
+  const backAccBtn = document.getElementById('btnToolsBackToAcc');
+  const modeTitleEl = document.getElementById('genCurrentModeTitle');
+
+  if (hubEl) hubEl.style.display = (target === 'hub') ? 'block' : 'none';
+  if (sfisPane) sfisPane.style.display = (target === 'real' || target === 'mock') ? 'block' : 'none';
+  if (dllPane) dllPane.style.display = (target === 'dll') ? 'block' : 'none';
+  if (backAccBtn) backAccBtn.style.display = (target === 'hub') ? 'none' : 'inline-flex';
+  if (modeTitleEl) {
+    const tMap = {
+      hub: '🛡️ 實機驗證中心（SFIS) — 請選擇驗證卡牌',
+      real: '🛡️ 實機驗證中心（SFIS) — 🌐 實機工廠內網 (OA / 產線)',
+      mock: '🛡️ 實機驗證中心（SFIS) — 🧪 本機模擬內網 (無網全測)',
+      dll: '🛡️ 實機驗證中心（SFIS) — 🔩 儀器 DLL 與系統驅動檢查'
+    };
+    modeTitleEl.textContent = tMap[target] || '🛡️ 實機驗證中心（SFIS)';
+  }
+
+  if (target === 'real' || target === 'mock') {
     renderSfisHmiWorkspace();
     _loadSfisProfilesOnce();
   }
@@ -705,6 +744,7 @@ function sfisCopyRecvString() {
 
 function sfisSetMockMode(isMock) {
   SFIS_HMI_STATE.mockMode = !!isMock;
+  SFIS_HMI_STATE.activeSubTab = !!isMock ? 'mock' : 'real';
   SFIS_HMI_STATE.anim.phase = 'idle';
   SFIS_HMI_STATE.anim.opLoggedIn = null;
   SFIS_HMI_STATE.anim.netConnected = isMock ? true : null;
@@ -718,6 +758,12 @@ function sfisSetMockMode(isMock) {
   SFIS_HMI_STATE.anim.actionLabel = isMock
     ? '🧪 已切至「本機模擬 SFIS 內網」— 已清除先前離線狀態，可立即按右側 ⚡ 全測'
     : '🌐 已切回「實機工廠內網」— 將真實連線至 WebLink';
+  const modeTitleEl = document.getElementById('genCurrentModeTitle');
+  if (modeTitleEl) {
+    modeTitleEl.textContent = isMock
+      ? '🛡️ 實機驗證中心（SFIS) — 🧪 本機模擬內網 (無網全測)'
+      : '🛡️ 實機驗證中心（SFIS) — 🌐 實機工廠內網 (OA / 產線)';
+  }
   renderSfisHmiWorkspace();
 }
 
@@ -1113,7 +1159,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.039') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.040') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1630,23 +1676,11 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.039');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.040');
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
-      <!-- 頂部連線環境切換列：本機模擬 SFIS 內網 vs 實機工廠內網 -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:7px 11px; border-radius:9px; background:${isMock ? '#FDE68A' : '#EFF6FF'}; border:1.5px solid ${isMock ? '#B45309' : '#93C5FD'};">
-        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-          <span style="font-weight:900; font-size:0.88rem; color:#0F172A;">📡 通訊模式：</span>
-          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${!isMock ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
-          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${isMock ? 'background:#B45309; color:#FFFFFF; border-color:#92400E; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
-          ${isMock ? '<span style="background:#78350F; color:#FEF3C7; padding:2px 8px; border-radius:999px; font-size:0.77rem; font-weight:800;">🧪 模擬內網模式（必通演練）</span>' : ''}
-          ${serverStale ? '<span style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:800;">⚠️ 後端為舊版，請重啟 .bat（模擬已由前端自動接手）</span>' : ''}
-        </div>
-        <div style="display:flex; align-items:center; gap:6px;">
-          ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.81rem; background:#FFFFFF; color:#92400E; border-color:#B45309; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.8rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
-        </div>
-      </div>
+      ${serverStale ? '<div style="margin-bottom:8px; padding:5px 10px; border-radius:7px; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; font-size:0.79rem; font-weight:800;">⚠️ 偵測到後端伺服器仍為舊版，請重雙擊 啟動_Centimani腳本工具.bat（模擬目前由瀏覽器引擎自動接手）</div>' : ''}
 
       <!-- 可拖曳調寬左右雙視窗：左 = 機台設定 + 動畫舞台 + 折疊式吐回字串終端；右 = 簡潔步驟控制 + 匯出 Excel -->
       <div id="sfisSplitLayout" class="sfis-split-layout" style="--sfis-left-w:${s.leftPanePct || 46}%;">
@@ -1800,7 +1834,8 @@ function renderSfisHmiWorkspace() {
           <div id="sfisQuickAddBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 點擊增加驗證步驟：</span>
-              <div style="display:flex; gap:6px;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : ''}
                 <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;">清空白板</button>
                 <button type="button" onclick="sfisHmiRunAll()" ${s.isRunning ? 'disabled' : ''} class="btn" style="padding:4px 12px; font-size:0.81rem; background:#059669; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">
                   ${s.isRunning ? '⏳ 模擬執行中...' : '▶ 依序實測全部步驟 (僅這1顆ISN)'}

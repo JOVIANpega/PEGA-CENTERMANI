@@ -1565,6 +1565,18 @@ def run_all_verifications():
                   and 'id="sfisLiveExcelPreview"' in sfis_hmi_js,
                   "v0.8.039 已清除積木卡片內冗餘說明與重複指令行，維持單卡精簡外觀")
 
+            # [v0.8.040] 驗證實機驗證中心（SFIS) 改版為 3 卡水平手風琴入口 (#toolsVerifyHub) + 移除頂部多餘書籤列最大化面積
+            tools_sec = index_html.split('<div id="genModeTools"')[1].split('</div><!-- /genModeTools -->')[0]
+            check('id="toolsVerifyHub"' in tools_sec
+                  and 'id="toolsHubCard_real"' in tools_sec
+                  and 'id="toolsHubCard_mock"' in tools_sec
+                  and 'id="toolsHubCard_dll"' in tools_sec
+                  and 'source-mode-bar' not in tools_sec
+                  and 'id="btnToolsBackToAcc"' in index_html
+                  and "setActiveToolsHubCard" in sfis_hmi_js
+                  and "通訊模式：" not in sfis_hmi_js,
+                  "v0.8.040 實機驗證中心 3 合 1 水平手風琴大卡牌入口與去書籤最大化工作區全數就緒")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.039">
+<link rel="stylesheet" href="/css/app.css?v=0.8.040">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.039</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.040</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -991,9 +991,12 @@
 
     <!-- 進入子模式後的頂部返回與切換列 -->
     <div id="genBackToModeHubBar" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:8px 12px;">
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <button onclick="switchGenSubMode('hub')" class="btn" style="padding:6px 14px; font-size:0.87rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 5px rgba(15,23,42,0.18);">
           ⬅ 返回模式選擇
+        </button>
+        <button id="btnToolsBackToAcc" onclick="switchToolsVerifyTab('hub')" class="btn" style="display:none; padding:6px 13px; font-size:0.85rem; background:#0F766E; color:#FFFFFF; border:none; border-radius:7px; font-weight:800; box-shadow:0 2px 5px rgba(15,118,110,0.18);">
+          🃏 重選驗證卡牌 (實機 / 模擬 / DLL)
         </button>
         <span id="genCurrentModeTitle" style="font-weight:900; font-size:0.97rem; color:#0F172A;"></span>
       </div>
@@ -1472,14 +1475,67 @@
       </div>
     </div><!-- /genModeQa -->
 
-    <!-- 實機驗證中心 (SFIS 互動人機 ISN 刷過/GET/WRITE + DLLtest 單步驗證 + NI-DAQmx 驅動檢查) -->
+    <!-- 實機驗證中心 (3 合 1 水平手風琴入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
     <div id="genModeTools" style="display:none;">
-      <div class="source-mode-bar" style="margin:0 0 12px 0;">
-        <button id="btnToolsSubSfis" type="button" class="source-mode-tab active" onclick="switchToolsVerifyTab('sfis')">🌐 SFIS 互動人機（ISN 刷過 / GET / WRITE ➔ 寫入 Excel）</button>
-        <button id="btnToolsSubDll" type="button" class="source-mode-tab" onclick="switchToolsVerifyTab('dll')">🧪 儀器 DLL 單步與系統驅動檢查</button>
+      <div id="toolsVerifyHub" style="display:block; margin-bottom:12px;">
+        <div style="margin-bottom:8px; font-size:0.87rem; color:#475569; font-weight:700;">
+          🛡️ 滑鼠移過卡牌檢視適用場景，點擊直接進入全畫面工作區（已精簡頂部分頁列，最大化操作面積）：
+        </div>
+        <div class="acc-row" style="min-height:300px;">
+          <div id="toolsHubCard_real" class="acc-card active" data-theme="blue" onmouseenter="setActiveToolsHubCard('real')" onclick="switchToolsVerifyTab('real')">
+            <div>
+              <div class="acc-num">01 / SFIS REAL INTRANET</div>
+              <div class="acc-icon">🌐</div>
+              <div class="acc-title">SFIS 實機工廠內網 (OA / 產線)</div>
+              <div class="acc-sub">直連公司／產線 WebService 實測與產出 Excel</div>
+            </div>
+            <div class="acc-body">
+              <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
+                <li><b>廠區快選 ＋ 帶入 INI</b>：支援巴淡 PTB、桃園三廠 TY3、蘇州與自動讀取 <code>System.ini</code></li>
+                <li><b>單顆 ISN 珍貴保護</b>：實測 CheckRoute、GET 0~7 堆疊切字與 R/W 寫入回讀</li>
+                <li><b>直接產出驗證腳本</b>：實測通過一鍵產生 <code>ExecMode=8</code> 標準 Excel</li>
+              </ul>
+              <div class="acc-enter-hint" style="color:#1D4ED8;">點擊進入實機連線工作台 ▶</div>
+            </div>
+          </div>
+
+          <div id="toolsHubCard_mock" class="acc-card" data-theme="amber" onmouseenter="setActiveToolsHubCard('mock')" onclick="switchToolsVerifyTab('mock')">
+            <div>
+              <div class="acc-num">02 / SFIS OFFLINE MOCK</div>
+              <div class="acc-icon">🧪</div>
+              <div class="acc-title">本機模擬 SFIS 內網 (無網全測)</div>
+              <div class="acc-sub">離線狀態完整演練 Login、堆疊欄位與過站阻擋</div>
+            </div>
+            <div class="acc-body">
+              <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
+                <li><b>外網免連內網必 PASS</b>：模擬真實 Centimani LOG 格式與 <code>0~7</code> 堆疊回傳</li>
+                <li><b>完整 Ref 找字串演練</b>：點選 <code>[2]~[7]</code> 與分號切段，自動轉義 <code>:SplitString</code> / <code>:WithinString</code></li>
+                <li><b>全頁金黃主題區隔</b>：支援模擬寫入後過站阻擋與「↺ 重置模擬 DB (清站)」</li>
+              </ul>
+              <div class="acc-enter-hint" style="color:#B45309;">點擊進入模擬內網工作台 ▶</div>
+            </div>
+          </div>
+
+          <div id="toolsHubCard_dll" class="acc-card" data-theme="green" onmouseenter="setActiveToolsHubCard('dll')" onclick="switchToolsVerifyTab('dll')">
+            <div>
+              <div class="acc-num">03 / DLL &amp; DRIVERS</div>
+              <div class="acc-icon">🔩</div>
+              <div class="acc-title">儀器 DLL 單步與系統驅動檢查</div>
+              <div class="acc-sub">檢查 Centimani 實機 DLL、NI-DAQmx 驅動與 DLLtest</div>
+            </div>
+            <div class="acc-body">
+              <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
+                <li><b>實機環境即掃</b>：核對目前 <code>Device\*.dll</code> 清單與系統 <code>NI-DAQmx (nicaiu.dll)</code></li>
+                <li><b>一鍵啟動 DLLtest.exe</b>：驗證 <code>iPower2401.dll</code> / <code>DaqUSBNi.dll</code> 單步通訊指令</li>
+                <li><b>目錄熱切換</b>：可隨時重掃或切換不同機台之 Centimani 主程式目錄</li>
+              </ul>
+              <div class="acc-enter-hint" style="color:#15803D;">點擊進入 DLL 與驅動檢查 ▶</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div id="toolsSubPaneSfis" style="display:block;"></div>
+      <div id="toolsSubPaneSfis" style="display:none;"></div>
 
       <div id="toolsSubPaneDll" style="display:none;">
         <div style="background:#FFFFFF; border:1.5px solid #86EFAC; border-top:4px solid #16A34A; border-radius:10px; padding:1rem 1.25rem; max-width:920px;">
@@ -1813,12 +1869,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.039"></script>
-<script src="/js/audit_editors.js?v=0.8.039"></script>
-<script src="/js/flow_guide.js?v=0.8.039"></script>
-<script src="/js/block_sorter.js?v=0.8.039"></script>
-<script src="/js/script_qa.js?v=0.8.039"></script>
-<script src="/js/sfis_hmi.js?v=0.8.039"></script>
+<script src="/js/inst_hmi.js?v=0.8.040"></script>
+<script src="/js/audit_editors.js?v=0.8.040"></script>
+<script src="/js/flow_guide.js?v=0.8.040"></script>
+<script src="/js/block_sorter.js?v=0.8.040"></script>
+<script src="/js/script_qa.js?v=0.8.040"></script>
+<script src="/js/sfis_hmi.js?v=0.8.040"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2927,10 +2983,12 @@ function switchGenSubMode(mode) {
   }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
   if (GEN_SUB_MODE === 'qa' && typeof initScriptQaPanel === 'function') initScriptQaPanel();
+  const backToolsBtn = document.getElementById('btnToolsBackToAcc');
+  if (backToolsBtn && GEN_SUB_MODE !== 'tools') backToolsBtn.style.display = 'none';
   if (GEN_SUB_MODE === 'tools') {
     if (typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
     if (typeof switchToolsVerifyTab === 'function') {
-      switchToolsVerifyTab((typeof SFIS_HMI_STATE !== 'undefined' && SFIS_HMI_STATE.activeSubTab) || 'sfis');
+      switchToolsVerifyTab('hub');
     }
   }
 }
