@@ -1524,7 +1524,7 @@ def run_all_verifications():
             inst_hmi_js = open(os.path.join(STUDIO_DIR, "web", "js", "inst_hmi.js"), "r", encoding="utf-8").read()
             check("tools: '🛡️ 實機驗證中心（SFIS)'" in index_html
                   and "sfis-split-resizer" in app_css and "sfisStartSplitDrag" in sfis_hmi_js
-                  and 'id="sfisResponseDetails"' in sfis_hmi_js and "responseExpanded: false" in sfis_hmi_js
+                  and 'id="sfisResponseDetails"' in sfis_hmi_js and "responseExpanded:" in sfis_hmi_js
                   and "it.status = 'idle';" in sfis_hmi_js.split("function sfisSetMockMode")[1].split("function sfisStartSplitDrag")[0]
                   and "sfisSetMockMode(true); sfisHmiRunAll();" in sfis_hmi_js
                   and "#toolsSubPaneSfis" in app_css and "sfis-hmi-wrap" in sfis_hmi_js
@@ -1614,6 +1614,34 @@ def run_all_verifications():
                   and sfis_hmi_js.find('id="sfisTopStageWrap"') < sfis_hmi_js.find('id="sfisSplitLayout"')
                   and "sfis-node-card-wide" in app_css and "sfis-node-card-wide" in sfis_hmi_js,
                   "v0.8.044 方案 1 跨雙欄頂部寬幅動畫舞台與左下終端空間騰空完成")
+
+            # [v0.8.045] 驗證撲克大牌組(鎖定頭尾 Login/CheckRoute/Logout 骨架) + 右側聚焦編輯區 + 實機 Excel Reply/ExecMode 完全對齊
+            sf_reply_idx = sf_hdr.index("Reply") if "Reply" in sf_hdr else 7
+            sf_title_idx = sf_hdr.index("Title") if "Title" in sf_hdr else 3
+            sf_rows_all = list(wb_sf["MB"].iter_rows(min_row=2, values_only=True))
+            show_isn_rows = [r for r in sf_rows_all if ":ShowISN" in str(r[6] or "")]
+            chk_route_rows = [r for r in sf_rows_all if ":SfCheckRoute" in str(r[6] or "")]
+            save_link_rows = [r for r in sf_rows_all if ":SfSaveLinkData" in str(r[6] or "")]
+            check(bool(show_isn_rows)
+                  and str(show_isn_rows[0][sf_title_idx] or "") == "0,CheckRoute"
+                  and str(show_isn_rows[0][sf_reply_idx] or "") == "0"
+                  and str(show_isn_rows[0][em_idx] or "") == "0"
+                  and bool(chk_route_rows)
+                  and str(chk_route_rows[0][sf_reply_idx] or "") == "0"
+                  and str(chk_route_rows[0][em_idx] or "") == "8"
+                  and bool(save_link_rows)
+                  and str(save_link_rows[0][sf_reply_idx] or "") == "0"
+                  and str(save_link_rows[0][em_idx] or "") == "8",
+                  "v0.8.045 匯出 SFIS Excel 的 Title/Reply/ExecMode (:ShowISN 0/0, :SfCheckRoute 0/8, :SfSaveLinkData 0/8) 與 SCRIPTS 範本完全對齊",
+                  str(sf_rows_all))
+            check('id="sfisPokerDeckGrid"' in sfis_hmi_js
+                  and 'id="sfisSelectedCardPanel"' in sfis_hmi_js
+                  and 'id="sfisCompactEnvBar"' in sfis_hmi_js
+                  and '_enforceSfisSkeleton' in sfis_hmi_js
+                  and 'sfisSelectDeckCard' in sfis_hmi_js
+                  and '.sfis-deck-grid' in app_css
+                  and '.sfis-deck-card.active' in app_css,
+                  "v0.8.045 SFIS 撲克牌組(鎖定 Login/CheckRoute/Logout 骨架)與右側聚焦檢查面板及終端佈局完整就緒")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

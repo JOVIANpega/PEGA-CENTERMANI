@@ -581,7 +581,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
     phase_num = max(0, int(start_phase))
     has_show_isn = False
 
-    def _add(title_str, desc, send_cmd, ref="", val="", tid="B7PL025", em="8", phase_val=""):
+    def _add(title_str, desc, send_cmd, ref="", val="", tid="B7PL025", em="8", phase_val="", reply_val=""):
         rows.append({
             "Index": f"{len(rows):03d}",
             "Phase": phase_val,
@@ -590,7 +590,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             "Instrument": "",
             "Switch": "",
             "Send": send_cmd,
-            "Reply": "",
+            "Reply": reply_val,
             "EndPrompt": "",
             "Ref": ref,
             "Validation": val,
@@ -626,23 +626,25 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
         if kind == "checkroute":
             if include_show_isn and not has_show_isn:
                 _add(
-                    "0,SFIS CheckRoute",
+                    "0,CheckRoute",
                     "Display ISN on Centimani UI",
                     ':ShowISN,"*(ISN)"',
                     tid="B7PL025",
-                    em="1",
+                    em="0",
                     phase_val=str(phase_num),
+                    reply_val="0",
                 )
                 has_show_isn = True
-                _add("", "Check SFIS Station Route", ":SfCheckRoute", tid="OTCH013", em="8", phase_val="")
+                _add("", "Check SFIS Station Route", ":SfCheckRoute", tid="OTCH013", em="8", phase_val="", reply_val="0")
             else:
                 _add(
-                    "0,SFIS CheckRoute" if not rows else "",
+                    "0,CheckRoute" if not rows else "",
                     "Check SFIS Station Route",
                     ":SfCheckRoute",
                     tid="OTCH013",
                     em="8",
                     phase_val=str(phase_num) if not rows else "",
+                    reply_val="0",
                 )
             phase_num += 1
 
@@ -689,6 +691,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                 tid="OTFX064",
                 em="8",
                 phase_val=str(phase_num),
+                reply_val="0",
             )
             phase_num += 1
 
@@ -704,6 +707,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                 tid="OTFX064",
                 em="8",
                 phase_val=str(phase_num),
+                reply_val="0",
             )
             _add(
                 "",

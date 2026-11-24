@@ -140,31 +140,60 @@ const SFIS_HMI_STATE = {
     skip_save_on_fail: true
   },
   isnPoolText: '2695160300001\n2695160300002\n2695160300003\n2695160300004\n2695160300005',
-  // 精簡預設只有 2 步最常用動作（避免右側一開始擠滿，上方一排小按鈕可隨時加）
+  // 鎖定頭尾骨架：Step 1 登入 (鎖定) -> Step 2 CheckRoute (鎖定) -> [中間由 User 增減] -> Last 登出 (鎖定)
   items: [
-    { uid: 'sf_1', kind: 'login', login_status: '1', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' },
-    { uid: 'sf_2', kind: 'checkroute', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' }
+    { uid: 'sf_head_login', kind: 'login', login_status: '1', locked: 'login', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' },
+    { uid: 'sf_head_route', kind: 'checkroute', locked: 'checkroute', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' },
+    { uid: 'sf_tail_logout', kind: 'login', login_status: '0', locked: 'logout', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' }
   ],
+  selectedUid: 'sf_head_route',
   anim: {
     phase: 'idle', // 'idle' | 'sending' | 'pass' | 'fail' | 'offline'
     stage: 'idle', // 'idle' | 'to_cloud' | 'to_db' | 'to_pc'
     packetText: '',
     slowDemo: (localStorage.getItem('centimani_sfis_slow_demo') !== '0'),
-    actionLabel: '待機就緒 — 請先測連通或按右側 ⚡ 實測',
+    actionLabel: '待機就緒 — 點選左側卡片或按 ▶ 依序實測',
     opLoggedIn: null,
     netConnected: null,
     lastFieldVal: '',
-    responseExpanded: false, // 預設折疊左下吐回字串終端，需要時再展開
-    responseViewMode: 'all', // 'all' | 'latest'
+    responseExpanded: true, // 右下黑底終端預設常駐顯示
+    responseViewMode: 'all', // 'all' | 'latest' | 'selected'
     logs: [] // 累積所有積木實測之送出與吐回完整字串
   },
   isRunning: false,
   dragSrcIdx: -1,
   dropTargetIdx: -1,
   dropPos: 'before',
-  dragSortMode: 'insert', // 'insert' 上下插牌 | 'swap' 碰牌對調
+  dragSortMode: 'swap', // 'swap' 碰牌對調 | 'insert' 插牌移位
   dragCatalogKind: ''
 };
+
+function _enforceSfisSkeleton() {
+  const arr = Array.isArray(SFIS_HMI_STATE.items) ? SFIS_HMI_STATE.items : [];
+  let headLogin = arr.find(x => x && (x.locked === 'login' || (x.kind === 'login' && String(x.login_status || '1') === '1')));
+  let headRoute = arr.find(x => x && (x.locked === 'checkroute' || x.kind === 'checkroute'));
+  let tailLogout = arr.find(x => x && (x.locked === 'logout' || (x.kind === 'login' && String(x.login_status || '1') === '0')));
+
+  headLogin = headLogin ? Object.assign(headLogin, { kind: 'login', login_status: '1', locked: 'login' })
+    : { uid: 'sf_head_login', kind: 'login', login_status: '1', locked: 'login', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
+  headRoute = headRoute ? Object.assign(headRoute, { kind: 'checkroute', locked: 'checkroute' })
+    : { uid: 'sf_head_route', kind: 'checkroute', locked: 'checkroute', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
+  tailLogout = tailLogout ? Object.assign(tailLogout, { kind: 'login', login_status: '0', locked: 'logout' })
+    : { uid: 'sf_tail_logout', kind: 'login', login_status: '0', locked: 'logout', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
+
+  const middle = arr.filter(x => x && x !== headLogin && x !== headRoute && x !== tailLogout && x.kind !== 'login' && x.kind !== 'checkroute')
+    .map(x => { x.locked = ''; return x; });
+
+  SFIS_HMI_STATE.items = [headLogin, headRoute, ...middle, tailLogout];
+  if (!SFIS_HMI_STATE.items.some(x => x.uid === SFIS_HMI_STATE.selectedUid)) {
+    SFIS_HMI_STATE.selectedUid = headRoute.uid;
+  }
+}
+
+function sfisSelectDeckCard(uid) {
+  SFIS_HMI_STATE.selectedUid = uid;
+  renderSfisHmiWorkspace();
+}
 
 function _escH(s) {
   return String(s == null ? '' : s)
@@ -688,7 +717,7 @@ async function sfisImportFromWorkspaceIni() {
   }
 }
 
-function _pushResponseLog(stepTitle, sentCmd, soapData) {
+function _pushResponseLog(stepTitle, sentCmd, soapData, uid = '') {
   const ok = !!soapData.passed;
   const offline = !soapData.reachable || soapData.status === 'offline';
   const slots = soapData.slots || {};
@@ -710,6 +739,7 @@ function _pushResponseLog(stepTitle, sentCmd, soapData) {
     : (ok ? (valStr ? `✅ 值：${valStr}` : `✅ ${soapData.msg || 'PASS'}`) : `❌ ${soapData.msg || 'FAIL'}`);
 
   SFIS_HMI_STATE.anim.logs.unshift({
+    uid: uid || '',
     time: timeStr,
     title: stepTitle,
     ok,
@@ -728,13 +758,15 @@ function sfisClearLogs() {
 }
 
 function sfisSetRespViewMode(mode) {
-  SFIS_HMI_STATE.anim.responseViewMode = (mode === 'latest') ? 'latest' : 'all';
+  SFIS_HMI_STATE.anim.responseViewMode = ['latest', 'selected'].includes(mode) ? mode : 'all';
   renderSfisHmiWorkspace();
 }
 
 function sfisCopyRecvString() {
   const a = SFIS_HMI_STATE.anim;
-  const list = (a.responseViewMode === 'latest' && a.logs.length) ? [a.logs[0]] : a.logs;
+  const list = (a.responseViewMode === 'selected')
+    ? a.logs.filter(l => l.uid && l.uid === SFIS_HMI_STATE.selectedUid)
+    : ((a.responseViewMode === 'latest' && a.logs.length) ? [a.logs[0]] : a.logs);
   const txt = list.map(l => `[${l.time}] ${l.title}\n>> ${l.sent}\n<< ${l.recv}`).join('\n\n');
   if (!txt) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -878,10 +910,16 @@ async function toolsCheckSfisLink() {
 }
 
 function sfisAddItem(kind, insertAt = -1) {
+  _enforceSfisSkeleton();
+  if (kind === 'login' || kind === 'checkroute') {
+    const pick = SFIS_HMI_STATE.items.find(x => x.kind === kind);
+    if (pick) SFIS_HMI_STATE.selectedUid = pick.uid;
+    renderSfisHmiWorkspace();
+    return;
+  }
   const uid = 'sf_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-  let item = { uid, kind, status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
-  if (kind === 'login') item.login_status = '1';
-  else if (kind === 'get') {
+  let item = { uid, kind, locked: '', status: 'idle', resultMsg: '', lastRaw: '', sentCmd: '' };
+  if (kind === 'get') {
     item.ver_type = 'ISN_BASEINFO';
     item.field_key = 'SNA';
     item.custom_field = '';
@@ -904,18 +942,33 @@ function sfisAddItem(kind, insertAt = -1) {
   else if (kind === 'rw') { item.field_key = 'SNB'; item.custom_field = ''; item.save_val = 'TEST_RW_01'; item.ref_var = 'sfSNB'; }
   else if (kind === 'clear') { item.field_key = 'SNA'; item.custom_field = ''; }
 
-  if (insertAt >= 0 && insertAt <= SFIS_HMI_STATE.items.length) SFIS_HMI_STATE.items.splice(insertAt, 0, item);
-  else SFIS_HMI_STATE.items.push(item);
+  const tailIdx = Math.max(2, SFIS_HMI_STATE.items.length - 1);
+  const clampedIdx = (insertAt >= 2 && insertAt <= tailIdx) ? insertAt : tailIdx;
+  SFIS_HMI_STATE.items.splice(clampedIdx, 0, item);
+  SFIS_HMI_STATE.selectedUid = item.uid;
   renderSfisHmiWorkspace();
 }
 
 function sfisRemoveItem(idx) {
+  _enforceSfisSkeleton();
+  const it = SFIS_HMI_STATE.items[idx];
+  if (!it || it.locked) return;
+  const wasSel = (SFIS_HMI_STATE.selectedUid === it.uid);
   SFIS_HMI_STATE.items.splice(idx, 1);
+  if (wasSel) {
+    const nextItem = SFIS_HMI_STATE.items[Math.min(idx, SFIS_HMI_STATE.items.length - 1)] || SFIS_HMI_STATE.items[1];
+    if (nextItem) SFIS_HMI_STATE.selectedUid = nextItem.uid;
+  }
   renderSfisHmiWorkspace();
 }
 
 function sfisClearAllItems() {
-  SFIS_HMI_STATE.items = [];
+  _enforceSfisSkeleton();
+  // 只清空中間自訂測項，保留 #1 Login / #2 CheckRoute / 最後 Logout 固定骨架
+  if (SFIS_HMI_STATE.items.length > 3) {
+    SFIS_HMI_STATE.items.splice(2, SFIS_HMI_STATE.items.length - 3);
+  }
+  SFIS_HMI_STATE.selectedUid = SFIS_HMI_STATE.items[1] ? SFIS_HMI_STATE.items[1].uid : '';
   renderSfisHmiWorkspace();
 }
 
@@ -960,53 +1013,50 @@ function sfisSetDragSortMode(mode) {
 }
 
 function sfisMoveStep(idx, delta) {
-  const target = idx + delta;
-  if (idx < 0 || target < 0 || idx >= SFIS_HMI_STATE.items.length || target >= SFIS_HMI_STATE.items.length) return;
+  _enforceSfisSkeleton();
   const arr = SFIS_HMI_STATE.items;
+  const it = arr[idx];
+  const minMid = 2;
+  const maxMid = arr.length - 2;
+  const target = idx + delta;
+  if (!it || it.locked || target < minMid || target > maxMid) return;
   const moved = arr.splice(idx, 1)[0];
   arr.splice(target, 0, moved);
+  SFIS_HMI_STATE.selectedUid = moved.uid;
   renderSfisHmiWorkspace();
-}
-
-function sfisScrollToCard(idx) {
-  const el = document.getElementById(`sfisTrackCard_${idx}`);
-  if (el && typeof el.scrollIntoView === 'function') {
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
-
-function sfisDragCatalogStart(kind, ev) {
-  SFIS_HMI_STATE.dragCatalogKind = kind;
-  SFIS_HMI_STATE.dragSrcIdx = -1;
-  if (ev && ev.dataTransfer) {
-    ev.dataTransfer.effectAllowed = 'copy';
-    ev.dataTransfer.setData('text/plain', 'catalog:' + kind);
-  }
 }
 
 function sfisPrepCardDrag(cardEl, ev) {
   if (!cardEl || !ev) return;
+  if (cardEl.classList.contains('locked')) {
+    cardEl.setAttribute('draggable', 'false');
+    return;
+  }
   const blocked = ev.target && ev.target.closest('input, select, textarea, button, label, details, a');
   cardEl.setAttribute('draggable', blocked ? 'false' : 'true');
 }
 
 function sfisDragItemStart(idx, ev) {
+  const it = SFIS_HMI_STATE.items[idx];
+  if (!it || it.locked) { if (ev) ev.preventDefault(); return; }
   SFIS_HMI_STATE.dragSrcIdx = idx;
   SFIS_HMI_STATE.dragCatalogKind = '';
   if (ev && ev.dataTransfer) {
     ev.dataTransfer.effectAllowed = 'move';
     ev.dataTransfer.setData('text/plain', 'item:' + idx);
   }
-  const card = document.getElementById(`sfisTrackCard_${idx}`);
+  const card = document.getElementById(`sfisDeckCard_${idx}`) || document.getElementById(`sfisTrackCard_${idx}`);
   if (card) card.classList.add('is-dragging');
 }
 
 function sfisCardDragOver(ev, targetIdx) {
   ev.preventDefault();
+  const targetItem = SFIS_HMI_STATE.items[targetIdx];
+  if (!targetItem || targetItem.locked) return;
   if (SFIS_HMI_STATE.dragSrcIdx < 0 || SFIS_HMI_STATE.dragSrcIdx === targetIdx) return;
-  const card = document.getElementById(`sfisTrackCard_${targetIdx}`);
+  const card = document.getElementById(`sfisDeckCard_${targetIdx}`) || document.getElementById(`sfisTrackCard_${targetIdx}`);
   if (!card) return;
-  document.querySelectorAll('.sfis-track-card').forEach(c => {
+  document.querySelectorAll('.sfis-deck-card, .sfis-track-card').forEach(c => {
     c.classList.remove('drop-swap', 'drop-before', 'drop-after');
   });
   if (SFIS_HMI_STATE.dragSortMode === 'swap') {
@@ -1014,7 +1064,7 @@ function sfisCardDragOver(ev, targetIdx) {
     SFIS_HMI_STATE.dropTargetIdx = targetIdx;
   } else {
     const r = card.getBoundingClientRect();
-    const isBefore = (ev.clientY - r.top) < (r.height / 2);
+    const isBefore = (ev.clientX - r.left) < (r.width / 2);
     SFIS_HMI_STATE.dropTargetIdx = targetIdx;
     SFIS_HMI_STATE.dropPos = isBefore ? 'before' : 'after';
     card.classList.add(isBefore ? 'drop-before' : 'drop-after');
@@ -1022,27 +1072,32 @@ function sfisCardDragOver(ev, targetIdx) {
 }
 
 function sfisCardDragLeave(targetIdx) {
-  const card = document.getElementById(`sfisTrackCard_${targetIdx}`);
+  const card = document.getElementById(`sfisDeckCard_${targetIdx}`) || document.getElementById(`sfisTrackCard_${targetIdx}`);
   if (card) card.classList.remove('drop-swap', 'drop-before', 'drop-after');
 }
 
 function sfisCardDragEnd() {
   SFIS_HMI_STATE.dragSrcIdx = -1;
   SFIS_HMI_STATE.dropTargetIdx = -1;
-  document.querySelectorAll('.sfis-track-card').forEach(c => {
+  document.querySelectorAll('.sfis-deck-card, .sfis-track-card').forEach(c => {
     c.classList.remove('is-dragging', 'drop-swap', 'drop-before', 'drop-after');
   });
 }
 
 function sfisDropOnTrack(targetIdx, ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  _enforceSfisSkeleton();
   const cKind = SFIS_HMI_STATE.dragCatalogKind;
   const srcIdx = SFIS_HMI_STATE.dragSrcIdx;
   const dropPos = SFIS_HMI_STATE.dropPos || 'before';
   sfisCardDragEnd();
   SFIS_HMI_STATE.dragCatalogKind = '';
+  const tailIdx = Math.max(2, SFIS_HMI_STATE.items.length - 1);
   if (cKind) { sfisAddItem(cKind, targetIdx); return; }
-  if (srcIdx >= 0 && srcIdx !== targetIdx && srcIdx < SFIS_HMI_STATE.items.length && targetIdx < SFIS_HMI_STATE.items.length) {
+  const srcItem = SFIS_HMI_STATE.items[srcIdx];
+  const tgtItem = SFIS_HMI_STATE.items[targetIdx];
+  if (!srcItem || srcItem.locked) return;
+  if (targetIdx >= 2 && targetIdx < tailIdx && tgtItem && !tgtItem.locked && srcIdx !== targetIdx) {
     if (SFIS_HMI_STATE.dragSortMode === 'swap') {
       const tmp = SFIS_HMI_STATE.items[srcIdx];
       SFIS_HMI_STATE.items[srcIdx] = SFIS_HMI_STATE.items[targetIdx];
@@ -1052,13 +1107,10 @@ function sfisDropOnTrack(targetIdx, ev) {
       let dest = targetIdx;
       if (srcIdx < targetIdx) dest = (dropPos === 'before') ? targetIdx - 1 : targetIdx;
       else dest = (dropPos === 'before') ? targetIdx : targetIdx + 1;
-      dest = Math.max(0, Math.min(SFIS_HMI_STATE.items.length, dest));
+      dest = Math.max(2, Math.min(SFIS_HMI_STATE.items.length - 1, dest));
       SFIS_HMI_STATE.items.splice(dest, 0, moved);
     }
-    renderSfisHmiWorkspace();
-  } else if (srcIdx >= 0 && targetIdx >= SFIS_HMI_STATE.items.length) {
-    const moved = SFIS_HMI_STATE.items.splice(srcIdx, 1)[0];
-    SFIS_HMI_STATE.items.push(moved);
+    SFIS_HMI_STATE.selectedUid = srcItem.uid;
     renderSfisHmiWorkspace();
   }
 }
@@ -1168,7 +1220,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.044') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.045') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1209,6 +1261,7 @@ function _sfisSleep(ms) {
 async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = null) {
   const it = SFIS_HMI_STATE.items[idx];
   if (!it) return true;
+  SFIS_HMI_STATE.selectedUid = it.uid;
   const meta = _getBlockMeta(it.kind);
   const f = _resolveCardField(it);
   const isn = SFIS_HMI_STATE.config.isn || '(空)';
@@ -1340,7 +1393,7 @@ async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = nu
       SFIS_HMI_STATE.usedIsns.push(isn);
       _saveSfisProfilesToBackend({ used_isns: SFIS_HMI_STATE.usedIsns });
     }
-    _pushResponseLog(`#${idx + 1} ${meta.title}`, sentCmd, data);
+    _pushResponseLog(`#${idx + 1} ${meta.title}`, sentCmd, data, it.uid);
     renderSfisHmiWorkspace();
     return ok;
   } catch (e) {
@@ -1349,7 +1402,7 @@ async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = nu
     it.status = 'fail';
     it.resultMsg = String(e);
     SFIS_HMI_STATE.anim.phase = 'fail';
-    _pushResponseLog(`#${idx + 1} ${meta.title}`, 'Request Error', { passed: false, reachable: false, ret_code: 'ERR', msg: String(e) });
+    _pushResponseLog(`#${idx + 1} ${meta.title}`, 'Request Error', { passed: false, reachable: false, ret_code: 'ERR', msg: String(e) }, it.uid);
     renderSfisHmiWorkspace();
     return false;
   }
@@ -1600,6 +1653,7 @@ function sfisRenderLiveExcelPreview() {
 function renderSfisHmiWorkspace() {
   const root = document.getElementById('toolsSubPaneSfis');
   if (!root) return;
+  _enforceSfisSkeleton();
   const s = SFIS_HMI_STATE;
   const cfg = s.config;
   const a = s.anim;
@@ -1619,17 +1673,19 @@ function renderSfisHmiWorkspace() {
   const dbLedColor = isPass ? '#16A34A' : (isFail ? '#DC2626' : (isOffline ? '#D97706' : '#94A3B8'));
   const lineClass = isSending ? 'sfis-flow-line sending' : (isPass ? 'sfis-flow-line pass' : (isFail ? 'sfis-flow-line fail' : 'sfis-flow-line'));
 
-  const showList = (a.responseViewMode === 'latest' && a.logs.length) ? [a.logs[0]] : a.logs;
+  const showList = (a.responseViewMode === 'selected')
+    ? a.logs.filter(l => l.uid && l.uid === s.selectedUid)
+    : ((a.responseViewMode === 'latest' && a.logs.length) ? [a.logs[0]] : a.logs);
   const logsHtml = showList.length ? showList.map(l => `
     <div style="border-bottom:1px dashed #334155; padding:5px 0;">
-      <div style="display:flex; justify-content:space-between; gap:6px; font-size:0.75rem; font-weight:800; color:${l.ok ? '#86EFAC' : (l.offline ? '#FDE68A' : '#FCA5A5')};">
+      <div style="display:flex; justify-content:space-between; gap:6px; font-size:0.77rem; font-weight:800; color:${l.ok ? '#86EFAC' : (l.offline ? '#FDE68A' : '#FCA5A5')};">
         <span>[${l.time}] ${_escH(l.title)}</span>
         <span>${_escH(l.summary)}</span>
       </div>
-      <div class="mono" style="font-size:0.73rem; color:#94A3B8; margin-top:2px;">&gt;&gt; ${_escH(l.sent)}</div>
-      <pre class="mono" style="margin:2px 0 0 0; font-size:0.75rem; color:#E2E8F0; white-space:pre-wrap; word-break:break-all;">${_escH(l.recv)}</pre>
+      <div class="mono" style="font-size:0.74rem; color:#94A3B8; margin-top:2px;">&gt;&gt; ${_escH(l.sent)}</div>
+      <pre class="mono" style="margin:2px 0 0 0; font-size:0.76rem; color:#E2E8F0; white-space:pre-wrap; word-break:break-all;">${_escH(l.recv)}</pre>
     </div>`).join('')
-    : '<div class="mono" style="font-size:0.78rem; color:#94A3B8; padding:6px 0;">尚無實測輸出。點擊右側任一步驟「⚡ 實測這步」或「🔍 測連通」，所有積木吐回的字串都會即時累積顯示在這裡。</div>';
+    : `<div class="mono" style="font-size:0.79rem; color:#94A3B8; padding:6px 0;">${a.responseViewMode === 'selected' ? '此卡片尚無實測紀錄，請按上方「⚡ 實測這步」或左側「▶ 依序實測全部」。' : '尚無實測輸出。點左邊任張撲克牌按「⚡ 實測這步」或「▶ 依序實測全部步驟」，結果都會即時顯示在這裡。'}</div>`;
 
   const curMo = s.virtualMos[s.selectedMoIdx] || s.virtualMos[0];
   const expandedMoIsns = sfisExpandMoIsns(curMo);
@@ -1662,53 +1718,85 @@ function renderSfisHmiWorkspace() {
       </tr>`;
   }).join('');
 
-  const quickAddBtns = SFIS_CATALOG_BLOCKS.map(b => `
+  // 中間步驟按鈕：頭尾 Login/CheckRoute/Logout 固定鎖定，不提供重複加入
+  const quickAddBtns = SFIS_CATALOG_BLOCKS.filter(b => b.kind !== 'login' && b.kind !== 'checkroute').map(b => `
     <button type="button" draggable="true" ondragstart="sfisDragCatalogStart('${b.kind}', event)"
             onclick="sfisAddItem('${b.kind}')" title="${_escH(b.desc)}"
-            class="btn" style="padding:4px 9px; font-size:0.79rem; background:${b.bg}; color:${b.theme}; border:1px solid ${b.border}; font-weight:800;">
+            class="btn" style="padding:4px 9px; font-size:0.78rem; background:${b.bg}; color:${b.theme}; border:1px solid ${b.border}; font-weight:800;">
       ＋ ${b.icon} ${_escH(b.title)}
     </button>`).join('');
 
-  const trackCardsHtml = s.items.map((it, idx) => {
+  const deckCardsHtml = s.items.map((it, idx) => {
     const meta = _getBlockMeta(it.kind);
-    const stColor = it.status === 'pass' ? '#16A34A' : (it.status === 'fail' ? '#DC2626' : (it.status === 'offline' ? '#D97706' : (it.status === 'running' ? '#2563EB' : meta.border)));
-    const stBadge = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">PASS</span>'
-      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">FAIL</span>'
-      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">離線/未連網</span>'
-      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">傳送中</span>'
-      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 7px; border-radius:999px; font-size:0.75rem;">待測</span>')));
+    const isLocked = !!it.locked;
+    const isActive = (it.uid === s.selectedUid);
+    const isOut = (it.kind === 'login' && String(it.login_status || '1') === '0');
+    const cardTitle = it.kind === 'login' ? (isOut ? 'Logout 登出' : 'Login 登入') : meta.title;
+    const cardIcon = it.kind === 'login' ? (isOut ? '🚪' : '🔐') : meta.icon;
+    const subTag = (it.kind === 'get' || it.kind === 'savelink' || it.kind === 'rw' || it.kind === 'clear')
+      ? (_resolveCardField(it) || it.ver_type || '')
+      : (it.locked === 'login' ? '起點登入' : (it.locked === 'checkroute' ? '途程過站' : (it.locked === 'logout' ? '收尾登出' : '')));
 
-    const offlineSwitchBtn = (it.status === 'offline' && !s.mockMode)
-      ? `<div style="margin-top:5px;"><button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 目前非工廠內網 — 一鍵改用本機模擬並重測</button></div>`
-      : '';
+    const stCls = it.status === 'running' ? 'status-running' : (it.status === 'pass' ? 'status-pass' : ((it.status === 'fail' || it.status === 'offline') ? 'status-fail' : ''));
+    const stPill = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">PASS</span>'
+      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">FAIL</span>'
+      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">離線</span>'
+      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">跑中</span>'
+      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 5px; border-radius:999px; font-size:0.69rem;">待測</span>')));
+
+    const isMidFirst = (idx === 2);
+    const isMidLast = (idx === s.items.length - 2);
+    const footerCtrl = isLocked
+      ? `<span style="font-size:0.69rem; font-weight:800; color:#475569; background:#E2E8F0; padding:1px 5px; border-radius:4px;">🔒 骨架鎖定</span>`
+      : `<div style="display:flex; gap:2px; align-items:center;" onclick="event.stopPropagation()">
+           <button type="button" onclick="sfisMoveStep(${idx}, -1)" ${isMidFirst ? 'disabled' : ''} style="padding:1px 5px; font-size:0.7rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往前移">◀</button>
+           <button type="button" onclick="sfisMoveStep(${idx}, 1)" ${isMidLast ? 'disabled' : ''} style="padding:1px 5px; font-size:0.7rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往後移">▶</button>
+           <button type="button" onclick="sfisRemoveItem(${idx})" style="padding:1px 5px; font-size:0.7rem; border:1px solid #FECACA; border-radius:4px; background:#FEF2F2; color:#DC2626; cursor:pointer;" title="移除此中間步驟">✕</button>
+         </div>`;
 
     return `
-      <div id="sfisTrackCard_${idx}" class="sfis-track-card" draggable="true"
+      <div id="sfisDeckCard_${idx}" class="sfis-deck-card ${isLocked ? 'locked' : ''} ${isActive ? 'active' : ''} ${stCls}"
+           draggable="${isLocked ? 'false' : 'true'}"
            onmousedown="sfisPrepCardDrag(this, event)"
            ondragstart="sfisDragItemStart(${idx}, event)"
            ondragover="sfisCardDragOver(event, ${idx})"
            ondragleave="sfisCardDragLeave(${idx})"
            ondrop="sfisDropOnTrack(${idx}, event)"
            ondragend="sfisCardDragEnd()"
-           style="background:#FFFFFF; border:2px solid ${stColor}; border-radius:9px; padding:8px 11px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:5px;">
-          <div style="display:flex; align-items:center; gap:6px; cursor:grab;" title="按住上下拖曳即可調整順序">
-            <span style="color:#94A3B8; font-weight:900; font-size:0.9rem;">⠿</span>
-            <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 6px; border-radius:4px; font-weight:900; font-size:0.78rem;">#${idx + 1}</span>
-            <span style="font-weight:900; font-size:0.89rem; color:#0F172A;">${meta.icon} ${_escH(meta.title)}</span>
-            ${stBadge}
-          </div>
-          <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
-            <button type="button" onclick="sfisMoveStep(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="btn" style="padding:2px 6px; font-size:0.75rem; background:#F8FAFC; color:#334155; border-color:#CBD5E1;" title="上移一步">↑</button>
-            <button type="button" onclick="sfisMoveStep(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''} class="btn" style="padding:2px 6px; font-size:0.75rem; background:#F8FAFC; color:#334155; border-color:#CBD5E1;" title="下移一步">↓</button>
-            <button type="button" onclick="sfisHmiRunStep(${idx})" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#ECFDF5; color:#047857; border-color:#6EE7B7; font-weight:800;">⚡ 實測這步</button>
-            <button type="button" onclick="sfisRemoveItem(${idx})" class="btn" style="padding:3px 7px; font-size:0.77rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑</button>
-          </div>
+           onclick="sfisSelectDeckCard('${_escH(it.uid)}')"
+           style="border-color:${isActive ? '#2563EB' : (stCls ? '' : meta.border)};">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:3px;">
+          <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 5px; border-radius:4px; font-weight:900; font-size:0.72rem;">#${idx + 1}</span>
+          ${stPill}
         </div>
-        ${_renderSimpleCardInputs(it, idx)}
-        ${offlineSwitchBtn}
+        <div style="text-align:center; padding:2px 0;">
+          <div style="font-size:1.15rem; line-height:1.1;">${cardIcon}</div>
+          <div style="font-weight:900; font-size:0.81rem; color:#0F172A; margin-top:2px;">${_escH(cardTitle)}</div>
+          ${subTag ? `<div class="mono" style="font-size:0.71rem; color:#475569; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_escH(subTag)}</div>` : ''}
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center;">${footerCtrl}</div>
       </div>`;
   }).join('');
+
+  const selIdxRaw = s.items.findIndex(x => x.uid === s.selectedUid);
+  const selIdx = selIdxRaw >= 0 ? selIdxRaw : Math.min(1, s.items.length - 1);
+  const selItem = s.items[selIdx];
+  const selMeta = _getBlockMeta(selItem.kind);
+  const selIsOut = (selItem.kind === 'login' && String(selItem.login_status || '1') === '0');
+  const selTitle = selItem.kind === 'login' ? (selIsOut ? 'Logout 登出' : 'Login 登入') : selMeta.title;
+  const selIcon = selItem.kind === 'login' ? (selIsOut ? '🚪' : '🔐') : selMeta.icon;
+  const selStBadge = selItem.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">PASS</span>'
+    : (selItem.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">FAIL</span>'
+    : (selItem.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">離線/未連網</span>'
+    : (selItem.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">傳送中</span>'
+    : '<span style="background:#F1F5F9; color:#64748B; padding:1px 8px; border-radius:999px; font-size:0.76rem;">待測</span>')));
+  const selOfflineBtn = (selItem.status === 'offline' && !s.mockMode)
+    ? `<div style="margin-top:6px;"><button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 目前非工廠內網 — 一鍵改用本機模擬並重測</button></div>`
+    : '';
+  const selLockedNote = selItem.locked
+    ? `<div style="font-size:0.8rem; color:#475569; margin-bottom:5px; font-weight:700;">🔒 基本骨架步驟：${selItem.locked === 'login' ? 'Step 1 OP 登入驗證（對應 Excel System.ini SFIS_AutoLogin=1）' : (selItem.locked === 'checkroute' ? 'Step 2 ISN 途程刷過檢查（匯出時轉為 Phase 0 :ShowISN + :SfCheckRoute）' : '最後結尾 OP 登出保護（匯出時接續 Phase 97 :CloseMessage 收尾）')}</div>`
+    : '';
+  const selInputsHtml = selItem.locked ? selLockedNote : (_renderSimpleCardInputs(selItem, selIdx) || '<div style="font-size:0.8rem; color:#475569;">點擊上方「⚡ 實測這步」立即驗證。</div>');
 
   const latestLog = a.logs[0] || null;
   const respSummaryBadge = latestLog
@@ -1724,7 +1812,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.044');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.045');
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
@@ -1783,101 +1871,138 @@ function renderSfisHmiWorkspace() {
       ${serverStale ? '<div style="margin-bottom:8px; padding:5px 10px; border-radius:7px; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; font-size:0.79rem; font-weight:800;">⚠️ 偵測到後端伺服器仍為舊版，請重雙擊 啟動_Centimani腳本工具.bat（模擬目前由瀏覽器引擎自動接手）</div>' : ''}
       ${stageBannerHtml}
 
-      <!-- 可拖曳調寬左右雙視窗：左 = 機台設定 + 折疊吐回字串終端；右 = 增加步驟 + 單一垂直可拖曳清單 + 匯出 Excel -->
+      <!-- 精簡頂部單列連線與單顆 ISN 設定區 -->
+      <div id="sfisCompactEnvBar" style="background:${cfgBoxBg}; border:1.5px solid ${cfgBoxBorder}; border-radius:9px; padding:8px 11px; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.83rem; font-weight:800; color:#1E293B;">
+            <span>🏭 廠區</span>
+            <select onchange="sfisSelectPlant(this.value)" style="padding:4px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.82rem; background:#FFFFFF;">${plantOptions}</select>
+          </label>
+          <button type="button" onclick="sfisTogglePlantEditor()" class="btn" style="padding:4px 8px; font-size:0.79rem; background:${s.showPlantEditor ? '#DBEAFE' : '#FFFFFF'}; color:#1E40AF; border-color:#93C5FD; font-weight:800;" title="修改目前廠區名稱/IP 或新增廠區">✏️ 改/增</button>
+          <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:4px 8px; font-size:0.79rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;" title="自動從目前開啟的專案或挑選工廠 System.ini / Global.ini 一鍵帶入設定">📥 帶入 INI</button>
+          <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:4px 7px; font-size:0.79rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;" title="開啟原廠 CentimaniSFISTest.exe">🌐</button>
+
+          <input type="text" value="${_escH(cfg.url)}" oninput="sfisSyncConfig('url', this.value)" class="mono" placeholder="SFIS_WebLink (.asmx)" style="flex:1; min-width:210px; padding:4px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem; background:#FFFFFF;">
+          <button type="button" onclick="toolsCheckSfisLink()" class="btn" style="padding:4px 10px; font-size:0.8rem; background:#E0F2FE; color:#0369A1; border-color:#7DD3FC; font-weight:800;">🔍 測連通</button>
+
+          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.77rem; font-weight:800; color:#334155;">Dev
+            <input type="text" value="${_escH(cfg.device_id)}" oninput="sfisSyncConfig('device_id', this.value)" class="mono" style="width:68px; padding:4px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem;">
+          </label>
+          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.77rem; font-weight:800; color:#334155;">OP
+            <input type="text" value="${_escH(cfg.op)}" oninput="sfisSyncConfig('op', this.value)" class="mono" style="width:90px; padding:4px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem;">
+          </label>
+          <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.77rem; font-weight:800; color:#9A3412;">🎯 ISN
+            <input type="text" value="${_escH(cfg.isn)}" oninput="sfisSyncConfig('isn', this.value)" class="mono" style="width:136px; padding:4px 6px; border:1.5px solid #F59E0B; border-radius:5px; font-size:0.8rem; background:#FFFBEB; font-weight:800;">
+          </label>
+        </div>
+
+        ${s.showPlantEditor ? `
+          <div style="background:#EFF6FF; border:1px solid #93C5FD; border-radius:7px; padding:8px; margin-top:7px;">
+            <div style="font-size:0.75rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">✏️ 修改此廠區或新增為自訂廠區（自動儲存保留）：</div>
+            <div style="display:grid; grid-template-columns:1fr 90px 1fr; gap:6px; margin-bottom:6px;">
+              <input id="sfisEdPlantLabel" type="text" value="${_escH(curPlant.label)}" placeholder="廠區顯示名稱" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
+              <input id="sfisEdPlantDev" type="text" value="${_escH(curPlant.defaultDevice || '710001')}" placeholder="DevID" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
+              <input id="sfisEdPlantUrl" type="text" value="${_escH(cfg.url)}" placeholder="http://.../SFISTSPWebService.asmx" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.77rem;">
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" onclick="sfisSaveEditedPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#2563EB; color:#FFFFFF; border:none;">💾 儲存修改</button>
+              <button type="button" onclick="sfisAddCustomPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#059669; color:#FFFFFF; border:none;">＋ 另存為新廠區</button>
+              <button type="button" onclick="sfisDeleteCurrentPlant()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除此項</button>
+            </div>
+          </div>` : ''}
+
+        <details style="margin-top:6px;">
+          <summary style="cursor:pointer; font-size:0.76rem; font-weight:800; color:#92400E;">📋 虛擬工單與 5 碼 ISN 範本 (MO: ${_escH(curMo ? curMo.mo : '')}・共 ${s.virtualMos.length} 筆，可修改) / ⚙️ 進階 (專案/站別/TSP) ▾</summary>
+          <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CBD5E1; display:flex; flex-direction:column; gap:7px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-size:0.73rem; color:#92400E; font-weight:800;">規則：虛擬工單 ＋ 流水號（預設 5 碼如 <code>2695160300001~00005</code>，改寫自動存檔）</span>
+                <button type="button" onclick="sfisAddMoRow()" style="padding:2px 7px; font-size:0.72rem; border-radius:4px; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; cursor:pointer; font-weight:800;">＋ 新增工單</button>
+              </div>
+              <div style="overflow-x:auto; border:1px solid #E2E8F0; border-radius:5px;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.72rem; text-align:left;">
+                  <thead>
+                    <tr style="background:#F1F5F9; color:#334155;">
+                      <th style="padding:3px 4px;">日期</th><th style="padding:3px 4px;">機種</th><th style="padding:3px 4px;">料號</th>
+                      <th style="padding:3px 4px;">數量</th><th style="padding:3px 4px;">虛擬工單</th><th style="padding:3px 4px;">碼數</th><th style="padding:3px 4px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>${moRowsHtml}</tbody>
+                </table>
+              </div>
+              <div style="margin-top:5px; font-size:0.72rem; font-weight:800; color:#334155;">工單 [${_escH(curMo ? curMo.mo : '')}] 展開序號（點任 1 顆載入槍口實測）：</div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${poolBtns}</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; border-top:1px dashed #CBD5E1; padding-top:6px;">
+              <label style="font-size:0.74rem; font-weight:700;">專案名稱<input type="text" value="${_escH(cfg.project_name)}" oninput="sfisSyncConfig('project_name', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+              <label style="font-size:0.74rem; font-weight:700;">站別分頁<input type="text" value="${_escH(cfg.station)}" oninput="sfisSyncConfig('station', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+              <label style="font-size:0.74rem; font-weight:700;">SFIS_TSP<input type="text" value="${_escH(cfg.tsp)}" oninput="sfisSyncConfig('tsp', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- 雙欄抽卡牌桌：左 = 鎖定頭尾 (Login/CheckRoute/.../Logout) 抽卡牌桌；右 = 選中卡片設定 + 黑底吐出終端 -->
       <div id="sfisSplitLayout" class="sfis-split-layout" style="--sfis-left-w:${s.leftPanePct || 46}%;">
 
-        <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 折疊吐回字串終端 -->
+        <!-- 左視窗：中間步驟膠囊列 + 抽卡牌桌 -->
         <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
-          <!-- 廠區下拉 + 新增改名 + INI 帶入 + 工具 -->
-          <div style="background:${cfgBoxBg}; border:1.5px solid ${cfgBoxBorder}; border-radius:9px; padding:9px 11px;">
-            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-bottom:7px;">
-              <label style="flex:1; min-width:190px; font-size:0.85rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:5px;">
-                <span>🏭 廠區：</span>
-                <select onchange="sfisSelectPlant(this.value)" style="flex:1; padding:5px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.85rem; background:#FFFFFF;">${plantOptions}</select>
-              </label>
-              <button type="button" onclick="sfisTogglePlantEditor()" class="btn" style="padding:5px 8px; font-size:0.81rem; background:${s.showPlantEditor ? '#DBEAFE' : '#FFFFFF'}; color:#1E40AF; border-color:#93C5FD; font-weight:800;" title="修改目前廠區名稱/IP 或新增廠區">✏️ 改/增廠區</button>
-              <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:5px 9px; font-size:0.81rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;" title="自動從目前開啟的專案或挑選工廠 System.ini / Global.ini，一鍵填入 SFIS_WebLink、DeviceID (DEVID_1)、OP 工號、SFIS_TSP 與 Fail 保護設定，免手動查抄">📥 帶入 INI</button>
-              <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:5px 8px; font-size:0.81rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;" title="開啟原廠 CentimaniSFISTest.exe 工具">🌐</button>
-            </div>
-
-            ${s.showPlantEditor ? `
-              <div style="background:#EFF6FF; border:1px solid #93C5FD; border-radius:7px; padding:8px; margin-bottom:8px;">
-                <div style="font-size:0.75rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">✏️ 修改此廠區或新增為自訂廠區（自動儲存保留）：</div>
-                <div style="display:grid; grid-template-columns:1fr 85px; gap:5px; margin-bottom:5px;">
-                  <input id="sfisEdPlantLabel" type="text" value="${_escH(curPlant.label)}" placeholder="廠區顯示名稱" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
-                  <input id="sfisEdPlantDev" type="text" value="${_escH(curPlant.defaultDevice || '710001')}" placeholder="DevID" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
-                </div>
-                <input id="sfisEdPlantUrl" type="text" value="${_escH(cfg.url)}" placeholder="http://.../SFISTSPWebService.asmx" class="mono" style="width:100%; padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.77rem; box-sizing:border-box; margin-bottom:6px;">
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <button type="button" onclick="sfisSaveEditedPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#2563EB; color:#FFFFFF; border:none;">💾 儲存修改</button>
-                  <button type="button" onclick="sfisAddCustomPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#059669; color:#FFFFFF; border:none;">＋ 另存為新廠區</button>
-                  <button type="button" onclick="sfisDeleteCurrentPlant()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除此項</button>
-                </div>
-              </div>` : ''}
-
-            <div style="display:flex; gap:6px; align-items:center; margin-bottom:7px;">
-              <input type="text" value="${_escH(cfg.url)}" oninput="sfisSyncConfig('url', this.value)" class="mono" placeholder="SFIS_WebLink (.asmx)" style="flex:1; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem; background:#FFFFFF;">
-              <button type="button" onclick="toolsCheckSfisLink()" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#E0F2FE; color:#0369A1; border-color:#7DD3FC; font-weight:800;">🔍 測連通</button>
-            </div>
-
-            <div style="display:grid; grid-template-columns:92px 110px 1fr; gap:6px;">
-              <label style="font-size:0.76rem; font-weight:800; color:#334155;">DeviceID
-                <input type="text" value="${_escH(cfg.device_id)}" oninput="sfisSyncConfig('device_id', this.value)" class="mono" style="width:100%; margin-top:2px; padding:4px 6px; border:1px solid #94A3B8; border-radius:5px; font-size:0.8rem; box-sizing:border-box;">
-              </label>
-              <label style="font-size:0.76rem; font-weight:800; color:#334155;">OP 工號
-                <input type="text" value="${_escH(cfg.op)}" oninput="sfisSyncConfig('op', this.value)" class="mono" style="width:100%; margin-top:2px; padding:4px 6px; border:1px solid #94A3B8; border-radius:5px; font-size:0.8rem; box-sizing:border-box;">
-              </label>
-              <label style="font-size:0.76rem; font-weight:800; color:#9A3412;">🎯 實測單顆 ISN（珍貴保護）
-                <input type="text" value="${_escH(cfg.isn)}" oninput="sfisSyncConfig('isn', this.value)" class="mono" style="width:100%; margin-top:2px; padding:4px 6px; border:1.5px solid #F59E0B; border-radius:5px; font-size:0.8rem; background:#FFFBEB; font-weight:800; box-sizing:border-box;">
-              </label>
-            </div>
-
-            <!-- 折疊：虛擬工單清冊 (工單+流水號5碼 範本) ＋ 進階匯出參數 -->
-            <details style="margin-top:7px;">
-              <summary style="cursor:pointer; font-size:0.76rem; font-weight:800; color:#92400E;">📋 虛擬工單與 5 碼 ISN 範本 (MO: ${_escH(curMo ? curMo.mo : '')}・共 ${s.virtualMos.length} 筆，可修改) / ⚙️ 進階 ▾</summary>
-              <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CBD5E1; display:flex; flex-direction:column; gap:7px;">
-                <div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <span style="font-size:0.73rem; color:#92400E; font-weight:800;">規則：虛擬工單 ＋ 流水號（預設 5 碼如 <code>2695160300001~00005</code>，改寫自動存檔）</span>
-                    <button type="button" onclick="sfisAddMoRow()" style="padding:2px 7px; font-size:0.72rem; border-radius:4px; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; cursor:pointer; font-weight:800;">＋ 新增工單</button>
-                  </div>
-                  <div style="overflow-x:auto; border:1px solid #E2E8F0; border-radius:5px;">
-                    <table style="width:100%; border-collapse:collapse; font-size:0.72rem; text-align:left;">
-                      <thead>
-                        <tr style="background:#F1F5F9; color:#334155;">
-                          <th style="padding:3px 4px;">日期</th>
-                          <th style="padding:3px 4px;">機種</th>
-                          <th style="padding:3px 4px;">料號</th>
-                          <th style="padding:3px 4px;">數量</th>
-                          <th style="padding:3px 4px;">虛擬工單</th>
-                          <th style="padding:3px 4px;">碼數</th>
-                          <th style="padding:3px 4px;">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>${moRowsHtml}</tbody>
-                    </table>
-                  </div>
-                  <div style="margin-top:5px; font-size:0.72rem; font-weight:800; color:#334155;">工單 [${_escH(curMo ? curMo.mo : '')}] 展開序號（點任 1 顆載入槍口實測）：</div>
-                  <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${poolBtns}</div>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; border-top:1px dashed #CBD5E1; padding-top:6px;">
-                  <label style="font-size:0.74rem; font-weight:700;">專案名稱<input type="text" value="${_escH(cfg.project_name)}" oninput="sfisSyncConfig('project_name', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-                  <label style="font-size:0.74rem; font-weight:700;">站別分頁<input type="text" value="${_escH(cfg.station)}" oninput="sfisSyncConfig('station', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-                  <label style="font-size:0.74rem; font-weight:700;">SFIS_TSP<input type="text" value="${_escH(cfg.tsp)}" oninput="sfisSyncConfig('tsp', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-                </div>
+          <div id="sfisQuickAddBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+              <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 新增中間自訂測項（頭尾鎖定自動保留）：</span>
+              <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+                ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置 DB</button>` : ''}
+                <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;" title="保留 Login / CheckRoute / Logout，僅清空自訂測項">清空中間區</button>
+                <button type="button" onclick="sfisHmiRunAll()" ${s.isRunning ? 'disabled' : ''} class="btn" style="padding:4px 11px; font-size:0.8rem; background:#059669; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">
+                  ${s.isRunning ? '⏳ 執行中...' : '▶ 依序實測全部步驟'}
+                </button>
               </div>
-            </details>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px;">${quickAddBtns}</div>
           </div>
 
-          <!-- 折疊式：所有積木動作實際吐出字串總覽區（緊貼設定區下方，長度依積木多寡自然延伸不限高度） -->
+          <div style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+              <span style="font-size:0.79rem; font-weight:900; color:#334155;">🃏 流程抽卡牌桌（共 ${s.items.length} 步・點任一卡片即於右側設定與檢視回傳）</span>
+              <div style="display:inline-flex; gap:4px;">
+                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 碰牌對調</button>
+                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插牌移位</button>
+              </div>
+            </div>
+            <div id="sfisPokerDeckGrid" class="sfis-deck-grid">${deckCardsHtml}</div>
+          </div>
+        </div>
+
+        <!-- 中間可拖曳調寬分割線 -->
+        <div class="sfis-split-resizer" onmousedown="sfisStartSplitDrag(event)" ondblclick="sfisResetSplitWidth()" title="左右拖曳調整雙視窗寬度（雙擊還原預設 46%）"></div>
+
+        <!-- 右視窗：選中卡片專屬參數面板 ＋ SFIS 實際吐回字串終端 -->
+        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
+          <div id="sfisSelectedCardPanel" style="background:#FFFFFF; border:2px solid #3B82F6; border-radius:10px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #E2E8F0;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="background:${selMeta.bg}; color:${selMeta.theme}; border:1px solid ${selMeta.border}; padding:2px 7px; border-radius:5px; font-weight:900; font-size:0.8rem;">#${selIdx + 1}</span>
+                <span style="font-weight:900; font-size:0.95rem; color:#0F172A;">${selIcon} ${_escH(selTitle)}</span>
+                ${selStBadge}
+              </div>
+              <div style="display:flex; gap:5px; align-items:center;">
+                <button type="button" onclick="sfisHmiRunStep(${selIdx})" class="btn" style="padding:4px 11px; font-size:0.8rem; background:#ECFDF5; color:#047857; border-color:#6EE7B7; font-weight:800;">⚡ 實測這步</button>
+                ${selItem.locked ? '<span style="font-size:0.75rem; font-weight:800; color:#475569; background:#F1F5F9; padding:3px 8px; border-radius:5px; border:1px solid #CBD5E1;">🔒 鎖定骨架</span>' : `<button type="button" onclick="sfisRemoveItem(${selIdx})" class="btn" style="padding:4px 8px; font-size:0.78rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除</button>`}
+              </div>
+            </div>
+            ${selInputsHtml}
+            ${selOfflineBtn}
+          </div>
+
           <details id="sfisResponseDetails" ${a.responseExpanded ? 'open' : ''} ontoggle="SFIS_HMI_STATE.anim.responseExpanded=this.open"
                    style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:9px 11px;">
             <summary style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; list-style:none;">
-              <span style="font-size:0.84rem; font-weight:800; color:#38BDF8;">📥 SFIS 實際吐回字串 &amp; 欄位結果（共 ${a.logs.length} 筆・點擊展開）▾</span>
+              <span style="font-size:0.84rem; font-weight:800; color:#38BDF8;">📥 SFIS 實際吐回字串 &amp; 欄位結果（共 ${a.logs.length} 筆）▾</span>
               <span style="display:inline-flex; align-items:center; gap:6px;">${respSummaryBadge}</span>
             </summary>
             <div style="margin-top:8px; padding-top:7px; border-top:1px solid #1E293B;">
-              <div style="display:flex; justify-content:flex-end; gap:4px; align-items:center; margin-bottom:6px;">
+              <div style="display:flex; justify-content:flex-end; gap:4px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+                <button type="button" onclick="sfisSetRespViewMode('selected')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'selected' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">🎯 目前這步</button>
                 <button type="button" onclick="sfisSetRespViewMode('all')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'all' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">全部(${a.logs.length})</button>
                 <button type="button" onclick="sfisSetRespViewMode('latest')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'latest' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">最新</button>
                 <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 8px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
@@ -1887,58 +2012,24 @@ function renderSfisHmiWorkspace() {
             </div>
           </details>
         </div>
+      </div>
 
-        <!-- 中間可拖曳調寬分割線 -->
-        <div class="sfis-split-resizer" onmousedown="sfisStartSplitDrag(event)" ondblclick="sfisResetSplitWidth()" title="左右拖曳調整雙視窗寬度（雙擊還原預設 46%）"></div>
-
-        <!-- 右視窗：快點/拖曳加入步驟膠囊(固定白底不隨模擬變色) + 撲克牌積木順序排序條 + 流程步驟清單 + 折疊匯出區 -->
-        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
-          <!-- 輕量新增動作列（固定清爽底色，不隨模擬模式變色） -->
-          <div id="sfisQuickAddBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-              <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 點擊增加驗證步驟：</span>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : ''}
-                <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;">清空白板</button>
-                <button type="button" onclick="sfisHmiRunAll()" ${s.isRunning ? 'disabled' : ''} class="btn" style="padding:4px 12px; font-size:0.81rem; background:#059669; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">
-                  ${s.isRunning ? '⏳ 模擬執行中...' : '▶ 依序實測全部步驟 (僅這1顆ISN)'}
-                </button>
-              </div>
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px;">${quickAddBtns}</div>
-          </div>
-
-          <!-- 單一垂直可拖曳排序步驟清單（支援滑鼠上下拖曳與 ↑↓ 按鈕） -->
-          <div ondragover="event.preventDefault()" ondrop="sfisDropOnTrack(${s.items.length}, event)"
-               style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px; display:flex; flex-direction:column; gap:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; padding-bottom:2px;">
-              <span style="font-size:0.78rem; font-weight:900; color:#334155;">📋 驗證步驟清單（共 ${s.items.length} 步・直接上下拖曳 ⠿ 或點 ↑↓ 排序）</span>
-              <div style="display:inline-flex; gap:4px;">
-                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 8px; font-size:0.73rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'swap' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'swap' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'swap' ? '#FFFFFF' : '#334155'};">📌 上下插牌</button>
-                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 8px; font-size:0.73rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'swap' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'swap' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'swap' ? '#FFFFFF' : '#334155'};">🔀 碰牌對調</button>
-              </div>
-            </div>
-            ${trackCardsHtml || '<div style="text-align:center; padding:20px; color:#64748B; font-size:0.84rem;">目前白板是空的，請點擊上方「➕」按鈕加入想測的動作</div>'}
-          </div>
-
-          <!-- 底部：產出 Excel 與折疊預覽 -->
-          <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:9px; padding:9px 11px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-              <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; font-size:0.79rem; font-weight:800; color:#166534;">
-                <input type="checkbox" ${cfg.skip_save_on_fail ? 'checked' : ''} onchange="sfisSyncConfig('skip_save_on_fail', this.checked)" style="width:14px; height:14px;">
-                🛡️ <code>SFIS_SkipSaveResultOnFail=1</code>（失敗不上傳保護 ISN）
-              </label>
-              <div style="display:flex; gap:7px; flex-wrap:wrap;">
-                <button type="button" onclick="sfisHmiExport('new_template')" class="btn" style="padding:5px 12px; font-size:0.8rem; background:#15803D; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">📥 抄空白範本產生 SFIS Excel</button>
-                <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開 Excel 開頭</button>
-              </div>
-            </div>
-            <details>
-              <summary style="cursor:pointer; font-size:0.77rem; font-weight:800; color:#14532D;">📝 展開預覽將寫入之 Excel 標準指令 (ExecMode=8) ▾</summary>
-              <pre id="sfisLiveExcelPreview" class="mono" style="margin:6px 0 0 0; font-size:0.73rem; color:#0F172A; background:#FFFFFF; border:1px solid #BBF7D0; border-radius:6px; padding:6px 8px; white-space:pre-wrap; overflow:auto;"></pre>
-            </details>
+      <!-- 底部全寬：產出標準 SFIS Excel 與即時預覽 -->
+      <div style="margin-top:10px; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:9px; padding:9px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+          <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; font-size:0.8rem; font-weight:800; color:#166534;">
+            <input type="checkbox" ${cfg.skip_save_on_fail ? 'checked' : ''} onchange="sfisSyncConfig('skip_save_on_fail', this.checked)" style="width:14px; height:14px;">
+            🛡️ <code>SFIS_SkipSaveResultOnFail=1</code>（失敗不上傳保護 ISN；產檔自動略過 Login/Logout 改由 INI 登入）
+          </label>
+          <div style="display:flex; gap:7px; flex-wrap:wrap;">
+            <button type="button" onclick="sfisHmiExport('new_template')" class="btn" style="padding:5px 12px; font-size:0.81rem; background:#15803D; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">📥 抄空白範本產生 SFIS Excel</button>
+            <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開 Excel 開頭</button>
           </div>
         </div>
+        <details>
+          <summary style="cursor:pointer; font-size:0.77rem; font-weight:800; color:#14532D;">📝 展開預覽將寫入之 Excel 標準指令 (ExecMode=8) ▾</summary>
+          <pre id="sfisLiveExcelPreview" class="mono" style="margin:6px 0 0 0; font-size:0.73rem; color:#0F172A; background:#FFFFFF; border:1px solid #BBF7D0; border-radius:6px; padding:6px 8px; white-space:pre-wrap; overflow:auto;"></pre>
+        </details>
       </div>
     </div>
   `;

@@ -2350,3 +2350,66 @@ button:not(:disabled):hover {
   background: #EFF6FF !important;
   transform: scale(1.015);
 }
+
+/* SFIS 流程抽卡牌桌 (比照 02 流程抽卡牌桌雙欄架構) */
+.sfis-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+  gap: 9px;
+}
+.sfis-deck-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 2px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 8px 9px;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.05);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+.sfis-deck-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+}
+.sfis-deck-card.active {
+  outline: 3px solid #2563EB;
+  outline-offset: 1px;
+  background: #EFF6FF !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+}
+.sfis-deck-card.locked {
+  background: #F8FAFC;
+  border-style: solid;
+}
+.sfis-deck-card.status-running {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  animation: sfisCloudFloat 0.6s ease-in-out infinite alternate;
+}
+.sfis-deck-card.status-pass {
+  border-color: #16A34A !important;
+}
+.sfis-deck-card.status-fail,
+.sfis-deck-card.status-offline {
+  border-color: #DC2626 !important;
+}
+.sfis-deck-card.is-dragging {
+  opacity: 0.3;
+  transform: scale(0.94);
+}
+.sfis-deck-card.drop-before {
+  border-left: 5px solid #2563EB !important;
+}
+.sfis-deck-card.drop-after {
+  border-right: 5px solid #2563EB !important;
+}
+.sfis-deck-card.drop-swap {
+  outline: 3px dashed #2563EB !important;
+  background: #DBEAFE !important;
+}
