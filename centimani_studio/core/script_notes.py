@@ -8,7 +8,7 @@ import os
 import re
 
 
-def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.018"):
+def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.019"):
     """
     在匯出 Excel 同目錄產出精簡版 `<檔名>_編寫與使用說明.txt`，重點說明開關怎麼切換：
     1. 基本資訊與啟動站別 (StationName 指定 vs 留空當場選站)
@@ -80,10 +80,14 @@ def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs
         lines.append("  （本腳本未加入 *$(EN_xxx) Title 開關）")
 
     lines.append("")
-    lines.append("【2. Excel Phase = -1 暫停區塊（回產線手動把 -1 改回 1, 2... 即可跑）】")
+    lines.append("【2. Excel Phase = -1 暫停區塊（無硬體試跑時亦暫停 Instrument.Mount 避免主程式連線報錯）】")
+    paused_mounts = ws.get("_paused_mounts") or []
     if paused_phases:
         for sn, r_idx, t in paused_phases:
             lines.append(f"  - [{sn} 第 {r_idx} 列] Phase=-1 | Title={t}")
+        if paused_mounts:
+            pm_txt = ", ".join(f"{p.get('device')} (站別 {p.get('sheet')})" for p in paused_mounts)
+            lines.append(f"  * 暫時取消掛載 Mount：{pm_txt}（上產線接好儀器後，請於 Instrument 表 Mount 填回站名並將 Phase=-1 改回 1, 2...）")
     else:
         lines.append("  （目前無 Phase=-1 暫停區塊）")
 

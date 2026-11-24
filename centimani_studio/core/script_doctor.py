@@ -539,6 +539,7 @@ def audit_workspace(workspace):
             curr_block_locals = set()
             active_title_inst = ""
             dup_inst_suggested = False
+            blk_is_paused = (str(blk.get("phase", "")).strip().split(":")[0].strip() == "-1")
 
             for item in b_steps:
                 idx = item["global_idx"]
@@ -607,8 +608,8 @@ def audit_workspace(workspace):
                         f"[{st_name} 第 {r_num} 列] Title '{s_title}' 開頭使用句點 '.' 分隔（應為半形逗號 ','，如 '0,THERMAL,1'，否則引擎可能誤判啟用碼）"
                     )
 
-                # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check
-                if all_inst_rows:
+                # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check (exempt Phase=-1 paused blocks)
+                if all_inst_rows and not blk_is_paused:
                     if s_inst and s_inst.lower() not in mounted_funcs_low:
                         if s_inst.lower() in all_inst_funcs_low:
                             warnings.append(
@@ -811,7 +812,7 @@ def audit_workspace(workspace):
                         warnings.append(
                             f"[{st_name} 第 {r_num} 列] :ReleaseDevice 的 ExecMode 應設為 '3' (Continue)，目前為 '{s_mode}'（系統可自動改為 3）"
                         )
-                elif s_send.startswith(":Dev.") and s_mode != "6":
+                elif s_send.startswith(":Dev.") and s_mode != "6" and not blk_is_paused:
                     if not obtain_lock_open:
                         errors.append(
                             f"[{st_name} 第 {r_num} 列] 步驟呼叫 '{s_send.split(',')[0]}' 前尚未執行 :ObtainDevice（Centimani 實機將報錯 \"Don't obtain device.\"）"
@@ -1170,7 +1171,7 @@ def auto_fix_workspace(workspace, user_choices=None):
     except Exception:
         pass
 
-    # 1B. Auto-sync Instrument 'Mount' column for newly generated mother templates
+    # 1B. Auto-sync Instrument 'Mount' column for newly generated mother templates OR missing explicit Switch matches in imported files
     if not workspace.get("source_file"):
         used_funcs_by_station = {}
         for st_name, steps in workspace.get("stations", {}).items():
@@ -1187,6 +1188,38 @@ def auto_fix_workspace(workspace, user_choices=None):
                     matched_stations |= used_funcs_by_station[fn]
                     mounted_funcs.add(fn)
             inst_row["Mount"] = ",".join(sorted(matched_stations)) if matched_stations else ""
+    else:
+        for st_name, steps in workspace.get("stations", {}).items():
+            active_sw_heads = set()
+            for blk_m in _build_title_blocks(steps):
+                if str(blk_m.get("phase", "")).strip().split(":")[0].strip() == "-1":
+                    continue
+                for it_m in blk_m["steps"]:
+                    sw_raw = str(it_m["step"].get("Switch", "")).strip()
+                    em_raw = str(it_m["step"].get("ExecMode", "")).strip()
+                    if sw_raw and em_raw != "6":
+                        active_sw_heads.add(sw_raw.split(",", 1)[0].strip().lower())
+            if not active_sw_heads:
+                continue
+            for idx_ir, inst_row in enumerate(workspace.get("instruments", []), start=2):
+                iname_low = str(inst_row.get("Name", "")).strip().lower()
+                if not iname_low:
+                    continue
+                matched_sw = any(
+                    sh == iname_low or (re.sub(r"-\{\d+\}$", "", sh) != sh and (iname_low == re.sub(r"-\{\d+\}$", "", sh) or iname_low.startswith(re.sub(r"-\{\d+\}$", "", sh) + "-")))
+                    for sh in active_sw_heads
+                )
+                if matched_sw:
+                    m_cur = [x.strip() for x in str(inst_row.get("Mount", "")).split(",") if x.strip()]
+                    if st_name not in m_cur:
+                        m_cur.append(st_name)
+                        inst_row["Mount"] = ",".join(m_cur)
+                        fixed_logs.append(f"[Instrument 第 {idx_ir} 列] 站別 '{st_name}' 引用了 {inst_row.get('Name','')}，已自動將 '{st_name}' 補入 Mount 欄")
+                        modified_cells.append({
+                            "sheet": "Instrument", "row": idx_ir, "col_name": "Mount",
+                            "old": ",".join([x for x in m_cur if x != st_name]), "new": inst_row["Mount"],
+                            "note": f"站別 '{st_name}' 之 Switch 明確指定此儀器，自動補齊 Mount 掛載"
+                        })
 
     # 2. Repair each Station Sheet
     for st_name, steps in workspace.get("stations", {}).items():
@@ -1276,6 +1309,15 @@ def auto_fix_workspace(workspace, user_choices=None):
                     })
 
                 s_send = str(step.get("Send", "")).strip()
+                if s_send.upper().startswith(":DEV.VOLAGE"):
+                    fixed_send = ":Dev.VOLTAGE" + s_send[len(":Dev.VOLAGE"):]
+                    modified_cells.append({
+                        "sheet": st_name, "row": r_num, "col_name": "Send",
+                        "old": s_send, "new": fixed_send, "note": "修正 DaqUSBNi.dll 拼字錯誤 :Dev.VOLAGE -> :Dev.VOLTAGE"
+                    })
+                    fixed_logs.append(f"[{st_name} 第 {r_num} 列] 已自動修正指令拼字 '{s_send[:20]}' -> ':Dev.VOLTAGE'")
+                    step["Send"] = fixed_send
+                    s_send = fixed_send
                 s_mode = str(step.get("ExecMode", "")).strip()
 
                 # Check if user explicitly picked an option on a Choice Card
@@ -1454,6 +1496,53 @@ def auto_fix_workspace(workspace, user_choices=None):
                     ins_pos = show_idx + 1
                     st_steps.insert(ins_pos, {"Index": "", "Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SfCheckRoute", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "2000", "ExecMode": "8", "Description": "PC#-#CheckRoute from SFIS", "TestID": "OTFX064"})
                     fixed_logs.append(f"[{st_name}] 已自動補齊 Centimani 強制前置指令 :SfCheckRoute")
+            elif show_idx > route_idx:
+                show_row = st_steps.pop(show_idx)
+                route_row = st_steps[route_idx]
+                if str(route_row.get("Phase", "")).strip() and not str(show_row.get("Phase", "")).strip():
+                    show_row["Phase"] = route_row["Phase"]
+                    route_row["Phase"] = ""
+                if str(route_row.get("Title", "")).strip() and not str(show_row.get("Title", "")).strip():
+                    show_row["Title"] = route_row["Title"]
+                    route_row["Title"] = ""
+                st_steps.insert(route_idx, show_row)
+                fixed_logs.append(f"[{st_name}] 已將 :ShowISN 自動移至 :SfCheckRoute 之前（防止載入報錯 'Please execute ShowISN first.'）")
+
+            # Auto-prepend missing :ObtainDevice before orphan :Dev.* calls in active (non-skipped) blocks
+            lock_open = False
+            i_st = 0
+            cur_ph = ""
+            while i_st < len(st_steps):
+                s_cur = st_steps[i_st]
+                p_cur = str(s_cur.get("Phase", "")).strip()
+                if p_cur:
+                    cur_ph = p_cur.split(":")[0].strip()
+                c_send = str(s_cur.get("Send", "")).strip()
+                c_mode = str(s_cur.get("ExecMode", "")).strip()
+                if ":ObtainDevice" in c_send or ":ObtainSubDevice" in c_send:
+                    if c_mode != "6":
+                        lock_open = True
+                elif ":ReleaseDevice" in c_send or ":ReleaseSubDevice" in c_send:
+                    lock_open = False
+                elif c_send.startswith(":Dev.") and c_mode != "6" and cur_ph != "-1" and not lock_open:
+                    obt_row = {
+                        "Index": "", "Phase": s_cur.get("Phase", ""), "Title": s_cur.get("Title", ""), "Marco": "",
+                        "Instrument": s_cur.get("Instrument", ""), "Switch": s_cur.get("Switch", ""),
+                        "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "",
+                        "Prompt": "", "Waiting": "", "ExecMode": "0",
+                        "Description": "PC#-#Auto ObtainDevice", "TestID": str(s_cur.get("TestID", "")).strip() or "B7PL025"
+                    }
+                    s_cur["Phase"] = ""
+                    s_cur["Title"] = ""
+                    st_steps.insert(i_st, obt_row)
+                    lock_open = True
+                    fixed_logs.append(f"[{st_name} 第 {i_st + 2} 列] 呼叫 {c_send.split(',')[0]} 前缺少 :ObtainDevice，已自動於前方補入")
+                    modified_cells.append({
+                        "sheet": st_name, "row": i_st + 2, "col_name": "Send",
+                        "old": "", "new": ":ObtainDevice", "note": f"呼叫 {c_send.split(',')[0]} 前必先取得設備鎖 (:ObtainDevice)"
+                    })
+                    i_st += 1
+                i_st += 1
 
         has_p97 = any(str(s.get("Phase", "")).strip() == "97" for s in st_steps)
         if not has_p97:
@@ -1908,10 +1997,10 @@ def insert_rf_iqxel_block(workspace, sheet_name, inst_name="InstIQApiA", title_n
     return len(block_rows)
 
 
-def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1, same_phase=False, use_ini_switch=False, inst_name="NI6008-1"):
+def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev_id="Dev1", title_name="Measure Voltage Test", channels=None, after_block_idx=-1, same_phase=False, use_ini_switch=False, inst_name="NI6008"):
     """
     依 NI-6009 人機介面設定，插入標準 :Dev.VOLTAGE + :CheckLimit 獨立 Title 區塊，
-    同步掛載 NI6008-1 至 Instrument 分頁、填入 Col F (Switch)、寫入 Global.ini [Settings] DAQ_1，並整塊亮黃底標記。
+    同步掛載 NI6008 (多台時為 NI6008-2...) 至 Instrument 分頁、填入 Col F (Switch)、寫入 Global.ini [Settings] DAQ_1/DAQ_2，並整塊亮黃底標記。
     """
     from .golden_data import get_golden_mother
 
@@ -1919,7 +2008,7 @@ def insert_ni6009_block(workspace, sheet_name, mode="RSE", sample_ms="1000", dev
     if sheet_name not in stations or not channels:
         return 0
     steps = stations[sheet_name]
-    target_inst_name = str(inst_name or "NI6008-1").strip() or "NI6008-1"
+    target_inst_name = str(inst_name or "NI6008").strip() or "NI6008"
 
     # 1. Ensure NI6008 device (NI6008-1 / NI6008-2...) is in Instrument and mounted to sheet_name
     catalog = get_golden_mother().get("instruments", [])

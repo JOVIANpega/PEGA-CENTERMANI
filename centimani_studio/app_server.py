@@ -642,7 +642,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         ref_str = ";\n".join(f"${nm}" for nm in names)
         ch_desc = ", ".join(f"AI{ch}({nm})" for ch, nm in zip(channels, names))
         steps = [
-            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.VOLTAGE,"RSE,1000,{",".join(channels)}"', "Reply": "0", "EndPrompt": "", "Ref": ref_str, "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": f"INST#-#Read {ch_desc}", "TestID": "BRPW033"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
         ]
@@ -831,7 +831,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         vmin = str(vd.get("min", "11.40")).strip() or "11.40"
         vmax = str(vd.get("max", "12.60")).strip() or "12.60"
         return [
-            {"Phase": "2", "Title": f"0,Measure {nm},3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "2", "Title": f"0,Measure {nm},3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f':Dev.VOLTAGE,"DIFF,2000,{ch}"', "Reply": "0", "EndPrompt": "", "Ref": f"${nm}", "Validation": f"({nm},%f,{vmin},{vmax})", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": f"DUT#-#Measure {nm} ({vmin}V~{vmax}V)", "TestID": "BRPW024"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},
         ]
@@ -1301,6 +1301,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     globals_patch=payload.get("globals_patch"),
                     use_ini_switch=bool(payload.get("use_ini_switch", False))
                 )
+                if bool(payload.get("no_hw_phase_pause", False)):
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws, target_sheet=sheet_name)
                 rep = audit_workspace(ws)
                 self._send_json({
                     "status": "ok",
@@ -1329,8 +1332,12 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     title_name=str(payload.get("title_name", "Measure Voltage Test")),
                     channels=payload.get("channels", []),
                     after_block_idx=int(payload.get("after_block_idx", -1)),
-                    use_ini_switch=bool(payload.get("use_ini_switch", False))
+                    use_ini_switch=bool(payload.get("use_ini_switch", False)),
+                    inst_name=str(payload.get("inst_name", "NI6008") or "NI6008")
                 )
+                if bool(payload.get("no_hw_phase_pause", False)):
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws, target_sheet=sheet_name)
                 rep = audit_workspace(ws)
                 self._send_json({
                     "status": "ok",
@@ -1361,6 +1368,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     after_block_idx=int(payload.get("after_block_idx", -1)),
                     use_ini_switch=bool(payload.get("use_ini_switch", False))
                 )
+                if bool(payload.get("no_hw_phase_pause", False)):
+                    from core.block_sorter import pause_hardware_phases_minus_one
+                    pause_hardware_phases_minus_one(ws, target_sheet=sheet_name)
                 rep = audit_workspace(ws)
                 self._send_json({
                     "status": "ok",
@@ -1608,7 +1618,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.018")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.019")
 
                 self._send_json({
                     "status": "ok",
@@ -1870,7 +1880,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.018")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.019")
 
                 self._send_json({
                     "status": "ok",
@@ -1889,7 +1899,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/generate_inst_template_standalone":
                 items = payload.get("items")
                 if not items or not isinstance(items, list):
-                    inst_name = str(payload.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                    inst_name = str(payload.get("inst_name", "NI6008")).strip() or "NI6008"
                     title_name = str(payload.get("title_name", "")).strip() or f"Test_{inst_name}"
                     dl_val = str(payload.get("dl_val", "")).strip()
                     ul_val = str(payload.get("ul_val", "")).strip()
@@ -1929,7 +1939,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 rf_inst_names = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
                 inst_occ_counts = {}
                 for idx_item, it in enumerate(items):
-                    i_name = str(it.get("inst_name", "NI6008-1")).strip() or "NI6008-1"
+                    i_name = str(it.get("inst_name", "NI6008")).strip() or "NI6008"
                     base_family = re.sub(r"-\d+$", "", i_name)
                     inst_occ_counts[base_family] = inst_occ_counts.get(base_family, 0) + 1
                     occ_num = inst_occ_counts[base_family]
@@ -2118,7 +2128,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.018")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.019")
 
                 self._send_json({
                     "status": "ok",
@@ -2273,7 +2283,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.018) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.019) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

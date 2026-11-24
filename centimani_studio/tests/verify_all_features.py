@@ -526,7 +526,7 @@ def run_all_verifications():
             for row in wb_dll["Instrument"].iter_rows(min_row=2, values_only=True):
                 if row and row[1]:
                     inst_names_in_sheet.append(str(row[1]).strip())
-                    if str(row[1]).strip() == "NI6008-1":
+                    if str(row[1]).strip() in ("NI6008", "NI6008-1"):
                         ni_ver = str(row[6] or "").strip()
             dut_name_val = next((str(r[1] or "").strip() for r in wb_dll["DUTs"].iter_rows(min_row=2, values_only=True) if r and r[1]), "")
             mb_rows_all = list(wb_dll["MB"].iter_rows(min_row=2, values_only=True))
@@ -548,15 +548,15 @@ def run_all_verifications():
             check(len(rf_phases_mb) == 1 and len(rf_titles_mb) == 3 and rf_insts_mb == ["MeasWIFI", "GenWIFI"],
                   "RF 多筆 TX/RX 共用單一 Phase、各自獨立 Title，且 MeasWIFI/GenWIFI 各只寫一次",
                   f"P={rf_phases_mb}, T={len(rf_titles_mb)}, I={rf_insts_mb}")
-            check(ni_ver == "1.1.2.0", "NI6008-1 (DaqUSBNi.dll) 版本號已自動對齊本機真實 DLL (1.1.2.0)", str(ni_ver))
+            check(ni_ver == "1.1.2.0", "NI6008 (DaqUSBNi.dll) 版本號已自動對齊本機真實 DLL (1.1.2.0)", str(ni_ver))
             check("HXTaudio" not in inst_names_in_sheet, "Instrument 工作表僅保留實際選用之儀器，不殘留未選儀器 (避免 DLL is not Found)", str(inst_names_in_sheet))
             check("IPOWER2401" in inst_names_in_sheet, "Phase 97 使用之 POWERSWITCH 已自動保留對應儀器 IPOWER2401", str(inst_names_in_sheet))
             from core.golden_data import get_golden_mother as _gm_chk
             gm_list = _gm_chk().get("instruments", [])
             gm_insts = {i["Name"]: i.get("dll_exists") for i in gm_list}
             gm_usable = {i["Name"]: i.get("is_usable") for i in gm_list}
-            check(gm_insts.get("NI6008-1") is True and gm_insts.get("HXTaudio") is False, "儀器目錄正確標記本機 DLL 存在與缺失狀態 (NI6008-1=True, HXTaudio=False)")
-            check(gm_usable.get("InstIQApiA") is True and gm_usable.get("NI6008-1") is True and gm_usable.get("HXTaudio") is False,
+            check(gm_insts.get("NI6008") is True and gm_insts.get("HXTaudio") is False, "儀器目錄正確標記本機 DLL 存在與缺失狀態 (NI6008=True, HXTaudio=False)")
+            check(gm_usable.get("InstIQApiA") is True and gm_usable.get("NI6008") is True and gm_usable.get("HXTaudio") is False,
                   "可使用設備旗標正確區分『實機DLL或專屬範本』 (InstIQApiA=True, HXTaudio=False)")
             check("TAB3_CAT_FILTER = 'USABLE'" in index_html and "auditEmptyRecentBox" in index_html,
                   "書籤三預設篩選『✅ 可使用設備』且 01 腳本健檢具備未載檔最近紀錄引導區")
@@ -789,21 +789,21 @@ def run_all_verifications():
                   "auto_fix_workspace 自動為缺漏測站補齊 DUTs 列")
 
             # [v0.8.016] 驗證依照 4 目錄知識庫改寫之核心邏輯：
-            # 1) Golden Mother 預設不幽靈掛載 NI6008-1，且 vnxRFSW / DevUart 正確標記 Sub=1
+            # 1) Golden Mother 預設不幽靈掛載 NI6008，且 vnxRFSW / DevUart 正確標記 Sub=1
             from core.golden_data import get_golden_mother as _get_gm_v16
             gm_v16 = _get_gm_v16("CLEAN_PROJ", "ST1")
             gm_inst_map = {str(i.get("Name", "")): i for i in gm_v16.get("instruments", [])}
-            check(gm_inst_map.get("NI6008-1", {}).get("Mount", "BAD") == "",
-                  "Golden Mother 預設不自動 Mount NI6008-1（無儀器站別不幽靈載入）")
+            check(gm_inst_map.get("NI6008", {}).get("Mount", "BAD") == "",
+                  "Golden Mother 預設不自動 Mount NI6008（無儀器站別不幽靈載入）")
             check(gm_inst_map.get("vnxRFSW", {}).get("Sub") == "1" and gm_inst_map.get("DevUart", {}).get("Sub") == "1",
                   "Golden Mother 正確設定 vnxRFSW 與 DevUart 為共用子裝置 (Sub=1)")
 
-            # 2) 插入標準儀器 (NI6008-1 / RF / FeasaLED) 必寫 Col F (Switch)，而 Sub=1 (vnxRFSW) 改用 :ObtainSubDevice / :sDev.* 且 Col E/F 留空
+            # 2) 插入標準儀器 (NI6008 / RF / FeasaLED) 必寫 Col F (Switch)，而 Sub=1 (vnxRFSW) 改用 :ObtainSubDevice / :sDev.* 且 Col E/F 留空
             wb_ni_chk = openpyxl.load_workbook(ask_res["excel_path"], data_only=True)
             ni_sw_vals = [str(r[5] or "").strip() for r in wb_ni_chk["MB"].iter_rows(min_row=2, values_only=True) if r and str(r[6] or "").strip() == ":ObtainDevice"]
             wb_ni_chk.close()
-            check("NI6008-1" in ni_sw_vals,
-                  "插入 NI6008-1 範本時於 :ObtainDevice 列同步寫入 Col F (Switch=NI6008-1)", str(ni_sw_vals))
+            check("NI6008" in ni_sw_vals or "NI6008-1" in ni_sw_vals,
+                  "插入 NI6008 範本時於 :ObtainDevice 列同步寫入 Col F (Switch=NI6008)", str(ni_sw_vals))
 
             sub_res = post_json("/api/generate_inst_template_standalone", {
                 "items": [{"inst_name": "vnxRFSW", "title_name": "Switch Ant0"}],
@@ -968,6 +968,77 @@ def run_all_verifications():
                   and any("Mount 欄未包含站別 'BootUp'" in w for w in rep_v18.get("warnings", [])),
                   "audit_workspace 主動攔截未先 :ObtainDevice 呼叫 :Dev.*、:Dev.VOLAGE 拼字與 Mount 空掛載站別",
                   f"errs={rep_v18.get('errors')} warns={rep_v18.get('warnings')}")
+
+            # [v0.8.019] 驗證實戰反饋修正：
+            # 1) 單台儀器不加 '-1' (NI6008)，兩台以上才遞增 (NI6008 + NI6008-2)
+            # 2) 無儀器環境 pause_hardware_phases_minus_one 同步將暫停儀器移出 Mount，防止主程式 Start Connecting to Device 閃退
+            # 3) /api/insert_instrument_block 支援 no_hw_phase_pause=True 與預設單純 0,Title,3 產出
+            # 4) UI 具備 iiNoHwPhaseChk 與『書籤二：產生首次使用空範本』，且預設不勾選 *$(EN_...)
+            # 5) auto_fix_workspace 主動修正 :ShowISN 順序、:Dev.VOLAGE 拼字、遺漏 :ObtainDevice 與缺 Mount
+            single_ni_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "NI6008", "title_name": "Measure Voltage"}, {"inst_name": "NI6008-2", "title_name": "Measure Voltage_2"}],
+                "project_name": "SINGLE_AND_TWO", "station_name": "MB", "auto_sample_mode": True, "open_excel": False
+            })
+            wb_s19 = openpyxl.load_workbook(single_ni_res["excel_path"], read_only=True, data_only=True)
+            s19_insts = [str(r[1]) for r in wb_s19["Instrument"].iter_rows(min_row=2, values_only=True) if r and r[1]]
+            s19_titles = [str(r[2] or "").strip() for r in wb_s19["MB"].iter_rows(min_row=2, values_only=True) if r and r[2]]
+            wb_s19.close()
+            check("NI6008" in s19_insts and "NI6008-2" in s19_insts and "NI6008-1" not in s19_insts,
+                  "單台儀器定名為 NI6008 (不加 -1)，第二台起為 NI6008-2", str(s19_insts))
+            check(any(t.startswith("0,Measure Voltage") for t in s19_titles),
+                  "預設取消 INI 開關時，產出簡單易讀之傳統 0,測項名稱,3 格式", str(s19_titles))
+
+            ip_nohw_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [{"inst_name": "IPOWER2401", "title_name": "Power Switch"}],
+                "project_name": "NOHW_IP", "station_name": "MB", "auto_sample_mode": True,
+                "no_hw_phase_pause": True, "open_excel": False
+            })
+            wb_nohw = openpyxl.load_workbook(ip_nohw_res["excel_path"], read_only=True, data_only=True)
+            ip_mount = next((str(r[0] or "") for r in wb_nohw["Instrument"].iter_rows(min_row=2, values_only=True) if r and r[1] == "IPOWER2401"), "MISSING")
+            wb_nohw.close()
+            check(ip_mount == "",
+                  "勾選無儀器環境 (no_hw_phase_pause=True) 時同步暫停 IPOWER2401.Mount，避免 Centimani Start Connecting to Device 連線報錯", f"Mount='{ip_mount}'")
+
+            ins_nohw_ws = _get_gm_v16("INS_NOHW", "MB")
+            ins_nohw_ws["stations"]["MB"] = [
+                {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "1", "Description": "ISN", "TestID": "B7PL025"},
+                {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "Description": "Route", "TestID": "OTFX064"},
+            ]
+            ins_nohw_res = post_json("/api/insert_instrument_block", {
+                "workspace": ins_nohw_ws, "sheet_name": "MB",
+                "inst_name": "IPOWER2401", "title_name": "Power Cycle", "no_hw_phase_pause": True
+            })
+            ins_paused_p = [str(r.get("Phase", "")) for r in ins_nohw_res["workspace"]["stations"]["MB"] if r.get("Phase")]
+            check(ins_nohw_res.get("status") == "ok" and "-1" in ins_paused_p and ins_nohw_res["report"]["error_count"] == 0,
+                  "/api/insert_instrument_block 支援無儀器環境設 Phase=-1 且 0 Error 健檢通過", str(ins_paused_p))
+
+            check('id="iiNoHwPhaseChk"' in index_html and '書籤二：產生首次使用空範本' in index_html and 'id="tab3UseIniSwitch" type="checkbox" style=' in index_html,
+                  "UI 插入儀器彈窗具備無儀器環境 Checkbox、書籤二改名為『產生首次使用空範本』，且預設取消 INI 開關簡化腳本")
+
+            messy_temp_ws = {
+                "project_name": "MESSY", "station_name": "BootUp", "source_file": "GWTalk_TestFlow.xlsx",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [{"Mount": "NFT", "Name": "NI6008-1", "Functions": "Voltage", "Version": "1.1.2.0"}],
+                "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "MESSY$BootUp", "Station": "BootUp,1"}],
+                "marcos": {},
+                "stations": {"BootUp": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX064"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "002", "Phase": "1", "Title": "0,Volt", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ':Dev.VOLAGE,"RSE,1000,0"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            _autofix_ws(messy_temp_ws)
+            rep_after_messy = _audit_ws(messy_temp_ws)
+            fixed_sends_19 = [r.get("Send", "") for r in messy_temp_ws["stations"]["BootUp"]]
+            check(rep_after_messy["error_count"] == 0
+                  and fixed_sends_19.index(':ShowISN,"*(ISN)"') < fixed_sends_19.index(":SfCheckRoute")
+                  and ":ObtainDevice" in fixed_sends_19
+                  and any(s.startswith(":Dev.VOLTAGE") for s in fixed_sends_19)
+                  and "BootUp" in str(messy_temp_ws["instruments"][0].get("Mount", "")),
+                  "auto_fix_workspace 可一次自動修復 TEMP_SCRIPT 常見四大錯誤 (:ShowISN 順序 / :Dev.VOLTAGE / 補 :ObtainDevice / 補 Mount)",
+                  f"errs={rep_after_messy['errors']} sends={fixed_sends_19}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

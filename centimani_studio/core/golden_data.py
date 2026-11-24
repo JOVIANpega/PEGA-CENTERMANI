@@ -82,7 +82,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
         "instruments": [
             {"Mount": "", "Name": "IPOWER2401", "Sub": "", "ControlDLL": "iPower2401.dll", "Settings": "192.168.201.11,192.168.201.3,9999,1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch 2401"},
             {"Mount": "", "Name": "IPRO800", "Sub": "", "ControlDLL": "iPowerPro800.dll", "Settings": "*$(PCUART_P),1", "Functions": "POWERSWITCH", "Version": "1.0.0.0", "Switch": "", "Desc": "Power Switch Pro800"},
-            {"Mount": "", "Name": "NI6008-1", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"},
+            {"Mount": "", "Name": "NI6008", "Sub": "", "ControlDLL": "DaqUSBNi.dll", "Settings": "*$(DAQ_1)", "Functions": "Voltage", "Version": "1.1.2.0", "Switch": "", "Desc": "DAQ device NI6008/6009"},
             {"Mount": "", "Name": "Agilent34401A", "Sub": "", "ControlDLL": "Agilent34401A.dll", "Settings": "GPIB,GPIB0::16::INSTR", "Functions": "DC,AC,FREQ", "Version": "1.0.0.2", "Switch": "", "Desc": "Agilent 34401A Multimeter (Device\\Agilent34401A.dll)"},
             {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "2.1.0.1", "Switch": "", "Desc": "LED analyser FeasaLED"},
             {"Mount": "", "Name": "NI4461", "Sub": "", "ControlDLL": "DaqNI4461.dll", "Settings": "Dev2", "Functions": "VOIP,RMS", "Version": "1.0.0.0", "Switch": "", "Desc": "DAQ device NI4461 Audio"},
@@ -94,8 +94,8 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "Chroma6310A", "Sub": "", "ControlDLL": "Chroma6310A.dll", "Settings": "", "Functions": "DCLoad,ElectronicLoad", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma DC Electronic Load"},
             {"Mount": "", "Name": "KEITHLEY2302", "Sub": "", "ControlDLL": "KEITHLEY2302.dll", "Settings": "", "Functions": "DC,SetVoltageCurrent,GetVoltageCurrent", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2302 Battery Simulator"},
             {"Mount": "", "Name": "PPH1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "GPIB,*$(GPIBPPH1503)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR,MSCurr,MSVolt,SetCurr,SetVolt,SetON,OUTONOFF", "Version": "1.0.2.0", "Switch": "", "Desc": "Power Supply PPH1503"},
-            {"Mount": "", "Name": "PSS1503-1", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "GPIB,*$(GPIB1503-1)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.3.0", "Switch": "", "Desc": "DC Power 1503"},
-            {"Mount": "", "Name": "PS2005-1", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "GPIB,*$(GPIB2005)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.1.0", "Switch": "", "Desc": "Power Supply PSS2005"},
+            {"Mount": "", "Name": "PSS1503", "Sub": "", "ControlDLL": "PPH1503.dll", "Settings": "GPIB,*$(GPIB1503-1)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.3.0", "Switch": "", "Desc": "DC Power 1503"},
+            {"Mount": "", "Name": "PS2005", "Sub": "", "ControlDLL": "PSS2005.dll", "Settings": "GPIB,*$(GPIB2005)", "Functions": "DC,MCurr,MVolt,SCurr,SVolt,SON,OnOff,CLR", "Version": "1.0.1.0", "Switch": "", "Desc": "Power Supply PSS2005"},
             {"Mount": "", "Name": "GDM906x", "Sub": "", "ControlDLL": "GDM906x.dll", "Settings": "", "Functions": "DMM,VDC,ADC,VAC,AAC,FREQ", "Version": "1.0.0.0", "Switch": "", "Desc": "GW Instek GDM906x Multimeter"},
             {"Mount": "", "Name": "MDA2700", "Sub": "", "ControlDLL": "MDA2700.dll", "Settings": "", "Functions": "DAQ,FREQ,AC,DC", "Version": "1.0.0.1", "Switch": "", "Desc": "MDA2700 Data Acquisition"},
             {"Mount": "", "Name": "E4418B", "Sub": "", "ControlDLL": "PMeterE4418B.dll", "Settings": "", "Functions": "PMeter,RFPWR", "Version": "1.0.0.0", "Switch": "", "Desc": "Agilent E4418B Power Meter"},
@@ -106,8 +106,8 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "HXTaudio", "Sub": "", "ControlDLL": "HXTaudio.dll", "Settings": "", "Functions": "Audio,HXTaudio1", "Version": "1.0.0.6", "Switch": "", "Desc": "HXT Audio Analyzer"},
             {"Mount": "", "Name": "SAu3751", "Sub": "", "ControlDLL": "SAu3751.dll", "Settings": "", "Functions": "Audio,RFPWR,FREQ,SMASK", "Version": "1.0.0.0", "Switch": "", "Desc": "Audio Analyzer SAu3751"},
             {"Mount": "", "Name": "RST", "Sub": "", "ControlDLL": "RST.dll", "Settings": "C:\\TrustSystem13.0\\TrustSystem13.0.exe,TS 144011,Engineer,Engineer", "Functions": "RST", "Version": "1.0.0.2", "Switch": "", "Desc": "Acoustic TrustSystem RST"},
-            {"Mount": "", "Name": "FC6000-1", "Sub": "", "ControlDLL": "FCPM6000.dll", "Settings": "FCPM-6000RC,1,500", "Functions": "AirTest,PwrRG,FcRG,rFreq,rPwr,rVol,rFrPw,List,gIP,Rst,CHECK", "Version": "1.0.1.10", "Switch": "", "Desc": "Fukuda Air Leak Tester FC6000"},
-            {"Mount": "", "Name": "FM480-1", "Sub": "", "ControlDLL": "FM480.dll", "Settings": "", "Functions": "AirTest,FSCAN", "Version": "1.0.1.0", "Switch": "", "Desc": "Flow Meter FM480"},
+            {"Mount": "", "Name": "FC6000", "Sub": "", "ControlDLL": "FCPM6000.dll", "Settings": "FCPM-6000RC,1,500", "Functions": "AirTest,PwrRG,FcRG,rFreq,rPwr,rVol,rFrPw,List,gIP,Rst,CHECK", "Version": "1.0.1.10", "Switch": "", "Desc": "Fukuda Air Leak Tester FC6000"},
+            {"Mount": "", "Name": "FM480", "Sub": "", "ControlDLL": "FM480.dll", "Settings": "", "Functions": "AirTest,FSCAN", "Version": "1.0.1.0", "Switch": "", "Desc": "Flow Meter FM480"},
             {"Mount": "", "Name": "DIO6509", "Sub": "", "ControlDLL": "DigitIO6509.dll", "Settings": "", "Functions": "DIO,IOswitch", "Version": "1.0.0.0", "Switch": "", "Desc": "NI PCI-6509 Digital I/O"},
             {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR,RRout", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
             {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE,SETDVBC,PREDEV,RESDEV,DEFDEV", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
@@ -255,8 +255,8 @@ def _get_local_dll_versions(force_refresh=False):
 
 
 TEMPLATED_INSTS = {
-    "NI6008-1", "FeasaLED", "IPOWER2401", "IPRO800",
-    "Agilent34401A", "MDA2700", "PS2005-1",
+    "NI6008", "NI6008-1", "FeasaLED", "IPOWER2401", "IPRO800",
+    "Agilent34401A", "MDA2700", "PS2005", "PS2005-1",
     "InstIQApiA", "XelM8-B", "MT8870A", "DIO6509",
 }
 
@@ -377,7 +377,7 @@ STANDARD_BLOCKS = [
         "default_phase": "1",
         "required_globals": {"Settings": {"DAQ_1": "Dev1"}, "Scripts": {}},
         "steps": [
-            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008-1", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
+            {"Phase": "1", "Title": "0,Measure Voltage Test,3", "Marco": "", "Instrument": "Voltage", "Switch": "NI6008", "Send": ":ObtainDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Obtain NI6008 Lock", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"1500"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait Voltage Stabilize", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Dev.VOLTAGE,"RSE,1000,0,1,2"', "Reply": "0", "EndPrompt": "", "Ref": "$VCC_5V;\n$VCC_3V3;\n$VCC_1V8", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "INST#-#Read AI0(5V), AI1(3.3V), AI2(1.8V)", "TestID": "BRPW033"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "INST#-#Release NI6008 Lock", "TestID": "BRME027"},

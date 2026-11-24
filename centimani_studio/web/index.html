@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.018">
+<link rel="stylesheet" href="/css/app.css?v=0.8.019">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.018</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.019</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -90,7 +90,7 @@
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.6;">
             <li><b>書籤一</b>：既有 Excel 5 合 1 編修與跨檔複製</li>
-            <li><b>書籤二</b>：首次 4 步驟建立新腳本母體</li>
+            <li><b>書籤二</b>：首次 4 步驟建立空範本（乾淨基礎骨架）</li>
             <li><b>書籤三</b>：34 款儀器撲克牌庫（含懶人快速版／人機）</li>
             <li><b>書籤四</b>：問編寫問題（Phase / Title / 跳轉 / 指令寫法百科）</li>
           </ul>
@@ -388,8 +388,12 @@
             </label>
           </div>
           <label style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:8px 10px; font-size:12.5px; color:#1E3A8A; font-weight:700; cursor:pointer;">
-            <input id="iiUseIniSwitch" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
-            <span>加入 Global.ini 獨立開關（勾選：Title 寫 <code>*$(EN_...)</code>，同儀器多組會自動編號 `_2`；未勾選則寫傳統 <code>0,名稱,3</code>）</span>
+            <input id="iiUseIniSwitch" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
+            <span>加入 Global.ini 獨立開關（預設取消以維持單純 <code>0,名稱,3</code> 產線易讀格式；勾選才寫 <code>*$(EN_...)</code>）</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:8px 10px; font-size:12.5px; color:#92400E; font-weight:700; cursor:pointer;">
+            <input id="iiNoHwPhaseChk" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
+            <span>⏸️ 目前無實體儀器環境（先將儀器區塊設為 <code>Phase = -1</code> 並暫停 <code>Mount</code>，讓主程式試跑不報錯）</span>
           </label>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; background:#F1F5F9; border-top:1px solid #CBD5E1;">
@@ -552,6 +556,10 @@
           <label style="font-size:13px; font-weight:700; color:#334155;">插入位置：
             <select id="instHmiAfterSel" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:4px; max-width:240px;"></select>
           </label>
+          <label style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A; border-radius:5px; padding:3px 8px; cursor:pointer;">
+            <input id="instHmiNoHwPhaseChk" type="checkbox" style="width:14px; height:14px;">
+            <span>⏸️ 無儀器先寫 Phase=-1</span>
+          </label>
         </div>
       </div>
     </div>
@@ -648,6 +656,10 @@
             </label>
             <label id="ni6AfterWrap" style="font-weight:700;">插入位置：
               <select id="ni6AfterSel" style="width:100%; padding:4px 6px; margin-top:2px;"></select>
+            </label>
+            <label id="ni6NoHwWrap" style="display:flex; align-items:center; gap:6px; font-weight:700; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A; border-radius:5px; padding:4px 8px; cursor:pointer;">
+              <input id="ni6NoHwPhaseChk" type="checkbox" style="width:15px; height:15px;">
+              <span>⏸️ 無儀器先寫 Phase=-1</span>
             </label>
             <label style="font-weight:700;">Title 名稱：
               <input id="ni6TitleInput" type="text" value="Measure Voltage Test" style="width:100%; padding:4px 6px; margin-top:2px; box-sizing:border-box;">
@@ -874,8 +886,8 @@
           <div>
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
-            <div class="acc-title">書籤二：首次建立新母體</div>
-            <div class="acc-sub">全新案子從零開始 4 步驟精靈建檔</div>
+            <div class="acc-title">書籤二：產生首次使用空範本</div>
+            <div class="acc-sub">全新案子從零建立基礎乾淨範本 (0 → 1)</div>
           </div>
           <div class="acc-body">
             <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
@@ -933,7 +945,7 @@
       </div>
       <div class="source-mode-bar" style="margin:0;">
         <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 書籤一：既有編修</button>
-        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 書籤二：建立新母體</button>
+        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 書籤二：產生首次使用空範本</button>
         <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 書籤三：儀器範本</button>
         <button id="btnGenModeQa" class="source-mode-tab" onclick="switchGenSubMode('qa')">💬 書籤四：問編寫問題</button>
       </div>
@@ -1217,8 +1229,8 @@
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px; margin-bottom:10px;">
           <label style="display:flex; align-items:center; gap:8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#312E81; font-weight:700; cursor:pointer;">
-            <input id="tab3UseIniSwitch" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
-            <span>🔧 在 <code>Global.ini</code> 開關測項（寫入 <code>*$(EN_...)</code>：0=執行 / 2=Skip；取消則寫 <code>0,名稱,3</code>）</span>
+            <input id="tab3UseIniSwitch" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
+            <span>🔧 在 <code>Global.ini</code> 開關測項（預設取消維持單純 <code>0,名稱,3</code>；勾選才寫 <code>*$(EN_...)</code>）</span>
           </label>
           <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#92400E; font-weight:700; cursor:pointer;">
             <input id="tab3NoHwPhaseChk" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
@@ -1703,11 +1715,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.018"></script>
-<script src="/js/audit_editors.js?v=0.8.018"></script>
-<script src="/js/flow_guide.js?v=0.8.018"></script>
-<script src="/js/block_sorter.js?v=0.8.018"></script>
-<script src="/js/script_qa.js?v=0.8.018"></script>
+<script src="/js/inst_hmi.js?v=0.8.019"></script>
+<script src="/js/audit_editors.js?v=0.8.019"></script>
+<script src="/js/flow_guide.js?v=0.8.019"></script>
+<script src="/js/block_sorter.js?v=0.8.019"></script>
+<script src="/js/script_qa.js?v=0.8.019"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2792,7 +2804,7 @@ function switchGenSubMode(mode) {
 
   const titleMap = {
     edit: '📝 書籤一：既有腳本編修 (1 → N)',
-    create: '🌱 書籤二：首次建立新母體 (0 → 1)',
+    create: '🌱 書籤二：產生首次使用空範本 (0 → 1)',
     inst: '🧪 書籤三：插入儀器範本 (34 款人機)',
     qa: '💬 書籤四：問編寫問題（Excel 編寫邏輯與指令百科）'
   };
@@ -3047,7 +3059,7 @@ function tab3RenderCatalogDeck() {
   if (!deckEl) return;
 
   const catalog = STATE.instCatalog || [];
-  const popularNames = ['NI6008-1', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'iPower', 'Relay'];
+  const popularNames = ['NI6008', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'iPower', 'Relay'];
 
   if (pillsEl && typeof INST_CATEGORIES !== 'undefined') {
     const usableCount = catalog.filter(i => i.is_usable !== false && (i.dll_exists !== false || i.has_template === true)).length;
@@ -3122,7 +3134,7 @@ function tab3RenderDetailCards() {
   if (!box) return;
   box.innerHTML = TAB3_QUEUE.map((it, idx) => {
     const baseInst = (typeof resolveBaseInstName === 'function') ? resolveBaseInstName(it.inst_name) : it.inst_name;
-    const hasHmi = (baseInst === 'NI6008-1') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(baseInst));
+    const hasHmi = (baseInst === 'NI6008') || (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(baseInst));
     const catInst = tab3ResolveCatalogInst(it.inst_name);
     const missingDll = Boolean(catInst && catInst.dll_exists === false);
     const dllName = (catInst && catInst.ControlDLL) || '';
@@ -3299,9 +3311,9 @@ function tab3OnInstChange() {
 
 function tab3UpdateHmiBtn() {
   const btn = document.getElementById('btnTab3Hmi');
-  const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  const inst = (document.getElementById('tab3InstSel') || {}).value || 'NI6008';
   if (!btn) return;
-  if (inst === 'NI6008-1') {
+  if (resolveBaseInstName(inst) === 'NI6008') {
     btn.innerHTML = '🔌 NI-6008/6009 圖解接線設定';
   } else if (typeof HMI_SUPPORTED_INSTS !== 'undefined' && HMI_SUPPORTED_INSTS.includes(inst)) {
     btn.innerHTML = `🎛️ ${inst} 互動人機設定`;
@@ -3311,14 +3323,14 @@ function tab3UpdateHmiBtn() {
 }
 
 function tab3OpenIntro(explicitInstName = null) {
-  const inst = explicitInstName || (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  const inst = explicitInstName || (document.getElementById('tab3InstSel') || {}).value || 'NI6008';
   openInstIntroPage('tab3', inst);
 }
 
 function tab3OpenHmi(explicitInstName = null) {
-  const inst = explicitInstName || (document.getElementById('tab3InstSel') || {}).value || 'NI6008-1';
+  const inst = explicitInstName || (document.getElementById('tab3InstSel') || {}).value || 'NI6008';
   const baseInst = (typeof resolveBaseInstName === 'function') ? resolveBaseInstName(inst) : inst;
-  if (baseInst === 'NI6008-1') {
+  if (baseInst === 'NI6008') {
     openNi6009Hmi('tab3', -1, inst);
   } else if (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[baseInst] && INST_INTRO_PROFILES[baseInst].hasInteractiveHmi) {
     openInstHmi('tab3', inst);
@@ -4821,10 +4833,10 @@ async function refreshCurrentExcelFile() {
 }
 
 const INST_CATEGORIES = [
-  { id: 'measure', label: '📏 量測電壓 / 電流 / 電錶 / DAQ', names: ['NI6008-1', 'Agilent34401A', 'GDM906x', 'MDA2700', 'ScpTDS3014B'] },
-  { id: 'power', label: '⚡ 電源開關 / 供電與電子負載', names: ['IPOWER2401', 'IPRO800', 'KEITHLEY2302', 'PPH1503', 'PS2005-1', 'Chroma6150x', 'Chroma6310A'] },
+  { id: 'measure', label: '📏 量測電壓 / 電流 / 電錶 / DAQ', names: ['NI6008', 'Agilent34401A', 'GDM906x', 'MDA2700', 'ScpTDS3014B'] },
+  { id: 'power', label: '⚡ 電源開關 / 供電與電子負載', names: ['IPOWER2401', 'IPRO800', 'KEITHLEY2302', 'PPH1503', 'PSS1503', 'PS2005', 'Chroma6150x', 'Chroma6310A'] },
   { id: 'rf', label: '📡 RF 無線 / 功率計 / 切換器', names: ['InstIQApiA', 'XelM8-B', 'MT8870A', 'E4418B', 'U2004A', 'OSP120', 'SAn9000', 'vnxRFSW'] },
-  { id: 'audio_io', label: '🔊 音訊 / 氣密 / LED / DIO / IR', names: ['FeasaLED', 'NI4461', 'HXTaudio', 'SAu3751', 'FC6000-1', 'FM480-1', 'DIO6509', 'Redrat', 'SFE100'] },
+  { id: 'audio_io', label: '🔊 音訊 / 氣密 / LED / DIO / IR', names: ['FeasaLED', 'NI4461', 'HXTaudio', 'SAu3751', 'RST', 'FC6000', 'FM480', 'DIO6509', 'Redrat', 'SFE100'] },
   { id: 'comm_sw', label: '🔧 條碼 / UART / 軟體工具', names: ['QRDecode', 'DevUart', 'AutoTFTP', 'DevQueue', 'LVdev'] }
 ];
 
@@ -4928,7 +4940,7 @@ async function openInsertInstModal() {
 }
 
 const HMI_SUPPORTED_INSTS = [
-  'NI6008-1', 'FeasaLED', 'IPOWER2401', 'IPRO800',
+  'NI6008', 'FeasaLED', 'IPOWER2401', 'IPRO800',
   'MDA2700', 'Agilent34401A', 'GDM906x', 'DIO6509',
   'InstIQApiA', 'XelM8-B', 'MT8870A'
 ];
@@ -4939,7 +4951,7 @@ function iiUpdateNi6Hint() {
   if (row) row.style.display = HMI_SUPPORTED_INSTS.includes(instNm) ? 'flex' : 'none';
   const txt = document.getElementById('iiHmiHintText');
   if (txt) {
-    txt.textContent = (instNm === 'NI6008-1')
+    txt.textContent = (instNm === 'NI6008')
       ? '🔌 NI-6008/6009 支援 32-Pin 圖解接線設定（直接點圖打勾多通道與 12V 分壓提醒）'
       : `🎛️ ${instNm} 支援專屬互動式人機設定（先看儀器介紹，再透過視覺化介面設定參數）`;
   }
@@ -4985,7 +4997,8 @@ async function iiConfirmInsert() {
       title_name: document.getElementById('iiTitleInput').value.trim(),
       dl_val: dlVal,
       ul_val: ulVal,
-      use_ini_switch: !!(document.getElementById('iiUseIniSwitch') && document.getElementById('iiUseIniSwitch').checked)
+      use_ini_switch: !!(document.getElementById('iiUseIniSwitch') && document.getElementById('iiUseIniSwitch').checked),
+      no_hw_phase_pause: !!(document.getElementById('iiNoHwPhaseChk') && document.getElementById('iiNoHwPhaseChk').checked)
     })
   });
   const data = await res.json();
@@ -5003,7 +5016,7 @@ async function iiConfirmInsert() {
   });
   closeInsertInstModal();
   renderAuditResults();
-  alert(`已插入 ${data.added_rows} 列獨立 Title 區塊（整塊已標記亮黃底，請點擊「💾 立即匯出並驗證」寫入 *_FIXED.xlsx）。`);
+  alert(`已插入 ${data.added_rows} 列獨立 Title 區塊（整塊已標記亮黃底，請點擊「💾 寫入並匯出 Excel」寫入 *_FIXED.xlsx）。`);
 }
 
 async function initGenCustomInstSelector() {
@@ -5016,7 +5029,7 @@ function genUpdateNi6Btn() {
   const instNm = document.getElementById('genInstSel').value;
   if (b) {
     b.style.display = HMI_SUPPORTED_INSTS.includes(instNm) ? 'inline-flex' : 'none';
-    b.textContent = (instNm === 'NI6008-1') ? '🔌 圖解接線設定' : `🎛️ ${instNm} 人機設定`;
+    b.textContent = (instNm === 'NI6008') ? '🔌 圖解接線設定' : `🎛️ ${instNm} 人機設定`;
   }
 }
 function genOnCategoryChange() {
@@ -5103,7 +5116,7 @@ const NI6_PINS = [
 function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
   NI6_STATE.targetMode = targetMode || 'audit';
   NI6_STATE.editGenIdx = editGenIdx;
-  NI6_STATE.instName = explicitInstName || 'NI6008-1';
+  NI6_STATE.instName = explicitInstName || 'NI6008';
   const mDev = String(NI6_STATE.instName).match(/-(\d+)$/);
   const devDef = (mDev && mDev[1]) ? `Dev${mDev[1]}` : 'Dev1';
   if (targetMode === 'wiz_volt') {
@@ -5136,6 +5149,7 @@ function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
   const isAudit = (NI6_STATE.targetMode === 'audit');
   document.getElementById('ni6SheetWrap').style.display = isAudit ? 'block' : 'none';
   document.getElementById('ni6AfterWrap').style.display = isAudit ? 'block' : 'none';
+  if (document.getElementById('ni6NoHwWrap')) document.getElementById('ni6NoHwWrap').style.display = isAudit ? 'flex' : 'none';
   if (isAudit && STATE.workspace) {
     const stNames = Object.keys(STATE.workspace.stations || {});
     const sSel = document.getElementById('ni6SheetSel');
@@ -5361,7 +5375,7 @@ async function ni6ConfirmSubmit() {
   if (NI6_STATE.targetMode === 'tab3') {
     closeNi6009Hmi();
     if (typeof tab3SaveHmiItemFromModal === 'function') {
-      const tgtInstName = NI6_STATE.instName || 'NI6008-1';
+      const tgtInstName = NI6_STATE.instName || 'NI6008';
       await tab3SaveHmiItemFromModal({
         inst_name: tgtInstName,
         title_name: payloadBlock.title_name,
@@ -5390,6 +5404,8 @@ async function ni6ConfirmSubmit() {
       workspace: STATE.workspace,
       sheet_name: document.getElementById('ni6SheetSel').value,
       after_block_idx: parseInt(document.getElementById('ni6AfterSel').value || '-1', 10),
+      inst_name: NI6_STATE.instName || 'NI6008',
+      no_hw_phase_pause: !!(document.getElementById('ni6NoHwPhaseChk') && document.getElementById('ni6NoHwPhaseChk').checked),
       ...payloadBlock
     })
   });
@@ -5403,7 +5419,7 @@ async function ni6ConfirmSubmit() {
   STATE.pendingInserts = STATE.pendingInserts || [];
   STATE.pendingInserts.push({
     sheet: document.getElementById('ni6SheetSel').value,
-    inst: 'NI6008-1',
+    inst: NI6_STATE.instName || 'NI6008',
     summary: `${NI6_STATE.mode} · ${NI6_STATE.channels.map(c => 'AI' + c.ch + '(' + c.name + ')').join(', ')}`
   });
   closeNi6009Hmi();
@@ -5595,7 +5611,7 @@ function goWizardStep(step) {
   if (step === 3) {
     renderWizStep3();
     if (STATE.selectedBlockIds.includes('BLK_VOLT_NI6008_BATCH') && !WIZ_VOLT_CONFIGURED) {
-      openInstIntroPage('wiz_volt', 'NI6008-1');
+      openInstIntroPage('wiz_volt', 'NI6008');
     }
   }
   if (step === 4) renderWizStep4();
@@ -5672,7 +5688,7 @@ function renderWizStep3() {
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
           <span style="font-weight:700; font-size:15px; color:#0F172A;">⚡ NI-6008 / NI-6009 電壓量測明細（${modeLabel} · 共 ${WIZ_VOLT_RAILS.length} 組）</span>
-          <button class="btn" style="padding:5px 14px; font-size:13px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;" onclick="openInstIntroPage('wiz_volt', 'NI6008-1')">🔌 開啟 / 修改 NI-6009 接線與通道設定</button>
+          <button class="btn" style="padding:5px 14px; font-size:13px; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; font-weight:700;" onclick="openInstIntroPage('wiz_volt', 'NI6008')">🔌 開啟 / 修改 NI-6009 接線與通道設定</button>
         </div>
         <table class="meas-table">
           <thead><tr><th>AI 通道</th><th>變數名稱</th><th>標稱值 (V)</th><th>合格範圍 (Min ~ Max)</th><th>TestID</th></tr></thead>

@@ -8,22 +8,23 @@ const NI6_PRESETS = {
 };
 const INTRO_STATE = {
   targetMode: 'audit',
-  instName: 'NI6008-1',
+  instName: 'NI6008',
   editGenIdx: -1,
   fontSize: parseInt(localStorage.getItem('centimani_intro_font_size') || '15', 10) || 15
 };
 function resolveBaseInstName(instName) {
   const s = String(instName || '').trim();
-  if (!s || (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[s])) return s;
-  const m = s.match(/^(.*)-(\d+)$/);
-  if (m && typeof INST_INTRO_PROFILES !== 'undefined') {
-    if (INST_INTRO_PROFILES[m[1]]) return m[1];
-    if (INST_INTRO_PROFILES[`${m[1]}-1`]) return `${m[1]}-1`;
+  if (!s) return s;
+  if (typeof INST_INTRO_PROFILES !== 'undefined' && INST_INTRO_PROFILES[s]) return s;
+  const stem = s.replace(/-\d+$/, '');
+  if (typeof INST_INTRO_PROFILES !== 'undefined') {
+    if (INST_INTRO_PROFILES[stem]) return stem;
+    if (INST_INTRO_PROFILES[`${stem}-1`]) return `${stem}-1`;
   }
   return s;
 }
 const INST_INTRO_PROFILES = {
-  'NI6008-1': {
+  'NI6008': {
     title: 'NI USB-6009 / NI-6008 多功能資料擷取卡',
     dll: 'DaqUSBNi.dll',
     category: '量測電壓 / DAQ',
@@ -319,9 +320,9 @@ function buildGenericProfile(instName) {
   };
 }
 
-function openInstIntroPage(targetMode, instName = 'NI6008-1', editGenIdx = -1) {
+function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
   INTRO_STATE.targetMode = targetMode || 'audit';
-  INTRO_STATE.instName = instName || 'NI6008-1';
+  INTRO_STATE.instName = instName || 'NI6008';
   INTRO_STATE.editGenIdx = editGenIdx;
   const baseInst = resolveBaseInstName(INTRO_STATE.instName);
   const prof = INST_INTRO_PROFILES[baseInst] || buildGenericProfile(INTRO_STATE.instName);
@@ -432,7 +433,7 @@ function proceedFromIntroToConfig() {
   const baseInst = resolveBaseInstName(INTRO_STATE.instName);
   const prof = INST_INTRO_PROFILES[baseInst];
   if (prof && prof.hasInteractiveHmi) {
-    if (baseInst === 'NI6008-1') {
+    if (baseInst === 'NI6008') {
       openNi6009Hmi(INTRO_STATE.targetMode, INTRO_STATE.editGenIdx, INTRO_STATE.instName);
     } else {
       openInstHmi(INTRO_STATE.targetMode, INTRO_STATE.instName);
@@ -1044,7 +1045,8 @@ async function confirmInstHmi() {
       dl_val: dl,
       ul_val: ul,
       custom_steps: steps,
-      globals_patch: globalsPatch
+      globals_patch: globalsPatch,
+      no_hw_phase_pause: !!(document.getElementById('instHmiNoHwPhaseChk') && document.getElementById('instHmiNoHwPhaseChk').checked)
     })
   });
   const data = await res.json();

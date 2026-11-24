@@ -74,7 +74,7 @@ class TestCentimaniStudioCore(unittest.TestCase):
         export_workspace_to_excel(ws_in, out_fixed)
 
         wb = openpyxl.load_workbook(out_fixed)
-        ni_rows = [[c.value for c in r[:2]] for r in wb["Instrument"].iter_rows() if r[1].value == "NI6008-1"]
+        ni_rows = [[c.value for c in r[:2]] for r in wb["Instrument"].iter_rows() if r[1].value == "NI6008"]
         wb.close()
         self.assertEqual(len(ni_rows), 1)
         self.assertIn(st, str(ni_rows[0][0] or ""))

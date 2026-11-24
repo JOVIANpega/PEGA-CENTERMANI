@@ -606,9 +606,10 @@ def diff_station_sheets(workspace, sheet_a, sheet_b):
 
 def pause_hardware_phases_minus_one(workspace, target_sheet=None):
     """
-    單 Sheet 工作流程：將用到儀器/治具設備的測試 Phase 區塊 (1..94) 首列 Phase 欄位寫為 '-1'，
-    並以淡藍色標註；使用者回產線時只需將該 '-1' 手動改回數字 (1, 2...) 即可立即執行，
-    不需維護第二份 Sheet。
+    單 Sheet 工作流程：將用到儀器/治具設備的測試 Phase 區塊 (1..94) 首列 Phase 欄位寫為 '-1'
+    （以淡藍色標註），並將「僅供被暫停區塊使用」的儀器暫時移出該站的 Instrument.Mount，
+    使 Centimani 主程式「Start Connecting to Device」階段在無硬體電腦上可直接開啟不閃退；
+    回產線時只需補回 Instrument.Mount 站名並把 Phase=-1 改回 1, 2... 即可執行，不需維護第二份 Sheet。
     """
     stations = workspace.get("stations") or {}
     hw_prefixes = (":ObtainDevice", ":ObtainSubDevice", ":Dev.", ":sDev.")
@@ -619,9 +620,43 @@ def pause_hardware_phases_minus_one(workspace, target_sheet=None):
         if target_sheet and st_name != target_sheet:
             continue
         blocks = extract_station_blocks(rows)
+        active_funcs = set()
+        active_switches = set()
         for blk in blocks:
             p_num = blk.get("phase_num")
             if p_num is None or p_num < 1 or p_num >= 95:
+                if p_num != -1:
+                    for off_r, r in enumerate(blk.get("_rows", [])):
+                        r_send = str(r.get("Send", "")).strip()
+                        r_inst = str(r.get("Instrument", "")).strip()
+                        r_sw = str(r.get("Switch", "")).strip()
+                        r_em = str(r.get("ExecMode", "")).strip()
+                        is_hw_row = bool(r_inst or r_sw or r_send.startswith(hw_prefixes))
+                        # For teardown phases (Phase >= 95, e.g. Phase 97 SwitchOFF), skip HW rows cleanly so Mount can be paused
+                        if p_num is not None and p_num >= 95 and is_hw_row:
+                            if r_em != "6":
+                                r["ExecMode"] = "6"
+                            orig_meta = f"{r_inst}/{r_sw}".strip("/")
+                            if r_inst:
+                                r["Instrument"] = ""
+                            if r_sw:
+                                r["Switch"] = ""
+                            mods.append({
+                                "sheet": st_name,
+                                "row": blk.get("start_row", 2) + off_r,
+                                "col_name": "ExecMode",
+                                "old": r_em,
+                                "new": "6",
+                                "highlight": "blue",
+                                "show_comment": True,
+                                "note": f"【無儀器暫停】收尾硬體指令已暫設 ExecMode=6（原 {orig_meta or 'HW'}），上產線復原時補回 Mount 與 ExecMode 即可。",
+                            })
+                            continue
+                        if r_em != "6":
+                            if r_inst:
+                                active_funcs.add(r_inst.lower())
+                            if r_sw:
+                                active_switches.add(r_sw.split(",")[0].strip().lower())
                 continue
             has_hw = any(
                 str(r.get("Instrument", "")).strip() != ""
@@ -629,6 +664,15 @@ def pause_hardware_phases_minus_one(workspace, target_sheet=None):
                 for r in blk.get("_rows", [])
             )
             if not has_hw:
+                for r in blk.get("_rows", []):
+                    if str(r.get("ExecMode", "")).strip() == "6":
+                        continue
+                    fn_s = str(r.get("Instrument", "")).strip().lower()
+                    sw_s = str(r.get("Switch", "")).split(",")[0].strip().lower()
+                    if fn_s:
+                        active_funcs.add(fn_s)
+                    if sw_s:
+                        active_switches.add(sw_s)
                 continue
             r0 = blk["_rows"][0]
             old_p = str(r0.get("Phase", "") or "").strip()
@@ -642,7 +686,21 @@ def pause_hardware_phases_minus_one(workspace, target_sheet=None):
                     "new": "-1",
                     "highlight": "blue",
                     "show_comment": True,
-                    "note": "【無儀器預寫 Phase=-1】回產線有儀器時，手動改回數字 (如 1, 2...) 即可恢復測試。",
+                    "note": "【無儀器預寫 Phase=-1】暫不掛載此儀器 Mount 避免無硬體連線報錯；回產線補回 Instrument.Mount 並將此 Phase 改回數字 (1, 2...) 即可跑。",
                 })
                 paused_blocks.append({"sheet": st_name, "title": blk.get("title", ""), "old_phase": old_p})
+
+        # Unmount instruments/switches for st_name if ONLY paused blocks used them (prevents Start Connecting to Device crash)
+        for sec_key in ("instruments", "switches"):
+            for d_row in workspace.get(sec_key, []) or []:
+                m_list = [x.strip() for x in str(d_row.get("Mount", "")).split(",") if x.strip()]
+                if st_name not in m_list:
+                    continue
+                d_name_low = str(d_row.get("Name", "")).strip().lower()
+                d_funcs = {f.strip().lower() for f in str(d_row.get("Functions", "")).split(",") if f.strip()}
+                still_active = (d_name_low in active_switches) or bool(d_funcs & active_funcs)
+                if not still_active:
+                    new_m = [x for x in m_list if x != st_name]
+                    d_row["Mount"] = ",".join(new_m)
+                    workspace.setdefault("_paused_mounts", []).append({"sheet": st_name, "device": d_row.get("Name", "")})
     return paused_blocks
