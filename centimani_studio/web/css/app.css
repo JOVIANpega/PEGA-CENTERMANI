@@ -2206,3 +2206,69 @@ button:not(:disabled):hover {
   0% { transform: translateY(0px); }
   100% { transform: translateY(-4px); }
 }
+
+/* SFIS 右側迷你撲克牌排序條（比照 02 積木排序器手感，無輸入框干擾） */
+.sfis-poker-deck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 6px 2px;
+}
+.sfis-poker-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  border: 2px solid #94A3B8;
+  cursor: grab;
+  user-select: none;
+  font-size: 0.79rem;
+  font-weight: 800;
+  color: #0F172A;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+.sfis-poker-chip * {
+  pointer-events: none;
+  user-select: none;
+}
+.sfis-poker-chip:hover {
+  transform: translateY(-3px) scale(1.04);
+  background: #EFF6FF;
+  border-color: #3B82F6;
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.16);
+}
+.sfis-poker-chip.is-dragging {
+  opacity: 0.25;
+  transform: scale(0.92);
+}
+.sfis-poker-chip.drop-target-swap {
+  outline: 3px solid #2563EB;
+  background: #DBEAFE !important;
+  transform: translateY(-6px) scale(1.08);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+  z-index: 20;
+}
+.sfis-poker-chip.drop-target-swap::after {
+  content: "🔀 對調";
+  position: absolute;
+  top: -12px;
+  right: -6px;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.sfis-poker-chip.drop-target-before {
+  border-left: 5px solid #2563EB !important;
+  box-shadow: -4px 0 0 2px rgba(37, 99, 235, 0.35);
+}
+.sfis-poker-chip.drop-target-after {
+  border-right: 5px solid #2563EB !important;
+  box-shadow: 4px 0 0 2px rgba(37, 99, 235, 0.35);
+}

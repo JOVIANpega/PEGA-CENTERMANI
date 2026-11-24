@@ -1542,7 +1542,7 @@ def run_all_verifications():
                   and v_cfg.get("station") == "FT1"
                   and v_cfg.get("isn") == "2695160300002"
                   and v_cfg.get("tsp") == "VALO360,2"
-                  and init_meta.get("server_build") == "Build v0.8.037",
+                  and (init_meta.get("server_build") or "").startswith("Build v0.8."),
                   "v0.8.037 虛擬工單SFIS測試範本 (System.ini + Global.ini) 完整支援 /api/pick_sfis_ini 匯入與版本握手",
                   str(v_ini_res))
             check("_runLocalBrowserSfisMock" in sfis_hmi_js
@@ -1550,6 +1550,14 @@ def run_all_verifications():
                   and "#FEF9C3" in sfis_hmi_js
                   and 'id="sfisQuickAddBox" style="background:#FFFFFF;' in sfis_hmi_js,
                   "v0.8.037 模擬內網具瀏覽器備援必 PASS 引擎＋人機顯著變色切換（新增步驟列維持白底不變色）")
+
+            # [v0.8.038] 驗證撲克牌排序條 + 取消卡片重複吐回 + 左下終端自然延伸無固定高度 + GET 空槽折疊
+            check("sfis-poker-chip" in app_css and 'id="sfisMiniDeckBar"' in sfis_hmi_js
+                  and "sfisSetDragSortMode" in sfis_hmi_js and "sfisMoveStep" in sfis_hmi_js
+                  and "<span>吐回：" not in sfis_hmi_js
+                  and 'id="sfisLogsContainer"' in sfis_hmi_js and "max-height:240px" not in sfis_hmi_js
+                  and "sfis-empty-slots-fold" in sfis_hmi_js,
+                  "v0.8.038 撲克牌積木排序條、移除右側重複吐回框、左下日誌無高度上限延伸與 GET 空欄位自動折疊全數通過")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

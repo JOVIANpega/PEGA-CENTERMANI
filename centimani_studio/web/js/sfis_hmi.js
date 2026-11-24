@@ -157,6 +157,9 @@ const SFIS_HMI_STATE = {
   },
   isRunning: false,
   dragSrcIdx: -1,
+  dropTargetIdx: -1,
+  dropPos: 'before',
+  dragSortMode: 'swap', // 'swap' 碰牌對調 | 'insert' 插牌移位
   dragCatalogKind: ''
 };
 
@@ -902,6 +905,27 @@ function sfisUpdateItemField(idx, field, value) {
   }
 }
 
+function sfisSetDragSortMode(mode) {
+  SFIS_HMI_STATE.dragSortMode = (mode === 'insert') ? 'insert' : 'swap';
+  renderSfisHmiWorkspace();
+}
+
+function sfisMoveStep(idx, delta) {
+  const target = idx + delta;
+  if (idx < 0 || target < 0 || idx >= SFIS_HMI_STATE.items.length || target >= SFIS_HMI_STATE.items.length) return;
+  const arr = SFIS_HMI_STATE.items;
+  const moved = arr.splice(idx, 1)[0];
+  arr.splice(target, 0, moved);
+  renderSfisHmiWorkspace();
+}
+
+function sfisScrollToCard(idx) {
+  const el = document.getElementById(`sfisTrackCard_${idx}`);
+  if (el && typeof el.scrollIntoView === 'function') {
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 function sfisDragCatalogStart(kind, ev) {
   SFIS_HMI_STATE.dragCatalogKind = kind;
   SFIS_HMI_STATE.dragSrcIdx = -1;
@@ -918,19 +942,68 @@ function sfisDragItemStart(idx, ev) {
     ev.dataTransfer.effectAllowed = 'move';
     ev.dataTransfer.setData('text/plain', 'item:' + idx);
   }
+  const chip = document.getElementById(`sfisPokerChip_${idx}`);
+  if (chip) chip.classList.add('is-dragging');
+}
+
+function sfisPokerDragOver(ev, targetIdx) {
+  ev.preventDefault();
+  if (SFIS_HMI_STATE.dragSrcIdx < 0 || SFIS_HMI_STATE.dragSrcIdx === targetIdx) return;
+  const chip = document.getElementById(`sfisPokerChip_${targetIdx}`);
+  if (!chip) return;
+  document.querySelectorAll('.sfis-poker-chip').forEach(c => {
+    c.classList.remove('drop-target-swap', 'drop-target-before', 'drop-target-after');
+  });
+  if (SFIS_HMI_STATE.dragSortMode === 'swap') {
+    chip.classList.add('drop-target-swap');
+    SFIS_HMI_STATE.dropTargetIdx = targetIdx;
+  } else {
+    const r = chip.getBoundingClientRect();
+    const isBefore = (ev.clientX - r.left) < (r.width / 2);
+    SFIS_HMI_STATE.dropTargetIdx = targetIdx;
+    SFIS_HMI_STATE.dropPos = isBefore ? 'before' : 'after';
+    chip.classList.add(isBefore ? 'drop-target-before' : 'drop-target-after');
+  }
+}
+
+function sfisPokerDragLeave(targetIdx) {
+  const chip = document.getElementById(`sfisPokerChip_${targetIdx}`);
+  if (chip) chip.classList.remove('drop-target-swap', 'drop-target-before', 'drop-target-after');
+}
+
+function sfisPokerDragEnd() {
+  SFIS_HMI_STATE.dragSrcIdx = -1;
+  SFIS_HMI_STATE.dropTargetIdx = -1;
+  document.querySelectorAll('.sfis-poker-chip').forEach(c => {
+    c.classList.remove('is-dragging', 'drop-target-swap', 'drop-target-before', 'drop-target-after');
+  });
 }
 
 function sfisDropOnTrack(targetIdx, ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   const cKind = SFIS_HMI_STATE.dragCatalogKind;
   const srcIdx = SFIS_HMI_STATE.dragSrcIdx;
+  const dropPos = SFIS_HMI_STATE.dropPos || 'before';
+  sfisPokerDragEnd();
   SFIS_HMI_STATE.dragCatalogKind = '';
-  SFIS_HMI_STATE.dragSrcIdx = -1;
   if (cKind) { sfisAddItem(cKind, targetIdx); return; }
-  if (srcIdx >= 0 && srcIdx !== targetIdx && srcIdx < SFIS_HMI_STATE.items.length) {
+  if (srcIdx >= 0 && srcIdx !== targetIdx && srcIdx < SFIS_HMI_STATE.items.length && targetIdx < SFIS_HMI_STATE.items.length) {
+    if (SFIS_HMI_STATE.dragSortMode === 'swap') {
+      const tmp = SFIS_HMI_STATE.items[srcIdx];
+      SFIS_HMI_STATE.items[srcIdx] = SFIS_HMI_STATE.items[targetIdx];
+      SFIS_HMI_STATE.items[targetIdx] = tmp;
+    } else {
+      const moved = SFIS_HMI_STATE.items.splice(srcIdx, 1)[0];
+      let dest = targetIdx;
+      if (srcIdx < targetIdx) dest = (dropPos === 'before') ? targetIdx - 1 : targetIdx;
+      else dest = (dropPos === 'before') ? targetIdx : targetIdx + 1;
+      dest = Math.max(0, Math.min(SFIS_HMI_STATE.items.length, dest));
+      SFIS_HMI_STATE.items.splice(dest, 0, moved);
+    }
+    renderSfisHmiWorkspace();
+  } else if (srcIdx >= 0 && targetIdx >= SFIS_HMI_STATE.items.length) {
     const moved = SFIS_HMI_STATE.items.splice(srcIdx, 1)[0];
-    const dest = (targetIdx > srcIdx) ? Math.max(0, targetIdx - 1) : targetIdx;
-    SFIS_HMI_STATE.items.splice(dest, 0, moved);
+    SFIS_HMI_STATE.items.push(moved);
     renderSfisHmiWorkspace();
   }
 }
@@ -1040,7 +1113,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.037') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.038') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1302,24 +1375,42 @@ function _renderSimpleCardInputs(it, idx) {
 
     let slotsGridHtml = '';
     if (hasRan) {
-      const slotRows = slotList.map(sl => {
+      const renderSlotRow = (sl) => {
         const val = String((it.lastSlots && it.lastSlots[sl.name]) || '');
         const isSel = (curSlotCode === sl.code);
         return `
           <div style="display:flex; align-items:center; gap:5px; padding:2px 5px; border-radius:4px; background:${isSel ? '#DBEAFE' : '#FFFFFF'}; border:1px solid ${isSel ? '#3B82F6' : '#E2E8F0'};">
-            <span class="mono" style="font-size:0.71rem; font-weight:900; color:#1E40AF; min-width:72px;">[${sl.code}] ${sl.name}</span>
-            <span class="mono" style="flex:1; font-size:0.72rem; color:${val ? '#0F172A' : '#94A3B8'}; word-break:break-all;">${_escH(val || '(空)')}</span>
-            <button type="button" onclick="sfisPickSlotIndex(${idx},'${sl.code}')" style="padding:1px 6px; font-size:0.69rem; border-radius:4px; border:1px solid ${isSel ? '#1D4ED8' : '#94A3B8'}; background:${isSel ? '#1D4ED8' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">
+            <span class="mono" style="font-size:0.75rem; font-weight:900; color:#1E40AF; min-width:74px;">[${sl.code}] ${sl.name}</span>
+            <span class="mono" style="flex:1; font-size:0.76rem; color:${val ? '#0F172A' : '#94A3B8'}; word-break:break-all;">${_escH(val || '(空)')}</span>
+            <button type="button" onclick="sfisPickSlotIndex(${idx},'${sl.code}')" style="padding:1px 6px; font-size:0.72rem; border-radius:4px; border:1px solid ${isSel ? '#1D4ED8' : '#94A3B8'}; background:${isSel ? '#1D4ED8' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">
               ${isSel ? `✓ 已選第${sl.code}格` : `選第${sl.code}格`}
             </button>
           </div>`;
-      }).join('');
+      };
+      const nonEmptyExists = slotList.some(sl => String((it.lastSlots && it.lastSlots[sl.name]) || '').trim() !== '');
+      const visibleSlots = [];
+      const emptySlots = [];
+      slotList.forEach(sl => {
+        const val = String((it.lastSlots && it.lastSlots[sl.name]) || '').trim();
+        const isSel = (curSlotCode === sl.code);
+        if (val || isSel || (!nonEmptyExists && sl.code === '2')) visibleSlots.push(sl);
+        else emptySlots.push(sl);
+      });
+      const emptyRangeLbl = emptySlots.length
+        ? (emptySlots.length > 1 ? `[${emptySlots[0].code}]~[${emptySlots[emptySlots.length - 1].code}]` : `[${emptySlots[0].code}]`)
+        : '';
+      const emptyFoldHtml = emptySlots.length ? `
+        <details class="sfis-empty-slots-fold" style="margin-top:3px;">
+          <summary style="cursor:pointer; font-size:0.74rem; font-weight:700; color:#64748B; padding:2px 4px;">▸ 折疊 ${emptySlots.length} 格無資料欄位（${emptyRangeLbl}・需要時點擊展開）</summary>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">${emptySlots.map(renderSlotRow).join('')}</div>
+        </details>` : '';
       slotsGridHtml = `
         <div style="margin-top:6px; background:#F8FAFC; border:1px solid #BFDBFE; border-radius:6px; padding:6px 8px;">
-          <div style="font-size:0.72rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;">
+          <div style="font-size:0.76rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;">
             🎯 SFIS [0~7] 堆疊回傳位置（[0]P_RET=${_escH(it.lastRetCode || '-')} · [1]P_Msg=${_escH((it.lastMsg || '').slice(0, 42))}）：
           </div>
-          <div style="display:flex; flex-direction:column; gap:3px;">${slotRows}</div>
+          <div style="display:flex; flex-direction:column; gap:3px;">${visibleSlots.map(renderSlotRow).join('')}</div>
+          ${emptyFoldHtml}
         </div>`;
     }
 
@@ -1474,33 +1565,55 @@ function renderSfisHmiWorkspace() {
       ＋ ${b.icon} ${_escH(b.title)}
     </button>`).join('');
 
+  const pokerChipsHtml = s.items.map((it, idx) => {
+    const meta = _getBlockMeta(it.kind);
+    const stDot = it.status === 'pass' ? '#16A34A' : (it.status === 'fail' ? '#DC2626' : (it.status === 'offline' ? '#D97706' : '#94A3B8'));
+    return `
+      <div id="sfisPokerChip_${idx}" class="sfis-poker-chip" draggable="true"
+           ondragstart="sfisDragItemStart(${idx}, event)"
+           ondragover="sfisPokerDragOver(event, ${idx})"
+           ondragleave="sfisPokerDragLeave(${idx})"
+           ondrop="sfisDropOnTrack(${idx}, event)"
+           ondragend="sfisPokerDragEnd()"
+           onclick="sfisScrollToCard(${idx})"
+           style="border-color:${meta.border}; background:${meta.bg};"
+           title="拖曳此撲克卡至他卡上進行順序對調，點擊可跳至下方設定卡片">
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${stDot};"></span>
+        <span style="color:${meta.theme};">#${idx + 1}</span>
+        <span>${meta.icon} ${_escH(meta.title)}</span>
+      </div>`;
+  }).join('');
+
   const trackCardsHtml = s.items.map((it, idx) => {
     const meta = _getBlockMeta(it.kind);
     const stColor = it.status === 'pass' ? '#16A34A' : (it.status === 'fail' ? '#DC2626' : (it.status === 'offline' ? '#D97706' : (it.status === 'running' ? '#2563EB' : meta.border)));
-    const stBadge = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 7px; border-radius:999px; font-size:0.73rem; font-weight:800;">PASS</span>'
-      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 7px; border-radius:999px; font-size:0.73rem; font-weight:800;">FAIL</span>'
-      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 7px; border-radius:999px; font-size:0.73rem; font-weight:800;">離線/未連網</span>'
-      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 7px; border-radius:999px; font-size:0.73rem; font-weight:800;">傳送中</span>'
-      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 7px; border-radius:999px; font-size:0.73rem;">待測</span>')));
+    const stBadge = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">PASS</span>'
+      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">FAIL</span>'
+      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">離線/未連網</span>'
+      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 7px; border-radius:999px; font-size:0.75rem; font-weight:800;">傳送中</span>'
+      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 7px; border-radius:999px; font-size:0.75rem;">待測</span>')));
+
+    const offlineSwitchBtn = (it.status === 'offline' && !s.mockMode)
+      ? `<div style="margin-top:5px;"><button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 目前非工廠內網 — 一鍵改用本機模擬並重測</button></div>`
+      : '';
 
     return `
-      <div draggable="true" ondragstart="sfisDragItemStart(${idx}, event)"
-           ondragover="event.preventDefault()" ondrop="sfisDropOnTrack(${idx}, event)"
-           style="background:#FFFFFF; border:2px solid ${stColor}; border-radius:9px; padding:8px 11px;">
+      <div id="sfisTrackCard_${idx}" style="background:#FFFFFF; border:2px solid ${stColor}; border-radius:9px; padding:8px 11px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:5px;">
           <div style="display:flex; align-items:center; gap:6px;">
-            <span title="拖曳調整順序" style="cursor:grab; color:#94A3B8; font-weight:900;">⠿</span>
-            <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 6px; border-radius:4px; font-weight:900; font-size:0.76rem;">#${idx + 1}</span>
-            <span style="font-weight:900; font-size:0.87rem; color:#0F172A;">${meta.icon} ${_escH(meta.title)}</span>
+            <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 6px; border-radius:4px; font-weight:900; font-size:0.78rem;">#${idx + 1}</span>
+            <span style="font-weight:900; font-size:0.89rem; color:#0F172A;">${meta.icon} ${_escH(meta.title)}</span>
             ${stBadge}
           </div>
-          <div style="display:flex; gap:5px; align-items:center;">
-            <button type="button" onclick="sfisHmiRunStep(${idx})" class="btn" style="padding:3px 9px; font-size:0.77rem; background:#ECFDF5; color:#047857; border-color:#6EE7B7; font-weight:800;">⚡ 實測這步</button>
-            <button type="button" onclick="sfisRemoveItem(${idx})" class="btn" style="padding:3px 7px; font-size:0.76rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑</button>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <button type="button" onclick="sfisMoveStep(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="btn" style="padding:2px 6px; font-size:0.75rem; background:#F8FAFC; color:#334155; border-color:#CBD5E1;" title="上移一步">↑</button>
+            <button type="button" onclick="sfisMoveStep(${idx}, 1)" ${idx === s.items.length - 1 ? 'disabled' : ''} class="btn" style="padding:2px 6px; font-size:0.75rem; background:#F8FAFC; color:#334155; border-color:#CBD5E1;" title="下移一步">↓</button>
+            <button type="button" onclick="sfisHmiRunStep(${idx})" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#ECFDF5; color:#047857; border-color:#6EE7B7; font-weight:800;">⚡ 實測這步</button>
+            <button type="button" onclick="sfisRemoveItem(${idx})" class="btn" style="padding:3px 7px; font-size:0.77rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑</button>
           </div>
         </div>
         ${_renderSimpleCardInputs(it, idx)}
-        ${it.resultMsg ? `<div class="mono" style="margin-top:5px; padding:5px 8px; border-radius:5px; font-size:0.82rem; background:${it.status === 'pass' ? '#F0FDF4' : '#FEF2F2'}; color:${it.status === 'pass' ? '#166534' : '#991B1B'}; border:1px solid ${it.status === 'pass' ? '#BBF7D0' : '#FECACA'}; word-break:break-all; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;"><span>吐回：${_escH(it.resultMsg)}</span>${(it.status === 'offline' && !s.mockMode) ? '<button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 一鍵改用本機模擬並重測</button>' : ''}</div>` : ''}
+        ${offlineSwitchBtn}
         <div id="sfisCardPrev_${idx}" class="mono" style="margin-top:4px; font-size:0.79rem; color:#64748B;">${_escH(_buildCardExcelPreview(it))}</div>
       </div>`;
   }).join('');
@@ -1519,7 +1632,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.037');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.038');
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
@@ -1661,9 +1774,9 @@ function renderSfisHmiWorkspace() {
             </div>
           </div>
 
-          <!-- 折疊式：所有積木動作實際吐出字串總覽區 (預設折疊，需要時點開) -->
+          <!-- 折疊式：所有積木動作實際吐出字串總覽區（長度依積木多寡自然向下延伸不限高度） -->
           <details id="sfisResponseDetails" ${a.responseExpanded ? 'open' : ''} ontoggle="SFIS_HMI_STATE.anim.responseExpanded=this.open"
-                   style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:8px 11px;">
+                   style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:9px 11px;">
             <summary style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; list-style:none;">
               <span style="font-size:0.84rem; font-weight:800; color:#38BDF8;">📥 SFIS 實際吐回字串 &amp; 欄位結果（共 ${a.logs.length} 筆・點擊展開）▾</span>
               <span style="display:inline-flex; align-items:center; gap:6px;">${respSummaryBadge}</span>
@@ -1675,7 +1788,7 @@ function renderSfisHmiWorkspace() {
                 <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 8px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
                 <button type="button" onclick="sfisClearLogs()" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#FCA5A5; cursor:pointer;">🗑 清空</button>
               </div>
-              <div style="max-height:240px; overflow-y:auto;">${logsHtml}</div>
+              <div id="sfisLogsContainer">${logsHtml}</div>
             </div>
           </details>
         </div>
@@ -1683,12 +1796,12 @@ function renderSfisHmiWorkspace() {
         <!-- 中間可拖曳調寬分割線 -->
         <div class="sfis-split-resizer" onmousedown="sfisStartSplitDrag(event)" ondblclick="sfisResetSplitWidth()" title="左右拖曳調整雙視窗寬度（雙擊還原預設 46%）"></div>
 
-        <!-- 右視窗：快點/拖曳加入步驟膠囊(固定白底不隨模擬變色) + 流程步驟清單 + 折疊匯出區 -->
+        <!-- 右視窗：快點/拖曳加入步驟膠囊(固定白底不隨模擬變色) + 撲克牌積木順序排序條 + 流程步驟清單 + 折疊匯出區 -->
         <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
           <!-- 輕量新增動作列（固定清爽底色，不隨模擬模式變色） -->
           <div id="sfisQuickAddBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-              <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 點擊或拖入下方增加驗證步驟：</span>
+              <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 點擊增加驗證步驟：</span>
               <div style="display:flex; gap:6px;">
                 <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;">清空白板</button>
                 <button type="button" onclick="sfisHmiRunAll()" ${s.isRunning ? 'disabled' : ''} class="btn" style="padding:4px 12px; font-size:0.81rem; background:#059669; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">
@@ -1698,6 +1811,19 @@ function renderSfisHmiWorkspace() {
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px;">${quickAddBtns}</div>
           </div>
+
+          <!-- 比照 02 積木排序器的撲克牌順序排序條（拖曳手牌對調順序，無輸入框干擾） -->
+          ${s.items.length ? `
+            <div id="sfisMiniDeckBar" style="background:${cfgBoxBg}; border:1px solid ${cfgBoxBorder}; border-radius:9px; padding:7px 10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+                <span style="font-size:0.78rem; font-weight:900; color:#1E293B;">🃏 積木順序排序條（像編輯 Excel 積木排序一樣拖曳對調，點擊捲動至下方卡片）：</span>
+                <div style="display:inline-flex; gap:4px;">
+                  <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 8px; font-size:0.73rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 碰牌對調</button>
+                  <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 8px; font-size:0.73rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插牌移位</button>
+                </div>
+              </div>
+              <div class="sfis-poker-deck">${pokerChipsHtml}</div>
+            </div>` : ''}
 
           <!-- 步驟清單 -->
           <div ondragover="event.preventDefault()" ondrop="sfisDropOnTrack(${s.items.length}, event)"
