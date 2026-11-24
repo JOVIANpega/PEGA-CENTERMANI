@@ -327,6 +327,32 @@ def _build_jump_summary(st_name, sheet_type, blk, block_retry_count):
     }
 
 
+def _collect_dll_search_dirs(src_file=""):
+    """Returns prioritized directories (configured Centimani Device/API/Switch first, then source_file siblings)."""
+    from .golden_data import get_configured_centimani_dir
+    dirs = []
+    cm_dir = get_configured_centimani_dir()
+    if cm_dir and os.path.isdir(cm_dir):
+        for sub in ("Device", "API", "Switch"):
+            cand = os.path.join(cm_dir, sub)
+            if os.path.isdir(cand):
+                dirs.append(cand)
+    if src_file and os.path.exists(src_file):
+        f_dir = os.path.dirname(os.path.abspath(src_file))
+        for cand in (
+            os.path.join(f_dir, "Device"), os.path.join(f_dir, "API"), os.path.join(f_dir, "Switch"),
+            os.path.join(os.path.dirname(f_dir), "Device"), os.path.join(os.path.dirname(f_dir), "API"), os.path.join(os.path.dirname(f_dir), "Switch"),
+        ):
+            if os.path.isdir(cand) and cand not in dirs:
+                dirs.append(cand)
+    for root_sub in ("Centmimani_Altas_TRY", "Centimani_1.5.3_sample"):
+        for sub in ("Device", "API", "Switch"):
+            cand = os.path.join(_PROJECT_ROOT, root_sub, sub)
+            if os.path.isdir(cand) and cand not in dirs:
+                dirs.append(cand)
+    return dirs
+
+
 def audit_workspace(workspace):
     """
     Runs the 10-Point Logic & Optimization Audit on a workspace dict.
@@ -372,21 +398,29 @@ def audit_workspace(workspace):
                 f"[DUTs 表] 找不到測試站 '{st_n}' 的 DUT 設定列（Centimani 啟動將報錯 'No any DUT is set.'，一鍵修復可自動補齊）"
             )
 
+    # Rule 5A-3: Ensure Connection1..4 names are unique per Station across active DUTs slots
+    dut_conns_by_st = {}
+    for idx_d, d_row in enumerate(workspace.get("duts", []), start=2):
+        st_prefix = str(d_row.get("Station", "")).split(",")[0].strip()
+        if not st_prefix:
+            continue
+        seen_c = dut_conns_by_st.setdefault(st_prefix, set())
+        for c_col in [f"Connection{i} (Type,Name,ConnectString)" for i in range(1, 5)] + ["Connection4(Type,Name,ConnectString)"]:
+            c_raw = str(d_row.get(c_col, "")).strip()
+            m_cn = re.match(r'^"[^"]*","([^"]*)"', c_raw)
+            if m_cn:
+                c_name = m_cn.group(1).strip()
+                if c_name:
+                    if c_name in seen_c:
+                        errors.append(
+                            f"[DUTs 第 {idx_d} 列] 站別 '{st_prefix}' 的連線名稱 '{c_name}' 重複（Centimani 啟動將報錯 'Connection Name :{c_name} is duplicate.'，一鍵修復可自動區隔）"
+                        )
+                    else:
+                        seen_c.add(c_name)
+
     # Rule 5B: Check Instrument ControlDLL version against disk PE FileVersion
     src_file = workspace.get("source_file", "")
-    base_search_dirs = []
-    if src_file and os.path.exists(src_file):
-        f_dir = os.path.dirname(os.path.abspath(src_file))
-        base_search_dirs.extend([
-            os.path.join(f_dir, "Device"), os.path.join(f_dir, "API"),
-            os.path.join(os.path.dirname(f_dir), "Device"), os.path.join(os.path.dirname(f_dir), "API")
-        ])
-    base_search_dirs.extend([
-        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "Device"),
-        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "API"),
-        os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "Device"),
-        os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "API")
-    ])
+    base_search_dirs = _collect_dll_search_dirs(src_file)
 
     try:
         import win32api
@@ -505,12 +539,18 @@ def audit_workspace(workspace):
         cur_phase_lbl = ""
         titles_in_phase = {}
         for blk_chk in blocks:
-            p_raw = str(blk_chk.get("phase", "")).strip()
+            first_step = blk_chk["steps"][0]["step"]
+            p_raw = str(first_step.get("Phase", "")).strip()
+            t_first = str(first_step.get("Title", "")).strip()
             if p_raw:
-                cur_phase_lbl = p_raw
+                cur_phase_lbl = p_raw.split(":")[0].strip()
+                if cur_phase_lbl != "-1" and not t_first:
+                    errors.append(
+                        f"[{st_name} 第 {blk_chk['steps'][0]['row_num']} 列] Phase '{p_raw}' 起始列缺少 Title 名稱（Centimani 將報錯 'The Phase {cur_phase_lbl} lacks title !!!'）"
+                    )
             t_raw = str(blk_chk.get("title", "")).strip()
             t_norm = t_raw.split(",")[1].strip() if "," in t_raw else t_raw
-            if cur_phase_lbl and cur_phase_lbl != "-1" and t_norm:
+            if cur_phase_lbl and cur_phase_lbl != "-1" and t_norm and t_first:
                 key_pt = (cur_phase_lbl, t_norm)
                 if key_pt in titles_in_phase:
                     errors.append(
@@ -519,6 +559,7 @@ def audit_workspace(workspace):
                 else:
                     titles_in_phase[key_pt] = True
 
+        run_phase_lbl = ""
         for b_idx, blk in enumerate(blocks):
             b_steps = blk["steps"]
             b_len = len(b_steps)
@@ -539,7 +580,10 @@ def audit_workspace(workspace):
             curr_block_locals = set()
             active_title_inst = ""
             dup_inst_suggested = False
-            blk_is_paused = (str(blk.get("phase", "")).strip().split(":")[0].strip() == "-1")
+            b0_p = str(b_steps[0]["step"].get("Phase", "")).strip()
+            if b0_p:
+                run_phase_lbl = b0_p.split(":")[0].strip()
+            blk_is_paused = (run_phase_lbl == "-1")
 
             for item in b_steps:
                 idx = item["global_idx"]
@@ -564,6 +608,7 @@ def audit_workspace(workspace):
                         active_title_inst = s_inst
                 s_sw = str(step.get("Switch", "")).strip()
                 s_send = str(step.get("Send", "")).strip()
+                s_reply = str(step.get("Reply", "")).strip()
                 s_endp = str(step.get("EndPrompt", "")).strip()
                 s_ref = str(step.get("Ref", "")).strip()
                 s_val = str(step.get("Validation", "")).strip()
@@ -571,14 +616,31 @@ def audit_workspace(workspace):
                 s_mode = str(step.get("ExecMode", "")).strip()
                 s_tid = str(step.get("TestID", "")).strip()
 
+                # Rule 8: Reply multi-condition syntax check (cannot mix && and ||; && clauses require @)
+                if s_reply:
+                    if "&&" in s_reply and "||" in s_reply:
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] Reply '{s_reply}' 不可同時混用 '&&' 與 '||'（Centimani 解析將失效）"
+                        )
+                    elif "&&" in s_reply:
+                        and_parts = [p.strip() for p in s_reply.split("&&") if p.strip()]
+                        if any(not p.startswith("@") for p in and_parts):
+                            warnings.append(
+                                f"[{st_name} 第 {r_num} 列] Reply 使用 '&&' 多條件時，每個子條件皆建議加上 '@' 前綴（例如 '@OK&&@PASS'）"
+                            )
+
                 # Rule 2: Index continuity
                 expected_idx = f"{idx:03d}"
                 if s_idx != expected_idx and s_idx != str(idx):
                     warnings.append(f"[{st_name} 第 {r_num} 列] Index 序號 '{s_idx}' 不連續（應為 '{expected_idx}'，可自動重編）")
 
-                # Rule 8: Phase lifecycle
+                # Rule 8: Phase lifecycle & mandatory Title on Phase start row
                 if s_phase != "":
                     p_num_str = s_phase.split(":")[0].strip()
+                    if p_num_str != "-1" and not s_title:
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] Phase '{s_phase}' 起始列缺少 Title 名稱（Centimani 將報錯 'The Phase {p_num_str} lacks title !!!'）"
+                        )
                     try:
                         p_int = int(float(p_num_str))
                         if p_int == 97:
@@ -1117,20 +1179,7 @@ def auto_fix_workspace(workspace, user_choices=None):
 
     # 1A. Auto-verify & correct DLL versions in Instrument & Switch tables against disk PE FileVersion
     src_file = workspace.get("source_file", "")
-    base_search_dirs = []
-    if src_file and os.path.exists(src_file):
-        f_dir = os.path.dirname(os.path.abspath(src_file))
-        base_search_dirs.extend([
-            os.path.join(f_dir, "Device"), os.path.join(f_dir, "API"),
-            os.path.join(os.path.dirname(f_dir), "Device"), os.path.join(os.path.dirname(f_dir), "API")
-        ])
-    # Also add standard project sample paths
-    base_search_dirs.extend([
-        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "Device"),
-        os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "API"),
-        os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "Device"),
-        os.path.join(r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample", "API")
-    ])
+    base_search_dirs = _collect_dll_search_dirs(src_file)
 
     try:
         import win32api
@@ -1215,8 +1264,12 @@ def auto_fix_workspace(workspace, user_choices=None):
     else:
         for st_name, steps in workspace.get("stations", {}).items():
             active_sw_heads = set()
+            cur_ph_m = ""
             for blk_m in _build_title_blocks(steps):
-                if str(blk_m.get("phase", "")).strip().split(":")[0].strip() == "-1":
+                b0_pm = str(blk_m["steps"][0]["step"].get("Phase", "")).strip()
+                if b0_pm:
+                    cur_ph_m = b0_pm.split(":")[0].strip()
+                if cur_ph_m == "-1":
                     continue
                 for it_m in blk_m["steps"]:
                     sw_raw = str(it_m["step"].get("Switch", "")).strip()

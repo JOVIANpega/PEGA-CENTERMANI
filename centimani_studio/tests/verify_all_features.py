@@ -1186,6 +1186,49 @@ def run_all_verifications():
                   and os.path.isdir(os.path.join(cm_new_root, "4CAM_Stitching")),
                   "已將 CENTERMAINA_TRY 建議保留之 Release Note.xlsx / MT8870A_PathLoss.ini / 4CAM_Stitching 複製至 Centmimani_Altas_TRY")
 
+            # [v0.8.023] 驗證 MD 全面盤點補強規則 + 知識庫集中歸檔 + DLL 目錄對齊
+            proj_root_chk = os.path.dirname(STUDIO_DIR)
+            kb_dir_chk = os.path.join(proj_root_chk, "完整知識庫文件清單")
+            check(os.path.exists(os.path.join(kb_dir_chk, "DESIGN_AND_HANDOVER.md"))
+                  and os.path.exists(os.path.join(kb_dir_chk, "01_FWDL_測試邏輯深度解析.md"))
+                  and not os.path.exists(os.path.join(proj_root_chk, "DESIGN_AND_HANDOVER.md"))
+                  and not os.path.exists(os.path.join(proj_root_chk, "spec.md")),
+                  "所有知識庫與交接 .md 文件皆已集中整理至『完整知識庫文件清單』目錄（根目錄僅留 AGENTS.md）")
+
+            from core.script_doctor import _collect_dll_search_dirs as _dll_dirs_fn
+            dll_dirs_res = _dll_dirs_fn()
+            check(any("Centmimani_Altas_TRY" in d for d in dll_dirs_res),
+                  "script_doctor PE DLL 版本健檢目錄優先對齊 Centmimani_Altas_TRY", str(dll_dirs_res[:3]))
+
+            md_rules_ws = {
+                "project_name": "MD_AUDIT", "station_name": "MB",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [
+                    {"Load": "*$(LOAD_1)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,1", "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM1"'},
+                    {"Load": "*$(LOAD_2)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,2", "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM2"'},
+                ],
+                "marcos": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "TestID": "OTFX064"},
+                    {"Index": "002", "Phase": "1", "Title": "", "Send": "UART@ver\\r\\n", "Reply": "@a&&@b||@c", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "2", "Title": "0,DupTitle", "Send": ':Delay,"100"', "Reply": "OK&&@PASS", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "004", "Phase": "", "Title": "0,DupTitle", "Send": ':Delay,"100"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "005", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "Reply": "0", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            md_rep = _audit_ws(md_rules_ws)
+            md_errs = "\n".join(md_rep["errors"])
+            md_warns = "\n".join(md_rep["warnings"])
+            check("Connection Name :UART is duplicate" in md_errs
+                  and "The Phase 1 lacks title" in md_errs
+                  and "There are duplicated titles (DupTitle) in the Phase 2" in md_errs
+                  and "混用 '&&' 與 '||'" in md_errs
+                  and "每個子條件皆建議加上 '@'" in md_warns,
+                  "補齊 MD 四大規範健檢：DUTs 連線重名 / Phase 起始缺 Title / 同 Phase 重複 Title / Reply 混用 && 與 ||",
+                  f"errs={md_rep['errors']} warns={md_rep['warnings']}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
