@@ -629,7 +629,12 @@ def import_excel_to_workspace(xlsx_path):
                     if "=" in s:
                         k, v = s.split("=", 1)
                         k_s = k.strip()
-                        if k_s in ("SFIS_Enable", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName", "TestItemCodeFile"):
+                        if k_s in (
+                            "SFIS_Enable", "SFIS_AutoLogin", "SFIS_SkipSaveResultOnFail",
+                            "SFIS_LoginID", "SFIS_GetDateISN", "SFIS_LinkIPLAS",
+                            "SFIS_WebLink", "SFIS_TSP", "StationName",
+                            "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName", "TestItemCodeFile",
+                        ):
                             ws_data.setdefault("system_ini", {})[k_s] = v.strip()
             break
 

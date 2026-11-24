@@ -1469,8 +1469,16 @@ def run_all_verifications():
             app_css = open(os.path.join(STUDIO_DIR, "web", "css", "app.css"), "r", encoding="utf-8").read()
             check('display:none;' in hub_bar_sec and '/images/PC.png' in sfis_hmi_js
                   and '/images/cloud.png' in sfis_hmi_js and '/images/database.png' in sfis_hmi_js
-                  and '.sfis-anim-stage' in app_css and 'sfisSelectHistory' in sfis_hmi_js,
-                  "v0.8.032 頂部隱藏多餘書籤列、並完整載入 PC/Cloud/DB 三節點動畫舞台與吐出字串監控")
+                  and '.sfis-split-layout' in app_css and '.sfis-anim-stage' in app_css
+                  and '_pushResponseLog' in sfis_hmi_js and '巴淡 PTB' in sfis_hmi_js
+                  and '重慶' not in sfis_hmi_js,
+                  "v0.8.033 左右雙欄工作視窗、廠區正名巴淡PTB下拉選單、全積木吐出字串累積與動畫舞台皆就緒")
+
+            # 驗證 /api/pick_sfis_ini 不帶檔名可自動讀取現成 System.ini
+            ini_pick_res = post_json("/api/pick_sfis_ini", {"ini_path": os.path.join(sfis_exp["output_dir"], "System.ini")})
+            check(ini_pick_res.get("status") == "ok" and "SFISTSPWebService.asmx" in (ini_pick_res.get("config") or {}).get("url", ""),
+                  "v0.8.033 /api/pick_sfis_ini 正確解析 System.ini 與 Global.ini DEVID_1",
+                  str(ini_pick_res))
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

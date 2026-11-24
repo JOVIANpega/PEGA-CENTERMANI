@@ -1674,7 +1674,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.032")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.033")
 
                 self._send_json({
                     "status": "ok",
@@ -1936,7 +1936,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.032")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.033")
 
                 self._send_json({
                     "status": "ok",
@@ -2185,7 +2185,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.032")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.033")
 
                 self._send_json({
                     "status": "ok",
@@ -2471,7 +2471,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.032")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.033")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2487,6 +2487,68 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "missing_drivers": [],
                     "centimani_dir_exists": True,
                 })
+            elif parsed.path == "/api/pick_sfis_ini":
+                from core.golden_data import get_configured_centimani_dir
+                ini_path = str(payload.get("ini_path", "") or "").strip()
+                do_pick = bool(payload.get("pick", False))
+                if do_pick:
+                    init_d = SCRIPTS_ROOT if os.path.exists(SCRIPTS_ROOT) else PROJECT_ROOT
+                    cm_dir = get_configured_centimani_dir()
+                    if cm_dir and os.path.exists(os.path.join(cm_dir, "System")):
+                        init_d = os.path.join(cm_dir, "System")
+                    ini_path = _run_tk_dialog({
+                        "title": "選擇產線 System.ini 或 Global.ini 帶入 SFIS 設定",
+                        "init_dir": init_d,
+                        "file_types": [("Centimani INI 設定檔 (*.ini)", "*.ini"), ("所有檔案 (*.*)", "*.*")],
+                    })
+                    if not ini_path:
+                        self._send_json({"status": "cancelled"})
+                        return
+                elif not ini_path:
+                    cm_dir = get_configured_centimani_dir()
+                    for cand in [
+                        os.path.join(cm_dir, "System", "System.ini") if cm_dir else "",
+                        os.path.join(cm_dir, "System.ini") if cm_dir else "",
+                        os.path.join(SCRIPTS_ROOT, "System.ini"),
+                    ]:
+                        if cand and os.path.exists(cand):
+                            ini_path = cand
+                            break
+                if not ini_path or not os.path.exists(ini_path):
+                    self._send_json({"status": "error", "message": "找不到可讀取的 System.ini 檔案"}, 404)
+                    return
+
+                folder = os.path.dirname(ini_path)
+                sys_ini_p = os.path.join(folder, "System.ini") if os.path.basename(ini_path).lower() != "system.ini" else ini_path
+                glb_ini_p = os.path.join(folder, "Global.ini") if os.path.basename(ini_path).lower() != "global.ini" else ini_path
+                parsed_cfg = {"source_path": sys_ini_p if os.path.exists(sys_ini_p) else ini_path}
+                if os.path.exists(sys_ini_p):
+                    for line in open(sys_ini_p, "r", encoding="utf-8", errors="ignore"):
+                        s = line.strip()
+                        if not s or s.startswith(("//", ";", "[")) or "=" not in s:
+                            continue
+                        k, v = [x.strip() for x in s.split("=", 1)]
+                        if k == "SFIS_WebLink" and v:
+                            parsed_cfg["url"] = v.split(",")[0].strip()
+                        elif k == "SFIS_TSP" and v:
+                            parsed_cfg["tsp"] = v
+                        elif k == "StationName" and v:
+                            parsed_cfg["station"] = v
+                        elif k == "SFIS_LoginID" and v:
+                            parsed_cfg["op"] = v
+                        elif k == "SFIS_GetDateISN" and v:
+                            parsed_cfg["isn"] = v
+                        elif k == "SFIS_SkipSaveResultOnFail":
+                            parsed_cfg["skip_save_on_fail"] = (v == "1")
+                if os.path.exists(glb_ini_p):
+                    for line in open(glb_ini_p, "r", encoding="utf-8", errors="ignore"):
+                        s = line.strip()
+                        if not s or s.startswith(("//", ";", "[")) or "=" not in s:
+                            continue
+                        k, v = [x.strip() for x in s.split("=", 1)]
+                        if k == "DEVID_1" and v:
+                            parsed_cfg["device_id"] = v
+                self._send_json({"status": "ok", "config": parsed_cfg})
             else:
                 self._send_json({"status": "error", "message": "Unknown endpoint"}, 404)
         except Exception as e:
@@ -2557,7 +2619,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.032) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.033) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
