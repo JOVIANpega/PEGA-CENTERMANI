@@ -79,7 +79,18 @@ def _infer_smart_cond_target(block_steps, curr_offset, p_step, f_step):
     return f"4:{new_p},{new_f}", f"修正跳轉至有效範圍 [Pass->步號 {new_p}, Fail->步號 {new_f}]"
 
 
-def _analyze_block_jump_flow(st_name, blk, warnings):
+def _is_block_skipped_or_paused(blk, run_phase_lbl=""):
+    """Title 開頭為 '2,'（整段 Skip）或 Phase = '-1'（暫停）的區塊，免報邏輯死步/貫穿雜訊。"""
+    t_raw = str(blk.get("title", "")).strip()
+    if t_raw.split(",")[0].strip() == "2":
+        return True
+    b_steps = blk.get("steps", [])
+    p0 = str(b_steps[0]["step"].get("Phase", "")).strip().split(":")[0].strip() if b_steps else ""
+    eff_phase = p0 or str(run_phase_lbl or "").strip()
+    return eff_phase == "-1"
+
+
+def _analyze_block_jump_flow(st_name, blk, warnings, run_phase_lbl=""):
     """
     分析單一 Title 區塊內的跳轉控制流 (Control Flow)：
     1. 偵測因 4:P,F 跳轉而永遠走不到的「死步 (Unreachable Step)」。
@@ -87,6 +98,8 @@ def _analyze_block_jump_flow(st_name, blk, warnings):
        若 PASS 分支最後一步 (F - 1) 沒有設 4:N,N (例如跳至末行 :Delay) 跳過 FAIL 分支，
        執行完 PASS 分支後會直接掉進 FAIL 分支。
     """
+    if _is_block_skipped_or_paused(blk, run_phase_lbl):
+        return
     b_steps = blk.get("steps", [])
     b_len = len(b_steps)
     if b_len <= 1:
@@ -154,10 +167,12 @@ def _analyze_block_jump_flow(st_name, blk, warnings):
                 )
 
 
-def _build_jump_summary(st_name, sheet_type, blk, block_retry_count):
+def _build_jump_summary(st_name, sheet_type, blk, block_retry_count, run_phase_lbl=""):
     """
     將含有 2:XX 或 4:P,F 的 Title 區塊翻譯為白話流程摘要，並判斷狀態 (ok / warning / error) 與一鍵推薦修法。
     """
+    if _is_block_skipped_or_paused(blk, run_phase_lbl):
+        return None
     b_steps = blk.get("steps", [])
     b_len = len(b_steps)
     if b_len == 0:
@@ -563,7 +578,12 @@ def audit_workspace(workspace):
         for b_idx, blk in enumerate(blocks):
             b_steps = blk["steps"]
             b_len = len(b_steps)
-            _analyze_block_jump_flow(st_name, blk, warnings)
+            b0_p = str(b_steps[0]["step"].get("Phase", "")).strip()
+            if b0_p:
+                run_phase_lbl = b0_p.split(":")[0].strip()
+            blk_is_paused = (run_phase_lbl == "-1")
+            blk_is_skipped = _is_block_skipped_or_paused(blk, run_phase_lbl)
+            _analyze_block_jump_flow(st_name, blk, warnings, run_phase_lbl)
             title_parts = [p.strip() for p in str(blk.get("title", "")).split(",")]
             block_retry_count = None
             if len(title_parts) >= 3 and title_parts[2] != "":
@@ -572,7 +592,7 @@ def audit_workspace(workspace):
                 except ValueError:
                     block_retry_count = None
             block_has_retry2_warned = False
-            js = _build_jump_summary(st_name, "Station", blk, block_retry_count)
+            js = _build_jump_summary(st_name, "Station", blk, block_retry_count, run_phase_lbl)
             if js:
                 jump_summaries.append(js)
 
@@ -580,10 +600,6 @@ def audit_workspace(workspace):
             curr_block_locals = set()
             active_title_inst = ""
             dup_inst_suggested = False
-            b0_p = str(b_steps[0]["step"].get("Phase", "")).strip()
-            if b0_p:
-                run_phase_lbl = b0_p.split(":")[0].strip()
-            blk_is_paused = (run_phase_lbl == "-1")
 
             for item in b_steps:
                 idx = item["global_idx"]
@@ -655,13 +671,13 @@ def audit_workspace(workspace):
                     except ValueError:
                         errors.append(f"[{st_name} 第 {r_num} 列] Phase 欄位值 '{s_phase}' 非有效整數！")
 
-                # Rule 1: TestID validation (official DV tooltip exempts rows that invoke a Marco subroutine)
+                # Rule 1: TestID validation (official DV tooltip exempts rows that invoke a Marco subroutine; skipped/paused blocks skip noisy V2.04 warnings)
                 if not s_tid:
-                    if not s_marco:
+                    if not s_marco and not blk_is_skipped:
                         errors.append(f"[{st_name} 第 {r_num} 列] 缺少第 16 欄 TestID（系統可自動補齊合法 7 碼代碼）")
-                elif len(s_tid) != 7 and "," not in s_tid and ";" not in s_tid:
+                elif not blk_is_skipped and len(s_tid) != 7 and "," not in s_tid and ";" not in s_tid:
                     warnings.append(f"[{st_name} 第 {r_num} 列] TestID '{s_tid}' 長度非標準 7 碼")
-                elif valid_tids and s_tid not in valid_tids and "," not in s_tid and ";" not in s_tid:
+                elif not blk_is_skipped and valid_tids and s_tid not in valid_tids and "," not in s_tid and ";" not in s_tid:
                     warnings.append(f"[{st_name} 第 {r_num} 列] TestID '{s_tid}' 未出現在 Test Item Code V2.04 標準表中")
 
                 # Rule 1B: Title comma syntax typo guard (e.g. '0.THERMAL,1' -> '0,THERMAL,1')
@@ -670,8 +686,8 @@ def audit_workspace(workspace):
                         f"[{st_name} 第 {r_num} 列] Title '{s_title}' 開頭使用句點 '.' 分隔（應為半形逗號 ','，如 '0,THERMAL,1'，否則引擎可能誤判啟用碼）"
                     )
 
-                # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check (exempt Phase=-1 paused blocks)
-                if all_inst_rows and not blk_is_paused:
+                # Rule 5C: Instrument (Col E) & Switch (Col F) vs mounted devices consistency check (exempt Phase=-1 & skipped 2,Title blocks)
+                if all_inst_rows and not blk_is_paused and not blk_is_skipped:
                     if s_inst and s_inst.lower() not in mounted_funcs_low:
                         if s_inst.lower() in all_inst_funcs_low:
                             warnings.append(
@@ -966,7 +982,7 @@ def audit_workspace(workspace):
     phase_order_issues, phase_order_warns = find_phase_order_issues(workspace)
     warnings.extend(phase_order_warns)
 
-    # Separate mechanical auto-fixable warnings from manual-review warnings
+    # Separate mechanical auto-fixable warnings & non-blocking historical/style advisories from actionable manual-review warnings
     auto_fix_keywords = (
         "TestID ",
         "Index 序號",
@@ -974,13 +990,26 @@ def audit_workspace(workspace):
         ":ReleaseDevice 的 ExecMode",
         "跨 Title 引用了變數",
         "尚未在 Global.ini 的",
+        "未在 Global.ini [Scripts] 宣告的變數",
         "表頭為 'Index_",
         "避免重複 Phase",
         "未呼叫 :ReleaseDevice",
         "缺少 Phase 97"
     )
-    auto_fix_warnings = [w for w in warnings if any(k in w for k in auto_fix_keywords)]
-    manual_warnings = [w for w in warnings if not any(k in w for k in auto_fix_keywords)]
+    advisory_keywords = (
+        "跳轉死步警告",
+        "分支貫穿警告",
+        "未出現在 Test Item Code V2.04 標準表中",
+    )
+    advisory_warnings = [w for w in warnings if any(k in w for k in advisory_keywords)]
+    auto_fix_warnings = [
+        w for w in warnings
+        if w not in advisory_warnings and any(k in w for k in auto_fix_keywords)
+    ]
+    manual_warnings = [
+        w for w in warnings
+        if w not in auto_fix_warnings and w not in advisory_warnings
+    ]
 
     # Build per-sheet health statistics for multi-sheet dashboard filtering
     sheet_stats = []
@@ -991,6 +1020,7 @@ def audit_workspace(workspace):
         prefix = f"[{s_name}"
         s_errs = sum(1 for e in errors if e.startswith(prefix))
         s_warns = sum(1 for w in manual_warnings if w.startswith(prefix))
+        s_adv = sum(1 for w in advisory_warnings if w.startswith(prefix))
         s_auto = sum(1 for w in auto_fix_warnings if w.startswith(prefix))
         s_jumps = [j for j in jump_summaries if j["sheet"] == s_name]
         s_j_issues = sum(1 for j in s_jumps if j["status"] in ("error", "warning"))
@@ -999,6 +1029,7 @@ def audit_workspace(workspace):
             "sheet_type": s_type,
             "errors": s_errs,
             "warnings": s_warns,
+            "advisory_count": s_adv,
             "auto_fix_count": s_auto,
             "jump_blocks": len(s_jumps),
             "jump_issues": s_j_issues
@@ -1009,12 +1040,14 @@ def audit_workspace(workspace):
         "error_count": len(errors),
         "warning_count": len(warnings),
         "manual_warning_count": len(manual_warnings),
+        "advisory_warning_count": len(advisory_warnings),
         "auto_fix_warning_count": len(auto_fix_warnings),
         "suggestion_count": len(suggestions),
         "choice_card_count": len(choice_cards),
         "errors": errors,
         "warnings": warnings,
         "manual_warnings": manual_warnings,
+        "advisory_warnings": advisory_warnings,
         "auto_fix_warnings": auto_fix_warnings,
         "suggestions": suggestions,
         "choice_cards": choice_cards,

@@ -1359,6 +1359,32 @@ def run_all_verifications():
                   and 'formatIsnHtml(STATE.isnInfo, false)' in index_html,
                   "Windows 原生選檔支援 UTF-8 中文路徑、取消不再強跳站內瀏覽，且 01 健檢已移除 02 編修混合按鈕")
 
+            # [v0.8.029] 驗證健檢智慧降噪：2,Title Skip 豁免、Global [Scripts] 歸類自動修補、歷史建議折疊層與同區塊合並
+            noise_ws = {
+                "project_name": "NOISE", "station_name": "MB",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "NOISE$MB", "Station": "MB,1"}],
+                "marcos": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "1", "Title": "2,SkipBlock", "Send": ":Delay,\"10\"", "ExecMode": "4:2,2", "TestID": ""},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":Delay,\"10\"", "ExecMode": "0", "TestID": ""},
+                    {"Index": "002", "Phase": "", "Title": "", "Send": ":Delay,\"10\"", "ExecMode": "0", "TestID": ""},
+                    {"Index": "003", "Phase": "2", "Title": "0,Active", "Send": "*$(FixAuto)", "ExecMode": "0", "TestID": "CUSTOM9"},
+                    {"Index": "004", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                ]}
+            }
+            noise_rep = _audit_ws(noise_ws)
+            noise_man_txt = "\n".join(noise_rep.get("manual_warnings") or [])
+            noise_auto_txt = "\n".join(noise_rep.get("auto_fix_warnings") or [])
+            noise_adv_txt = "\n".join(noise_rep.get("advisory_warnings") or [])
+            check("2,SkipBlock" not in noise_man_txt and "2,SkipBlock" not in noise_adv_txt
+                  and "FixAuto" in noise_auto_txt and "FixAuto" not in noise_man_txt
+                  and "CUSTOM9" in noise_adv_txt and "CUSTOM9" not in noise_man_txt
+                  and "歷史寫法與最佳實踐建議" in index_html,
+                  "健檢降噪機制正確運作：2,Title 免報死步/缺碼、[Scripts] 自動補變數歸類自動修補、非致命建議分流折疊",
+                  f"man={noise_rep['manual_warnings']} auto={noise_rep['auto_fix_warnings']} adv={noise_rep['advisory_warnings']}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

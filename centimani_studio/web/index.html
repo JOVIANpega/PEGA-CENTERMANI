@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.028">
+<link rel="stylesheet" href="/css/app.css?v=0.8.029">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.028</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.029</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1860,11 +1860,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.028"></script>
-<script src="/js/audit_editors.js?v=0.8.028"></script>
-<script src="/js/flow_guide.js?v=0.8.028"></script>
-<script src="/js/block_sorter.js?v=0.8.028"></script>
-<script src="/js/script_qa.js?v=0.8.028"></script>
+<script src="/js/inst_hmi.js?v=0.8.029"></script>
+<script src="/js/audit_editors.js?v=0.8.029"></script>
+<script src="/js/flow_guide.js?v=0.8.029"></script>
+<script src="/js/block_sorter.js?v=0.8.029"></script>
+<script src="/js/script_qa.js?v=0.8.029"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -4295,7 +4295,9 @@ function _renderGroupedMessages(msgs, icon, color) {
   const groups = [];
   const map = {};
   msgs.forEach(m => {
-    const norm = m.replace(/第\s*\d+\s*列/g, '第 * 列');
+    const norm = m
+      .replace(/第\s*\d+\s*列/g, '第 * 列')
+      .replace(/的\s*第\s*\d+\s*步\s*\([^)]*\)/g, '的多個步驟');
     if (!map[norm]) {
       map[norm] = { key: norm, items: [] };
       groups.push(map[norm]);
@@ -4336,6 +4338,7 @@ function renderAuditResults() {
   const cards = rep.choice_cards || [];
   const errors = rep.errors || [];
   const manualWarnings = rep.manual_warnings !== undefined ? rep.manual_warnings : (rep.warnings || []);
+  const advisoryWarnings = rep.advisory_warnings || [];
   const autoFixWarnings = rep.auto_fix_warnings || [];
 
   const alertBox = document.getElementById('auditAlertBox');
@@ -4381,15 +4384,18 @@ function renderAuditResults() {
   }
 
   let statusBadge = '';
+  const advNote = advisoryWarnings.length > 0
+    ? ` <span style="color:#64748B; font-size:0.82rem;">（💡 優化建議 ${advisoryWarnings.length} 項已預設折疊）</span>`
+    : '';
   const autoNote = autoFixWarnings.length > 0
     ? ` <span style="color:#0369A1; font-size:0.84rem;">（🤖 匯出自動校正 ${autoFixWarnings.length} 項）</span>`
     : '';
   if (errors.length === 0 && manualWarnings.length === 0) {
-    statusBadge = `<span style="color:#166534; font-size:0.98rem;">🟢 無須人工處理的錯誤或警告</span>${autoNote}`;
+    statusBadge = `<span style="color:#166534; font-size:0.98rem;">🟢 無須人工處理的錯誤或關鍵警告</span>${autoNote}${advNote}`;
   } else if (errors.length > 0) {
-    statusBadge = `<span style="color:#991B1B; font-size:0.98rem;">🔴 抓出 <strong>${errors.length} 錯</strong> · <strong>${manualWarnings.length} 需人工確認</strong></span>${autoNote}`;
+    statusBadge = `<span style="color:#991B1B; font-size:0.98rem;">🔴 抓出 <strong>${errors.length} 錯</strong> · <strong>${manualWarnings.length} 需人工確認</strong></span>${autoNote}${advNote}`;
   } else {
-    statusBadge = `<span style="color:#92400E; font-size:0.98rem;">🟡 抓出 <strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}`;
+    statusBadge = `<span style="color:#92400E; font-size:0.98rem;">🟡 抓出 <strong>${manualWarnings.length} 個需人工確認警告</strong></span>${autoNote}${advNote}`;
   }
 
   const phaseIssues = rep.phase_order_issues || [];
@@ -4580,8 +4586,8 @@ function renderAuditResults() {
       html += `<details open style="margin-bottom:8px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:8px 12px;">
         <summary style="cursor:pointer; font-weight:700; color:#92400E;">🌐 全域 / DUTs / Instrument 設定檢查 (${globalErrs.length} 錯 / ${globalWarns.length} 人工確認)</summary>
         <div style="margin-top:6px;">
-          ${globalErrs.map((e, i) => `<div style="color:#991B1B; margin-bottom:2px;">❌ [錯誤 ${i+1}] ${e}</div>`).join('')}
-          ${globalWarns.map((w, i) => `<div style="color:#92400E; margin-bottom:2px;">⚠️ [人工確認 ${i+1}] ${w}</div>`).join('')}
+          ${_renderGroupedMessages(globalErrs, '❌', '#991B1B')}
+          ${_renderGroupedMessages(globalWarns, '⚠️', '#92400E')}
         </div>
       </details>`;
     }
@@ -4646,8 +4652,20 @@ function renderAuditResults() {
       <details style="margin-top:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:6px 10px;">
         <summary style="cursor:pointer; font-weight:700; color:#1E3A8A;">🤖 系統已備妥自動靜默修補之機械式項目 (${fAuto.length} 項，點擊展開明細)</summary>
         <div style="margin-top:6px;">
-          ${fAuto.slice(0, 30).map((w, i) => `<div style="color:#1E40AF; font-size:12.5px; margin-bottom:2px;">🔧 [自動修補 ${i+1}] ${w}</div>`).join('')}
-          ${fAuto.length > 30 ? `<div style="color:#1E40AF; font-weight:700; font-size:12.5px;">... 其餘 ${fAuto.length - 30} 項將於點擊「💾 一鍵修好並存回原資料夾」時一併自動修補</div>` : ''}
+          ${_renderGroupedMessages(fAuto.slice(0, 60), '🔧', '#1E40AF')}
+          ${fAuto.length > 60 ? `<div style="color:#1E40AF; font-weight:700; font-size:12.5px;">... 其餘 ${fAuto.length - 60} 項將於點擊「💾 一鍵修好並匯出 (*_FIXED.xlsx)」時一併自動修補</div>` : ''}
+        </div>
+      </details>
+    `;
+  }
+
+  const fAdvisory = activeSheet === 'ALL' ? advisoryWarnings : advisoryWarnings.filter(w => w.startsWith(`[${activeSheet}`));
+  if (fAdvisory.length > 0) {
+    html += `
+      <details style="margin-top:8px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
+        <summary style="cursor:pointer; font-weight:700; color:#475569;">💡 歷史寫法與最佳實踐建議 (${fAdvisory.length} 項 — 不影響主程式執行，預設摺疊、有需要再點開)</summary>
+        <div style="margin-top:6px;">
+          ${_renderGroupedMessages(fAdvisory, '💡', '#475569')}
         </div>
       </details>
     `;
