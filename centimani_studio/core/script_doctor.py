@@ -9,7 +9,7 @@ from .golden_data import get_valid_test_ids
 
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _PROJECT_ROOT = os.path.dirname(_BASE_DIR)
-VALID_EXEC_PREFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
+VALID_EXEC_PREFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"}
 
 
 def _build_title_blocks(steps):
@@ -640,8 +640,14 @@ def audit_workspace(workspace):
                     pass
                 else:
                     mode_head = s_mode.split(":")[0].strip()
+                    cmd_head_low = s_send.split(",", 1)[0].strip().lower()
+                    if cmd_head_low in (":sfcheckroute", ":sfgetversion", ":sfssdinputdata") and mode_head not in ("8", "9", "10", "11"):
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] SFIS 指令 '{s_send.split(',', 1)[0].strip()}' 之 ExecMode='{s_mode}' "
+                            f"不合 Centimani 1.2.1.2 規定（必須為 8~11，否則主程式將報錯 'ExecMode of {s_send.split(',', 1)[0].strip().lstrip(':')} must be 8~11.'，一鍵修復可自動改為 8/9）"
+                        )
                     if mode_head not in VALID_EXEC_PREFIXES:
-                        errors.append(f"[{st_name} 第 {r_num} 列] ExecMode '{s_mode}' 主代碼無效（僅支援 0~9）")
+                        errors.append(f"[{st_name} 第 {r_num} 列] ExecMode '{s_mode}' 主代碼無效（僅支援 0~11）")
                     elif mode_head == "2":
                         if block_retry_count == 0 and not block_has_retry2_warned:
                             block_has_retry2_warned = True
@@ -1469,7 +1475,8 @@ def auto_fix_workspace(workspace, user_choices=None):
                 s_cmd = str(s_obj.get("Send", "")).strip()
                 if s_cmd.startswith((":SfCheckRoute", ":SfGetVersion", ":SfSaveLinkData", ":SfSsdInputData", ":SfGetiMAC")):
                     em_cur = str(s_obj.get("ExecMode", "")).strip()
-                    if em_cur not in ("8", "9"):
+                    em_head = em_cur.split(":")[0].strip()
+                    if not re.fullmatch(r"\*\$\([^)]+\)", em_cur) and em_head not in ("8", "9", "10", "11"):
                         s_obj["ExecMode"] = "8" if s_cmd.startswith(":SfCheckRoute") else "9"
                         fixed_logs.append(f"[{st_name} 第 {r_i + 2} 列] SFIS 指令 {s_cmd.split(',')[0]} 之 ExecMode 已修正為 '{s_obj['ExecMode']}'")
 
@@ -1800,13 +1807,34 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
                 tid=str(cs.get("TestID", "B7PL025"))
             ))
     elif is_sub_dev:
-        # Sub=1 共用子設備（如 vnxRFSW / DevUart）：Col E/F 留空，改用 :ObtainSubDevice / :sDev.* / :ReleaseSubDevice
-        if inst_name.lower() == "vnxrfsw":
+        # Sub=1 共用子設備（如 vnxRFSW / DevUart / ScpiController / Keithley2700 / Transmitter1）：Col E/F 留空，改用 :ObtainSubDevice / :sDev.* / :ReleaseSubDevice
+        low_in = inst_name.lower()
+        if low_in.startswith("vnxrfsw"):
             workspace.setdefault("global_ini", {}).setdefault("Scripts", {}).setdefault("RFSW_PORT", "1")
             block_rows = [
                 _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
                 _row(send=':sDev.gName,"1"', ref="devName;devSN", exec_mode="1", desc=f"INST#-#Read {inst_name} Device Info"),
                 _row(send=':sDev.setSwitch,"1","*$(RFSW_PORT)"', exec_mode="1", desc=f"INST#-#{clean_title} Switch Port"),
+                _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
+            ]
+        elif low_in.startswith("scpicontroller"):
+            block_rows = [
+                _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
+                _row(send=':sDev.OnOff,"ON"', exec_mode="1", desc=f"INST#-#{clean_title} Output ON"),
+                _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
+            ]
+        elif low_in.startswith("keithley2700"):
+            dl = str(dl_val).strip() or "3.15"
+            ul = str(ul_val).strip() or "3.45"
+            block_rows = [
+                _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
+                _row(send=':sDev.Voltage,"101"', ref="$K2700_V", val=f"(K2700_V,%f,{dl},{ul})", exec_mode="2:0", desc=f"DMM#-#{clean_title} Voltage"),
+                _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
+            ]
+        elif low_in.startswith("transmitter"):
+            block_rows = [
+                _row(phase=phase_row0, title=t_header, inst="", sw="", send=f':ObtainSubDevice,"{inst_name}"', exec_mode="1", desc=f"PC#-#Obtain SubDevice {inst_name}"),
+                _row(send=':sDev.TCP_Transfer,"PING"', exec_mode="1", desc=f"INST#-#{clean_title} TCP Transfer"),
                 _row(send=":ReleaseSubDevice", exec_mode="3", desc=f"PC#-#Release SubDevice {inst_name}"),
             ]
         else:
@@ -1835,6 +1863,10 @@ def insert_instrument_title_block(workspace, sheet_name, inst_name, title_name, 
             block_rows.append(_row(inst="", send=':Dev.SwitchOFF,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power OFF"))
             block_rows.append(_row(send=':Delay,"500"', exec_mode="0", desc="PC#-#Wait 500ms"))
             block_rows.append(_row(inst="", send=':Dev.SwitchON,"1"', exec_mode="1", desc=f"PC#-#{inst_name} Power ON"))
+        elif "E-LOAD" in funcs or "DCLOAD" in funcs:
+            dl = str(dl_val).strip() or "0.0"
+            ul = str(ul_val).strip() or "2.5"
+            block_rows.append(_row(inst="", send=':Dev.E-Load,"1.0"', val=f"(ELOAD_CURR,%f,{dl},{ul})", exec_mode="2:0", desc=f"DUT#-#{clean_title} E-Load"))
         elif any(k in funcs for k in ("VOLTAGE", "DC", "DMM", "DAQ", "PMETER")):
             dl = str(dl_val).strip() or "0.0"
             ul = str(ul_val).strip() or "5.0"

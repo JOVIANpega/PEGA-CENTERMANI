@@ -474,7 +474,7 @@ class CentimaniDesktopApp(tk.Tk):
             f"1. {xlsx_filename} （修改處已標亮黃底色與註解）\n"
             f"2. System.ini (已自動計算並寫入 64 碼 Checksum)\n"
             f"3. Global.ini\n"
-            f"4. Test Item Code V2.04_20250310.xlsx\n\n"
+            f"4. Test Item Code V2.04_20260521.xlsx\n\n"
             f"📊 共自動修補 {len(fixed_logs)} 項問題，修復後剩餘 Error 數：{rep_after['error_count']}"
         )
 
@@ -618,7 +618,7 @@ class CentimaniDesktopApp(tk.Tk):
             f"1. {xlsx_filename}\n"
             f"2. System.ini\n"
             f"3. Global.ini\n"
-            f"4. Test Item Code V2.04_20250310.xlsx"
+            f"4. Test Item Code V2.04_20260521.xlsx"
         )
 
 

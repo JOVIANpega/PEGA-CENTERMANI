@@ -548,7 +548,9 @@ def run_all_verifications():
             check(len(rf_phases_mb) == 1 and len(rf_titles_mb) == 3 and rf_insts_mb == ["MeasWIFI", "GenWIFI"],
                   "RF 多筆 TX/RX 共用單一 Phase、各自獨立 Title，且 MeasWIFI/GenWIFI 各只寫一次",
                   f"P={rf_phases_mb}, T={len(rf_titles_mb)}, I={rf_insts_mb}")
-            check(ni_ver == "1.1.2.0", "NI6008 (DaqUSBNi.dll) 版本號已自動對齊本機真實 DLL (1.1.2.0)", str(ni_ver))
+            from core.golden_data import _get_local_dll_versions as _get_loc_dlls
+            expected_ni_ver = _get_loc_dlls().get("daqusbni.dll", "1.0.5.0")
+            check(ni_ver == expected_ni_ver, f"NI6008 (DaqUSBNi.dll) 版本號已自動對齊本機真實 DLL ({expected_ni_ver})", str(ni_ver))
             check("HXTaudio" not in inst_names_in_sheet, "Instrument 工作表僅保留實際選用之儀器，不殘留未選儀器 (避免 DLL is not Found)", str(inst_names_in_sheet))
             check("IPOWER2401" in inst_names_in_sheet, "Phase 97 使用之 POWERSWITCH 已自動保留對應儀器 IPOWER2401", str(inst_names_in_sheet))
             from core.golden_data import get_golden_mother as _gm_chk
@@ -562,8 +564,8 @@ def run_all_verifications():
                   "書籤三預設篩選『✅ 可使用設備』且 01 腳本健檢具備未載檔最近紀錄引導區")
             check(bool(auto_res.get("centimani_dir_exists")), "匯出時自動偵測並回傳本機 Centimani 主程式目錄", auto_res.get("centimani_dir", ""))
             missing_names = [m.get("dll") for m in auto_res.get("missing_dlls", [])]
-            check("InstIQApi_A.dll" in missing_names and "DigitIO6509.dll" in missing_names and "DaqUSBNi.dll" not in missing_names,
-                  "匯出時精準回報缺少的實機 DLL (InstIQApi_A.dll / DigitIO6509.dll)", str(missing_names))
+            check("DigitIO6509.dll" in missing_names and "InstIQApi_A.dll" not in missing_names and "DaqUSBNi.dll" not in missing_names,
+                  "匯出時精準識別新版目錄已有 InstIQApi_A.dll / DaqUSBNi.dll，僅回報確實缺少的 DLL (DigitIO6509.dll)", str(missing_names))
             check("missing_dlls" in exp_ins_res and "missing_dlls" in gen_res,
                   "書籤一修復匯出與書籤二新母體匯出皆具備實機 DLL 缺失檢查回傳")
             # 驗證未掛載且未使用的型錄儀器 (如 HXTaudio / OSP120 Mount='') 不應觸發誤報
@@ -1053,25 +1055,25 @@ def run_all_verifications():
                     {"Name": "NI6008-2", "Mount": "MB", "ControlDLL": "NI6008-2.dll", "Functions": "Voltage"},
                     {"Name": "NI6008-3", "Mount": "MB", "ControlDLL": "NI6008-3.dll", "Functions": "Voltage"},
                     {"Name": "FeasaLED-2", "Mount": "MB", "ControlDLL": "FeasaLED-2.dll", "Functions": "LED_Test"},
-                    {"Name": "InstIQApiA", "Mount": "MB", "ControlDLL": "InstIQApi_A.dll", "Functions": "MeasWIFI"},
-                    {"Name": "InstIQApiA-2", "Mount": "MB", "ControlDLL": "InstIQApi_A.dll", "Functions": "MeasWIFI"},
-                    {"Name": "MT8870A", "Mount": "", "ControlDLL": "InstAnritsu.dll", "Functions": "MeasWIFI"},
+                    {"Name": "MT8870A", "Mount": "MB", "ControlDLL": "InstAnritsu.dll", "Functions": "MeasWIFI"},
+                    {"Name": "MT8870A-2", "Mount": "MB", "ControlDLL": "InstAnritsu.dll", "Functions": "MeasWIFI"},
+                    {"Name": "DIO6509", "Mount": "", "ControlDLL": "DigitIO6509.dll", "Functions": "IOswitch"},
                 ],
                 "switches": [],
                 "stations": {"MB": [
-                    {"Phase": "-1", "Title": "0,Paused RF", "Instrument": "MT8870A", "ExecMode": "1"},
+                    {"Phase": "-1", "Title": "0,Paused IO", "Instrument": "IOswitch", "ExecMode": "1"},
                     {"Phase": "1", "Title": "0,Volt", "Instrument": "NI6008-2", "ExecMode": "1"},
                 ]},
             }
             multi_chk = _chk_dlls(multi_dll_ws)
             multi_dll_names = [m["dll"] for m in multi_chk["missing_dlls"]]
-            iq_grp = next((m for m in multi_chk["missing_dlls"] if m["dll"] == "InstIQApi_A.dll"), None)
+            anr_grp = next((m for m in multi_chk["missing_dlls"] if m["dll"] == "InstAnritsu.dll"), None)
             check("NI6008-2.dll" not in multi_dll_names
                   and "NI6008-3.dll" not in multi_dll_names
                   and "FeasaLED-2.dll" not in multi_dll_names
                   and "DaqUSBNi.dll" not in multi_dll_names
-                  and "InstAnritsu.dll" not in multi_dll_names
-                  and iq_grp is not None and iq_grp.get("shared") is True and multi_dll_names.count("InstIQApi_A.dll") == 1,
+                  and "DigitIO6509.dll" not in multi_dll_names
+                  and anr_grp is not None and anr_grp.get("shared") is True and multi_dll_names.count("InstAnritsu.dll") == 1,
                   "多台共用 DLL 合併檢查通過：不重複列印同支缺少的 DLL、不誤報 NI6008-2/FeasaLED-2.dll 且 Phase=-1 暫停儀器不報錯",
                   str(multi_chk["missing_dlls"]))
 
@@ -1085,6 +1087,77 @@ def run_all_verifications():
             check("1. 怎麼執行" in plain_txt and "Global.ini [Scripts]" not in plain_txt and "Phase = -1" not in plain_txt
                   and "Phase = -1" in ask_txt and "回產線接好實機後" in ask_txt,
                   "白話版操作說明在未啟用開關/暫停時精簡無冗字，啟用 Phase=-1 時清楚提示 2 步恢復法")
+
+            # [v0.8.021] 驗證 Centmimani_Altas_TRY & ATLAS_SAMPLE 升級 + 方向一右欄完整工作區
+            tic_v21_bundled = os.path.join(STUDIO_DIR, "data", "Test Item Code V2.04_20260521.xlsx")
+            check(os.path.exists(tic_v21_bundled)
+                  and init_res["tic_info"]["file_name"] == "Test Item Code V2.04_20260521.xlsx"
+                  and init_res["tic_info"]["count"] >= 5250
+                  and os.path.exists(os.path.join(plain_res["output_dir"], "Test Item Code V2.04_20260521.xlsx")),
+                  "已內建 Test Item Code V2.04_20260521.xlsx (5,255 筆) 為預設代碼庫並自動複製至輸出目錄",
+                  str(init_res["tic_info"]))
+
+            spec_txt = open(os.path.join(os.path.dirname(STUDIO_DIR), "CentimaniStudio.spec"), "r", encoding="utf-8").read()
+            check("('centimani_studio/data', 'data')" in spec_txt,
+                  "CentimaniStudio.spec 已納入 centimani_studio/data 目錄（打包成 EXE 時同步攜帶 Test Item Code）")
+
+            sf_ws = {
+                "project_name": "SFIS_V12", "station_name": "UPGRADE",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "SFIS_V12$UPGRADE", "Station": "UPGRADE,1"}],
+                "marcos": {},
+                "stations": {"UPGRADE": [
+                    {"Index": "000", "Phase": "0", "Title": "0,CheckRoute", "Send": ':ShowISN,"*(ISN)"', "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "1", "TestID": "OTCH013"},
+                    {"Index": "002", "Phase": "", "Title": "", "Send": ':SfGetVersion,"*(ISN)","MOKP_SN","2","SN",""', "ExecMode": "10", "TestID": "OTCH013"},
+                    {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            sf_rep_bad = _audit_ws(sf_ws)
+            check(any("Centimani 1.2.1.2" in e and "SfCheckRoute" in e for e in sf_rep_bad["errors"])
+                  and not any("SfGetVersion" in e for e in sf_rep_bad["errors"]),
+                  "健檢納入 Centimani 1.2.1.2 規定：精準攔截 SfCheckRoute ExecMode=1，並合法放行 ExecMode=10",
+                  str(sf_rep_bad["errors"]))
+            _autofix_ws(sf_ws)
+            sf_rep_ok = _audit_ws(sf_ws)
+            check(sf_ws["stations"]["UPGRADE"][1]["ExecMode"] == "8" and sf_rep_ok["error_count"] == 0,
+                  "auto_fix_workspace 自動將違法 SFIS ExecMode 修正為 8 且複檢 0 Error",
+                  str(sf_rep_ok["errors"]))
+
+            cat_names_21 = {i["Name"]: i for i in cat_res.get("instruments", [])}
+            check(all(k in cat_names_21 for k in ("ScpiController", "Keithley2380", "Keithley2700", "XelM8-A", "IQFlex-A", "Transmitter1")),
+                  "儀器型錄已擴充 ScpiController / Keithley2380 / Keithley2700 / XelM8-A / IQFlex-A / Transmitter1")
+
+            new_inst_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [
+                    {"inst_name": "ScpiController", "title_name": "SCPI Power Ctrl"},
+                    {"inst_name": "Keithley2380", "title_name": "ELoad Test"},
+                    {"inst_name": "XelM8-A", "title_name": "WiFi 11ah Check"},
+                ],
+                "project_name": "ATLAS_EXT", "station_name": "MB", "auto_sample_mode": True,
+                "open_excel": False
+            })
+            check(new_inst_res.get("status") == "ok" and new_inst_res["audit_report"].get("error_count") == 0,
+                  "擴充之新儀器 (ScpiController / Keithley2380 / XelM8-A) 可順利匯出 0 Error 範本",
+                  str(new_inst_res.get("audit_report")))
+
+            usb_wiz_res = post_json("/api/generate_new_standalone", {
+                "project_name": "USB_UPG", "station_name": "UPGRADE", "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_USB_FW_UPGRADE_COM", "BLK_PHASE97_TEARDOWN"],
+                "open_excel": False
+            })
+            wb_usb = openpyxl.load_workbook(usb_wiz_res["excel_path"], read_only=True, data_only=True)
+            usb_sends = [str(r[6] or "") for r in wb_usb["UPGRADE"].iter_rows(min_row=2, values_only=True) if r and len(r) > 6]
+            wb_usb.close()
+            check(any(":Utility.GetChainCOM" in s for s in usb_sends) and any(":AddAttribute" in s for s in usb_sends),
+                  "新增積木『BLK_USB_FW_UPGRADE_COM』正確寫入 Utility.CMD + GetChainCOM + AddAttribute",
+                  str(usb_sends))
+
+            check('id="tab3RightActionZone"' in index_html
+                  and 'tab3OpenStep2Checked()' in index_html
+                  and 'id="tab3ModeChoiceBox"' not in index_html,
+                  "書籤三已套用方向一『右側完整工作區』改版：消除確認過場與下方長卷軸")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

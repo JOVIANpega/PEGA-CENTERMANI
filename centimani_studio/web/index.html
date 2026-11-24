@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.020">
+<link rel="stylesheet" href="/css/app.css?v=0.8.021">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.020</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.021</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1216,32 +1216,15 @@
     <div id="genModeInst" style="display:none;">
       <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:16px 20px; margin-bottom:14px;">
         <!-- 頂部標題與步驟指示 -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
           <div>
-            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 書籤三：插入儀器範本 (34 款人機 - 撲克牌雙欄版)</h3>
-            <div style="font-size:0.87rem; color:#64748B;">① 從左側撲克牌庫點擊「+ 加入」或拖曳至右側排好測試順序 → ② 點擊「確認以上儀器清單」後選擇「⚡ 懶人快速版」或「🎛️ 專業細部版」。</div>
+            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 書籤三：插入儀器範本（撲克牌雙欄單畫面工作區）</h3>
+            <div style="font-size:0.87rem; color:#64748B;">① 左欄挑選儀器加入右側序列 → ② 直接在右欄下方勾選環境與產出方式，無需跳頁或捲動。</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-            <button id="tab3StepNav1" onclick="tab3GoStep(1)" class="source-mode-tab active" style="padding:5px 12px; font-size:0.85rem;">① 挑選與排序儀器卡片</button>
+            <button id="tab3StepNav1" onclick="tab3GoStep(1)" class="source-mode-tab active" style="padding:5px 12px; font-size:0.85rem;">① 挑選序列與直接產出</button>
             <span style="color:#94A3B8;">➔</span>
             <button id="tab3StepNav2" onclick="tab3GoStep(2)" class="source-mode-tab" style="padding:5px 12px; font-size:0.85rem;">② 細部規格與人機設定</button>
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px; margin-bottom:10px;">
-          <label style="display:flex; align-items:center; gap:8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#312E81; font-weight:700; cursor:pointer;">
-            <input id="tab3UseIniSwitch" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
-            <span>🔧 在 <code>Global.ini</code> 開關測項（預設取消維持單純 <code>0,名稱,3</code>；勾選才寫 <code>*$(EN_...)</code>）</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#92400E; font-weight:700; cursor:pointer;">
-            <input id="tab3NoHwPhaseChk" type="checkbox" style="width:16px; height:16px; cursor:pointer;">
-            <span>⏸️ 無儀器先寫 <code>Phase = -1</code>（維持單一 Sheet，到產線改回數字即跑）</span>
-          </label>
-          <div style="display:flex; align-items:center; gap:6px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.82rem; color:#1E3A8A; font-weight:700;">
-            <span>🎯 啟動站別：</span>
-            <select id="tab3StationPromptSel" style="flex:1; padding:3px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A;">
-              <option value="fixed">指定 MB 直接啟動</option>
-              <option value="ask">留空（開機當場選站）</option>
-            </select>
           </div>
         </div>
 
@@ -1254,65 +1237,73 @@
           <input id="tab3UlInput" type="text">
         </div>
 
-        <!-- ==================== STEP 1：左撲克牌庫 + 右已選測試流程序列 ==================== -->
+        <!-- ==================== STEP 1：左撲克牌庫 + 右完整測試工作區（單視窗免捲動） ==================== -->
         <div id="tab3Step1Box">
-          <div class="tab3-split-layout" style="margin-bottom:14px;">
-            <!-- 左欄：34 款儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
+          <div class="tab3-split-layout" style="margin-bottom:8px;">
+            <!-- 左欄：儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
             <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:12px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <div style="font-weight:900; font-size:0.95rem; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
               </div>
-              <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 34 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
+              <input id="tab3DeckSearch" type="text" placeholder="🔍 搜尋 40 款儀器名稱或關鍵字..." oninput="tab3RenderCatalogDeck()"
                 style="width:100%; box-sizing:border-box; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:7px; font-size:0.85rem; margin-bottom:8px;">
               <div id="tab3CatPills" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;"></div>
-              <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(122px, 1fr)); gap:8px; max-height:430px; overflow-y:auto; padding-right:4px;"></div>
+              <div id="tab3CatalogDeck" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(122px, 1fr)); gap:8px; max-height:470px; overflow-y:auto; padding-right:4px;"></div>
             </div>
 
-            <!-- 右欄：已選測試序列卡片區 (依序 #01 → #02 執行) -->
+            <!-- 右欄：已選測試序列 ＋ 環境選項 ＋ 直接產出 ＋ 即時結果（單畫面整合工作區） -->
             <div id="tab3DeckDropZone"
               ondragover="event.preventDefault(); this.classList.add('lego-drop-active'); tab3ShowDropGhost(true);"
               ondragleave="if(!this.contains(event.relatedTarget)){ this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); }"
               ondrop="this.classList.remove('lego-drop-active'); tab3ShowDropGhost(false); tab3HandleDropToTrack(event);"
-              style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:12px; padding:14px 16px; min-height:500px; display:flex; flex-direction:column; transition:all 0.18s;">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; border-bottom:1px solid #DDD6FE; padding-bottom:10px;">
+              style="background:#FAF5FF; border:2px dashed #A78BFA; border-radius:12px; padding:14px 16px; min-height:520px; display:flex; flex-direction:column; transition:all 0.18s;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; border-bottom:1px solid #DDD6FE; padding-bottom:8px;">
                 <div style="font-weight:900; font-size:0.97rem; color:#4C1D95;">
                   🧱 右欄：已選測試序列（依 #01 → #02 順序執行 · <span id="tab3TrackCount">0</span> 台）
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                  <button onclick="tab3ClearQueue()" class="btn" style="padding:5px 11px; font-size:0.85rem; background:#FFFFFF; color:#475569;">🧹 清空</button>
-                  <button onclick="tab3OpenModeChoice()" class="btn btn-primary-green" style="padding:7px 16px; font-size:0.9rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.25);">
-                    ✅ 確認以上儀器清單 ➔
-                  </button>
-                </div>
+                <button onclick="tab3ClearQueue()" class="btn" style="padding:4px 11px; font-size:0.84rem; background:#FFFFFF; color:#475569;">🧹 清空序列</button>
               </div>
-              <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:10px; flex:1; min-height:380px;">
-                <div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">
+              <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:10px; flex:1; min-height:220px;">
+                <div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:24px 14px;">
                   👈 請從左側撲克牌庫點擊「+ 加入」或拖曳儀器卡片至此處<br>
                   <span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- 確認清單後的二選一出口 (懶人自動範例 vs 專業細部設定) -->
-          <div id="tab3ModeChoiceBox" style="display:none; background:linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%); border:2px solid #818CF8; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-              <div style="font-weight:900; font-size:0.97rem; color:#1E1B4B;">🎯 已確認儀器清單！請選擇接下來的產生方式：</div>
-              <button onclick="document.getElementById('tab3ModeChoiceBox').style.display='none'" class="btn" style="padding:3px 10px; font-size:0.82rem; background:#FFFFFF; color:#64748B;">收起選項</button>
-            </div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
-              <button onclick="tab3GenerateAutoSample()" class="tab3-choice-card" style="border-color:#22C55E; background:linear-gradient(180deg,#FFFFFF 0%,#F0FDF4 100%);">
-                <div style="font-size:1rem; font-weight:900; color:#15803D; margin-bottom:4px;">⚡ 懶人快速版：自動產生範例 Excel</div>
-                <div style="font-size:0.85rem; color:#334155; line-height:1.45;">
-                  免進複雜設定，系統依您選的儀器<b>自動幫每台產生至少 3 個代表性測試項目</b>，寫入並完成實機 DLL 檢查與開啟目錄，再彈窗詢問是否開啟 Excel！
+              <!-- 整合在右欄下方的設定與直接產出控制區 -->
+              <div id="tab3RightActionZone" class="tab3-right-controls">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:6px;">
+                  <label class="tab3-toggle-pill amber" title="無實機連接時先設 Phase=-1，到產線改回 1, 2... 即可跑">
+                    <input id="tab3NoHwPhaseChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
+                    <span>⏸️ 無儀器環境（先設 Phase=-1 跳過實機）</span>
+                  </label>
+                  <div class="tab3-toggle-pill blue">
+                    <span>🎯 站別：</span>
+                    <select id="tab3StationPromptSel" style="flex:1; padding:2px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A; font-size:0.81rem;">
+                      <option value="fixed">指定 MB 直接啟動</option>
+                      <option value="ask">留空（開機當場選站）</option>
+                    </select>
+                  </div>
                 </div>
-              </button>
-              <button onclick="tab3GoStep(2)" class="tab3-choice-card" style="border-color:#7C3AED; background:linear-gradient(180deg,#FFFFFF 0%,#F5F3FF 100%);">
-                <div style="font-size:1rem; font-weight:900; color:#5B21B6; margin-bottom:4px;">🎛️ 專業細部版：逐台挑選測試項目</div>
-                <div style="font-size:0.85rem; color:#334155; line-height:1.45;">
-                  進入下一步針對每台儀器進行細部設定（例如 <b>RF WiFi/BT 頻段測項</b>、<b>NI-6009 腳位</b>、<b>FeasaLED 通道</b>），設定完再產出並檢查 DLL 後彈窗開啟！
+                <label class="tab3-toggle-pill indigo" title="預設取消保持簡單 0,測項名稱,3 格式；需要透過 Global.ini [Scripts] 動態開關測項時再勾選">
+                  <input id="tab3UseIniSwitch" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
+                  <span>🔧 產出 <code>Global.ini</code> 測項開關（進階用，預設保持簡潔寫法）</span>
+                </label>
+
+                <div class="tab3-action-row">
+                  <button onclick="tab3GenerateAutoSample()" class="tab3-direct-btn green">
+                    <div style="font-size:0.95rem; font-weight:900;">⚡ 直接產生範例 Excel</div>
+                    <div style="font-size:0.78rem; color:#334155; font-weight:600;">每台自動填入標準測項並開啟資料夾</div>
+                  </button>
+                  <button onclick="tab3OpenStep2Checked()" class="tab3-direct-btn purple">
+                    <div style="font-size:0.95rem; font-weight:900;">🎛️ 調整細部測項與人機</div>
+                    <div style="font-size:0.78rem; color:#334155; font-weight:600;">自訂上下限、RF 頻段或 DAQ 腳位</div>
+                  </button>
                 </div>
-              </button>
+
+                <!-- 即時產出結果（直接顯示於右欄下方，不用再捲動頁面） -->
+                <div id="tab3OutputBox" style="display:none; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:10px 12px;"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1340,8 +1331,7 @@
           </div>
         </div>
 
-        <!-- 產出狀態展示盒 -->
-        <div id="tab3OutputBox" style="display:none; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:8px; padding:12px 16px; margin-top:10px;"></div>
+        <!-- 產出狀態展示盒（Step 2 共用檢視區；Step 1 已內嵌於右欄下方 #tab3OutputBox） -->
       </div>
     </div><!-- /genModeInst -->
 
@@ -1715,11 +1705,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.020"></script>
-<script src="/js/audit_editors.js?v=0.8.020"></script>
-<script src="/js/flow_guide.js?v=0.8.020"></script>
-<script src="/js/block_sorter.js?v=0.8.020"></script>
-<script src="/js/script_qa.js?v=0.8.020"></script>
+<script src="/js/inst_hmi.js?v=0.8.021"></script>
+<script src="/js/audit_editors.js?v=0.8.021"></script>
+<script src="/js/flow_guide.js?v=0.8.021"></script>
+<script src="/js/block_sorter.js?v=0.8.021"></script>
+<script src="/js/script_qa.js?v=0.8.021"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2869,6 +2859,12 @@ function tab3GoStep(step) {
   if (s2) s2.style.display = (TAB3_STEP === 2) ? 'block' : 'none';
   if (n1) n1.className = 'source-mode-tab' + (TAB3_STEP === 1 ? ' active' : '');
   if (n2) n2.className = 'source-mode-tab' + (TAB3_STEP === 2 ? ' active' : '');
+  const outBox = document.getElementById('tab3OutputBox');
+  const rightHost = document.getElementById('tab3RightActionZone');
+  if (outBox) {
+    if (TAB3_STEP === 2 && s2) s2.appendChild(outBox);
+    else if (rightHost) rightHost.appendChild(outBox);
+  }
   if (TAB3_STEP === 2) tab3RenderDetailCards();
 }
 
@@ -2944,10 +2940,10 @@ function tab3MoveQueueItem(fromIdx, toIdx) {
 
 function tab3GetInstTheme(instName) {
   const n = String(instName || '').toLowerCase();
-  if (['instiqapia', 'xelm8-b', 'mt8870a', 'e4418b', 'u2004a', 'osp120', 'san9000', 'vnxrfsw'].includes(n)) {
+  if (['instiqapia', 'xelm8-a', 'iqflex-a', 'xelm8-b', 'mt8870a', 'e4418b', 'u2004a', 'osp120', 'san9000', 'vnxrfsw'].includes(n)) {
     return { color: '#7C3AED', badge: '#EDE9FE', text: '#5B21B6', tag: '📡 RF' };
   }
-  if (['ipower', 'e3631a', 'chroma62000', 'it6302', 'relay', 'usbswitch'].some(k => n.includes(k))) {
+  if (['ipower', 'e3631a', 'chroma62000', 'it6302', 'relay', 'usbswitch', 'scpicontroller', 'keithley2380'].some(k => n.includes(k))) {
     return { color: '#D97706', badge: '#FEF3C7', text: '#92400E', tag: '⚡ 電源' };
   }
   if (['ni6008', 'agilent34401', 'keithley', 'daq', 'dmm'].some(k => n.includes(k))) {
@@ -2993,16 +2989,17 @@ function tab3HandleDropToTrack(e, targetIdx = null) {
   TAB3_DRAG_PAYLOAD = null;
 }
 
-function tab3OpenModeChoice() {
+function tab3OpenStep2Checked() {
   if (TAB3_QUEUE.length === 0) {
     alert('請先從左側撲克牌庫點擊「＋ 加入」或拖曳至少 1 台儀器至右側序列！');
     return;
   }
-  const box = document.getElementById('tab3ModeChoiceBox');
-  if (box) {
-    box.style.display = 'block';
-    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+  tab3GoStep(2);
+}
+
+function tab3OpenModeChoice() {
+  const box = document.getElementById('tab3RightActionZone');
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function renderTab3Queue() {
@@ -3246,7 +3243,7 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
     }
 
     if (outBox) {
-      const errCnt = (data.audit_report && data.audit_report.summary) ? (data.audit_report.summary.errors || 0) : 0;
+      const errCnt = data.audit_report ? (data.audit_report.summary ? (data.audit_report.summary.errors || 0) : (data.audit_report.error_count || 0)) : 0;
       const modeTag = autoSampleMode ? '⚡ 懶人範例模式（每台 ≥ 3 測項）' : '🎛️ 專業細部模式';
       const missingList = Array.isArray(data.missing_dlls) ? data.missing_dlls : [];
       const hasDllWarn = (!data.centimani_dir_exists) || missingList.length > 0;
@@ -4833,11 +4830,11 @@ async function refreshCurrentExcelFile() {
 }
 
 const INST_CATEGORIES = [
-  { id: 'measure', label: '📏 量測電壓 / 電流 / 電錶 / DAQ', names: ['NI6008', 'Agilent34401A', 'GDM906x', 'MDA2700', 'ScpTDS3014B'] },
-  { id: 'power', label: '⚡ 電源開關 / 供電與電子負載', names: ['IPOWER2401', 'IPRO800', 'KEITHLEY2302', 'PPH1503', 'PSS1503', 'PS2005', 'Chroma6150x', 'Chroma6310A'] },
-  { id: 'rf', label: '📡 RF 無線 / 功率計 / 切換器', names: ['InstIQApiA', 'XelM8-B', 'MT8870A', 'E4418B', 'U2004A', 'OSP120', 'SAn9000', 'vnxRFSW'] },
+  { id: 'measure', label: '📏 量測電壓 / 電流 / 電錶 / DAQ', names: ['NI6008', 'Agilent34401A', 'GDM906x', 'MDA2700', 'Keithley2700', 'ScpTDS3014B'] },
+  { id: 'power', label: '⚡ 電源開關 / 供電與電子負載', names: ['IPOWER2401', 'IPRO800', 'KEITHLEY2302', 'Keithley2380', 'ScpiController', 'PPH1503', 'PSS1503', 'PS2005', 'Chroma6150x', 'Chroma6310A'] },
+  { id: 'rf', label: '📡 RF 無線 / 功率計 / 切換器', names: ['InstIQApiA', 'XelM8-A', 'IQFlex-A', 'XelM8-B', 'MT8870A', 'E4418B', 'U2004A', 'OSP120', 'SAn9000', 'vnxRFSW'] },
   { id: 'audio_io', label: '🔊 音訊 / 氣密 / LED / DIO / IR', names: ['FeasaLED', 'NI4461', 'HXTaudio', 'SAu3751', 'RST', 'FC6000', 'FM480', 'DIO6509', 'Redrat', 'SFE100'] },
-  { id: 'comm_sw', label: '🔧 條碼 / UART / 軟體工具', names: ['QRDecode', 'DevUart', 'AutoTFTP', 'DevQueue', 'LVdev'] }
+  { id: 'comm_sw', label: '🔧 條碼 / UART / 軟體工具', names: ['QRDecode', 'DevUart', 'AutoTFTP', 'DevQueue', 'Transmitter1', 'LVdev'] }
 ];
 
 function _getInstDefaults(instObj) {

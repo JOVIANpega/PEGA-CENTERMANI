@@ -1618,7 +1618,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.020")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.021")
 
                 self._send_json({
                     "status": "ok",
@@ -1880,7 +1880,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.020")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.021")
 
                 self._send_json({
                     "status": "ok",
@@ -1936,7 +1936,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
                 no_hw_phase_pause = bool(payload.get("no_hw_phase_pause", False))
                 station_name_mode = str(payload.get("station_name_mode", "fixed")).strip().lower()
-                rf_inst_names = {"InstIQApiA", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
+                rf_inst_names = {"InstIQApiA", "XelM8-A", "IQFlex-A", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
                 inst_occ_counts = {}
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008")).strip() or "NI6008"
@@ -2128,7 +2128,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.020")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.021")
 
                 self._send_json({
                     "status": "ok",
@@ -2283,7 +2283,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.020) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.021) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

@@ -6,9 +6,8 @@
   "tic_generic_only": false,
   "intro_font_size": 17,
   "skip_guides": {
-    "gen": true,
-    "tic": true
+    "audit": true
   },
-  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\TEMP_SCRIPT",
-  "centimani_dir": "D:\\PYTHON\\自動化編寫EXCEL\\CENTERMAINA_TRY"
+  "centimani_dir": "D:\\PYTHON\\自動化編寫EXCEL\\Centmimani_Altas_TRY",
+  "last_dir": "D:\\PYTHON\\自動化編寫EXCEL\\TEMP_SCRIPT"
 }

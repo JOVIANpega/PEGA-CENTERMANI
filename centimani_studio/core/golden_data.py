@@ -5,6 +5,7 @@ Integrates official rules from Centimani Script User Guide (2022/2023), Ver1.65 
 and real production blocks from VALO360, KANGAROO (MU310/Olympus), Raptor, and MiniBox.
 """
 import os
+import sys
 import re
 import glob
 import openpyxl
@@ -88,7 +89,9 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "FeasaLED", "Sub": "", "ControlDLL": "LED_analyser.dll", "Settings": "*$(LED_AZ1),57600,*$(LED_Light1)", "Functions": "LED_Test", "Version": "2.1.0.1", "Switch": "", "Desc": "LED analyser FeasaLED"},
             {"Mount": "", "Name": "NI4461", "Sub": "", "ControlDLL": "DaqNI4461.dll", "Settings": "Dev2", "Functions": "VOIP,RMS", "Version": "1.0.0.0", "Switch": "", "Desc": "DAQ device NI4461 Audio"},
             {"Mount": "", "Name": "QRDecode", "Sub": "", "ControlDLL": "QRDecode.dll", "Settings": "", "Functions": "QRCode", "Version": "1.0.0.0", "Switch": "", "Desc": "Decode QR Code"},
-            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT,WIFI 5G,WIFI 2.4G,BT,CW", "Version": "1.0.0.4", "Switch": "", "Desc": "LitePoint IQxel A Route"},
+            {"Mount": "", "Name": "InstIQApiA", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "192.168.100.254,1,2,1,60000,PathLoss.ini", "Functions": "MeasWIFI,MeasCW,GenWIFI,GenBT,MeasBT,WIFI 5G,WIFI 2.4G,BT,CW", "Version": "1.0.1.2", "Switch": "", "Desc": "LitePoint IQxel A Route"},
+            {"Mount": "", "Name": "XelM8-A", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "*$(IQ_IP),4,2,*$(IQapt),20000,XelM8_PathLoss.ini", "Functions": "MeasWIFI,GenWIFI,MeasBT,GenBT,WIFI 5G,WIFI 2.4G,BT,11ah,CW", "Version": "1.0.1.2", "Switch": "", "Desc": "LitePoint XelM8-A RF Tester (含 11ah)"},
+            {"Mount": "", "Name": "IQFlex-A", "Sub": "", "ControlDLL": "InstIQApi_A.dll", "Settings": "*$(IQ_IP),0,0,3,60000,PathLoss.ini", "Functions": "MeasWIFI,GenWIFI,MeasBT,WIFI 2.4G,BT", "Version": "1.0.0.6", "Switch": "", "Desc": "LitePoint IQFlex-A RF Tester"},
             {"Mount": "", "Name": "XelM8-B", "Sub": "", "ControlDLL": "InstIQApi_B.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT,WIFI 5G,WIFI 2.4G,BT,CW", "Version": "1.0.0.0", "Switch": "", "Desc": "LitePoint IQxel B Route"},
             {"Mount": "", "Name": "MT8870A", "Sub": "", "ControlDLL": "InstAnritsu.dll", "Settings": "", "Functions": "MeasWIFI,MeasBT,WIFI,BT", "Version": "1.0.0.0", "Switch": "", "Desc": "Anritsu MT8870A RF Tester"},
             {"Mount": "", "Name": "Chroma6150x", "Sub": "", "ControlDLL": "Chroma6150x.dll", "Settings": "", "Functions": "ACSource,PowerSource", "Version": "1.0.0.0", "Switch": "", "Desc": "Chroma AC Power Source"},
@@ -116,7 +119,11 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "DevUart", "Sub": "1", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller (SubDevice)"},
             {"Mount": "", "Name": "AutoTFTP", "Sub": "", "ControlDLL": "AutoTFTP.dll", "Settings": "", "Functions": "TFTP", "Version": "1.0.0.0", "Switch": "", "Desc": "Auto TFTP Server"},
             {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.1.0", "Switch": "", "Desc": "Device Queue Sync"},
-            {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"}
+            {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"},
+            {"Mount": "", "Name": "ScpiController", "Sub": "1", "ControlDLL": "SCPI_Controller.dll", "Settings": "GPIB,*$(GPIB_SCPI),6811B", "Functions": "OnOff", "Version": "1.0.0.0", "Switch": "", "Desc": "GPIB SCPI Controller"},
+            {"Mount": "", "Name": "Keithley2380", "Sub": "", "ControlDLL": "Keithley2380.dll", "Settings": "GPIB,*$(GPIB_2380),2380", "Functions": "E-Load", "Version": "1.0.0.0", "Switch": "", "Desc": "Keithley 2380 Electronic Load"},
+            {"Mount": "", "Name": "Keithley2700", "Sub": "1", "ControlDLL": "MDA2700.dll", "Settings": "GPIB,*$(GPIB_2700),1", "Functions": "Voltage,Current,Relay", "Version": "1.0.0.1", "Switch": "", "Desc": "Keithley 2700 Data Acquisition"},
+            {"Mount": "", "Name": "Transmitter1", "Sub": "1", "ControlDLL": "VirtualTransmitter.dll", "Settings": "Transmitter1,192.168.1.11,2323", "Functions": "TCP_Transfer", "Version": "1.0.0.2", "Switch": "", "Desc": "Virtual Transmitter TCP"}
         ],
         "stations": {
             station_name: []
@@ -170,7 +177,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             "iPLAS_Enable": "0",
             "IpFinder_Enable": "0",
             "CSVReport_Enable": "1",
-            "TestItemCodeFile": "Test Item Code V2.04_20250310.xlsx"
+            "TestItemCodeFile": "Test Item Code V2.04_20260521.xlsx"
         }
     })
 
@@ -196,8 +203,9 @@ def get_configured_centimani_dir():
     if saved_dir and os.path.isdir(saved_dir):
         return saved_dir
 
-    # Auto-detect inside PROJECT_ROOT
+    # Auto-detect inside PROJECT_ROOT (prefer newer Centmimani_Altas_TRY first)
     candidates = [
+        os.path.join(proj_root, "Centmimani_Altas_TRY"),
         os.path.join(proj_root, "CENTERMAINA_TRY"),
         os.path.join(proj_root, "Centimani_1.5.3_sample"),
     ]
@@ -258,7 +266,8 @@ def _get_local_dll_versions(force_refresh=False):
 TEMPLATED_INSTS = {
     "NI6008", "NI6008-1", "FeasaLED", "IPOWER2401", "IPRO800",
     "Agilent34401A", "MDA2700", "PS2005", "PS2005-1",
-    "InstIQApiA", "XelM8-B", "MT8870A", "DIO6509",
+    "InstIQApiA", "XelM8-A", "IQFlex-A", "XelM8-B", "MT8870A", "DIO6509",
+    "ScpiController", "Keithley2700", "Transmitter1",
 }
 
 
@@ -579,6 +588,22 @@ STANDARD_BLOCKS = [
         ]
     },
     {
+        "block_id": "BLK_USB_FW_UPGRADE_COM",
+        "category": "03. UART 通訊與韌體升級 (Console & FW)",
+        "name": "USB 韌體升級＋自動偵測 COM Port (Utility.CMD + GetChainCOM)",
+        "description": "ATLAS_SAMPLE 實戰寫法：執行 USB_upgrade.exe 燒錄韌體後，使用 :Utility.GetChainCOM 自動偵測 COM Port 並以 :AddAttribute 動態綁定 UART。",
+        "default_phase": "10",
+        "required_globals": {"Settings": {"PortCh1": "[1-1]"}, "Scripts": {}},
+        "steps": [
+            {"Phase": "10", "Title": "0,USB_FW_Upgrade_Boot,5", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowConfirmBox,"請按住裝置按鍵並插入 USB 進入下載模式","OK"', "Reply": "OK", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Wait#-#Prompt Operator USB Upgrade", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Utility.CMD,"USB_upgrade.exe","","on"', "Reply": "@PASS", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "90000", "ExecMode": "2:0", "Description": "DUT#-#Run USB_upgrade Firmware Flash", "TestID": "IPIO01D"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"5000"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Wait Reboot", "TestID": "OTFX074"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Utility.GetChainCOM,"*$(PortCh1)","0"', "Reply": "0", "EndPrompt": "", "Ref": "$comPort", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "2:0", "Description": "PC#-#Auto Detect DUT COM Port", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':AddAttribute,"UART","COM","*(comPort)"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Bind Detected COM to UART", "TestID": "OTFX15D"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Open Dynamic UART Port", "TestID": "OTFX074"}
+        ]
+    },
+    {
         "block_id": "BLK_PHASE97_TEARDOWN",
         "category": "97. 強制安全收尾 (Phase 97 End Test)",
         "name": "Phase 97 強制斷電、治具抬起與資源釋放",
@@ -665,14 +690,21 @@ def get_tic_catalog():
     if _ACTIVE_TIC_PATH and os.path.exists(_ACTIVE_TIC_PATH):
         tic_path = _ACTIVE_TIC_PATH
     else:
+        _meipass = getattr(sys, "_MEIPASS", None)
+        _exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else None
         candidates = [
+            os.path.join(_BASE_DIR, "data", "Test Item Code V2.04_20260521.xlsx"),
+            os.path.join(_meipass, "data", "Test Item Code V2.04_20260521.xlsx") if _meipass else "",
+            os.path.join(_exe_dir, "data", "Test Item Code V2.04_20260521.xlsx") if _exe_dir else "",
+            os.path.join(_PROJECT_ROOT, "SCRIPTS", "ATLAS_SAMPLE", "Test Item Code V2.04_20260521.xlsx"),
             os.path.join(_PROJECT_ROOT, "Centimani_1.5.3_sample", "System", "Test Item Code V2.04_20250310.xlsx"),
             os.path.join(_PROJECT_ROOT, "SCRIPTS", "Test Item Code V2.04_20250310.xlsx"),
             os.path.join(_PROJECT_ROOT, "SCRIPTS", "KANGAROO", "Test Item Code V2.04_20250310.xlsx"),
+            r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS\ATLAS_SAMPLE\Test Item Code V2.04_20260521.xlsx",
             r"D:\PYTHON\自動化編寫EXCEL\Centimani_1.5.3_sample\System\Test Item Code V2.04_20250310.xlsx",
             r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS\AI_SOURCE\KANGAROO\FW\Test Item Code V2.04_20250310.xlsx",
         ]
-        tic_path = next((p for p in candidates if os.path.exists(p)), None)
+        tic_path = next((p for p in candidates if p and os.path.exists(p)), None)
         if not tic_path:
             for sr in (os.path.join(_PROJECT_ROOT, "SCRIPTS"), r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS"):
                 if os.path.exists(sr):

@@ -7,6 +7,7 @@ Centimani Studio V2.2 - System.ini & Global.ini Engine
    CentimaniSystem.exe and EditorScriptTool.exe can run immediately without missing-file errors.
 """
 import os
+import sys
 import re
 import glob
 import shutil
@@ -16,19 +17,25 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
 
-def copy_test_item_code_to_output(output_dir, tic_filename="Test Item Code V2.04_20250310.xlsx"):
+def copy_test_item_code_to_output(output_dir, tic_filename="Test Item Code V2.04_20260521.xlsx"):
     """Copies the official Test Item Code Excel file into output_dir so CentimaniSystem.exe can load it."""
     target_path = os.path.join(output_dir, tic_filename)
     if os.path.exists(target_path):
         return tic_filename
 
-    search_roots = [
+    _meipass = getattr(sys, "_MEIPASS", None)
+    _exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else None
+    search_roots = [p for p in [
+        os.path.join(BASE_DIR, "data"),
+        os.path.join(_meipass, "data") if _meipass else "",
+        os.path.join(_exe_dir, "data") if _exe_dir else "",
+        os.path.join(PROJECT_ROOT, "SCRIPTS", "ATLAS_SAMPLE"),
+        os.path.join(PROJECT_ROOT, "Centmimani_Altas_TRY", "System"),
         os.path.join(PROJECT_ROOT, "Centimani_1.5.3_sample", "System"),
         os.path.join(PROJECT_ROOT, "TEST_SECRIPT"),
-        os.path.join(PROJECT_ROOT, "CENTERMAINA_TRY", "System"),
         os.path.join(PROJECT_ROOT, "SCRIPTS"),
         r"D:\PYTHON\自動化編寫EXCEL\SCRIPTS",
-    ]
+    ] if p]
     for s_root in search_roots:
         if not os.path.exists(s_root):
             continue
@@ -106,7 +113,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
 
     # 4. Copy Test Item Code file into output_dir so the package is 100% self-contained
     sys_cfg = workspace.get("system_ini", {})
-    desired_tic = sys_cfg.get("TestItemCodeFile", "Test Item Code V2.04_20250310.xlsx")
+    desired_tic = sys_cfg.get("TestItemCodeFile", "Test Item Code V2.04_20260521.xlsx")
     actual_tic_name = copy_test_item_code_to_output(output_dir, desired_tic)
 
     # 5. Check if source_file has an existing sibling System.ini we should preserve!

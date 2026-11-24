@@ -22,8 +22,9 @@ def _find_loadscript_dll():
     except Exception:
         pass
     candidates.extend([
-        os.path.join(PROJECT_ROOT, "Centimani_1.5.3_sample", "LoadScript.dll"),
+        os.path.join(PROJECT_ROOT, "Centmimani_Altas_TRY", "LoadScript.dll"),
         os.path.join(PROJECT_ROOT, "CENTERMAINA_TRY", "LoadScript.dll"),
+        os.path.join(PROJECT_ROOT, "Centimani_1.5.3_sample", "LoadScript.dll"),
         os.path.join(BASE_DIR, "LoadScript.dll"),
     ])
     for p in candidates:

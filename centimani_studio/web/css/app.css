@@ -1648,6 +1648,96 @@ button:not(:disabled):hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
 }
+.tab3-right-controls {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1.5px solid #DDD6FE;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tab3-toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.tab3-toggle-pill.amber {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+.tab3-toggle-pill.amber:hover {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+.tab3-toggle-pill.indigo {
+  background: #EEF2FF;
+  border: 1px solid #C7D2FE;
+  color: #312E81;
+}
+.tab3-toggle-pill.indigo:hover {
+  background: #E0E7FF;
+  border-color: #818CF8;
+}
+.tab3-toggle-pill.blue {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E3A8A;
+}
+.tab3-toggle-pill.blue:hover {
+  background: #E0F2FE;
+  border-color: #60A5FA;
+}
+.tab3-action-row {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .tab3-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+.tab3-direct-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.14s ease, box-shadow 0.15s ease;
+}
+.tab3-direct-btn.green {
+  background: #F0FDF4;
+  border-color: #22C55E;
+  color: #15803D;
+}
+.tab3-direct-btn.green:hover {
+  background: #DCFCE7;
+  border-color: #16A34A;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(22, 163, 74, 0.18);
+}
+.tab3-direct-btn.purple {
+  background: #F5F3FF;
+  border-color: #8B5CF6;
+  color: #5B21B6;
+}
+.tab3-direct-btn.purple:hover {
+  background: #EDE9FE;
+  border-color: #6D28D9;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(109, 40, 217, 0.18);
+}
 .tab3-split-layout {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(340px, 1.12fr);
