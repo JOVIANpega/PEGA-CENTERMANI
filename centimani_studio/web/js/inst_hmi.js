@@ -266,8 +266,12 @@ function setIntroFontSize(sz) {
       }
     });
   });
+  document.documentElement.style.fontSize = valid + 'px';
   document.body.style.fontSize = valid + 'px';
   document.documentElement.style.setProperty('--app-font-size', valid + 'px');
+  if (typeof APP_SETTINGS === 'object' && APP_SETTINGS) {
+    APP_SETTINGS.intro_font_size = valid;
+  }
   document.querySelectorAll('.intro-scalable-text, .flow-guide-desc').forEach(el => {
     el.style.fontSize = valid + 'px';
   });

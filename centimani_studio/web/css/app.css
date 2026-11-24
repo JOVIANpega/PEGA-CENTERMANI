@@ -34,7 +34,7 @@
     overflow: hidden;
   }
   /* 全站字體等比縮放聯動規則 (當使用者調整 FONT 大小時全面繼承) */
-  .workspace, .main-layout, #editorWorkspaceBody, #panelAudit, #panelGen, #panelDiagnose, #panelTic, #panelSettings, .action-bar, .modal-panel {
+  .workspace, .main-layout, #editorWorkspaceBody, #panelAudit, #panelGen, #panelDiagnose, #panelTic, #panelSettings, #genModeTools, #toolsSubPaneSfis, .action-bar, .modal-panel {
     font-size: var(--app-font-size, 15px);
   }
   .btn {
@@ -2053,16 +2053,50 @@ button:not(:disabled):hover {
   flex-direction: column;
 }
 
-/* SFIS 左右分割工作視窗 + 動畫感模擬測試舞台 (PC ⇄ 雙向雲 ⇄ DB) */
+/* SFIS 左右可拖曳調寬分割雙視窗 + 動畫感模擬測試舞台 (PC ⇄ 雙向雲 ⇄ DB) */
 .sfis-split-layout {
   display: grid;
-  grid-template-columns: minmax(430px, 47%) 1fr;
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: minmax(320px, var(--sfis-left-w, 46%)) 10px minmax(360px, 1fr);
+  gap: 6px;
+  align-items: stretch;
+}
+.sfis-split-resizer {
+  width: 10px;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+.sfis-split-resizer::after {
+  content: '';
+  width: 3px;
+  height: 44px;
+  border-radius: 999px;
+  background: #94A3B8;
+  transition: background-color 0.15s ease, height 0.15s ease;
+}
+.sfis-split-resizer:hover,
+.sfis-split-resizer.dragging {
+  background: #E0F2FE;
+  border-color: #38BDF8;
+}
+.sfis-split-resizer:hover::after,
+.sfis-split-resizer.dragging::after {
+  background: #0284C7;
+  height: 64px;
 }
 @media (max-width: 1120px) {
   .sfis-split-layout {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .sfis-split-resizer {
+    display: none;
   }
 }
 .sfis-anim-stage {

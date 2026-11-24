@@ -122,6 +122,7 @@ function _getEffectivePlantUrl(plantId) {
 const SFIS_HMI_STATE = {
   activeSubTab: 'sfis', // 'sfis' | 'dll'
   mockMode: false, // false = 實機工廠內網 | true = 本機模擬 SFIS 內網 (無網全測)
+  leftPanePct: parseFloat(localStorage.getItem('centimani_sfis_left_pct') || '46') || 46,
   profilesLoaded: false,
   showPlantEditor: false,
   selectedMoIdx: 0,
@@ -150,6 +151,7 @@ const SFIS_HMI_STATE = {
     opLoggedIn: null,
     netConnected: null,
     lastFieldVal: '',
+    responseExpanded: false, // 預設折疊左下吐回字串終端，需要時再展開
     responseViewMode: 'all', // 'all' | 'latest'
     logs: [] // 累積所有積木實測之送出與吐回完整字串
   },
@@ -701,11 +703,55 @@ function sfisCopyRecvString() {
 function sfisSetMockMode(isMock) {
   SFIS_HMI_STATE.mockMode = !!isMock;
   SFIS_HMI_STATE.anim.phase = 'idle';
+  SFIS_HMI_STATE.anim.opLoggedIn = null;
   SFIS_HMI_STATE.anim.netConnected = isMock ? true : null;
+  SFIS_HMI_STATE.anim.logs = [];
+  SFIS_HMI_STATE.items.forEach(it => {
+    it.status = 'idle';
+    it.resultMsg = '';
+    it.lastRaw = '';
+    it.lastSlots = null;
+  });
   SFIS_HMI_STATE.anim.actionLabel = isMock
-    ? '🧪 已切至「本機模擬 SFIS 內網」— 無外網也能全測 0~7 堆疊與 Ref 切字'
+    ? '🧪 已切至「本機模擬 SFIS 內網」— 已清除先前離線狀態，可立即按右側 ⚡ 全測'
     : '🌐 已切回「實機工廠內網」— 將真實連線至 WebLink';
   renderSfisHmiWorkspace();
+}
+
+function sfisStartSplitDrag(ev) {
+  if (ev) ev.preventDefault();
+  const layoutEl = document.getElementById('sfisSplitLayout');
+  if (!layoutEl) return;
+  const resizerEl = layoutEl.querySelector('.sfis-split-resizer');
+  if (resizerEl) resizerEl.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+
+  const onMove = (mEv) => {
+    const rect = layoutEl.getBoundingClientRect();
+    if (!rect.width) return;
+    let pct = ((mEv.clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(28, Math.min(72, pct));
+    SFIS_HMI_STATE.leftPanePct = Number(pct.toFixed(2));
+    layoutEl.style.setProperty('--sfis-left-w', SFIS_HMI_STATE.leftPanePct + '%');
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    if (resizerEl) resizerEl.classList.remove('dragging');
+    try { localStorage.setItem('centimani_sfis_left_pct', String(SFIS_HMI_STATE.leftPanePct || 46)); } catch (e) {}
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function sfisResetSplitWidth() {
+  SFIS_HMI_STATE.leftPanePct = 46;
+  try { localStorage.setItem('centimani_sfis_left_pct', '46'); } catch (e) {}
+  const layoutEl = document.getElementById('sfisSplitLayout');
+  if (layoutEl) layoutEl.style.setProperty('--sfis-left-w', '46%');
 }
 
 async function sfisResetMockDb() {
@@ -985,7 +1031,7 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
     const slots = data.slots || {};
     const valStr = slots.P_CAVER || slots.P_CBVER || '';
     const detailTxt = offline
-      ? (data.msg || '無法連通廠區內網')
+      ? ((data.msg || '無法連通廠區內網') + (SFIS_HMI_STATE.mockMode ? '' : '（目前非工廠內網，可改用上方「🧪 本機模擬 SFIS 內網」進行離線演練）'))
       : (ok ? (valStr ? `✅ 值：${valStr} (${data.msg || 'PASS'})` : `✅ ${data.msg || 'PASS'}`) : `❌ ${data.msg || 'FAIL'}`);
     it.resultMsg = detailTxt;
     it.lastRaw = data.raw_result || data.msg || '';
@@ -1332,40 +1378,45 @@ function renderSfisHmiWorkspace() {
           </div>
         </div>
         ${_renderSimpleCardInputs(it, idx)}
-        ${it.resultMsg ? `<div class="mono" style="margin-top:5px; padding:4px 8px; border-radius:5px; font-size:0.76rem; background:${it.status === 'pass' ? '#F0FDF4' : '#FEF2F2'}; color:${it.status === 'pass' ? '#166534' : '#991B1B'}; border:1px solid ${it.status === 'pass' ? '#BBF7D0' : '#FECACA'}; word-break:break-all;">吐回：${_escH(it.resultMsg)}</div>` : ''}
-        <div id="sfisCardPrev_${idx}" class="mono" style="margin-top:4px; font-size:0.72rem; color:#64748B;">${_escH(_buildCardExcelPreview(it))}</div>
+        ${it.resultMsg ? `<div class="mono" style="margin-top:5px; padding:5px 8px; border-radius:5px; font-size:0.82rem; background:${it.status === 'pass' ? '#F0FDF4' : '#FEF2F2'}; color:${it.status === 'pass' ? '#166534' : '#991B1B'}; border:1px solid ${it.status === 'pass' ? '#BBF7D0' : '#FECACA'}; word-break:break-all; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;"><span>吐回：${_escH(it.resultMsg)}</span>${(it.status === 'offline' && !s.mockMode) ? '<button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 一鍵改用本機模擬並重測</button>' : ''}</div>` : ''}
+        <div id="sfisCardPrev_${idx}" class="mono" style="margin-top:4px; font-size:0.79rem; color:#64748B;">${_escH(_buildCardExcelPreview(it))}</div>
       </div>`;
   }).join('');
 
+  const latestLog = a.logs[0] || null;
+  const respSummaryBadge = latestLog
+    ? `<span style="padding:1px 7px; border-radius:999px; font-size:0.76rem; font-weight:800; background:${latestLog.ok ? '#14532D' : (latestLog.offline ? '#78350F' : '#7F1D1D')}; color:${latestLog.ok ? '#86EFAC' : (latestLog.offline ? '#FDE68A' : '#FCA5A5')};">${_escH(latestLog.title)} · ${_escH(latestLog.summary)}</span>`
+    : '<span style="font-size:0.76rem; color:#94A3B8;">尚無紀錄</span>';
+
   root.innerHTML = `
-    <div style="background:#FFFFFF; border:1.5px solid #C7D2FE; border-radius:12px; padding:12px 14px;">
+    <div class="sfis-hmi-wrap" style="background:#FFFFFF; border:1.5px solid #C7D2FE; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px);">
       <!-- 頂部連線環境切換列：本機模擬 SFIS 內網 vs 實機工廠內網 -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding:7px 11px; border-radius:9px; background:${s.mockMode ? '#FEF3C7' : '#EFF6FF'}; border:1.5px solid ${s.mockMode ? '#F59E0B' : '#93C5FD'};">
         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-          <span style="font-weight:900; font-size:0.84rem; color:#0F172A;">📡 通訊模式：</span>
-          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.79rem; ${!s.mockMode ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
-          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.79rem; ${s.mockMode ? 'background:#D97706; color:#FFFFFF; border-color:#D97706; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
+          <span style="font-weight:900; font-size:0.88rem; color:#0F172A;">📡 通訊模式：</span>
+          <button type="button" onclick="sfisSetMockMode(false)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${!s.mockMode ? 'background:#1D4ED8; color:#FFFFFF; border-color:#1D4ED8; font-weight:800;' : 'background:#FFFFFF; color:#334155; border-color:#CBD5E1;'}">🌐 實機工廠內網（OA / 產線）</button>
+          <button type="button" onclick="sfisSetMockMode(true)" class="btn" style="padding:4px 10px; font-size:0.83rem; ${s.mockMode ? 'background:#D97706; color:#FFFFFF; border-color:#D97706; font-weight:800;' : 'background:#FFFFFF; color:#92400E; border-color:#FCD34D;'}">🧪 本機模擬 SFIS 內網（無網也能全測）</button>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          ${s.mockMode ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.76rem; background:#FFFFFF; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.75rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
+          ${s.mockMode ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:4px 9px; font-size:0.81rem; background:#FFFFFF; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置模擬 DB (清站)</button>` : '<span style="font-size:0.8rem; color:#1E40AF; font-weight:700;">外網測不通時，可切換「🧪 本機模擬 SFIS 內網」完整演練 0~7 堆疊與 Ref 切字</span>'}
         </div>
       </div>
 
-      <!-- 左右分割雙視窗：左 = 機台設定 + 動畫舞台 + 所有吐出字串監控；右 = 簡潔步驟控制 + 匯出 Excel -->
-      <div class="sfis-split-layout">
+      <!-- 可拖曳調寬左右雙視窗：左 = 機台設定 + 動畫舞台 + 折疊式吐回字串終端；右 = 簡潔步驟控制 + 匯出 Excel -->
+      <div id="sfisSplitLayout" class="sfis-split-layout" style="--sfis-left-w:${s.leftPanePct || 46}%;">
 
-        <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 固定常駐吐回字串視窗 -->
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <!-- 左視窗：設定區 + PC/Cloud/DB 動畫 + 折疊吐回字串終端 -->
+        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
           <!-- 廠區下拉 + 新增改名 + INI 帶入 + 工具 -->
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:9px; padding:9px 11px;">
             <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-bottom:7px;">
-              <label style="flex:1; min-width:190px; font-size:0.8rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:5px;">
+              <label style="flex:1; min-width:190px; font-size:0.85rem; font-weight:800; color:#1E293B; display:flex; align-items:center; gap:5px;">
                 <span>🏭 廠區：</span>
-                <select onchange="sfisSelectPlant(this.value)" style="flex:1; padding:5px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.81rem; background:#FFFFFF;">${plantOptions}</select>
+                <select onchange="sfisSelectPlant(this.value)" style="flex:1; padding:5px 7px; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800; font-size:0.85rem; background:#FFFFFF;">${plantOptions}</select>
               </label>
-              <button type="button" onclick="sfisTogglePlantEditor()" class="btn" style="padding:5px 8px; font-size:0.76rem; background:${s.showPlantEditor ? '#DBEAFE' : '#FFFFFF'}; color:#1E40AF; border-color:#93C5FD; font-weight:800;" title="修改目前廠區名稱/IP 或新增廠區">✏️ 改/增廠區</button>
-              <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:5px 9px; font-size:0.78rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;">📥 帶入 INI</button>
-              <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:5px 8px; font-size:0.76rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;">🌐</button>
+              <button type="button" onclick="sfisTogglePlantEditor()" class="btn" style="padding:5px 8px; font-size:0.81rem; background:${s.showPlantEditor ? '#DBEAFE' : '#FFFFFF'}; color:#1E40AF; border-color:#93C5FD; font-weight:800;" title="修改目前廠區名稱/IP 或新增廠區">✏️ 改/增廠區</button>
+              <button type="button" onclick="sfisImportFromWorkspaceIni()" class="btn" style="padding:5px 9px; font-size:0.81rem; background:#EFF6FF; color:#1D4ED8; border-color:#93C5FD; font-weight:800;" title="自動從目前開啟的專案或挑選工廠 System.ini / Global.ini，一鍵填入 SFIS_WebLink、DeviceID (DEVID_1)、OP 工號、SFIS_TSP 與 Fail 保護設定，免手動查抄">📥 帶入 INI</button>
+              <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:5px 8px; font-size:0.81rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1;" title="開啟原廠 CentimaniSFISTest.exe 工具">🌐</button>
             </div>
 
             ${s.showPlantEditor ? `
@@ -1475,23 +1526,30 @@ function renderSfisHmiWorkspace() {
             </div>
           </div>
 
-          <!-- 常駐左下：所有積木動作實際吐出字串總覽區 (Response) -->
-          <div style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:9px 11px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px; border-bottom:1px solid #1E293B; padding-bottom:5px;">
-              <span style="font-size:0.8rem; font-weight:800; color:#38BDF8;">📥 SFIS 實際吐回字串 &amp; 欄位結果（所有積木即時輸出）</span>
-              <div style="display:flex; gap:4px; align-items:center;">
-                <button type="button" onclick="sfisSetRespViewMode('all')" style="padding:2px 6px; font-size:0.71rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'all' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">全部(${a.logs.length})</button>
-                <button type="button" onclick="sfisSetRespViewMode('latest')" style="padding:2px 6px; font-size:0.71rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'latest' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">最新</button>
-                <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 7px; font-size:0.71rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
-                <button type="button" onclick="sfisClearLogs()" style="padding:2px 6px; font-size:0.71rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#FCA5A5; cursor:pointer;">🗑 清空</button>
+          <!-- 折疊式：所有積木動作實際吐出字串總覽區 (預設折疊，需要時點開) -->
+          <details id="sfisResponseDetails" ${a.responseExpanded ? 'open' : ''} ontoggle="SFIS_HMI_STATE.anim.responseExpanded=this.open"
+                   style="background:#0F172A; border:1.5px solid #334155; border-radius:10px; padding:8px 11px;">
+            <summary style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; list-style:none;">
+              <span style="font-size:0.84rem; font-weight:800; color:#38BDF8;">📥 SFIS 實際吐回字串 &amp; 欄位結果（共 ${a.logs.length} 筆・點擊展開）▾</span>
+              <span style="display:inline-flex; align-items:center; gap:6px;">${respSummaryBadge}</span>
+            </summary>
+            <div style="margin-top:8px; padding-top:7px; border-top:1px solid #1E293B;">
+              <div style="display:flex; justify-content:flex-end; gap:4px; align-items:center; margin-bottom:6px;">
+                <button type="button" onclick="sfisSetRespViewMode('all')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'all' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">全部(${a.logs.length})</button>
+                <button type="button" onclick="sfisSetRespViewMode('latest')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'latest' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">最新</button>
+                <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 8px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
+                <button type="button" onclick="sfisClearLogs()" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#FCA5A5; cursor:pointer;">🗑 清空</button>
               </div>
+              <div style="max-height:240px; overflow-y:auto;">${logsHtml}</div>
             </div>
-            <div style="max-height:220px; overflow-y:auto;">${logsHtml}</div>
-          </div>
+          </details>
         </div>
 
+        <!-- 中間可拖曳調寬分割線 -->
+        <div class="sfis-split-resizer" onmousedown="sfisStartSplitDrag(event)" ondblclick="sfisResetSplitWidth()" title="左右拖曳調整雙視窗寬度（雙擊還原預設 46%）"></div>
+
         <!-- 右視窗：快點/拖曳加入步驟膠囊 + 流程步驟清單 + 折疊匯出區 -->
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:10px; min-width:0;">
           <!-- 輕量新增動作列（取代冗長左欄大清單） -->
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:9px; padding:8px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">

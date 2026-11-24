@@ -1520,6 +1520,17 @@ def run_all_verifications():
                   and "sfisPickSlotIndex" in sfis_hmi_js and "sfisPickSegment" in sfis_hmi_js and "sfisSetMockMode" in sfis_hmi_js,
                   "v0.8.035 支援 0~7 堆疊選格、Centimani 官方 Ref 找字串轉義 (SplitString/WithinString) 與完整積木清單")
 
+            # [v0.8.036] 驗證雙視窗拖曳調寬 + 折疊吐回字串 + 模擬切換清錯誤 + 全域字體聯動 + 正名實機驗證中心（SFIS)
+            inst_hmi_js = open(os.path.join(STUDIO_DIR, "web", "js", "inst_hmi.js"), "r", encoding="utf-8").read()
+            check("tools: '🛡️ 實機驗證中心（SFIS)'" in index_html
+                  and "sfis-split-resizer" in app_css and "sfisStartSplitDrag" in sfis_hmi_js
+                  and 'id="sfisResponseDetails"' in sfis_hmi_js and "responseExpanded: false" in sfis_hmi_js
+                  and "it.status = 'idle';" in sfis_hmi_js.split("function sfisSetMockMode")[1].split("function sfisStartSplitDrag")[0]
+                  and "sfisSetMockMode(true); sfisHmiRunAll();" in sfis_hmi_js
+                  and "#toolsSubPaneSfis" in app_css and "sfis-hmi-wrap" in sfis_hmi_js
+                  and "document.documentElement.style.fontSize = valid + 'px'" in inst_hmi_js,
+                  "v0.8.036 雙視窗拖曳調寬、吐回字串預設折疊、切換模擬清除離線錯誤、字體連動與正名實機驗證中心（SFIS) 全數通過")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
