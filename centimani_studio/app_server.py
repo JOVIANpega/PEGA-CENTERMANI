@@ -1618,7 +1618,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.021")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.022")
 
                 self._send_json({
                     "status": "ok",
@@ -1880,7 +1880,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.021")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.022")
 
                 self._send_json({
                     "status": "ok",
@@ -1938,6 +1938,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 station_name_mode = str(payload.get("station_name_mode", "fixed")).strip().lower()
                 rf_inst_names = {"InstIQApiA", "XelM8-A", "IQFlex-A", "XelM8-B", "MT8870A", "E4418B", "U2004A", "OSP120", "SAn9000", "vnxRFSW"}
                 inst_occ_counts = {}
+                sub_or_spec_insts = {"ScpiController", "Keithley2700", "Keithley2380", "Transmitter1", "vnxRFSW", "DevUart"}
                 for idx_item, it in enumerate(items):
                     i_name = str(it.get("inst_name", "NI6008")).strip() or "NI6008"
                     base_family = re.sub(r"-\d+$", "", i_name)
@@ -2011,7 +2012,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             same_phase=item_same_phase,
                             use_ini_switch=item_use_sw
                         )
-                    elif auto_sample_mode and not it.get("custom_steps"):
+                    elif auto_sample_mode and not it.get("custom_steps") and i_name not in sub_or_spec_insts and base_family not in sub_or_spec_insts:
                         if base_family == "FeasaLED":
                             sample_steps = [
                                 {"Send": ":ObtainDevice", "ExecMode": "0", "Description": f"PC#-#Obtain {i_name}", "TestID": "BRME027"},
@@ -2128,7 +2129,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.021")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.022")
 
                 self._send_json({
                     "status": "ok",
@@ -2283,7 +2284,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.021) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.022) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

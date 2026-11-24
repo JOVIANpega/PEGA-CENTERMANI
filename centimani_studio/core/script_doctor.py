@@ -1149,7 +1149,15 @@ def auto_fix_workspace(workspace, user_choices=None):
                         pass
             return None
 
+        from .golden_data import _resolve_shared_control_dll, _get_local_dll_versions, get_golden_mother
+        _cat_insts = get_golden_mother().get("instruments", [])
+        _loc_dlls = _get_local_dll_versions()
         for inst_row in workspace.get("instruments", []):
+            raw_dll = str(inst_row.get("ControlDLL", "")).strip()
+            fixed_dll = _resolve_shared_control_dll(inst_row.get("Name", ""), raw_dll, _cat_insts, _loc_dlls)
+            if fixed_dll and fixed_dll != raw_dll:
+                inst_row["ControlDLL"] = fixed_dll
+                fixed_logs.append(f"[Instrument 表] 修正 {inst_row.get('Name','')} 之共用 ControlDLL：'{raw_dll}' -> '{fixed_dll}'")
             c_dll = inst_row.get("ControlDLL", "")
             pe_ver = _get_dll_ver(c_dll)
             if pe_ver:
@@ -1179,19 +1187,29 @@ def auto_fix_workspace(workspace, user_choices=None):
 
     # 1B. Auto-sync Instrument 'Mount' column for newly generated mother templates OR missing explicit Switch matches in imported files
     if not workspace.get("source_file"):
-        used_funcs_by_station = {}
+        explicit_inst_by_station = {}
+        unswitched_funcs_by_station = {}
         for st_name, steps in workspace.get("stations", {}).items():
             for st_row in steps:
+                sw_raw = str(st_row.get("Switch", "")).strip()
                 fn = str(st_row.get("Instrument", "")).strip()
-                if fn:
-                    used_funcs_by_station.setdefault(fn.upper(), set()).add(st_name)
+                s_cmd = str(st_row.get("Send", "")).strip()
+                m_sub = re.match(r'^:ObtainSubDevice,"([^"]+)"', s_cmd, re.I)
+                if m_sub:
+                    explicit_inst_by_station.setdefault(m_sub.group(1).strip().lower(), set()).add(st_name)
+                if sw_raw:
+                    sw_head = sw_raw.split(",", 1)[0].strip().lower()
+                    explicit_inst_by_station.setdefault(sw_head, set()).add(st_name)
+                elif fn:
+                    unswitched_funcs_by_station.setdefault(fn.upper(), set()).add(st_name)
         mounted_funcs = set()
         for inst_row in workspace.get("instruments", []):
+            iname_low = str(inst_row.get("Name", "")).strip().lower()
             inst_funcs = [f.strip().upper() for f in str(inst_row.get("Functions", "")).split(",") if f.strip()]
-            matched_stations = set()
+            matched_stations = set(explicit_inst_by_station.get(iname_low, set()))
             for fn in inst_funcs:
-                if fn in used_funcs_by_station and fn not in mounted_funcs:
-                    matched_stations |= used_funcs_by_station[fn]
+                if fn in unswitched_funcs_by_station and fn not in mounted_funcs:
+                    matched_stations |= unswitched_funcs_by_station[fn]
                     mounted_funcs.add(fn)
             inst_row["Mount"] = ",".join(sorted(matched_stations)) if matched_stations else ""
     else:

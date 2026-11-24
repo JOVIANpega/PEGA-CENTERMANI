@@ -238,16 +238,19 @@ def _get_local_dll_versions(force_refresh=False):
         proj_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         search_dirs = []
         cm_dir = get_configured_centimani_dir()
-        if cm_dir:
-            search_dirs.append(cm_dir)
-        for sub in ("CENTERMAINA_TRY", "Centimani_1.5.3_sample"):
-            p = os.path.join(proj_root, sub)
-            if p not in search_dirs:
-                search_dirs.append(p)
+        if cm_dir and os.path.isdir(cm_dir):
+            for sub in ("Device", "Switch"):
+                sub_p = os.path.join(cm_dir, sub)
+                if os.path.isdir(sub_p):
+                    search_dirs.append(sub_p)
+        else:
+            for root_sub in ("Centmimani_Altas_TRY", "CENTERMAINA_TRY", "Centimani_1.5.3_sample"):
+                for sub in ("Device", "Switch"):
+                    sub_p = os.path.join(proj_root, root_sub, sub)
+                    if os.path.isdir(sub_p) and sub_p not in search_dirs:
+                        search_dirs.append(sub_p)
         for base_d in search_dirs:
-            if not os.path.exists(base_d):
-                continue
-            for dll_p in glob.glob(os.path.join(base_d, "**", "*.dll"), recursive=True):
+            for dll_p in glob.glob(os.path.join(base_d, "*.dll")):
                 d_name = os.path.basename(dll_p).lower()
                 if d_name in versions:
                     continue

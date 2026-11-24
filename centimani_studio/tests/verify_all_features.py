@@ -1138,8 +1138,9 @@ def run_all_verifications():
                 "project_name": "ATLAS_EXT", "station_name": "MB", "auto_sample_mode": True,
                 "open_excel": False
             })
-            check(new_inst_res.get("status") == "ok" and new_inst_res["audit_report"].get("error_count") == 0,
-                  "擴充之新儀器 (ScpiController / Keithley2380 / XelM8-A) 可順利匯出 0 Error 範本",
+            check(new_inst_res.get("status") == "ok" and new_inst_res["audit_report"].get("error_count") == 0
+                  and new_inst_res["audit_report"].get("warning_count") == 0,
+                  "擴充之新儀器 (ScpiController / Keithley2380 / XelM8-A) 可順利匯出 0 Error 且 0 Warning 範本（XelM8-A / ScpiController 掛載不被搶走）",
                   str(new_inst_res.get("audit_report")))
 
             usb_wiz_res = post_json("/api/generate_new_standalone", {
@@ -1158,6 +1159,32 @@ def run_all_verifications():
                   and 'tab3OpenStep2Checked()' in index_html
                   and 'id="tab3ModeChoiceBox"' not in index_html,
                   "書籤三已套用方向一『右側完整工作區』改版：消除確認過場與下方長卷軸")
+
+            # [v0.8.022] 驗證雙台 FeasaLED + FeasaLED-2 皆掛載 MB 且共用 LED_analyser.dll（絕不寫成 FeasaLED-2.dll），且已搬移保留檔
+            feasa_dual_res = post_json("/api/generate_inst_template_standalone", {
+                "items": [
+                    {"inst_name": "FeasaLED", "title_name": "LED Check 1"},
+                    {"inst_name": "FeasaLED-2", "title_name": "LED Check 2"},
+                ],
+                "project_name": "DUAL_LED", "station_name": "MB", "auto_sample_mode": True,
+                "open_excel": False
+            })
+            wb_fl = openpyxl.load_workbook(feasa_dual_res["excel_path"], read_only=True, data_only=True)
+            fl_rows = {str(r[1]): (str(r[0] or ""), str(r[3] or "")) for r in wb_fl["Instrument"].iter_rows(min_row=2, values_only=True) if r and r[1]}
+            wb_fl.close()
+            check(feasa_dual_res["audit_report"].get("error_count") == 0
+                  and feasa_dual_res["audit_report"].get("warning_count") == 0
+                  and fl_rows.get("FeasaLED") == ("MB", "LED_analyser.dll")
+                  and fl_rows.get("FeasaLED-2") == ("MB", "LED_analyser.dll")
+                  and len(feasa_dual_res.get("missing_dlls", [])) == 0,
+                  "雙台 FeasaLED + FeasaLED-2 皆正確掛載 MB 且共用 LED_analyser.dll (0 Error / 0 Warning / 0 Missing DLL)",
+                  str(fl_rows))
+
+            cm_new_root = r"D:\PYTHON\自動化編寫EXCEL\Centmimani_Altas_TRY"
+            check(os.path.exists(os.path.join(cm_new_root, "Release Note.xlsx"))
+                  and os.path.exists(os.path.join(cm_new_root, "Device", "MT8870A_PathLoss.ini"))
+                  and os.path.isdir(os.path.join(cm_new_root, "4CAM_Stitching")),
+                  "已將 CENTERMAINA_TRY 建議保留之 Release Note.xlsx / MT8870A_PathLoss.ini / 4CAM_Stitching 複製至 Centmimani_Altas_TRY")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
