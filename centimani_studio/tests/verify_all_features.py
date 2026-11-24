@@ -1583,6 +1583,26 @@ def run_all_verifications():
                   and "5 合 1" not in audit_ed_js and "5 合 1" not in flow_guide_js,
                   "v0.8.041 全站已移除『5 合 1 / 3 合 1』標註，統一使用乾淨手風琴名稱")
 
+            # [v0.8.042] 驗證 3 秒三段式動畫展演開關 (方案 A) + SFIS 匯出 Excel 自動開啟目錄/Excel ＋ 動態 ISN ScanBarcode 長度校正
+            launched_excels.clear()
+            opened_folders.clear()
+            sf_13_exp = post_json("/api/export_sfis_hmi_script", {
+                "mode": "new_template",
+                "items": sfis_items,
+                "config": {"url": "http://172.18.202.12/SFISWebService/SFISTSPWebService.asmx", "project_name": "VER_SFIS13", "station": "FT1", "device_id": "710888", "op": "S09166390", "isn": "2695160300001", "tsp": "VER_SFIS,2"}
+            })
+            wb_13 = openpyxl.load_workbook(sf_13_exp["excel_path"])
+            dut_sb = str(next(wb_13["DUTs"].iter_rows(min_row=2, max_row=2, values_only=True))[5] or "")
+            glb_13 = open(os.path.join(sf_13_exp["output_dir"], "Global.ini"), "r", encoding="utf-8", errors="ignore").read()
+            check(sf_13_exp.get("status") == "ok"
+                  and "{ISN,13,[0-9A-Z]}" == dut_sb
+                  and "gUUID=" in glb_13
+                  and len(opened_folders) >= 1 and len(launched_excels) >= 1
+                  and "sfisToggleSlowDemo" in sfis_hmi_js
+                  and "returning-pass" in app_css and "sfisPacketLeft" in app_css,
+                  "v0.8.042 SFIS 3 秒三段式動畫開關 + 產出 Excel 自動開啟目錄/Excel + ScanBarcode 13 碼與 gUUID 校正完成",
+                  f"dut_sb={dut_sb}, folders={len(opened_folders)}, excels={len(launched_excels)}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

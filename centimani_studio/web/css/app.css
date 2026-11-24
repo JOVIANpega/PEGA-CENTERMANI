@@ -2198,9 +2198,58 @@ button:not(:disabled):hover {
 .sfis-flow-line.fail .sfis-flow-rail {
   background: #FCA5A5;
 }
+.sfis-flow-line.returning-pass .sfis-flow-rail {
+  background: linear-gradient(90deg, #DCFCE7, #16A34A, #DCFCE7);
+}
+.sfis-flow-line.returning-pass .sfis-packet {
+  display: block;
+  background: #16A34A;
+  box-shadow: 0 0 9px #4ADE80;
+  animation: sfisPacketLeft 0.85s linear infinite;
+}
+.sfis-flow-line.returning-fail .sfis-flow-rail {
+  background: linear-gradient(90deg, #FEE2E2, #DC2626, #FEE2E2);
+}
+.sfis-flow-line.returning-fail .sfis-packet {
+  display: block;
+  background: #DC2626;
+  box-shadow: 0 0 9px #F87171;
+  animation: sfisPacketLeft 0.85s linear infinite;
+}
+.sfis-node-card.glow-amber {
+  border-color: #D97706;
+  background: #FFFBEB;
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.22);
+  transform: translateY(-2px);
+}
+.sfis-packet-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #93C5FD;
+  animation: sfisCloudFloat 0.6s ease-in-out infinite alternate;
+}
+.sfis-packet-badge.back-ok {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #86EFAC;
+}
+.sfis-packet-badge.back-err {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #FCA5A5;
+}
 @keyframes sfisPacketRight {
   0% { left: -16px; }
   100% { left: 100%; }
+}
+@keyframes sfisPacketLeft {
+  0% { left: 100%; }
+  100% { left: -16px; }
 }
 @keyframes sfisCloudFloat {
   0% { transform: translateY(0px); }

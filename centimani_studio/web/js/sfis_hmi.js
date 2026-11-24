@@ -147,6 +147,9 @@ const SFIS_HMI_STATE = {
   ],
   anim: {
     phase: 'idle', // 'idle' | 'sending' | 'pass' | 'fail' | 'offline'
+    stage: 'idle', // 'idle' | 'to_cloud' | 'to_db' | 'to_pc'
+    packetText: '',
+    slowDemo: (localStorage.getItem('centimani_sfis_slow_demo') !== '0'),
     actionLabel: '待機就緒 — 請先測連通或按右側 ⚡ 實測',
     opLoggedIn: null,
     netConnected: null,
@@ -1159,7 +1162,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.041') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.042') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1187,7 +1190,17 @@ async function _callSingleSoap(action, extraParams = {}) {
   }
 }
 
-async function sfisHmiRunStep(idx, skipConfirm = false) {
+function sfisToggleSlowDemo(checked) {
+  SFIS_HMI_STATE.anim.slowDemo = !!checked;
+  try { localStorage.setItem('centimani_sfis_slow_demo', checked ? '1' : '0'); } catch (e) {}
+  renderSfisHmiWorkspace();
+}
+
+function _sfisSleep(ms) {
+  return ms > 0 ? new Promise(r => setTimeout(r, ms)) : Promise.resolve();
+}
+
+async function sfisHmiRunStep(idx, skipConfirm = false, overrideAnimTotalMs = null) {
   const it = SFIS_HMI_STATE.items[idx];
   if (!it) return true;
   const meta = _getBlockMeta(it.kind);
@@ -1203,22 +1216,26 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
     if (!okConfirm) return false;
   }
 
+  const totalAnimMs = (overrideAnimTotalMs !== null)
+    ? overrideAnimTotalMs
+    : ((SFIS_HMI_STATE.anim.slowDemo !== false) ? 3000 : 0);
+  const segMs = totalAnimMs > 0 ? Math.round(totalAnimMs / 3) : 0;
+
   it.status = 'running';
   it.resultMsg = '通訊傳輸中...';
   SFIS_HMI_STATE.anim.phase = 'sending';
-  SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} ${meta.title} 傳送中...`;
+  SFIS_HMI_STATE.anim.stage = 'to_cloud';
+  SFIS_HMI_STATE.anim.packetText = `⬆ ${meta.title}`;
+  SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} PC ➔ 雲端發送中...`;
   renderSfisHmiWorkspace();
 
-  try {
+  const _execSoap = async () => {
     let data = {};
     let sentCmd = '';
-
     if (it.kind === 'login') {
       const stCode = String(it.login_status || '1') === '0' ? 0 : 1;
       sentCmd = `WTSP_LOGINOUT(op="${SFIS_HMI_STATE.config.op}", device="${SFIS_HMI_STATE.config.device_id}", status=${stCode} [${stCode === 1 ? 'Login' : 'Logout'}])`;
       data = await _callSingleSoap('WTSP_LOGINOUT', { status: stCode });
-      if (data.passed) SFIS_HMI_STATE.anim.opLoggedIn = (stCode === 1);
-      else if (data.reachable) SFIS_HMI_STATE.anim.opLoggedIn = false;
     } else if (it.kind === 'checkroute') {
       sentCmd = `WTSP_CHKROUTE(ISN="${isn}", device="${SFIS_HMI_STATE.config.device_id}")`;
       data = await _callSingleSoap('WTSP_CHKROUTE', { checkFlag: '1', checkData: '', route_type: 1 });
@@ -1263,16 +1280,48 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
         data = { ...rd, msg: `清除後回讀值 [${got || '(空/NULL)'}]` };
       }
     }
+    return { data, sentCmd };
+  };
 
+  try {
+    // 立即於背景平行發送 SOAP，同時進行第 1 階段動畫 (PC ➔ 雲端)
+    const soapPromise = _execSoap();
+    if (segMs > 0) {
+      await _sfisSleep(segMs);
+      SFIS_HMI_STATE.anim.stage = 'to_db';
+      SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} 雲端 ➔ SFIS DB 查詢/寫入中...`;
+      renderSfisHmiWorkspace();
+    }
+
+    const [{ data, sentCmd }] = await Promise.all([soapPromise, _sfisSleep(segMs)]);
     const ok = !!data.passed;
     const offline = !data.reachable || data.status === 'offline';
+
+    if (segMs > 0) {
+      // 第 3 階段動畫：DB 吐回結果沿原路飛回 PC
+      SFIS_HMI_STATE.anim.stage = 'to_pc';
+      SFIS_HMI_STATE.anim.phase = offline ? 'offline' : (ok ? 'pass' : 'fail');
+      SFIS_HMI_STATE.anim.packetText = ok ? `⬇ P_RET=1 ✅` : (offline ? '⬇ 離線 ⚠️' : '⬇ FAIL ❌');
+      SFIS_HMI_STATE.anim.actionLabel = `#${idx + 1} SFIS DB ➔ 傳回結果至測試 PC...`;
+      renderSfisHmiWorkspace();
+      await _sfisSleep(segMs);
+    }
+
+    if (it.kind === 'login') {
+      const stCode = String(it.login_status || '1') === '0' ? 0 : 1;
+      if (data.passed) SFIS_HMI_STATE.anim.opLoggedIn = (stCode === 1);
+      else if (data.reachable) SFIS_HMI_STATE.anim.opLoggedIn = false;
+    }
+
+    SFIS_HMI_STATE.anim.stage = 'idle';
+    SFIS_HMI_STATE.anim.packetText = '';
     SFIS_HMI_STATE.anim.netConnected = !offline;
     SFIS_HMI_STATE.anim.phase = offline ? 'offline' : (ok ? 'pass' : 'fail');
     it.status = offline ? 'offline' : (ok ? 'pass' : 'fail');
     const slots = data.slots || {};
     const valStr = slots.P_CAVER || slots.P_CBVER || '';
     const detailTxt = offline
-      ? ((data.msg || '無法連通廠區內網') + (SFIS_HMI_STATE.mockMode ? '' : '（目前非工廠內網，可改用上方「🧪 本機模擬 SFIS 內網」進行離線演練）'))
+      ? ((data.msg || '無法連通廠區內網') + (SFIS_HMI_STATE.mockMode ? '' : '（目前非工廠內網，可重選「🧪 本機模擬」演練）'))
       : (ok ? (valStr ? `✅ 值：${valStr} (${data.msg || 'PASS'})` : `✅ ${data.msg || 'PASS'}`) : `❌ ${data.msg || 'FAIL'}`);
     it.resultMsg = detailTxt;
     it.lastRaw = data.raw_result || data.msg || '';
@@ -1289,6 +1338,8 @@ async function sfisHmiRunStep(idx, skipConfirm = false) {
     renderSfisHmiWorkspace();
     return ok;
   } catch (e) {
+    SFIS_HMI_STATE.anim.stage = 'idle';
+    SFIS_HMI_STATE.anim.packetText = '';
     it.status = 'fail';
     it.resultMsg = String(e);
     SFIS_HMI_STATE.anim.phase = 'fail';
@@ -1312,9 +1363,10 @@ async function sfisHmiRunAll() {
   }
   SFIS_HMI_STATE.isRunning = true;
   renderSfisHmiWorkspace();
+  const perStepMs = (SFIS_HMI_STATE.anim.slowDemo !== false) ? 1200 : 0;
   try {
     for (let i = 0; i < SFIS_HMI_STATE.items.length; i++) {
-      const ok = await sfisHmiRunStep(i, true);
+      const ok = await sfisHmiRunStep(i, true, perStepMs);
       if (!ok) break;
     }
   } finally {
@@ -1341,6 +1393,7 @@ async function sfisHmiExport(mode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mode,
+        open_excel: true,
         items: itemsPayload,
         config: cfg,
         workspace: (mode === 'insert_current' && typeof STATE !== 'undefined') ? STATE.workspace : null
@@ -1359,7 +1412,7 @@ async function sfisHmiExport(mode) {
     }
     const skipStr = cfg.skip_save_on_fail ? '1（測錯故意不上傳）' : '0';
     alert(
-      `✅ 已抄空白母體範本產出專屬 SFIS Excel 驗證檔！\n\n` +
+      `✅ 已抄空白母體範本產出專屬 SFIS Excel 驗證檔，並已自動開啟輸出目錄與 Excel！\n\n` +
       `• Excel 路徑：${data.excel_path}\n` +
       `• System.ini：SFIS_SkipSaveResultOnFail=${skipStr} + Checksum 已簽章\n` +
       `• 健檢結果：${data.audit_report.error_count} Error / ${data.audit_report.warning_count} Warning`
@@ -1676,7 +1729,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.041');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.042');
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
@@ -1771,37 +1824,43 @@ function renderSfisHmiWorkspace() {
           <!-- 動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
           <div style="background:${stageWrapBg}; border:1.5px solid ${stageWrapBorder}; border-radius:10px; padding:9px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:7px;">
-              <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
+                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後單步實測會展演 3 秒三段式封包來回（一鍵全測為每步 1.2 秒）；關閉則零延遲即時出結果">
+                  <input type="checkbox" ${a.slowDemo !== false ? 'checked' : ''} onchange="sfisToggleSlowDemo(this.checked)" style="width:13px; height:13px;">
+                  <span>🎬 3秒動畫展演</span>
+                </label>
+              </div>
               <span style="padding:2px 8px; border-radius:999px; font-size:0.74rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
             </div>
             <div class="sfis-anim-stage">
-              <div class="sfis-node-card ${isSending ? 'pulse-blue' : (isPass ? 'glow-green' : (isFail ? 'glow-red' : ''))}" style="padding:7px 5px;">
+              <div class="sfis-node-card ${a.stage === 'to_cloud' ? 'pulse-blue' : (isPass && a.stage === 'idle' ? 'glow-green' : ((isFail || isOffline) && a.stage === 'idle' ? 'glow-red' : ''))}" style="padding:7px 5px;">
                 <img src="/images/PC.png" alt="Test PC" style="width:56px; height:56px; object-fit:contain;">
                 <div style="font-weight:900; font-size:0.8rem; color:#0F172A; margin-top:2px;">測試 PC</div>
                 <div style="font-size:0.71rem; color:${opColor}; font-weight:800; margin-top:2px;"><i class="sfis-led" style="background:${netColor};"></i>${opText}</div>
                 <div class="mono" style="font-size:0.69rem; color:#334155;">Dev:<b id="sfisPcDevTxt">${_escH(cfg.device_id)}</b></div>
                 <div class="mono" style="font-size:0.68rem; color:#854D0E; background:#FEF9C3; padding:1px 4px; border-radius:3px; max-width:108px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${_escH(cfg.isn)}"><b id="sfisPcIsnTxt">${_escH(cfg.isn || '-')}</b></div>
               </div>
-              <div class="${lineClass}">
-                <span class="sfis-flow-label">${isSending ? '⬆ 送出' : (isPass ? '✅ 通' : 'SOAP')}</span>
+              <div class="${a.stage === 'to_cloud' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
+                <span class="sfis-flow-label">${a.stage === 'to_cloud' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' && a.packetText ? `<span class="sfis-packet-badge ${isPass ? 'back-ok' : 'back-err'}">${_escH(a.packetText)}</span>` : (isPass ? '✅ 通' : 'SOAP'))}</span>
                 <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
               </div>
-              <div class="sfis-node-card sfis-cloud-card ${isSending ? 'cloud-active' : ''}" style="padding:7px 5px;">
+              <div class="sfis-node-card sfis-cloud-card ${(a.stage === 'to_cloud' || a.stage === 'to_db' || a.stage === 'to_pc') ? 'cloud-active' : ''}" style="padding:7px 5px;">
                 <img src="/images/cloud.png" alt="Cloud" style="width:62px; height:50px; object-fit:contain;">
                 <div style="display:flex; gap:3px; margin-top:3px; font-size:0.68rem; font-weight:800;">
-                  <span style="padding:1px 4px; border-radius:3px; background:${isSending ? '#DBEAFE' : '#F1F5F9'}; color:${isSending ? '#1D4ED8' : '#64748B'};">⬆發</span>
-                  <span style="padding:1px 4px; border-radius:3px; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : '#F1F5F9')}; color:${isPass ? '#15803D' : (isFail ? '#B91C1C' : '#64748B')};">⬇回</span>
+                  <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#2563EB' : '#F1F5F9'}; color:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#FFFFFF' : '#64748B'};">⬆發</span>
+                  <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_pc' || isPass) ? '#16A34A' : (isFail ? '#DC2626' : '#F1F5F9')}; color:${(a.stage === 'to_pc' || isPass || isFail) ? '#FFFFFF' : '#64748B'};">⬇回</span>
                 </div>
               </div>
-              <div class="${lineClass}">
-                <span class="sfis-flow-label">${isSending ? 'DB ➔' : 'DB'}</span>
-                <div class="sfis-flow-rail"><span class="sfis-packet delay"></span></div>
+              <div class="${a.stage === 'to_db' ? 'sfis-flow-line sending' : (a.stage === 'to_pc' ? (isPass ? 'sfis-flow-line returning-pass' : 'sfis-flow-line returning-fail') : lineClass)}">
+                <span class="sfis-flow-label">${a.stage === 'to_db' && a.packetText ? `<span class="sfis-packet-badge">${_escH(a.packetText)}</span>` : (a.stage === 'to_pc' ? '⬇ 回傳' : 'DB')}</span>
+                <div class="sfis-flow-rail"><span class="sfis-packet"></span></div>
               </div>
-              <div class="sfis-node-card ${isPass ? 'glow-green' : (isFail || isOffline ? 'glow-red' : '')}" style="padding:7px 5px;">
+              <div class="sfis-node-card ${a.stage === 'to_db' ? 'glow-amber' : (isPass && a.stage !== 'to_cloud' ? 'glow-green' : ((isFail || isOffline) && a.stage !== 'to_cloud' ? 'glow-red' : ''))}" style="padding:7px 5px;">
                 <img src="/images/database.png" alt="SFIS DB" style="width:52px; height:56px; object-fit:contain;">
                 <div style="font-weight:900; font-size:0.8rem; color:#0F172A; margin-top:2px;">SFIS DB</div>
                 <div style="font-size:0.7rem; font-weight:800; color:#1D4ED8;">${_escH(curPlant.label.split(' ')[0])}</div>
-                <div style="font-size:0.69rem; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機'))}</div>
+                <div style="font-size:0.69rem; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${a.stage === 'to_db' ? '處理中...' : (isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機')))}</div>
               </div>
             </div>
           </div>
