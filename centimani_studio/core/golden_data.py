@@ -319,6 +319,7 @@ def scan_centimani_environment(target_dir=None, persist=True, confirmed=None):
 
     was_confirmed = bool(cfg.get("centimani_profile_confirmed", False))
     is_confirmed = bool(confirmed) if confirmed is not None else was_confirmed
+    ni_daqmx_ok = os.path.isfile(r"C:\Windows\System32\nicaiu.dll") or os.path.isfile(r"C:\Windows\SysWOW64\nicaiu.dll")
 
     profile = {
         "centimani_dir": cm_dir,
@@ -330,6 +331,7 @@ def scan_centimani_environment(target_dir=None, persist=True, confirmed=None):
         "loadscript_version": load_ver,
         "dll_count": len(dll_vers),
         "dll_names": sorted(dll_vers.keys()),
+        "ni_daqmx_installed": ni_daqmx_ok,
         "tools": tools,
         "confirmed": is_confirmed,
         "scanned_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -455,6 +457,7 @@ def check_workspace_missing_dlls(ws: dict) -> dict:
                     missing_by_dll[dll_key]["insts"].append(name)
 
     missing_dlls = []
+    uses_ni_daqmx = False
     for dll_key in dll_order:
         grp = missing_by_dll[dll_key]
         inst_list = grp["insts"]
@@ -471,10 +474,27 @@ def check_workspace_missing_dlls(ws: dict) -> dict:
             "insts": inst_list,
         })
 
+    for sec in ("instruments", "switches"):
+        for inst_r in ws.get(sec, []):
+            mount = str(inst_r.get("Mount", "")).strip()
+            d_fn = _resolve_shared_control_dll(inst_r.get("Name", ""), inst_r.get("ControlDLL", ""), cat_by_sec.get(sec), dll_vers)
+            if d_fn.lower() == "daqusbni.dll" and (mount or str(inst_r.get("Name", "")).strip().lower() in used_inst_tokens):
+                uses_ni_daqmx = True
+
+    ni_daqmx_ok = os.path.isfile(r"C:\Windows\System32\nicaiu.dll") or os.path.isfile(r"C:\Windows\SysWOW64\nicaiu.dll")
+    missing_drivers = []
+    if uses_ni_daqmx and not ni_daqmx_ok:
+        missing_drivers.append(
+            "本機未安裝系統 NI-DAQmx 驅動 (缺 nicaiu.dll)：雖有 DaqUSBNi.dll 與 NationalInstruments.DAQmx.dll，"
+            "直接啟動 CentimaniSystem.exe 仍會拋出 FileNotFoundException；無此驅動電腦請勾選「無儀器環境 Phase=-1」跳過 NI6008。"
+        )
+
     return {
         "centimani_dir": cm_dir,
         "centimani_dir_exists": cm_dir_exists,
         "missing_dlls": missing_dlls,
+        "ni_daqmx_installed": ni_daqmx_ok,
+        "missing_drivers": missing_drivers,
     }
 
 

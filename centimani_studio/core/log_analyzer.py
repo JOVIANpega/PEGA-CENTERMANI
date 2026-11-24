@@ -237,6 +237,18 @@ def analyze_centimani_log(log_text, file_path=""):
                         "solution": "點擊左側【💾 一鍵修好】，系統將自動分析 Device 目錄內實體 DLL 的二進位版本標頭，並精準自動校正寫回 Excel！"
                     })
 
+        if "NationalInstruments.DAQmx.dll" in line or ("DaqUSBNi.dll" in line and "Exception" in line):
+            key = "NI_DAQMX_RUNTIME_MISSING"
+            if key not in seen_issues:
+                seen_issues.add(key)
+                issues.append({
+                    "category": "系統驅動缺失 (NI-DAQmx)", "severity": "ERROR",
+                    "title": "NI-6008/6009 相依系統驅動未安裝 (NationalInstruments.DAQmx.dll / nicaiu.dll)",
+                    "raw_match": sline,
+                    "cause": "資料夾裡雖然已經有 Device\\DaqUSBNi.dll 與 NationalInstruments.DAQmx.dll，但目前這台電腦的 Windows 尚未安裝 National Instruments NI-DAQmx 驅動程式 (nicaiu.dll)，導致 .NET 初始化 DaqUSBNi.Device() 時載入相依組件失敗。",
+                    "solution": "1. 若要在這台電腦跑實機：請安裝 NI-DAQmx Runtime 驅動。\n2. 若這台是無卡/辦公試跑電腦（只想測 PS2005 或流程）：請回到工具勾選「無儀器環境（先設 Phase=-1）」重新匯出，取消 NI6008 的 Mount 即可正常啟動。"
+                })
+
         if "已經加入含有相同索引鍵的項目" in line or "An item with the same key has already been added" in line:
             key = "DUP_KEY"
             if key not in seen_issues:

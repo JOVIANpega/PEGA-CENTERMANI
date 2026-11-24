@@ -34,6 +34,7 @@ import shutil
 import tempfile
 import threading
 import urllib.request
+import urllib.error
 from http.server import ThreadingHTTPServer
 import openpyxl
 
@@ -403,8 +404,8 @@ def run_all_verifications():
         audit_editors_js = open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read()
         check(".acc-card .acc-title" in app_css and "rem" in app_css.split(".acc-card .acc-title")[1][:120],
               "手風琴標題/內文改用 rem 單位，隨系統字體設定 (13/15/17/19px) 等比縮放")
-        check("書籤三：儀器範本" in index_html and "左側撲克牌庫" in index_html and "書籤一：既有腳本編修" in flow_guide_js,
-              "首頁手風琴、流程導覽 (flow_guide.js) 與書籤三撲克牌說明文已全面與新版 UI 同步")
+        check("儀器範本" in index_html and "左側撲克牌庫" in index_html and "既有腳本編修" in flow_guide_js,
+              "首頁手風琴、流程導覽 (flow_guide.js) 與儀器撲克牌說明文已全面與新版 UI 同步")
         check("比照首頁手風琴式導覽" not in audit_editors_js and "儀器長積木" not in index_html,
               "已移除舊版『比照首頁…』『儀器長積木』等過時說明文字")
         check("renderTab3Queue()" in index_html and "catInst.dll_exists === false" in index_html,
@@ -1017,8 +1018,8 @@ def run_all_verifications():
             check(ins_nohw_res.get("status") == "ok" and "-1" in ins_paused_p and ins_nohw_res["report"]["error_count"] == 0,
                   "/api/insert_instrument_block 支援無儀器環境設 Phase=-1 且 0 Error 健檢通過", str(ins_paused_p))
 
-            check('id="iiNoHwPhaseChk"' in index_html and '書籤二：產生首次使用空範本' in index_html and 'id="tab3UseIniSwitch" type="checkbox" style=' in index_html,
-                  "UI 插入儀器彈窗具備無儀器環境 Checkbox、書籤二改名為『產生首次使用空範本』，且預設取消 INI 開關簡化腳本")
+            check('id="iiNoHwPhaseChk"' in index_html and '產生首次使用空範本' in index_html and 'id="tab3UseIniSwitch" type="checkbox" style=' in index_html,
+                  "UI 插入儀器彈窗具備無儀器環境 Checkbox、建新母體改名為『產生首次使用空範本』，且預設取消 INI 開關簡化腳本")
 
             messy_temp_ws = {
                 "project_name": "MESSY", "station_name": "BootUp", "source_file": "GWTalk_TestFlow.xlsx",
@@ -1265,7 +1266,55 @@ def run_all_verifications():
                   and "openCentimaniAuxTool('CentimaniSFISTest.exe')" in index_html
                   and "openCentimaniAuxTool('DLLtest.exe')" in index_html
                   and "filtered.filter(i => i.dll_exists !== false)" in index_html,
-                  "UI 已具備頂部主程式環境徽章、首次掃描橫幅、書籤一/三 SFIS/DLLtest 按鈕，且 USABLE 僅列實機 DLL")
+                  "UI 已具備頂部主程式環境徽章、首次掃描橫幅、SFIS/DLLtest 按鈕，且 USABLE 僅列實機 DLL")
+
+            # [v0.8.025] 驗證第 5 張手風琴『實機驗證 (SFIS / DLL)』、移除書籤N 字眼、NI-DAQmx 驅動缺漏偵測與 Log 診斷
+            check('id="genHubCard_tools"' in index_html
+                  and 'id="genModeTools"' in index_html
+                  and 'id="btnGenModeTools"' in index_html
+                  and 'toolsCheckSfisLink()' in index_html
+                  and 'ISN 刷過' in index_html
+                  and 'GET' in index_html
+                  and 'WRITE' in index_html,
+                  "腳本建立與編修中心已新增第 5 張手風琴『實機驗證 (SFIS / DLL)』含 ISN/GET/WRITE 與 DLLtest 工作區")
+
+            check("書籤" not in index_html and "書籤" not in flow_guide_js,
+                  "index.html 與 flow_guide.js 內文已徹底移除所有『書籤N』字眼")
+
+            ni_test_ws = {
+                "project_name": "NITEST", "station_name": "MB",
+                "instruments": [{"Mount": "MB", "Name": "NI6008", "ControlDLL": "DaqUSBNi.dll", "Functions": "Voltage", "Version": "1.0.5.0"}],
+                "switches": [], "duts": [], "marcos": {},
+                "stations": {"MB": [{"Index": "000", "Phase": "1", "Title": "0,Test", "Instrument": "NI6008", "Send": "AI0"}]}
+            }
+            from core import golden_data, log_analyzer
+            ni_dll_res = golden_data.check_workspace_missing_dlls(ni_test_ws)
+            expected_ni = os.path.isfile(r"C:\Windows\System32\nicaiu.dll") or os.path.isfile(r"C:\Windows\SysWOW64\nicaiu.dll")
+            check(ni_dll_res.get("ni_daqmx_installed") is expected_ni
+                  and (True if expected_ni else len(ni_dll_res.get("missing_drivers") or []) > 0),
+                  "check_workspace_missing_dlls 正確偵測本機 NI-DAQmx 驅動 (nicaiu.dll) 狀態並提醒 Office PC",
+                  str(ni_dll_res.get("missing_drivers")))
+
+            ni_log_sample = (
+                "2026/11/24 11:36:17 [System]    Start to load Instrument sheet\n"
+                "2026/11/24 11:36:17 [System]    DaqUSBNi.dll Exception: System.Reflection.TargetInvocationException ---> "
+                "System.IO.FileNotFoundException: 無法載入檔案或組件 'NationalInstruments.DAQmx.dll' 或其相依性的其中之一。 找不到指定的模組。\n"
+                "2026/11/24 11:36:17 [System]    Load Instruments sheet Fail ! Please check file's contents\n"
+            )
+            ni_diag = log_analyzer.analyze_centimani_log(ni_log_sample)
+            ni_blob = str(ni_diag)
+            check("NI_DAQMX_RUNTIME_MISSING" in ni_blob or "nicaiu.dll" in ni_blob,
+                  "Log 診斷器可精準識別 DaqUSBNi / NationalInstruments.DAQmx.dll 驅動未安裝原因與 Phase=-1 解法")
+
+            try:
+                post_json("/api/check_sfis_weblink", {"url": ""})
+                sfis_empty_400 = False
+            except urllib.error.HTTPError as he:
+                sfis_empty_400 = (he.code == 400)
+            sfis_chk_res = post_json("/api/check_sfis_weblink", {"url": "http://127.0.0.1:1/sfis_test"})
+            check(sfis_empty_400 and sfis_chk_res.get("status") == "ok" and sfis_chk_res.get("reachable") is False,
+                  "/api/check_sfis_weblink 正確處理空白網址 (400) 與離線網址連通預檢回傳結構",
+                  str(sfis_chk_res))
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

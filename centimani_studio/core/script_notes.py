@@ -8,7 +8,7 @@ import os
 import re
 
 
-def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.024"):
+def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs=None, build_ver="Build v0.8.025"):
     """
     在匯出 Excel 同目錄產出白話版 `<檔名>_編寫與使用說明.txt`（不寫艱澀術語、不顯示空區塊）：
     1. 怎麼直接開始執行（站別 / 試跑或產線模式）
@@ -114,6 +114,15 @@ def generate_companion_logic_txt(workspace, excel_path, dll_chk=None, fixed_logs
         for m in missing:
             lines.append(f"  - {m.get('dll', '')} （{m.get('inst', '')} 需要，缺這支上機開檔會報錯）")
         lines.append("  提示：若只是在無儀器電腦先看流程，請改開 *_DryRun.xlsx。")
+
+    missing_drivers = dll_chk.get("missing_drivers") or []
+    if missing_drivers:
+        lines.extend([
+            "",
+            "【系統驅動程式提醒】",
+        ])
+        for md in missing_drivers:
+            lines.append(f"  - {md}")
 
     lines.append("")
     try:

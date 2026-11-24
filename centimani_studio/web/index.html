@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.024">
+<link rel="stylesheet" href="/css/app.css?v=0.8.025">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.024</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.025</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -104,16 +104,17 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.6;">
-            <li><b>書籤一</b>：既有 Excel 5 合 1 編修與跨檔複製</li>
-            <li><b>書籤二</b>：首次 4 步驟建立空範本（乾淨基礎骨架）</li>
-            <li><b>書籤三</b>：34 款儀器撲克牌庫（含懶人快速版／人機）</li>
-            <li><b>書籤四</b>：問編寫問題（Phase / Title / 跳轉 / 指令寫法百科）</li>
+            <li><b>既有腳本編修</b>：既有 Excel 5 合 1 編修與跨檔複製</li>
+            <li><b>產生首次使用空範本</b>：4 步驟建立新母體乾淨基礎骨架</li>
+            <li><b>插入儀器範本</b>：34+ 款儀器撲克牌庫（含懶人快速版／人機）</li>
+            <li><b>問編寫問題 &amp; 實機驗證</b>：指令百科、SFIS (ISN/GET/WRITE) 與 DLLtest 驗證</li>
           </ul>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📝 書籤一：既有編修</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">🌱 書籤二：新母體</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('inst'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFBEB; color:#92400E; border-color:#F59E0B;">🧪 書籤三：儀器範本</button>
-            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('qa'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border-color:#818CF8;">💬 書籤四：問編寫問題</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('edit'));" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.85rem;">📝 既有腳本編修</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('create'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFFFF;">🌱 產生新母體</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('inst'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFFBEB; color:#92400E; border-color:#F59E0B;">🧪 儀器範本</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('qa'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border-color:#818CF8;">💬 問編寫問題</button>
+            <button onclick="event.stopPropagation(); enterModule('gen', () => switchGenSubMode('tools'));" class="btn" style="padding:6px 12px; font-size:0.85rem; background:#FFF1F2; color:#9F1239; border-color:#FB7185;">🛡️ 實機驗證 (SFIS / DLL)</button>
           </div>
         </div>
       </div>
@@ -182,7 +183,7 @@
   <!-- ======================== 系統與環境設定頁 ======================== -->
   <div id="panelSettings" style="display:none;"></div>
 
-  <!-- ======================== 書籤一：現有 Excel 腳本健檢與原路徑修復 ======================== -->
+  <!-- ======================== 01 現有 Excel 腳本健檢與原路徑修復 ======================== -->
   <div id="panelAudit" style="display:none;">
     <!-- 頂部操作列（排版最佳化：按鈕放上方，檔案路徑完整獨立呈現於下一行） -->
     <div class="action-bar" style="flex-direction:column; align-items:flex-start; gap:8px;">
@@ -204,7 +205,7 @@
 
         <!-- 健檢右側動作：一鍵帶入編修 / 一鍵修好並匯出 -->
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()" title="保留目前檔案直接切換至 02 書籤一進行 5 合 1 編修">
+          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()" title="保留目前檔案直接切換至「既有腳本編修」進行 5 合 1 編修">
             ✏️ 帶入此檔前往編修 ▶
           </button>
 
@@ -691,7 +692,7 @@
     </div>
   </div>
 
-  <!-- ======================== 書籤二：測試錯誤 Log 診斷與解法分析 ======================== -->
+  <!-- ======================== 03 測試錯誤 Log 診斷與解法分析 ======================== -->
   <div id="panelDiagnose" style="display:none;">
     <!-- 頂部雙模式切換標籤 (Segmented Source Mode) -->
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -869,14 +870,14 @@
     </div>
   </div>
 
-  <!-- ======================== 書籤三：4 步驟精靈式母體產生器 ======================== -->
+  <!-- ======================== 02 腳本建立與編修中心 ======================== -->
   <div id="panelGen" style="display:none;">
-    <!-- 02 入口：3 大模式水平手風琴（書籤一 / 二 / 三） -->
+    <!-- 02 入口：5 大模式水平手風琴 -->
     <div id="genModeHub" style="display:block; margin-bottom:14px;">
       <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div>
           <div style="font-weight:900; font-size:1.13rem; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
-          <div style="font-size:0.87rem; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區。</div>
+          <div style="font-size:0.87rem; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區（含第 5 張 SFIS / DLL 實機驗證工作台）。</div>
         </div>
       </div>
       <div class="acc-row" style="min-height:310px;">
@@ -884,7 +885,7 @@
           <div>
             <div class="acc-num">01 / EDIT (1 → N)</div>
             <div class="acc-icon">📝</div>
-            <div class="acc-title">書籤一：既有腳本編修</div>
+            <div class="acc-title">既有腳本編修</div>
             <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與跨檔複製</div>
           </div>
           <div class="acc-body">
@@ -901,7 +902,7 @@
           <div>
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
-            <div class="acc-title">書籤二：產生首次使用空範本</div>
+            <div class="acc-title">產生首次使用空範本</div>
             <div class="acc-sub">全新案子從零建立基礎乾淨範本 (0 → 1)</div>
           </div>
           <div class="acc-body">
@@ -916,10 +917,10 @@
 
         <div id="genHubCard_inst" class="acc-card" data-theme="amber" onmouseenter="setActiveGenHubCard('inst')" onclick="switchGenSubMode('inst')">
           <div>
-            <div class="acc-num">03 / INSTRUMENTS (34 款)</div>
+            <div class="acc-num">03 / INSTRUMENTS (34+ 款)</div>
             <div class="acc-icon">🧪</div>
-            <div class="acc-title">書籤三：插入儀器範本</div>
-            <div class="acc-sub">34 款儀器撲克牌庫（懶人快速版／互動人機）</div>
+            <div class="acc-title">插入儀器範本</div>
+            <div class="acc-sub">34+ 款儀器撲克牌庫（懶人快速版／互動人機）</div>
           </div>
           <div class="acc-body">
             <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
@@ -935,7 +936,7 @@
           <div>
             <div class="acc-num">04 / Q&amp;A (寫法百科)</div>
             <div class="acc-icon">💬</div>
-            <div class="acc-title">書籤四：問編寫問題</div>
+            <div class="acc-title">問編寫問題</div>
             <div class="acc-sub">寫 Phase / Title / 儀器 / 跳轉隨查百科</div>
           </div>
           <div class="acc-body">
@@ -945,6 +946,23 @@
               <li>附真實產線 <code>perter_SCRIPT_11102026</code> 範例列，支援一鍵複製貼進 Excel</li>
             </ul>
             <button onclick="event.stopPropagation(); switchGenSubMode('qa');" class="btn" style="padding:7px 14px; font-size:0.88rem; font-weight:800; background:#4F46E5; color:#FFFFFF; border:none;">💬 進入問編寫問題 ▶</button>
+          </div>
+        </div>
+
+        <div id="genHubCard_tools" class="acc-card" data-theme="slate" onmouseenter="setActiveGenHubCard('tools')" onclick="switchGenSubMode('tools')">
+          <div>
+            <div class="acc-num">05 / VERIFY (SFIS / DLL)</div>
+            <div class="acc-icon">🛡️</div>
+            <div class="acc-title">實機驗證 (SFIS / DLL)</div>
+            <div class="acc-sub">驗證 ISN 刷過 / GET / WRITE 與 DLL 單步測試</div>
+          </div>
+          <div class="acc-body">
+            <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#881337; line-height:1.65;">
+              <li><b>SFIS 三大關鍵實測</b>：確認 <b>ISN 刷過</b>（CheckRoute）、<b>GET</b>（撈版本/料號）與 <b>WRITE</b>（寫入過站）</li>
+              <li><b>內網連線與主程式工具</b>：先測內網 <code>SFIS_WebLink</code>，再開啟 <code>CentimaniSFISTest.exe</code></li>
+              <li><b>DLL 單步與驅動檢查</b>：開啟 <code>DLLtest.exe</code> 驗證儀器指令，檢查本機 NI-DAQmx 系統驅動是否已安裝</li>
+            </ul>
+            <button onclick="event.stopPropagation(); switchGenSubMode('tools');" class="btn" style="padding:7px 14px; font-size:0.88rem; font-weight:800; background:#BE123C; color:#FFFFFF; border:none;">🛡️ 進入實機驗證 (SFIS / DLL) ▶</button>
           </div>
         </div>
       </div>
@@ -959,10 +977,11 @@
         <span id="genCurrentModeTitle" style="font-weight:900; font-size:14.5px; color:#0F172A;"></span>
       </div>
       <div class="source-mode-bar" style="margin:0;">
-        <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 書籤一：既有編修</button>
-        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 書籤二：產生首次使用空範本</button>
-        <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 書籤三：儀器範本</button>
-        <button id="btnGenModeQa" class="source-mode-tab" onclick="switchGenSubMode('qa')">💬 書籤四：問編寫問題</button>
+        <button id="btnGenModeEdit" class="source-mode-tab active" onclick="switchGenSubMode('edit')">📝 既有腳本編修</button>
+        <button id="btnGenModeCreate" class="source-mode-tab" onclick="switchGenSubMode('create')">🌱 產生首次使用空範本</button>
+        <button id="btnGenModeInst" class="source-mode-tab" onclick="switchGenSubMode('inst')">🧪 儀器範本</button>
+        <button id="btnGenModeQa" class="source-mode-tab" onclick="switchGenSubMode('qa')">💬 問編寫問題</button>
+        <button id="btnGenModeTools" class="source-mode-tab" onclick="switchGenSubMode('tools')">🛡️ 實機驗證 (SFIS / DLL)</button>
       </div>
     </div>
 
@@ -1119,7 +1138,7 @@
     </div>
     </div><!-- /genModeCreate -->
 
-    <!-- 書籤一：既有腳本編修與加儀器 (1 → N) -->
+    <!-- 既有腳本編修與加儀器 (1 → N) -->
     <div id="genModeEdit" style="display:block;">
       <!-- ① 目標檔案列 -->
       <input type="file" id="localExcelPickerInput" accept=".xlsx" style="display:none;" onchange="uploadExcelForEditor(this)">
@@ -1239,13 +1258,13 @@
       </div>
     </div><!-- /genModeEdit -->
 
-    <!-- 書籤三：插入儀器範本與互動人機 (34 款人機 - 撲克牌庫 + 細部規格兩步驟生成) -->
+    <!-- 插入儀器範本與互動人機 (34+ 款人機 - 撲克牌庫 + 細部規格兩步驟生成) -->
     <div id="genModeInst" style="display:none;">
       <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:16px 20px; margin-bottom:14px;">
         <!-- 頂部標題與步驟指示 -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
           <div>
-            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 書籤三：插入儀器範本（撲克牌雙欄單畫面工作區）</h3>
+            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 插入儀器範本（撲克牌雙欄單畫面工作區）</h3>
             <div style="font-size:0.87rem; color:#64748B;">① 左欄挑選儀器加入右側序列 → ② 直接在右欄下方勾選環境與產出方式，無需跳頁或捲動。</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -1366,7 +1385,7 @@
       </div>
     </div><!-- /genModeInst -->
 
-    <!-- 書籤四：問編寫問題（白話直覺問答 + 精簡 Excel 對比引擎） -->
+    <!-- 問編寫問題（白話直覺問答 + 精簡 Excel 對比引擎） -->
     <div id="genModeQa" style="display:none;">
       <div class="panel" style="margin-bottom:12px; border-color:#C7D2FE; background:linear-gradient(135deg, #EEF2FF 0%, #FFFFFF 100%);">
         <div style="font-weight:900; font-size:1.06rem; color:#312E81; margin-bottom:4px;">💬 問編寫問題（用白話查怎麼填 Excel 格子）</div>
@@ -1431,9 +1450,90 @@
         </details>
       </div>
     </div><!-- /genModeQa -->
+
+    <!-- 實機驗證中心 (SFIS 測 ISN 刷過/GET/WRITE + DLLtest 單步驗證 + NI-DAQmx 驅動檢查) -->
+    <div id="genModeTools" style="display:none;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:14px; margin-bottom:14px;">
+        <!-- 左卡：SFIS WebService 實戰驗證 -->
+        <div style="background:#FFFFFF; border:1.5px solid #A5B4FC; border-top:4px solid #4F46E5; border-radius:10px; padding:16px 20px;">
+          <h3 style="margin:0 0 4px 0; color:#312E81; font-size:1.1rem;">🌐 SFIS 實機驗證（ISN 刷過 / GET / WRITE）</h3>
+          <div style="font-size:0.86rem; color:#475569; margin-bottom:12px;">
+            上機寫腳本前，先在內網獨立驗證 SFIS WebService 是否正常，不必開整支 CentimaniSystem 主程式。
+          </div>
+
+          <!-- 三大關鍵實測項目 -->
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-bottom:12px;">
+            <div style="background:#EEF2FF; border:1px solid #C7D2FE; border-radius:8px; padding:8px 10px;">
+              <div style="font-weight:900; font-size:0.84rem; color:#3730A3;">1️⃣ ISN 刷過 (CheckRoute)</div>
+              <div style="font-size:0.78rem; color:#334155; margin-top:3px;">測最基本的 <code>SfCheckRoute</code>：傳入 ISN 與站別，確認途程未鎖站、回傳 PASS。</div>
+            </div>
+            <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:8px 10px;">
+              <div style="font-weight:900; font-size:0.84rem; color:#166534;">2️⃣ GET（撈版本 / 料號）</div>
+              <div style="font-size:0.78rem; color:#334155; margin-top:3px;">測 <code>SfGetVersion</code> / <code>SfSsdInputData</code>：確認能依 ISN 成功 GET 回工單、MAC 或目標 FW 版本。</div>
+            </div>
+            <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:8px 10px;">
+              <div style="font-weight:900; font-size:0.84rem; color:#92400E;">3️⃣ WRITE（寫入過站）</div>
+              <div style="font-size:0.78rem; color:#334155; margin-top:3px;">測 <code>SfSaveLinkData</code> / 上傳結果：確認能把測試結果與配對資料 WRITE 回 SFIS。</div>
+            </div>
+          </div>
+
+          <!-- 內網 SFIS 網址檢測 -->
+          <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+            <label for="toolsSfisUrlInput" style="display:block; font-weight:800; font-size:0.84rem; color:#1E293B; margin-bottom:5px;">
+              Step 1｜先測內網 <code>SFIS_WebLink</code> 是否連通：
+            </label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <input id="toolsSfisUrlInput" type="text" placeholder="http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx"
+                style="flex:1; min-width:220px; padding:6px 10px; border:1px solid #94A3B8; border-radius:6px; font-size:0.82rem; font-family:Consolas,monospace;">
+              <button type="button" onclick="toolsCheckSfisLink()" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.83rem; font-weight:800;">
+                🔍 測內網 SFIS 連通
+              </button>
+            </div>
+            <div id="toolsSfisCheckOut" style="display:none; margin-top:8px; padding:7px 10px; border-radius:6px; font-size:0.82rem; line-height:1.5;"></div>
+          </div>
+
+          <!-- 開啟 CentimaniSFISTest.exe -->
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <button type="button" id="btnToolsLaunchSfis" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="background:#4F46E5; color:#FFFFFF; border:none; padding:8px 16px; font-size:0.9rem; font-weight:900;">
+              🌐 Step 2｜開啟 CentimaniSFISTest.exe 實測
+            </button>
+            <span style="font-size:0.8rem; color:#64748B;">建議新腳本 <code>ExecMode</code> 設為 <b>8~11</b></span>
+          </div>
+          <div style="font-size:0.81rem; color:#475569; background:#F1F5F9; border-radius:6px; padding:8px 10px; line-height:1.6;">
+            <b>操作建議：</b>開啟工具後依序選擇廠區（台北／PTSN／PTB）、貼上測試站 <code>System.ini</code> 的 <code>SFIS_WebLink</code> 與 <code>SFIS_TSP</code> → 輸入測試條碼 ISN → 分別測 <b>CheckRoute (ISN 刷過)</b> → <b>GetVersion (GET)</b> → <b>SaveLink / Upload (WRITE)</b>。
+          </div>
+        </div>
+
+        <!-- 右卡：DLLtest.exe 儀器單步測試與驅動狀態 -->
+        <div style="background:#FFFFFF; border:1.5px solid #86EFAC; border-top:4px solid #16A34A; border-radius:10px; padding:16px 20px;">
+          <h3 style="margin:0 0 4px 0; color:#14532D; font-size:1.1rem;">🧪 儀器 DLL 單步驗證與系統驅動檢查</h3>
+          <div style="font-size:0.86rem; color:#475569; margin-bottom:12px;">
+            確認目前 Centimani 主程式目錄內的儀器 DLL 與本機系統驅動（如 NI-DAQmx）是否就緒，或開啟官方 <code>DLLtest.exe</code> 單測指令。
+          </div>
+
+          <div id="toolsEnvInfoBox" style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:0.84rem; line-height:1.6; color:#1E293B;">
+            正在讀取目前 Centimani 環境狀態...
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button type="button" id="btnToolsLaunchDll" onclick="openCentimaniAuxTool('DLLtest.exe')" class="btn btn-primary-green" style="padding:8px 16px; font-size:0.9rem; font-weight:900;">
+              🧪 開啟 DLLtest.exe 單測儀器
+            </button>
+            <button type="button" onclick="pickCentimaniDir()" class="btn" style="background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; padding:8px 12px; font-size:0.85rem; font-weight:800;">
+              📁 更換 / 重掃 Centimani 目錄
+            </button>
+          </div>
+          <div style="font-size:0.81rem; color:#475569; background:#F0FDF4; border:1px solid #DCFCE7; border-radius:6px; padding:8px 10px; line-height:1.6;">
+            <b>DLLtest.exe 4 步快速用法：</b><br>
+            1. <b>Find DLL file</b>：挑選 <code>Device\*.dll</code>（如 <code>iPower2401.dll</code> / <code>DaqUSBNi.dll</code>）<br>
+            2. <b>LoadSetting</b>：載入儀器通道與地址參數 → 3. <b>Load</b> 初始化 → 4. <b>Execute</b> 發單筆 Command 驗證回傳數值。
+          </div>
+        </div>
+      </div>
+    </div><!-- /genModeTools -->
   </div>
 
-  <!-- ======================== 書籤四：TestID / Error Code 速查與精準套用 ======================== -->
+  <!-- ======================== 04 TestID / Error Code 速查與精準套用 ======================== -->
   <div id="panelTic" style="display:none;">
     <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -1736,11 +1836,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.024"></script>
-<script src="/js/audit_editors.js?v=0.8.024"></script>
-<script src="/js/flow_guide.js?v=0.8.024"></script>
-<script src="/js/block_sorter.js?v=0.8.024"></script>
-<script src="/js/script_qa.js?v=0.8.024"></script>
+<script src="/js/inst_hmi.js?v=0.8.025"></script>
+<script src="/js/audit_editors.js?v=0.8.025"></script>
+<script src="/js/flow_guide.js?v=0.8.025"></script>
+<script src="/js/block_sorter.js?v=0.8.025"></script>
+<script src="/js/script_qa.js?v=0.8.025"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2796,14 +2896,14 @@ async function pickTicFileNative() {
 let GEN_SUB_MODE = 'hub';
 
 function setActiveGenHubCard(key) {
-  ['edit', 'create', 'inst', 'qa'].forEach(k => {
+  ['edit', 'create', 'inst', 'qa', 'tools'].forEach(k => {
     const el = document.getElementById('genHubCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
 }
 
 function switchGenSubMode(mode) {
-  GEN_SUB_MODE = ['hub', 'edit', 'create', 'inst', 'qa'].includes(mode) ? mode : 'hub';
+  GEN_SUB_MODE = ['hub', 'edit', 'create', 'inst', 'qa', 'tools'].includes(mode) ? mode : 'hub';
   const hubBox = document.getElementById('genModeHub');
   const backBar = document.getElementById('genBackToModeHubBar');
   const modeTitleEl = document.getElementById('genCurrentModeTitle');
@@ -2811,10 +2911,12 @@ function switchGenSubMode(mode) {
   const eBox = document.getElementById('genModeEdit');
   const iBox = document.getElementById('genModeInst');
   const qBox = document.getElementById('genModeQa');
+  const tBox = document.getElementById('genModeTools');
   const cBtn = document.getElementById('btnGenModeCreate');
   const eBtn = document.getElementById('btnGenModeEdit');
   const iBtn = document.getElementById('btnGenModeInst');
   const qBtn = document.getElementById('btnGenModeQa');
+  const tBtn = document.getElementById('btnGenModeTools');
 
   if (hubBox) hubBox.style.display = (GEN_SUB_MODE === 'hub') ? 'block' : 'none';
   if (backBar) backBar.style.display = (GEN_SUB_MODE === 'hub') ? 'none' : 'flex';
@@ -2822,12 +2924,14 @@ function switchGenSubMode(mode) {
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
   if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
   if (qBox) qBox.style.display = (GEN_SUB_MODE === 'qa') ? 'block' : 'none';
+  if (tBox) tBox.style.display = (GEN_SUB_MODE === 'tools') ? 'block' : 'none';
 
   const titleMap = {
-    edit: '📝 書籤一：既有腳本編修 (1 → N)',
-    create: '🌱 書籤二：產生首次使用空範本 (0 → 1)',
-    inst: '🧪 書籤三：插入儀器範本 (34 款人機)',
-    qa: '💬 書籤四：問編寫問題（Excel 編寫邏輯與指令百科）'
+    edit: '📝 既有腳本編修 (1 → N)',
+    create: '🌱 產生首次使用空範本 (0 → 1)',
+    inst: '🧪 插入儀器範本 (34+ 款人機)',
+    qa: '💬 問編寫問題（Excel 編寫邏輯與指令百科）',
+    tools: '🛡️ 實機驗證中心（SFIS ISN / GET / WRITE ＋ DLLtest）'
   };
   if (modeTitleEl) modeTitleEl.textContent = titleMap[GEN_SUB_MODE] || '';
 
@@ -2835,6 +2939,7 @@ function switchGenSubMode(mode) {
   if (eBtn) eBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'edit' ? ' active' : '');
   if (iBtn) iBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'inst' ? ' active' : '');
   if (qBtn) qBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'qa' ? ' active' : '');
+  if (tBtn) tBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'tools' ? ' active' : '');
 
   if (GEN_SUB_MODE === 'edit') {
     if (typeof AUDIT_GLOBAL_TAB !== 'undefined') AUDIT_GLOBAL_TAB = 'hub';
@@ -2842,6 +2947,7 @@ function switchGenSubMode(mode) {
   }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
   if (GEN_SUB_MODE === 'qa' && typeof initScriptQaPanel === 'function') initScriptQaPanel();
+  if (GEN_SUB_MODE === 'tools' && typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
 }
 
 let TAB3_QUEUE = [];
@@ -3281,7 +3387,8 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
       const errCnt = data.audit_report ? (data.audit_report.summary ? (data.audit_report.summary.errors || 0) : (data.audit_report.error_count || 0)) : 0;
       const modeTag = autoSampleMode ? '⚡ 懶人範例模式（每台 ≥ 3 測項）' : '🎛️ 專業細部模式';
       const missingList = Array.isArray(data.missing_dlls) ? data.missing_dlls : [];
-      const hasDllWarn = (!data.centimani_dir_exists) || missingList.length > 0;
+      const driverWarns = Array.isArray(data.missing_drivers) ? data.missing_drivers : [];
+      const hasDllWarn = (!data.centimani_dir_exists) || missingList.length > 0 || driverWarns.length > 0;
       let dllWarnHtml = '';
       if (!data.centimani_dir_exists) {
         dllWarnHtml = `
@@ -3296,6 +3403,12 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
             ⚠️ 實機 DLL 檢查提醒：目前目錄 (<span class="mono">${data.centimani_dir}\\Device\\</span>) 缺少以下 DLL（同款多台儀器如 NI6008 / NI6008-2 共用同一支 DLL），上機測試時將會報錯：<br>
             <span class="mono">${mText}</span>
             <button onclick="pickCentimaniDir()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button>
+          </div>`;
+      }
+      if (driverWarns.length > 0) {
+        dllWarnHtml += `
+          <div style="margin-top:8px; padding:8px 12px; background:#FEF08A; border:1.6px solid #DC2626; border-radius:6px; color:#7F1D1D; font-weight:700;">
+            🔌 <b>系統驅動程式提醒（OFFICE PC 常遇）：</b>${driverWarns.map(d => String(d).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))).join('<br>')}
           </div>`;
       }
       outBox.style.background = (errCnt === 0 && !hasDllWarn) ? '#F0FDF4' : '#FFFBEB';
@@ -3323,6 +3436,7 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
       centimaniDir: data.centimani_dir,
       centimaniDirExists: data.centimani_dir_exists,
       missingDlls: data.missing_dlls,
+      missingDrivers: data.missing_drivers,
       summaryHtml: `<div>• <b>儀器 / 步驟數：</b>${data.total_items || itemsToInsert.length} 台儀器 / ${data.total_steps || '-'} 列</div>`
     });
   } catch (err) {
@@ -3406,7 +3520,7 @@ async function tab3ConfirmInsert() {
     inst: instName,
     summary: `${titleName} (DL=${dlVal||'-'}, UL=${ulVal||'-'})`
   });
-  alert(`🎉 成功插入獨立 Title「${titleName}」至工作表 [${sheet}]！\n\n已暫存於記憶體，可切換回書籤一檢視排程，或點擊匯出存檔。`);
+  alert(`🎉 成功插入獨立 Title「${titleName}」至工作表 [${sheet}]！\n\n已暫存於記憶體，可切換回「既有腳本編修」檢視排程，或點擊匯出存檔。`);
   switchGenSubMode('edit');
 }
 
@@ -5581,6 +5695,7 @@ async function applyFixAndExport(dryRun) {
     centimaniDir: data.centimani_dir,
     centimaniDirExists: data.centimani_dir_exists,
     missingDlls: data.missing_dlls,
+    missingDrivers: data.missing_drivers,
     summaryHtml: `<div>• <b>自動修復異動：</b>${logs.length} 項</div>`
   });
 }
@@ -6093,7 +6208,8 @@ async function generateNewMother(dryRun) {
     outputDir: data.output_dir,
     centimaniDir: data.centimani_dir,
     centimaniDirExists: data.centimani_dir_exists,
-    missingDlls: data.missing_dlls
+    missingDlls: data.missing_dlls,
+    missingDrivers: data.missing_drivers
   });
 }
 
@@ -6420,6 +6536,7 @@ function showExportCompleteModal(opts = {}) {
     `;
   }
   const missingList = Array.isArray(opts.missingDlls) ? opts.missingDlls : [];
+  const driverWarns = Array.isArray(opts.missingDrivers) ? opts.missingDrivers : [];
   const hasDir = (opts.centimaniDirExists !== false);
   if (warnEl) {
     if (!hasDir) {
@@ -6428,14 +6545,25 @@ function showExportCompleteModal(opts = {}) {
         ⚠️ <b>尚未指定本機 Centimani 主程式目錄（<code>Device\\</code>）</b>，無法驗證實機 DLL 是否齊備。
         <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 指定 Centimani 主程式目錄</button></div>
       `;
-    } else if (missingList.length > 0) {
-      const mText = missingList.map(m => `${m.inst || '儀器'} (缺 ${m.dll})`).join('、');
+    } else if (missingList.length > 0 || driverWarns.length > 0) {
+      let htmlParts = [];
+      if (missingList.length > 0) {
+        const mText = missingList.map(m => `${m.inst || '儀器'} (缺 ${m.dll})`).join('、');
+        htmlParts.push(`
+          ⚠️ <b>實機 DLL 檢查提醒：</b>目前目錄 (<span class="mono">${opts.centimaniDir || ''}\\Device\\</span>) 缺少以下 DLL（同款多台儀器如 NI6008 / NI6008-2 共用同一支 DLL），上機載入 CentimaniSystem.exe 時將會報錯：<br>
+          <span class="mono" style="color:#991B1B;">${mText}</span>
+          <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button></div>
+        `);
+      }
+      if (driverWarns.length > 0) {
+        htmlParts.push(`
+          <div style="${missingList.length > 0 ? 'margin-top:8px; padding-top:8px; border-top:1px dashed #DC2626;' : ''}">
+            🔌 <b>系統驅動程式檢查提醒：</b>${driverWarns.map(d => String(d).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))).join('<br>')}
+          </div>
+        `);
+      }
       warnEl.style.display = 'block';
-      warnEl.innerHTML = `
-        ⚠️ <b>實機 DLL 檢查提醒：</b>目前目錄 (<span class="mono">${opts.centimaniDir || ''}\\Device\\</span>) 缺少以下 DLL（同款多台儀器如 NI6008 / NI6008-2 共用同一支 DLL），上機載入 CentimaniSystem.exe 時將會報錯：<br>
-        <span class="mono" style="color:#991B1B;">${mText}</span>
-        <div style="margin-top:6px;"><button onclick="pickCentimaniDir()" class="btn" style="padding:4px 10px; font-size:12px; background:#FFFFFF; color:#1E293B; border:1px solid #94A3B8; font-weight:800;">📁 更換 Centimani 目錄</button></div>
-      `;
+      warnEl.innerHTML = htmlParts.join('');
     } else {
       warnEl.style.display = 'none';
       warnEl.innerHTML = '';
@@ -6484,12 +6612,13 @@ async function pickCentimaniDir() {
 
 function renderCentimaniEnvUi(profile) {
   const p = profile || {};
+  STATE.centimaniProfile = p;
   const badge = document.getElementById('topCentimaniBadge');
   if (badge) {
     if (p.exists) {
       const verTxt = p.exe_version ? `v${p.exe_version}` : '版本未知';
       badge.textContent = `📁 ${p.dir_name || 'Centimani'} (${verTxt} · ${p.dll_count || 0} DLL)`;
-      badge.title = `目錄：${p.centimani_dir}\nCentimaniSystem.exe: ${p.exe_version || '-'}\nUtilityLibrary.dll: ${p.utility_version || '-'}\n掃描時間：${p.scanned_at || '-'}`;
+      badge.title = `目錄：${p.centimani_dir}\nCentimaniSystem.exe: ${p.exe_version || '-'}\nUtilityLibrary.dll: ${p.utility_version || '-'}\nNI-DAQmx 驅動：${p.ni_daqmx_installed ? '已安裝' : '未安裝 (缺少 nicaiu.dll)'}\n掃描時間：${p.scanned_at || '-'}`;
     } else {
       badge.textContent = '⚠️ 尚未指定 Centimani 主程式目錄';
     }
@@ -6503,6 +6632,75 @@ function renderCentimaniEnvUi(profile) {
     sumEl.textContent = p.exists
       ? `${p.centimani_dir}  |  CentimaniSystem ${p.exe_version || '-'}  |  Device/Switch DLL: ${p.dll_count || 0} 支`
       : '尚未偵測到有效的 Centimani 目錄，請點右側選擇資料夾進行掃描';
+  }
+  if (typeof renderToolsVerifyPanel === 'function') renderToolsVerifyPanel();
+}
+
+function renderToolsVerifyPanel() {
+  const box = document.getElementById('toolsEnvInfoBox');
+  const urlInp = document.getElementById('toolsSfisUrlInput');
+  if (urlInp && !urlInp.value.trim()) {
+    const wsUrl = (STATE.workspace && STATE.workspace.system_ini && STATE.workspace.system_ini.SFIS_WebLink)
+      ? STATE.workspace.system_ini.SFIS_WebLink
+      : '';
+    urlInp.value = wsUrl || 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx';
+  }
+  if (!box) return;
+  const p = STATE.centimaniProfile || {};
+  if (!p.exists) {
+    box.innerHTML = `<div style="color:#B45309; font-weight:800;">⚠️ 尚未指定有效的 Centimani 主程式目錄，請點擊下方「📁 更換 / 重掃 Centimani 目錄」。</div>`;
+    return;
+  }
+  const safe = s => String(s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  const niStatus = p.ni_daqmx_installed
+    ? '<span style="color:#15803D; font-weight:800;">✅ 已安裝 (System32/SysWOW64 含 nicaiu.dll)</span>'
+    : '<span style="color:#B91C1C; font-weight:800;">⚠️ 未安裝 (找不到系統 <code>nicaiu.dll</code> — Office PC 試跑 NI6008 請勾選「無儀器環境 Phase = -1」)</span>';
+  const toolsObj = p.tools || {};
+  const hasSfisTool = Boolean(toolsObj['CentimaniSFISTest.exe']);
+  const hasDllTool = Boolean(toolsObj['DLLtest.exe']);
+  box.innerHTML = `
+    <div><b>目前 Centimani 目錄：</b><span class="mono">${safe(p.centimani_dir)}</span></div>
+    <div><b>CentimaniSystem.exe：</b>v${safe(p.exe_version || '-')} ｜ <b>UtilityLibrary.dll：</b>v${safe(p.utility_version || '-')} ｜ <b>實機 DLL：</b>${p.dll_count || 0} 支</div>
+    <div><b>NI-DAQmx 系統驅動：</b>${niStatus}</div>
+    <div><b>隨附驗證工具：</b><code>CentimaniSFISTest.exe</code> ${hasSfisTool ? '✅' : '❌'} ｜ <code>DLLtest.exe</code> ${hasDllTool ? '✅' : '❌'}</div>
+  `;
+}
+
+async function toolsCheckSfisLink() {
+  const inp = document.getElementById('toolsSfisUrlInput');
+  const out = document.getElementById('toolsSfisCheckOut');
+  const url = inp ? inp.value.trim() : '';
+  if (!out) return;
+  if (!url) {
+    out.style.display = 'block';
+    out.style.background = '#FEF2F2';
+    out.style.color = '#991B1B';
+    out.textContent = '請先輸入 SFIS_WebLink 網址再測試。';
+    return;
+  }
+  out.style.display = 'block';
+  out.style.background = '#EFF6FF';
+  out.style.color = '#1E40AF';
+  out.textContent = '⏳ 正在檢查內網 SFIS 連通狀態...';
+  try {
+    const res = await fetch('/api/check_sfis_weblink', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url })
+    });
+    const d = await res.json();
+    if (d.status === 'ok' && d.reachable) {
+      out.style.background = '#F0FDF4';
+      out.style.color = '#166534';
+      out.innerHTML = `✅ <b>連通成功：</b>${String(d.message || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}（接下來可點下方按鈕開啟 <code>CentimaniSFISTest.exe</code> 實測 ISN 刷過 / GET / WRITE）`;
+    } else {
+      out.style.background = '#FFFBEB';
+      out.style.color = '#92400E';
+      out.innerHTML = `⚠️ <b>連通失敗或非內網：</b>${String(d.message || '無法連線').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}`;
+    }
+  } catch (err) {
+    out.style.background = '#FEF2F2';
+    out.style.color = '#991B1B';
+    out.textContent = '檢查時發生異常：' + (err && err.message ? err.message : err);
   }
 }
 

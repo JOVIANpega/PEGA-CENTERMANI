@@ -64,8 +64,8 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 4,
-        step: 'Step 6｜「✏️ 帶入此檔前往編修 ▶」無縫切換至 02 編修中心（書籤一）',
-        desc: '若檢視完報告需要手動插入新儀器、改 PASS/FAIL 跳轉、改 COM / 轉 SSH 或微調 INI 變數，點擊紫色「✏️ 帶入此檔前往編修 ▶」即可免重新選檔直接跳轉至「02 腳本建立與編修中心」的書籤一（5 合 1 編修）。',
+        step: 'Step 6｜「✏️ 帶入此檔前往編修 ▶」無縫切換至 02 編修中心（既有腳本編修）',
+        desc: '若檢視完報告需要手動插入新儀器、改 PASS/FAIL 跳轉、改 COM / 轉 SSH 或微調 INI 變數，點擊紫色「✏️ 帶入此檔前往編修 ▶」即可免重新選檔直接跳轉至「02 腳本建立與編修中心」的「既有腳本編修」（5 合 1 編修）。',
         img: '/images/guide_audit_to_editor.png'
       }
     ],
@@ -79,93 +79,93 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-green',
     btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
-      { num: '①', title: '選擇 3 大作業模式', jumpIdx: 0, items: ['書籤一：既有腳本編修', '書籤二：建新母體 / 三：儀器'] },
-      { num: '②', title: '書籤一：5 合 1 編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
-      { num: '③', title: '書籤二：4 步建新母體', jumpIdx: 6, items: ['專案 / ISN / 廠區設定', '從 0 → 1 勾選骨架與參數'] },
-      { num: '④', title: '書籤三：儀器撲克牌庫', jumpIdx: 10, items: ['搜尋/分類/規格簡介/缺 DLL 警示', '懶人快速版 / 專業人機與 MCS'] },
-      { num: '⑤', title: '匯出與實機 DLL 檢查', jumpIdx: 12, items: ['必開目錄＋缺 DLL 彈窗提醒', '對齊 DLL 版號與詢問開 Excel'] }
+      { num: '①', title: '選擇 5 大作業模式', jumpIdx: 0, items: ['既有編修 / 新母體 / 儀器範本', '問編寫問題 / 實機驗證'] },
+      { num: '②', title: '既有腳本：5 合 1 編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
+      { num: '③', title: '空範本：4 步建新母體', jumpIdx: 6, items: ['專案 / ISN / 廠區設定', '從 0 → 1 勾選骨架與參數'] },
+      { num: '④', title: '儀器撲克牌庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
+      { num: '⑤', title: '匯出與實機 DLL 檢查', jumpIdx: 12, items: ['必開目錄＋缺 DLL/驅動提醒', '對齊 DLL 版號與詢問開 Excel'] }
     ],
     detailedSteps: [
       {
         stageIdx: 0,
-        step: 'Step 1｜選擇 3 大作業模式（書籤一 / 書籤二 / 書籤三）',
-        desc: '進入「02 腳本建立與編修中心」後，可透過 3 張水平手風琴卡片選擇作業模式：日常改版選「書籤一：既有腳本編修」；全新開案選「書籤二：建立新母體」；快速生成單台或多台儀器測試範本選「書籤三：插入儀器範本」。',
+        step: 'Step 1｜選擇 5 大作業模式（既有編修 / 空範本 / 儀器範本 / 問編寫 / 實機驗證）',
+        desc: '進入「02 腳本建立與編修中心」後，可透過 5 張水平手風琴卡片選擇作業模式：日常改版選「既有腳本編修」；全新開案選「產生首次使用空範本」；生成儀器範本選「插入儀器範本」；查指令邏輯選「問編寫問題」；測試 SFIS（ISN 刷過／GET／WRITE）與 DLL 單步執行則選第 5 張「實機驗證 (SFIS / DLL)」。',
         img: '/images/guide_editor_tab.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 2｜書籤一：載入 TestFlow.xlsx 或跨檔案複製整張 Sheet',
+        step: 'Step 2｜既有腳本編修：載入 TestFlow.xlsx 或跨檔案複製整張 Sheet',
         desc: '點擊「選擇要編修的 TestFlow.xlsx」或從最近使用紀錄快選載入；若要把別份 Excel 的測站或儀器頁完整搬移過來，可點「📋 跨檔案複製整張 Sheet」（支援系統視窗瀏覽選檔與最近檔案下拉、優先呼叫 Excel 原生複製保留欄寬/合併格/顏色/驗證，並自動備份 .bak）。',
         img: '/images/guide_editor_zone_a.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 3｜書籤一 5 合 1（01 System.ini / 02 Global.ini）：支援獨立存檔彈記事本',
+        step: 'Step 3｜既有腳本 5 合 1（01 System.ini / 02 Global.ini）：支援獨立存檔彈記事本',
         desc: '點選第 1 格（System.ini）可使用「🛠️ 工程調試 (Debug=1)」/「🏭 正式量產 (Debug=0)」一鍵切換與出廠廠區 6 選 1（同時連動 SFIS_WebLink 與 iPLAS_Site）；第 2 格（Global.ini）提供一拖四槽位 LOAD_1~4、⚡ 一鍵同步 PC/DUT 同網段 IP 與 60+ 進階變數搜尋過濾。異動處原地黃底標示並可「💾 直接存檔並彈出 INI 記事本」免重匯整份 Excel。',
         img: '/images/guide_audit_7.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 4｜書籤一 5 合 1（03 Flow Sort）：大牌桌排序、淡藍標記與指令預覽',
+        step: 'Step 4｜既有腳本 5 合 1（03 Flow Sort）：大牌桌排序、淡藍標記與指令預覽',
         desc: '點選第 3 格開啟積木排序器：可直接修改 Phase 數字插隊或拖拉對調，支援「📋 複製整段 / 🧹 刪除 / ＋ 插入新測項」與「⛶ 全螢幕大牌桌」，右側即時預覽 Command │ Send 指令與變數相依診斷；匯出時修改過順序的區塊標上柔和淡藍色 (#E8F4FD) 且開啟 Excel 自動鎖定該測試站 Sheet。',
         img: '/images/guide_audit_6.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 5｜書籤一 5 合 1（04 Jump & Retry / 05 站別 ISN 與儀器掛載）',
+        step: 'Step 5｜既有腳本 5 合 1（04 Jump & Retry / 05 站別 ISN 與儀器掛載）',
         desc: '第 4 格可視覺化設定每步 PASS/FAIL 跳轉目標並附帶 SKU 分流範例與彩色 ExecMode (0~9) 速查；第 5 格支援一鍵「＋ 新增測試站」（同時自動建立對應 Excel 工作表）、批量調整全站 ISN 條碼位數，並在折疊區微調外部儀器掛載與連線設定。',
         img: '/images/guide_audit_3.png'
       },
       {
         stageIdx: 1,
-        step: 'Step 6｜書籤一底部：安全暫存匯出（無硬體試跑版 / *_FIXED.xlsx）',
+        step: 'Step 6｜既有腳本編修底部：安全暫存匯出（無硬體試跑版 / *_FIXED.xlsx）',
         desc: '編修完成後於底部點擊「🧪 匯出無硬體試跑版」或「💾 寫入並匯出 Excel (*_FIXED.xlsx)」，系統會自動順編、補齊安全收尾、計算 64 碼 Checksum，先開啟輸出目錄並彈窗顯示實機 DLL 檢查與詢問是否開啟 Excel。',
         img: '/images/guide_editor_export.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 7｜書籤二 Step 1：填寫專案名稱、站別、槽位數與 ISN 規則',
-        desc: '切換至「書籤二：建立新母體」後，輸入專案代號、站別名稱（如 MB / RF）、多工槽位數（1/2/4）與 ISN 位數/格式，並可由下方開啟 SFIS / iPLAS 廠區連線設定。',
+        step: 'Step 7｜產生空範本 Step 1：填寫專案名稱、站別、槽位數與 ISN 規則',
+        desc: '切換至「產生首次使用空範本」後，輸入專案代號、站別名稱（如 MB / RF）、多工槽位數（1/2/4）與 ISN 位數/格式，並可由下方開啟 SFIS / iPLAS 廠區連線設定。',
         img: '/images/guide_gen_1a.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 8｜書籤二 Step 2：勾選標準流程骨架與儀器測項',
-        desc: '可點右上角「🧩 最小骨架」或「⚡ 基礎上電量測」快速帶入 CheckRoute、治具、UART 與 Phase 97 收尾，並於下方挑選 34 款儀器加入清單或開啟互動人機。',
+        step: 'Step 8｜產生空範本 Step 2：勾選標準流程骨架與儀器測項',
+        desc: '可點右上角「🧩 最小骨架」或「⚡ 基礎上電量測」快速帶入 CheckRoute、治具、UART 與 Phase 97 收尾，並於下方挑選儀器加入清單或開啟互動人機。',
         img: '/images/guide_gen_2a.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 9｜書籤二 Step 3：依勾選項目填寫細部測試參數',
+        step: 'Step 9｜產生空範本 Step 3：依勾選項目填寫細部測試參數',
         desc: '依前一步勾選的積木與儀器動態產生設定卡：可微調韌體比對連線方式（UART / ADB / SSH）、COM Port、目標版本與治具等待時間。',
         img: '/images/guide_gen_3.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 10｜書籤二 Step 4：產出新母體（無硬體試跑版 / 產線實機包）',
+        step: 'Step 10｜產生空範本 Step 4：產出新母體（無硬體試跑版 / 產線實機包）',
         desc: '於總覽確認頁點擊「🧪 無硬體試跑版」或「🚀 產線實機測試包」，自動產生 16 欄 TestFlow、System.ini、Global.ini 與 64 碼 Checksum。',
         img: '/images/guide_gen_4b.png'
       },
       {
         stageIdx: 3,
-        step: 'Step 11｜書籤三 Step 1：左欄 34 款儀器撲克牌庫 ＋ 右欄測試序列',
-        desc: '左欄支援關鍵字搜尋、分類篩選與「📖 查看儀器規格/接線簡介」；左右兩欄皆即時以紅框標示本機 Device\\ 缺少的「❌ 缺 DLL」。點擊「＋ 加入」或拖曳卡片至右欄排列順序，再點「✅ 確認以上儀器清單」。',
+        step: 'Step 11｜插入儀器範本 Step 1：左欄儀器撲克牌庫 ＋ 右欄測試序列',
+        desc: '左欄支援關鍵字搜尋、分類篩選與「📖 查看儀器規格/接線簡介」；左右兩欄皆即時以紅框標示本機 Device\\ 缺少的「❌ 缺 DLL」。點擊「＋ 加入」或拖曳卡片至右欄排列順序，再點「✅ 確認以上儀器清單」。需要驗證 SFIS（ISN 刷過／GET／WRITE）或單測 DLL 時可切到第 5 張「實機驗證 (SFIS / DLL)」。',
         img: '/images/guide_gen_2d.png'
       },
       {
         stageIdx: 3,
-        step: 'Step 12｜書籤三選擇「⚡ 懶人快速版」或「🎛️ 專業細部版」（含 RF MCS 子表）',
+        step: 'Step 12｜插入儀器選擇「⚡ 懶人快速版」或「🎛️ 專業細部版」（含 RF MCS 子表）',
         desc: '選「⚡ 懶人快速版」自動為每台儀器生成至少 3 個代表性測項；選「🎛️ 專業細部版」可進 Step 2 調整測項、上下限與開啟 NI-6009 / FeasaLED / IQxel RF 互動人機（IQxel 會自動產生 WIFI Tx/Rx MCS 子工作表），匯出時自動僅保留選用儀器＋Phase 97 IPOWER2401 並對齊真實 DLL 版號。',
         img: '/images/guide_audit_4.png'
       },
       {
         stageIdx: 4,
-        step: 'Step 13｜匯出保障：必開輸出目錄 ＋ 缺漏 DLL 彈窗檢查 ＋ 詢問開啟 Excel',
-        desc: '系統啟動會自動偵測並記憶本機 Centimani 主程式目錄 (centimani_dir，亦可在「⚙️ 系統設定」手動變更)。每次從書籤一/二/三匯出時一律先開啟輸出資料夾，並於置中彈窗顯示缺少的實機 DLL（與更換目錄捷徑），再由您決定是否立即開啟 Excel。',
+        step: 'Step 13｜匯出保障：必開輸出目錄 ＋ 缺漏 DLL / 驅動檢查 ＋ 詢問開啟 Excel',
+        desc: '系統啟動會自動偵測並記憶本機 Centimani 主程式目錄 (centimani_dir，亦可在「⚙️ 系統設定」手動變更)。每次匯出時一律先開啟輸出資料夾，並於置中彈窗顯示缺少的實機 DLL 與系統驅動檢查（如 NI-DAQmx nicaiu.dll），再由您決定是否立即開啟 Excel。',
         img: '/images/guide_audit_5b.png'
       }
     ],
-    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；書籤一負責既有 5 合 1 編修與跨檔複製、書籤二從 0 建新母體、書籤三以撲克牌庫快速生成儀器範本'
+    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；支援既有 5 合 1 編修、從 0 建新母體、儀器撲克牌庫、寫法百科與 SFIS/DLL 實機驗證'
   },
   diagnose: {
     icon: '🩺',
@@ -178,7 +178,7 @@ const FLOW_GUIDE_DATA = {
       { num: '①', title: '載入 Log 檔案', jumpIdx: 0, items: ['選取 .log / .csv 大檔', '支援修改後重新解析'] },
       { num: '②', title: '自動定位與瓶頸', jumpIdx: 1, items: ['抓出 FAIL 與超標幅度', 'Phase 耗時 Top5 排行'] },
       { num: '③', title: '一鍵複製摘要', jumpIdx: 2, items: ['整理純文字結論報告', '直接貼至 Teams / 郵件'] },
-      { num: '④', title: '書籤二：貼上文字', jumpIdx: 3, items: ['貼上黑窗 / 彈窗錯誤', '免完整檔案立即診斷'] },
+      { num: '④', title: '模式二：貼上文字', jumpIdx: 3, items: ['貼上黑窗 / 彈窗錯誤', '免完整檔案立即診斷'] },
       { num: '⑤', title: '即時給予對策', jumpIdx: 4, items: ['比對 Checksum / SFIS', '提供產線排查步驟'] }
     ],
     detailedSteps: [
@@ -202,8 +202,8 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 3,
-        step: 'Step 4｜書籤二：切換至「模式二：貼上錯誤文字 / 診斷片段」',
-        desc: '若當下沒有完整 .log 檔，只有從黑色主控台視窗或 System Error 彈窗複製出來的幾行文字，可點擊上方第二個書籤切換至文字貼上模式。',
+        step: 'Step 4｜模式二：切換至「模式二：貼上錯誤文字 / 診斷片段」',
+        desc: '若當下沒有完整 .log 檔，只有從黑色主控台視窗或 System Error 彈窗複製出來的幾行文字，可點擊上方第二個切換鈕進入文字貼上模式。',
         img: '/images/guide_diag_4.png'
       },
       {
@@ -226,14 +226,14 @@ const FLOW_GUIDE_DATA = {
       { num: '①', title: '自動載入 V2.04', jumpIdx: 0, items: ['開機預載最新官方表', '支援篩選僅顯示通用碼'] },
       { num: '②', title: '搜尋與雙欄複製', jumpIdx: 1, items: ['中英文 / TestID 搜尋', '雙欄複製直接貼 Excel'] },
       { num: '③', title: '方案一：套用母體', jumpIdx: 2, items: ['寫入新腳本母體積木', '可同步帶入英文描述'] },
-      { num: '④', title: '方案二：寫入 Excel', jumpIdx: 3, items: ['切換第二書籤選 Excel', '接續健檢檔案直接補碼'] },
+      { num: '④', title: '方案二：寫入 Excel', jumpIdx: 3, items: ['切換第二頁籤選 Excel', '接續健檢檔案直接補碼'] },
       { num: '⑤', title: '篩選缺碼並存檔', jumpIdx: 4, items: ['僅看缺 TestID 列', '套用後直接簽章存回'] }
     ],
     detailedSteps: [
       {
         stageIdx: 0,
         step: 'Step 1｜自動載入官方 V2.04 表，輸入關鍵字即時篩選',
-        desc: '系統開機已自動載入最新版 Test Item Code V2.04_20250310.xlsx（共 5,200+ 筆代碼），無需手動選檔。直接在搜尋框輸入中文（如「電壓」「LED」）、英文或 7 碼代碼即可搜尋，並建議勾選「僅顯示通用碼」。',
+        desc: '系統開機已自動載入最新版 Test Item Code V2.04 檔案（共 5,200+ 筆代碼），無需手動選檔。直接在搜尋框輸入中文（如「電壓」「LED」）、英文或 7 碼代碼即可搜尋，並建議勾選「僅顯示通用碼」。',
         img: '/images/guide_tic_1.png'
       },
       {
@@ -244,14 +244,14 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 2,
-        step: 'Step 3｜書籤一：套用至母體積木（寫入新產生腳本）',
+        step: 'Step 3｜方案一：套用至母體積木（寫入新產生腳本）',
         desc: '在右側預設的「🧩 方案一：套用至母體積木」頁籤中，展開欲修改的積木步驟，點擊右側「套用」按鈕即可將合法 7 碼代碼直接寫入新腳本母體，並可勾選同步帶入英文 Description。',
         img: '/images/guide_tic_3.png'
       },
       {
         stageIdx: 3,
-        step: 'Step 4｜書籤二：切換至「方案二：寫入現有 Excel」',
-        desc: '若是要補齊既有的 TestFlow.xlsx 檔案（例如稽核抓出缺少第 16 欄 TestID），請點擊右側第二個書籤「📄 方案二：寫入現有 Excel」。',
+        step: 'Step 4｜方案二：切換至「方案二：寫入現有 Excel」',
+        desc: '若是要補齊既有的 TestFlow.xlsx 檔案（例如稽核抓出缺少第 16 欄 TestID），請點擊右側第二個分頁「📄 方案二：寫入現有 Excel」。',
         img: '/images/guide_tic_4.png'
       },
       {
