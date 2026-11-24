@@ -1551,13 +1551,12 @@ def run_all_verifications():
                   and 'id="sfisQuickAddBox" style="background:#FFFFFF;' in sfis_hmi_js,
                   "v0.8.037 模擬內網具瀏覽器備援必 PASS 引擎＋人機顯著變色切換（新增步驟列維持白底不變色）")
 
-            # [v0.8.038] 驗證撲克牌排序條 + 取消卡片重複吐回 + 左下終端自然延伸無固定高度 + GET 空槽折疊
-            check("sfis-poker-chip" in app_css and 'id="sfisMiniDeckBar"' in sfis_hmi_js
-                  and "sfisSetDragSortMode" in sfis_hmi_js and "sfisMoveStep" in sfis_hmi_js
+            # [v0.8.038] 驗證取消卡片重複吐回 + 左下終端自然延伸無固定高度 + GET 空槽折疊
+            check("sfisSetDragSortMode" in sfis_hmi_js and "sfisMoveStep" in sfis_hmi_js
                   and "<span>吐回：" not in sfis_hmi_js
                   and 'id="sfisLogsContainer"' in sfis_hmi_js and "max-height:240px" not in sfis_hmi_js
                   and "sfis-empty-slots-fold" in sfis_hmi_js,
-                  "v0.8.038 撲克牌積木排序條、移除右側重複吐回框、左下日誌無高度上限延伸與 GET 空欄位自動折疊全數通過")
+                  "v0.8.038 移除右側重複吐回框、左下日誌無高度上限延伸與 GET 空欄位自動折疊全數通過")
 
             # [v0.8.039] 驗證積木卡片去冗字：移除「免額外填寫...」與每卡指令預覽列 (保留底部整合預覽)
             check("免額外填寫，自動檢查目前單顆 ISN" not in sfis_hmi_js
@@ -1602,6 +1601,13 @@ def run_all_verifications():
                   and "returning-pass" in app_css and "sfisPacketLeft" in app_css,
                   "v0.8.042 SFIS 3 秒三段式動畫開關 + 產出 Excel 自動開啟目錄/Excel + ScanBarcode 13 碼與 gUUID 校正完成",
                   f"dut_sb={dut_sb}, folders={len(opened_folders)}, excels={len(launched_excels)}")
+
+            # [v0.8.043] 驗證積木合併為單一垂直可上下拖曳+↑↓排序清單（移除重複橫向撲克條）
+            check('id="sfisMiniDeckBar"' not in sfis_hmi_js
+                  and "sfis-track-card" in app_css and "sfis-track-card" in sfis_hmi_js
+                  and "sfisPrepCardDrag" in sfis_hmi_js and "sfisCardDragOver" in sfis_hmi_js
+                  and "drop-before" in app_css and "drop-after" in app_css,
+                  "v0.8.043 已整合為單一垂直可拖曳＋↑↓箭頭積木清單，消除重複橫向排列")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

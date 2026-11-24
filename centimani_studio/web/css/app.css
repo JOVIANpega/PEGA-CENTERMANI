@@ -2321,3 +2321,26 @@ button:not(:disabled):hover {
   border-right: 5px solid #2563EB !important;
   box-shadow: 4px 0 0 2px rgba(37, 99, 235, 0.35);
 }
+
+/* SFIS 單一垂直可拖曳排序積木卡片（支援上下插牌線＋碰牌對調＋輸入框不衝突） */
+.sfis-track-card {
+  position: relative;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease, border-color 0.14s ease;
+}
+.sfis-track-card.is-dragging {
+  opacity: 0.35;
+  transform: scale(0.985);
+}
+.sfis-track-card.drop-before {
+  border-top: 4px solid #2563EB !important;
+  box-shadow: 0 -4px 0 1px rgba(37, 99, 235, 0.3);
+}
+.sfis-track-card.drop-after {
+  border-bottom: 4px solid #2563EB !important;
+  box-shadow: 0 4px 0 1px rgba(37, 99, 235, 0.3);
+}
+.sfis-track-card.drop-swap {
+  outline: 3px solid #2563EB;
+  background: #EFF6FF !important;
+  transform: scale(1.015);
+}
