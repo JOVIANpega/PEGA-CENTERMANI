@@ -1385,6 +1385,20 @@ def run_all_verifications():
                   "健檢降噪機制正確運作：2,Title 免報死步/缺碼、[Scripts] 自動補變數歸類自動修補、非致命建議分流折疊",
                   f"man={noise_rep['manual_warnings']} auto={noise_rep['auto_fix_warnings']} adv={noise_rep['advisory_warnings']}")
 
+            # [v0.8.030] 驗證頂部 Header 精簡 + 重新整理顯示開關 + 全站 rem 字體連動 + 加長手風琴不跳動 + 紅字強調 NI-DAQmx
+            import re as _re_chk
+            header_sec = index_html.split('<div class="top-header">')[1].split('<div class="app-body">')[0]
+            px_leftover_css = _re_chk.findall(r'font-size\s*:\s*\d+(?:\.\d+)?px', app_css)
+            check('掃描/切換主程式' not in header_sec
+                  and 'id="btnTopRefresh"' in header_sec
+                  and 'setChkTopRefresh' in flow_guide_js
+                  and 'show_top_refresh' in srv_src
+                  and 'html {' in app_css and len(px_leftover_css) == 0
+                  and 'min-height: 440px;' in app_css and 'min-height: 2.7rem;' in app_css
+                  and ('#DC2626' in index_html and 'NI-DAQmx 未安裝' in index_html and '#DC2626' in flow_guide_js),
+                  "頂部精簡＋重新整理開關、全站字體 rem 連動、手風琴加高穩固與 NI-DAQmx 紅字強調全數通過",
+                  f"px_leftover_css={px_leftover_css}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

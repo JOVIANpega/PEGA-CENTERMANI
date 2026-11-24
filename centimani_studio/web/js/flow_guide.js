@@ -2,6 +2,7 @@
 let APP_SETTINGS = {
   auto_fullscreen: true,
   show_flow_guide: true,
+  show_top_refresh: true,
   auto_open_folder: true,
   auto_checksum: true,
   tic_generic_only: false,
@@ -300,6 +301,11 @@ function applyLoadedSettings(s) {
   const chkTic = document.getElementById('chkTicGenericOnly');
   if (chkTic) chkTic.checked = !!APP_SETTINGS.tic_generic_only;
 
+  const btnRef = document.getElementById('btnTopRefresh');
+  if (btnRef) {
+    btnRef.style.display = (APP_SETTINGS.show_top_refresh !== false) ? 'inline-flex' : 'none';
+  }
+
   // 若目前正在瀏覽導覽頁，即時套用新字體大小重繪
   const fgEl = document.getElementById('panelFlowGuide');
   if (fgEl && fgEl.style.display === 'block' && PENDING_FLOW_TARGET && PENDING_FLOW_TARGET.tab) {
@@ -512,6 +518,12 @@ function renderSettingsPanel() {
   const fs = parseInt(s.intro_font_size || 15, 10);
   const box = document.getElementById('panelSettings');
   if (!box) return;
+  const cmProf = (typeof STATE !== 'undefined' && STATE.centimaniProfile) ? STATE.centimaniProfile : {};
+  const niLineHtml = cmProf.exists
+    ? (cmProf.ni_daqmx_installed
+      ? '<span style="color:#15803D; font-weight:700;">✅ NI-DAQmx 系統驅動：已安裝</span>'
+      : '<span style="color:#DC2626; font-weight:800;">⚠️ NI-DAQmx 系統驅動：未安裝（缺 nicaiu.dll，Office 電腦測試 NI6008 請勾 Phase=-1）</span>')
+    : '';
   box.innerHTML = `
     <div style="background:#FFFFFF; border:1.5px solid #E11D48; border-radius:12px; padding:20px 24px; max-width:860px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-bottom:12px; border-bottom:1px solid #E2E8F0; margin-bottom:16px;">
@@ -559,6 +571,14 @@ function renderSettingsPanel() {
           </div>
         </label>
 
+        <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; cursor:pointer;">
+          <input type="checkbox" id="setChkTopRefresh" ${s.show_top_refresh !== false ? 'checked' : ''} onchange="saveAppSettings({show_top_refresh:this.checked}); applyLoadedSettings({show_top_refresh:this.checked});" style="width:18px; height:18px;">
+          <div>
+            <div style="font-weight:700; color:#0F172A; font-size:0.97rem;">頂部導覽列顯示「🔄 重新整理」開發按鈕</div>
+            <div style="font-size:0.85rem; color:#64748B;">開發測試階段建議勾選方便重載；正式上線使用時可取消勾選讓頂部更精簡</div>
+          </div>
+        </label>
+
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px;">
           <div>
             <div style="font-weight:700; color:#0F172A; font-size:0.97rem;">全站介面與教學說明預設字體大小</div>
@@ -576,6 +596,7 @@ function renderSettingsPanel() {
           <div style="flex:1; min-width:220px;">
             <div style="font-weight:700; color:#0F172A; font-size:0.97rem;">本機 Centimani 主程式目錄（檢查 <code>Device\\*.dll</code> 與 <code>LoadScript.dll</code>）</div>
             <div class="mono" style="font-size:0.82rem; color:#334155; margin-top:2px; word-break:break-all;">${s.centimani_dir || '尚未指定（啟動時自動搜尋專案目錄內）'}</div>
+            ${niLineHtml ? `<div style="font-size:0.84rem; margin-top:4px;">${niLineHtml}</div>` : ''}
           </div>
           <button onclick="pickCentimaniDir()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:0.85rem;">📁 指定 / 變更目錄</button>
         </div>
@@ -589,12 +610,15 @@ function renderSettingsPanel() {
 }
 
 async function confirmAndSaveSettingsBtn() {
+  const showRef = document.getElementById('setChkTopRefresh') ? document.getElementById('setChkTopRefresh').checked : true;
   await saveAppSettings({
     auto_fullscreen: document.getElementById('setChkFullscreen').checked,
     show_flow_guide: document.getElementById('setChkFlowGuide').checked,
+    show_top_refresh: showRef,
     auto_open_folder: document.getElementById('setChkOpenFolder').checked,
     tic_generic_only: document.getElementById('setChkTicGeneric').checked
   }, true);
+  applyLoadedSettings({ show_top_refresh: showRef });
 }
 
 async function resetAllSkipGuides() {

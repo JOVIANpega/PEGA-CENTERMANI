@@ -341,21 +341,21 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
 
   const highlightsHtml = (prof.highlights || []).map(h => `
     <div style="flex:1; min-width:150px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 10px;">
-      <div style="font-size:11.5px; color:#64748B; font-weight:700;">${h.label}</div>
-      <div class="mono" style="font-size:13.5px; color:#0F172A; font-weight:700; margin-top:2px;">${h.value}</div>
+      <div style="font-size:0.77rem; color:#64748B; font-weight:700;">${h.label}</div>
+      <div class="mono" style="font-size:0.9rem; color:#0F172A; font-weight:700; margin-top:2px;">${h.value}</div>
     </div>
   `).join('');
 
   const stepsHtml = (prof.steps || []).map((st, idx) => `
     <div style="flex:1; min-width:160px; display:flex; align-items:flex-start; gap:8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px; padding:8px 10px;">
-      <span style="flex-shrink:0; width:22px; height:22px; border-radius:999px; background:#0284C7; color:#FFFFFF; font-weight:700; font-size:12px; display:inline-flex; align-items:center; justify-content:center;">${idx + 1}</span>
+      <span style="flex-shrink:0; width:22px; height:22px; border-radius:999px; background:#0284C7; color:#FFFFFF; font-weight:700; font-size:0.8rem; display:inline-flex; align-items:center; justify-content:center;">${idx + 1}</span>
       <span class="intro-scalable-text" style="font-size:${fs}px; color:#0C4A6E; line-height:1.45;">${st}</span>
     </div>
   `).join('');
 
   const detailsHtml = (prof.details && prof.details.length) ? `
     <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-      <summary style="cursor:pointer; font-weight:700; color:#334155; font-size:13.5px;">📚 進階指令與參數補充說明（點擊展開）</summary>
+      <summary style="cursor:pointer; font-weight:700; color:#334155; font-size:0.9rem;">📚 進階指令與參數補充說明（點擊展開）</summary>
       <ul class="intro-scalable-text" style="margin:8px 0 0 18px; padding:0; font-size:${fs}px; color:#334155; line-height:1.65;">
         ${prof.details.map(d => `<li style="margin-bottom:4px;">${d}</li>`).join('')}
       </ul>
@@ -369,12 +369,12 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
              style="max-height:185px; max-width:100%; border-radius:6px; object-fit:contain;"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div style="display:none; flex-direction:column; align-items:center; justify-content:center; color:#64748B; padding:12px 10px; gap:6px; width:100%;">
-          ${prof.svgIcon || '<div style="font-size:36px;">📷</div>'}
-          <div style="font-weight:700; font-size:13px; color:#334155;">${prof.title}</div>
-          <div style="font-size:11.5px; color:#64748B;">可放置實體照片至 <code class="mono">IMAGES/${instName}.png</code></div>
+          ${prof.svgIcon || '<div style="font-size:2.4rem;">📷</div>'}
+          <div style="font-weight:700; font-size:0.87rem; color:#334155;">${prof.title}</div>
+          <div style="font-size:0.77rem; color:#64748B;">可放置實體照片至 <code class="mono">IMAGES/${instName}.png</code></div>
         </div>
       </div>
-      <div style="font-weight:700; font-size:13.5px; color:#0F172A; margin-bottom:6px;">📋 硬體規格摘要</div>
+      <div style="font-weight:700; font-size:0.9rem; color:#0F172A; margin-bottom:6px;">📋 硬體規格摘要</div>
       <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:${Math.max(12, fs - 1)}px;">
         <tbody>${specsHtml}</tbody>
       </table>
@@ -382,24 +382,24 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">${highlightsHtml}</div>
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; font-size:15px; color:#0F172A; margin-bottom:6px;">📌 主要特色與 Centimani 應用方式</div>
+        <div style="font-weight:700; font-size:1rem; color:#0F172A; margin-bottom:6px;">📌 主要特色與 Centimani 應用方式</div>
         <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:${fs}px; color:#334155; line-height:1.65;">
           ${prof.features.map(f => `<li style="margin-bottom:4px;">${f}</li>`).join('')}
         </ul>
       </div>
       <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; font-size:15px; color:#92400E; margin-bottom:6px;">⚠️ 硬體安全與接線須知</div>
+        <div style="font-weight:700; font-size:1rem; color:#92400E; margin-bottom:6px;">⚠️ 硬體安全與接線須知</div>
         <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:${fs}px; color:#78350F; line-height:1.65;">
           ${prof.safety.map(s => `<li style="margin-bottom:4px;">${s}</li>`).join('')}
         </ul>
       </div>
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">🧭 設定流程預覽</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">🧭 設定流程預覽</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">${stepsHtml}</div>
       </div>
       ${detailsHtml}
       <div style="display:flex; justify-content:flex-end;">
-        <button onclick="proceedFromIntroToConfig()" class="btn btn-primary-green" style="padding:9px 20px; font-size:14.5px;">
+        <button onclick="proceedFromIntroToConfig()" class="btn btn-primary-green" style="padding:9px 20px; font-size:0.97rem;">
           ${prof.nextLabel || '下一步：開始設定 ▶'}
         </button>
       </div>
@@ -693,10 +693,10 @@ function renderInstHmi() {
       const ch = String(i + 1).padStart(2, '0');
       const active = s.feasaCh === ch;
       const inList = usedSet.has(ch);
-      return `<button onclick="INST_HMI_STATE.feasaCh='${ch}';renderInstHmi();" class="btn" style="padding:5px 9px; font-size:12px; ${active ? 'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;' : (inList ? 'background:#DCFCE7;color:#166534;border-color:#22C55E;font-weight:700;' : 'background:#F8FAFC;color:#334155;')}">Ch ${ch}${inList ? ' ✓' : ''}</button>`;
+      return `<button onclick="INST_HMI_STATE.feasaCh='${ch}';renderInstHmi();" class="btn" style="padding:5px 9px; font-size:0.8rem; ${active ? 'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;' : (inList ? 'background:#DCFCE7;color:#166534;border-color:#22C55E;font-weight:700;' : 'background:#F8FAFC;color:#334155;')}">Ch ${ch}${inList ? ' ✓' : ''}</button>`;
     }).join('');
     leftPicker = `
-      <div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">💡 點選光纖測試通道（Ch 01 ~ 10，綠底 ✓ 代表已加入清單）：</div>
+      <div style="font-weight:700; font-size:0.87rem; color:#0F172A; margin:8px 0 6px;">💡 點選光纖測試通道（Ch 01 ~ 10，綠底 ✓ 代表已加入清單）：</div>
       <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">${chButtons}</div>
     `;
     const ledRowsHtml = items.map((it, idx) => `
@@ -713,7 +713,7 @@ function renderInstHmi() {
 
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">① 一鍵加入單色 / RGB 多顆燈號（支援同站一次寫入多組燈號）</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">① 一鍵加入單色 / RGB 多顆燈號（支援同站一次寫入多組燈號）</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
           <button onclick="addFeasaRgbPreset()" class="btn" style="background:#FEF08A; color:#0F172A; border-color:#CA8A04; font-weight:700;">🌈 一鍵加入 RGB 三色 (Ch01紅+02綠+03藍)</button>
           <button onclick="addFeasaColorItem('green')" class="btn" style="background:#DCFCE7; color:#166534; border-color:#86EFAC;">➕ 綠燈 (515~535nm)</button>
@@ -723,16 +723,16 @@ function renderInstHmi() {
           <button onclick="addFeasaColorItem('white')" class="btn" style="background:#F1F5F9; color:#334155; border-color:#CBD5E1;">➕ 白燈 / 純亮度</button>
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-          <label style="font-size:12.5px; font-weight:700;">Title 測項名稱
+          <label style="font-size:0.83rem; font-weight:700;">Title 測項名稱
             <input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
           </label>
-          <label style="font-size:12.5px; font-weight:700;">COM Port (Global.ini)
+          <label style="font-size:0.83rem; font-weight:700;">COM Port (Global.ini)
             <input value="${s.feasaCom}" onchange="INST_HMI_STATE.feasaCom=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;">
           </label>
         </div>
       </div>
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">② 已加入的 LED 測試清單（共 ${items.length} 顆燈號，送出時一次寫入）</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">② 已加入的 LED 測試清單（共 ${items.length} 顆燈號，送出時一次寫入）</div>
         <table class="meas-table">
           <thead><tr><th>Ch</th><th>燈號名稱</th><th>波長下限(nm)</th><th>波長上限(nm)</th><th>亮度下限</th><th>亮度上限</th><th>刪</th></tr></thead>
           <tbody>${ledRowsHtml || '<tr><td colspan="7" style="text-align:center;color:#64748B;">尚未加入 LED 測項，請點上方「➕」或「🌈 RGB 三色」</td></tr>'}</tbody>
@@ -741,54 +741,54 @@ function renderInstHmi() {
     `;
   } else if (s.hmiType === 'ipower') {
     const outBtns = ['1','2','3','4'].map(o => `<button onclick="INST_HMI_STATE.pwrOutlet='${o}';renderInstHmi();" class="btn" style="padding:8px 12px; font-weight:700; ${s.pwrOutlet===o?'background:#2563EB;color:#fff;border-color:#1D4ED8;':'background:#F8FAFC;color:#334155;'}">Outlet ${o}</button>`).join('');
-    leftPicker = `<div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">🔌 點選電源插座迴路：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${outBtns}</div>`;
+    leftPicker = `<div style="font-weight:700; font-size:0.87rem; color:#0F172A; margin:8px 0 6px;">🔌 點選電源插座迴路：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${outBtns}</div>`;
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">電源開關動作與等待時間</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">電源開關動作與等待時間</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
           <button onclick="INST_HMI_STATE.pwrAction='cycle';renderInstHmi();" class="btn" style="${s.pwrAction==='cycle'?'background:#DBEAFE;border-color:#2563EB;color:#1E3A8A;font-weight:700;':''}">🔄 斷電後重啟 (Power Cycle)</button>
           <button onclick="INST_HMI_STATE.pwrAction='on';renderInstHmi();" class="btn" style="${s.pwrAction==='on'?'background:#DCFCE7;border-color:#16A34A;color:#166534;font-weight:700;':''}">⚡ 單純開啟 (Power ON)</button>
           <button onclick="INST_HMI_STATE.pwrAction='off';renderInstHmi();" class="btn" style="${s.pwrAction==='off'?'background:#FEE2E2;border-color:#DC2626;color:#991B1B;font-weight:700;':''}">🛑 單純關閉 (Power OFF)</button>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <label style="font-size:12.5px; font-weight:700;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-          <label style="font-size:12.5px; font-weight:700;">斷電放電延遲 (ms)<input value="${s.pwrDelay}" onchange="INST_HMI_STATE.pwrDelay=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">斷電放電延遲 (ms)<input value="${s.pwrDelay}" onchange="INST_HMI_STATE.pwrDelay=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
         </div>
       </div>
     `;
   } else if (s.hmiType === 'dmm') {
     const fnBtns = ['DCV','ACV','DCI','RES'].map(f => `<button onclick="INST_HMI_STATE.dmmFunc='${f}';renderInstHmi();" class="btn" style="padding:7px 10px; font-weight:700; ${s.dmmFunc===f?'background:#2563EB;color:#fff;border-color:#1D4ED8;':'background:#F8FAFC;color:#334155;'}">${f}</button>`).join('');
-    leftPicker = `<div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">📏 點選量測檔位：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${fnBtns}</div>`;
+    leftPicker = `<div style="font-weight:700; font-size:0.87rem; color:#0F172A; margin:8px 0 6px;">📏 點選量測檔位：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${fnBtns}</div>`;
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">量測通道與合格上下限</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">量測通道與合格上下限</div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
-          <label style="font-size:12.5px; font-weight:700;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-          <label style="font-size:12.5px; font-weight:700;">通道編號 (Ch)<input value="${s.dmmCh}" onchange="INST_HMI_STATE.dmmCh=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-          <label style="font-size:12.5px; font-weight:700;">變數名稱<input value="${s.dmmVar}" onchange="INST_HMI_STATE.dmmVar=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-          <label style="font-size:12.5px; font-weight:700;">下限 Min<input value="${s.dmmMin}" onchange="INST_HMI_STATE.dmmMin=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-          <label style="font-size:12.5px; font-weight:700;">上限 Max<input value="${s.dmmMax}" onchange="INST_HMI_STATE.dmmMax=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">通道編號 (Ch)<input value="${s.dmmCh}" onchange="INST_HMI_STATE.dmmCh=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">變數名稱<input value="${s.dmmVar}" onchange="INST_HMI_STATE.dmmVar=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">下限 Min<input value="${s.dmmMin}" onchange="INST_HMI_STATE.dmmMin=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+          <label style="font-size:0.83rem; font-weight:700;">上限 Max<input value="${s.dmmMax}" onchange="INST_HMI_STATE.dmmMax=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
         </div>
       </div>
     `;
   } else if (s.hmiType === 'dio') {
-    const pinBtns = Array.from({length: 8}, (_, i) => `P0.${i}`).map(p => `<button onclick="INST_HMI_STATE.dioPin='${p}';renderInstHmi();" class="btn mono" style="padding:6px 8px; font-size:12px; ${s.dioPin===p?'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;':'background:#F8FAFC;color:#334155;'}">${p}</button>`).join('');
-    leftPicker = `<div style="font-weight:700; font-size:13px; color:#0F172A; margin:8px 0 6px;">🎛️ 點選數位 I/O 腳位：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${pinBtns}</div>`;
+    const pinBtns = Array.from({length: 8}, (_, i) => `P0.${i}`).map(p => `<button onclick="INST_HMI_STATE.dioPin='${p}';renderInstHmi();" class="btn mono" style="padding:6px 8px; font-size:0.8rem; ${s.dioPin===p?'background:#2563EB;color:#fff;border-color:#1D4ED8;font-weight:700;':'background:#F8FAFC;color:#334155;'}">${p}</button>`).join('');
+    leftPicker = `<div style="font-weight:700; font-size:0.87rem; color:#0F172A; margin:8px 0 6px;">🎛️ 點選數位 I/O 腳位：</div><div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">${pinBtns}</div>`;
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-        <div style="font-weight:700; font-size:14px; color:#0F172A; margin-bottom:8px;">DIO 動作設定</div>
+        <div style="font-weight:700; font-size:0.93rem; color:#0F172A; margin-bottom:8px;">DIO 動作設定</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
           <button onclick="INST_HMI_STATE.dioMode='high';renderInstHmi();" class="btn" style="${s.dioMode==='high'?'background:#DCFCE7;border-color:#16A34A;color:#166534;font-weight:700;':''}">▲ 輸出 High (1)</button>
           <button onclick="INST_HMI_STATE.dioMode='low';renderInstHmi();" class="btn" style="${s.dioMode==='low'?'background:#FEE2E2;border-color:#DC2626;color:#991B1B;font-weight:700;':''}">▼ 輸出 Low (0)</button>
           <button onclick="INST_HMI_STATE.dioMode='read';renderInstHmi();" class="btn" style="${s.dioMode==='read'?'background:#DBEAFE;border-color:#2563EB;color:#1E3A8A;font-weight:700;':''}">👁️ 讀取輸入狀態</button>
         </div>
-        <label style="font-size:12.5px; font-weight:700; display:block;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+        <label style="font-size:0.83rem; font-weight:700; display:block;">Title 測項名稱<input value="${s.titleName}" onchange="INST_HMI_STATE.titleName=this.value;renderInstHmi();" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
       </div>
     `;
   } else if (s.hmiType === 'rf') {
     leftPicker = `
       <div style="margin-top:10px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px; padding:10px;">
-        <div style="font-weight:700; font-size:13px; color:#0369A1; margin-bottom:6px;">🔌 RF 實體接線方式圖解</div>
+        <div style="font-weight:700; font-size:0.87rem; color:#0369A1; margin-bottom:6px;">🔌 RF 實體接線方式圖解</div>
         <svg viewBox="0 0 340 128" style="width:100%; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:4px;">
           <rect x="8" y="14" width="76" height="42" rx="5" fill="#1E293B"/>
           <text x="46" y="33" fill="#FFFFFF" font-size="10" text-anchor="middle" font-weight="bold">測試 PC</text>
@@ -807,20 +807,20 @@ function renderInstHmi() {
           <text x="172" y="108" fill="#166534" font-size="8.5" text-anchor="middle" font-weight="bold">PC ⇄ DUT 控板線 (LAN@wl / UART)：下達發包與收包指令</text>
           <text x="240" y="52" fill="#B45309" font-size="7.5" text-anchor="middle">(PathLoss.ini)</text>
         </svg>
-        <ul style="margin:8px 0 0 16px; padding:0; font-size:12px; color:#334155; line-height:1.5;">
+        <ul style="margin:8px 0 0 16px; padding:0; font-size:0.8rem; color:#334155; line-height:1.5;">
           <li><b>RF 同軸線</b>：DUT 天線座 (SMA/IPEX) →（選配 <code>RFSwitch3001</code>）→ IQxel <b>RF1A/RF2A</b>。</li>
           <li><b>儀器控制線</b>：PC RJ45 網口 → IQxel LAN（預設 <code>192.168.100.254</code>）。</li>
           <li><b>控板線</b>：PC → DUT（<code>LAN@wl</code> 下達切換通道、功率與發包）。</li>
         </ul>
       </div>
       <div style="margin-top:8px;">
-        <label style="font-size:12px; font-weight:700; color:#334155; display:block;">Instrument Settings（寫入 Instrument 分頁）：
-          <input value="${s.rfSettings}" onchange="INST_HMI_STATE.rfSettings=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box; font-size:12px;">
+        <label style="font-size:0.8rem; font-weight:700; color:#334155; display:block;">Instrument Settings（寫入 Instrument 分頁）：
+          <input value="${s.rfSettings}" onchange="INST_HMI_STATE.rfSettings=this.value;renderInstHmi();" class="mono" style="width:100%; margin-top:3px; padding:5px 8px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box; font-size:0.8rem;">
         </label>
       </div>
       <details style="margin-top:8px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 10px;">
-        <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#1E3A8A;">📖 相關操作儀器資料（指令與 Marco 21/22 步）</summary>
-        <div style="margin-top:6px; font-size:12px; color:#334155; line-height:1.55;">
+        <summary style="cursor:pointer; font-weight:700; font-size:0.83rem; color:#1E3A8A;">📖 相關操作儀器資料（指令與 Marco 21/22 步）</summary>
+        <div style="margin-top:6px; font-size:0.8rem; color:#334155; line-height:1.55;">
           <div><b>1. Tx 量測流程 (WIFI Tx MCS · 21 步)：</b></div>
           <div>計算 BW 偏移 → <code>LAN@wl chanspec / nrate / txchain / txpwr1 / pkteng_start</code> → <code>:ObtainDevice</code> → <code>:Dev.MeasWIFI</code> 取 <code>Power / FreqErrPPM / EVM</code> → <code>:ReleaseDevice</code></div>
           <div style="margin-top:5px;"><b>2. Rx 靈敏度流程 (WIFI Rx MCS · 22 步)：</b></div>
@@ -857,11 +857,11 @@ function renderInstHmi() {
     rightControls = `
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-          <span style="font-weight:700; font-size:14px; color:#0F172A;">① Tx 射頻發射測試（Marco：WIFI Tx MCS）</span>
+          <span style="font-weight:700; font-size:0.93rem; color:#0F172A;">① Tx 射頻發射測試（Marco：WIFI Tx MCS）</span>
           <div style="display:flex; gap:5px; flex-wrap:wrap;">
-            <button onclick="rfAddPreset('24g_tx')" class="btn" style="padding:3px 9px; font-size:12px; background:#DBEAFE; color:#1E40AF;">+ 2.4G CH1/6/11</button>
-            <button onclick="rfAddPreset('5g_tx')" class="btn" style="padding:3px 9px; font-size:12px; background:#EDE9FE; color:#5B21B6;">+ 5G CH36/100/149</button>
-            <button onclick="INST_HMI_STATE.rfTxTests.push({channel:'6',bw:'20',mcs:'7',antenna:'1',target_pwr:'15',pwr_min:'13',pwr_max:'17',evm_min:'-50',evm_max:'-28'});renderInstHmi();" class="btn btn-primary-green" style="padding:3px 9px; font-size:12px;">+ 新增 Tx</button>
+            <button onclick="rfAddPreset('24g_tx')" class="btn" style="padding:3px 9px; font-size:0.8rem; background:#DBEAFE; color:#1E40AF;">+ 2.4G CH1/6/11</button>
+            <button onclick="rfAddPreset('5g_tx')" class="btn" style="padding:3px 9px; font-size:0.8rem; background:#EDE9FE; color:#5B21B6;">+ 5G CH36/100/149</button>
+            <button onclick="INST_HMI_STATE.rfTxTests.push({channel:'6',bw:'20',mcs:'7',antenna:'1',target_pwr:'15',pwr_min:'13',pwr_max:'17',evm_min:'-50',evm_max:'-28'});renderInstHmi();" class="btn btn-primary-green" style="padding:3px 9px; font-size:0.8rem;">+ 新增 Tx</button>
           </div>
         </div>
         <table class="meas-table">
@@ -871,10 +871,10 @@ function renderInstHmi() {
       </div>
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-          <span style="font-weight:700; font-size:14px; color:#0F172A;">② Rx 射頻接收靈敏度測試（Marco：WIFI Rx MCS）</span>
+          <span style="font-weight:700; font-size:0.93rem; color:#0F172A;">② Rx 射頻接收靈敏度測試（Marco：WIFI Rx MCS）</span>
           <div style="display:flex; gap:5px; flex-wrap:wrap;">
-            <button onclick="INST_HMI_STATE.rfRxTests.push({channel:'6',bw:'20',mcs:'7',antenna:'1',rx_level:'-59'});renderInstHmi();" class="btn" style="padding:3px 9px; font-size:12px; background:#DBEAFE; color:#1E40AF;">+ 2.4G CH6 Rx</button>
-            <button onclick="INST_HMI_STATE.rfRxTests.push({channel:'36',bw:'40',mcs:'7',antenna:'1',rx_level:'-59'});renderInstHmi();" class="btn" style="padding:3px 9px; font-size:12px; background:#EDE9FE; color:#5B21B6;">+ 5G CH36 Rx</button>
+            <button onclick="INST_HMI_STATE.rfRxTests.push({channel:'6',bw:'20',mcs:'7',antenna:'1',rx_level:'-59'});renderInstHmi();" class="btn" style="padding:3px 9px; font-size:0.8rem; background:#DBEAFE; color:#1E40AF;">+ 2.4G CH6 Rx</button>
+            <button onclick="INST_HMI_STATE.rfRxTests.push({channel:'36',bw:'40',mcs:'7',antenna:'1',rx_level:'-59'});renderInstHmi();" class="btn" style="padding:3px 9px; font-size:0.8rem; background:#EDE9FE; color:#5B21B6;">+ 5G CH36 Rx</button>
           </div>
         </div>
         <table class="meas-table">
@@ -912,14 +912,14 @@ function renderInstHmi() {
   right.innerHTML = `
     ${rightControls}
     <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:12px;">
-      <div style="font-weight:700; font-size:13.5px; color:#0F172A; margin-bottom:6px;">📄 將產生的 Centimani 腳本預覽</div>
+      <div style="font-weight:700; font-size:0.9rem; color:#0F172A; margin-bottom:6px;">📄 將產生的 Centimani 腳本預覽</div>
       <table class="meas-table">
         <thead><tr><th>Instrument</th><th>Send</th><th>Ref</th><th>Validation</th><th>ExecMode</th></tr></thead>
         <tbody>${previewRows}</tbody>
       </table>
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
         <button onclick="closeInstHmi()" class="btn" style="background:#E2E8F0; color:#334155;">取消</button>
-        <button onclick="confirmInstHmi()" class="btn btn-primary-green" style="padding:8px 18px; font-size:14px;">✨ 確認加入測試流程</button>
+        <button onclick="confirmInstHmi()" class="btn btn-primary-green" style="padding:8px 18px; font-size:0.93rem;">✨ 確認加入測試流程</button>
       </div>
     </div>
   `;

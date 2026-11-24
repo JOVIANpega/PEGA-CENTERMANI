@@ -369,10 +369,10 @@ function _renderBackToHubBar(titleHtml, themeBg, themeBorder, rightHtml = '') {
   return `
     <div style="background:${themeBg}; border:1.5px solid ${themeBorder}; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 15px; font-size:13.5px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 6px rgba(15,23,42,0.2); cursor:pointer;">
+        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 15px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 6px rgba(15,23,42,0.2); cursor:pointer;">
           ⬅ 返回 5 合 1 主入口
         </button>
-        <div style="font-weight:900; font-size:15.5px; color:#0F172A; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div style="font-weight:900; font-size:1.03rem; color:#0F172A; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           ${titleHtml}
         </div>
       </div>
@@ -389,25 +389,25 @@ function _buildChangeConfirmBoxHtml(entries, ws) {
   }
   const listHtml = changed.map((e, idx) => `
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:5px 10px; background:#FFFFFF; border:1px solid #FDE047; border-radius:5px;">
-      <div style="font-size:12.5px; color:#0F172A;">
+      <div style="font-size:0.83rem; color:#0F172A;">
         <b style="color:#854D0E;">#${idx + 1} [${_escAttr(e.file)}]</b> ${_explainChangeByAi(e, ws)}
       </div>
-      <button onclick="revertSingleIniKey('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}')" class="btn" style="padding:2px 8px; font-size:11.5px; background:#F8FAFC; color:#B91C1C; border:1px solid #FCA5A5; font-weight:700;">↩ 還原此項</button>
+      <button onclick="revertSingleIniKey('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}')" class="btn" style="padding:2px 8px; font-size:0.77rem; background:#F8FAFC; color:#B91C1C; border:1px solid #FCA5A5; font-weight:700;">↩ 還原此項</button>
     </div>
   `).join('');
 
   const issueHtml = issues.map(iss => `
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:6px 10px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px; margin-top:4px;">
-      <span style="font-size:12.5px; color:#92400E; font-weight:700;">⚠️ ${iss.msg}</span>
-      ${iss.fixJs ? `<button onclick="${iss.fixJs}" class="btn" style="padding:3px 10px; font-size:12px; background:#16A34A; color:#FFF; border:none; font-weight:800;">${iss.fixLabel}</button>` : ''}
+      <span style="font-size:0.83rem; color:#92400E; font-weight:700;">⚠️ ${iss.msg}</span>
+      ${iss.fixJs ? `<button onclick="${iss.fixJs}" class="btn" style="padding:3px 10px; font-size:0.8rem; background:#16A34A; color:#FFF; border:none; font-weight:800;">${iss.fixLabel}</button>` : ''}
     </div>
   `).join('');
 
   return `
     <div style="background:#FEF9C3; border:2px solid #EAB308; border-radius:8px; padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <span style="font-weight:900; font-size:13.5px; color:#713F12;">📝 本次已修改項目確認（共 ${changed.length} 處變更）：</span>
-        <button onclick="revertAllIniChanges()" class="btn" style="padding:3px 10px; font-size:12px; background:#FFFFFF; color:#B91C1C; border:1px solid #FCA5A5; font-weight:800;">↩ 全部取消還原</button>
+        <span style="font-weight:900; font-size:0.9rem; color:#713F12;">📝 本次已修改項目確認（共 ${changed.length} 處變更）：</span>
+        <button onclick="revertAllIniChanges()" class="btn" style="padding:3px 10px; font-size:0.8rem; background:#FFFFFF; color:#B91C1C; border:1px solid #FCA5A5; font-weight:800;">↩ 全部取消還原</button>
       </div>
       ${listHtml}
       ${issueHtml}
@@ -575,12 +575,12 @@ function _renderSystemIniFullPageHtml(ws) {
           onchange="setSystemIniValueLive('${key}', this.checked ? '${onVal}' : '${offVal}', true)"
           style="width:18px; height:18px; margin-top:2px; cursor:pointer; accent-color:#16A34A;">
         <div style="flex:1; min-width:0;">
-          <div style="font-weight:800; font-size:13.5px; color:#0F172A; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <div style="font-weight:800; font-size:0.9rem; color:#0F172A; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span>${title}</span>
-            <span class="mono" style="font-size:11.5px; color:${checked ? '#15803D' : '#64748B'};">(${key}=${cur})</span>
-            ${isMod ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #FACC15; font-size:11px; padding:0 5px; border-radius:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            <span class="mono" style="font-size:0.77rem; color:${checked ? '#15803D' : '#64748B'};">(${key}=${cur})</span>
+            ${isMod ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #FACC15; font-size:0.73rem; padding:0 5px; border-radius:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div style="font-size:12px; color:#475569; margin-top:3px;">${subHint}</div>
+          <div style="font-size:0.8rem; color:#475569; margin-top:3px;">${subHint}</div>
         </div>
       </label>
     `;
@@ -593,14 +593,14 @@ function _renderSystemIniFullPageHtml(ws) {
     return `
       <div style="background:${isMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <div>
-          <div style="font-weight:800; font-size:12.5px; color:#0F172A;">
+          <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:11px; padding:0 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:0 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:11px; color:#5B21B6;">[${sec}] ${key}</div>
+          <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[${sec}] ${key}</div>
         </div>
         <input value="${_escAttr(cur)}" onchange="setSystemIniValueLive('${_escAttr(key)}', this.value, true)" class="mono"
-          style="width:${widthPx}px; padding:5px 8px; font-size:13px; font-weight:${isMod ? '800' : '600'}; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
+          style="width:${widthPx}px; padding:5px 8px; font-size:0.87rem; font-weight:${isMod ? '800' : '600'}; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
       </div>
     `;
   };
@@ -628,12 +628,12 @@ function _renderSystemIniFullPageHtml(ws) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <!-- 頂部醒目返回導覽列 -->
       ${_renderBackToHubBar(
-        `<span>🏭 01 / System.ini 過站與廠區設定</span>${sChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800;">已改 ${sChangedCount} 項</span>` : ''}`,
+        `<span>🏭 01 / System.ini 過站與廠區設定</span>${sChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${sChangedCount} 項</span>` : ''}`,
         '#F1F5F9',
         '#CBD5E1',
         `
-          <button onclick="applyAiPresetBundle('eng_offline')" class="btn" style="padding:5px 11px; font-size:12px; background:#FFFFFF; color:#4C1D95; border:1px solid #A78BFA; font-weight:700;">🛠️ 工程調試 (Debug=1)</button>
-          <button onclick="applyAiPresetBundle('mp_sfis_on')" class="btn" style="padding:5px 11px; font-size:12px; background:#6D28D9; color:#FFFFFF; border:none; font-weight:700;">🏭 正式量產 (Debug=0)</button>
+          <button onclick="applyAiPresetBundle('eng_offline')" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#FFFFFF; color:#4C1D95; border:1px solid #A78BFA; font-weight:700;">🛠️ 工程調試 (Debug=1)</button>
+          <button onclick="applyAiPresetBundle('mp_sfis_on')" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:700;">🏭 正式量產 (Debug=0)</button>
         `
       )}
 
@@ -648,19 +648,19 @@ function _renderSystemIniFullPageHtml(ws) {
       <!-- 2. 出廠廠區（簡潔下拉，手動網址收在摺疊區） -->
       <div style="background:${webLinkMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${webLinkMod ? '#EAB308' : '#CBD5E1'}; border-radius:8px; padding:10px 14px; display:flex; flex-direction:column; gap:8px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="font-weight:800; font-size:13.5px; color:#0F172A;">
+          <div style="font-weight:800; font-size:0.9rem; color:#0F172A;">
             🏭 出廠廠區設定
-            ${webLinkMod ? `<span style="background:#FEF08A; color:#854D0E; font-size:11px; padding:1px 6px; border-radius:4px; margin-left:6px;">已變更廠區</span>` : ''}
+            ${webLinkMod ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.73rem; padding:1px 6px; border-radius:4px; margin-left:6px;">已變更廠區</span>` : ''}
           </div>
-          <select onchange="if(this.value) applySfisFactoryPreset(this.value)" style="flex:1; max-width:460px; padding:6px 10px; font-size:13px; font-weight:800; border-radius:6px; border:1.5px solid #6D28D9; background:#F5F3FF; color:#4C1D95; cursor:pointer;">
+          <select onchange="if(this.value) applySfisFactoryPreset(this.value)" style="flex:1; max-width:460px; padding:6px 10px; font-size:0.87rem; font-weight:800; border-radius:6px; border:1.5px solid #6D28D9; background:#F5F3FF; color:#4C1D95; cursor:pointer;">
             <option value="" ${!matchedFactory ? 'selected' : ''}>✏️ 自訂廠區網址...</option>
             ${SFIS_FACTORY_PRESETS.map(fp => `<option value="${fp.id}" ${(matchedFactory && matchedFactory.id === fp.id) ? 'selected' : ''}>${_escAttr(fp.label)}</option>`).join('')}
           </select>
         </div>
-        <details ${!matchedFactory ? 'open' : ''} style="font-size:12px; color:#475569;">
+        <details ${!matchedFactory ? 'open' : ''} style="font-size:0.8rem; color:#475569;">
           <summary style="cursor:pointer; font-weight:700; color:#64748B;">🔗 檢視或手動修改伺服器網址 (<span class="mono">SFIS_WebLink</span>)</summary>
           <input value="${_escAttr(curWebLink)}" onchange="setSystemIniValueLive('SFIS_WebLink', this.value, true)" class="mono"
-            style="width:100%; box-sizing:border-box; margin-top:6px; padding:6px 10px; font-size:12.5px; font-weight:${webLinkMod ? '800' : '500'}; border-radius:5px; border:1.5px solid ${webLinkMod ? '#16A34A' : '#94A3B8'}; background:${webLinkMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
+            style="width:100%; box-sizing:border-box; margin-top:6px; padding:6px 10px; font-size:0.83rem; font-weight:${webLinkMod ? '800' : '500'}; border-radius:5px; border:1.5px solid ${webLinkMod ? '#16A34A' : '#94A3B8'}; background:${webLinkMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
         </details>
       </div>
 
@@ -670,11 +670,11 @@ function _renderSystemIniFullPageHtml(ws) {
         ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 130)}
         <div style="background:${retryMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${retryMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div>
-            <div style="font-weight:800; font-size:12.5px; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
-            <div class="mono" style="font-size:11px; color:#5B21B6;">[System] RetryCount</div>
+            <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.73rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
+            <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[System] RetryCount</div>
           </div>
           <select onchange="setSystemIniValueLive('RetryCount', this.value, true)" class="mono"
-            style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${retryMod ? '#16A34A' : '#94A3B8'}; background:${retryMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
+            style="width:95px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${retryMod ? '#16A34A' : '#94A3B8'}; background:${retryMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
             ${['0', '1', '2', '3', '4', '5'].map(r => `<option value="${r}" ${r === curRetry ? 'selected' : ''}>${r} 次</option>`).join('')}
           </select>
         </div>
@@ -682,20 +682,20 @@ function _renderSystemIniFullPageHtml(ws) {
 
       <!-- 4. 說明書細項分類摺疊引導區（平時免動，需要改細項再點開） -->
       <details ${siteMod ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#334155;">
+        <summary style="cursor:pointer; font-weight:800; font-size:0.87rem; color:#334155;">
           📖 進階細項：iPLAS 廠區代碼、CSV 報表與測試代碼表設定（點此依說明書分類微調）
         </summary>
-        <div style="font-size:12px; color:#64748B; margin:6px 0 10px 0;">
+        <div style="font-size:0.8rem; color:#64748B; margin:6px 0 10px 0;">
           💡 說明書補充：一般只需在上方切換「出廠廠區」與「重測次數」；若需單獨調整 iPLAS 廠區簡碼、關閉 CSV 報表或指定 TestItemCode 檔名，可在此修改。
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
           <div style="background:${siteMod ? '#FEF9C3' : '#FFFFFF'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div>
-              <div style="font-weight:800; font-size:12.5px; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:11px;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
-              <div class="mono" style="font-size:11px; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
+              <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.73rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
+              <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
             </div>
             <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
-              style="width:95px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
+              style="width:95px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
               ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
             </select>
           </div>
@@ -709,7 +709,7 @@ function _renderSystemIniFullPageHtml(ws) {
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px; padding-top:6px; border-top:1px solid #E2E8F0;">
-        <button onclick="saveAndOpenModifiedIni('system')" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+        <button onclick="saveAndOpenModifiedIni('system')" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 存檔並直接彈出 System.ini 記事本
         </button>
       </div>
@@ -735,12 +735,12 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     const checked = (cur === 'true' || cur === '1');
     const isMod = (cur !== orig);
     return `
-      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; border:1.5px solid ${isMod ? '#EAB308' : (checked ? '#2563EB' : '#CBD5E1')}; background:${isMod ? '#FEF9C3' : (checked ? '#DBEAFE' : '#FFFFFF')}; font-weight:800; font-size:13px; color:${checked ? '#1E3A8A' : '#64748B'}; user-select:none;">
+      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; border:1.5px solid ${isMod ? '#EAB308' : (checked ? '#2563EB' : '#CBD5E1')}; background:${isMod ? '#FEF9C3' : (checked ? '#DBEAFE' : '#FFFFFF')}; font-weight:800; font-size:0.87rem; color:${checked ? '#1E3A8A' : '#64748B'}; user-select:none;">
         <input type="checkbox" ${checked ? 'checked' : ''}
           onchange="setGlobalIniValueLive('Settings', '${key}', this.checked ? 'true' : 'false', true)"
           style="width:16px; height:16px; cursor:pointer; accent-color:#2563EB;">
         <span>${slotIdx} 號槽 ${checked ? '啟用' : '停用'}</span>
-        ${isMod ? `<span style="background:#FDE047; color:#854D0E; font-size:10.5px; padding:0 5px; border-radius:999px;">已改</span>` : ''}
+        ${isMod ? `<span style="background:#FDE047; color:#854D0E; font-size:0.7rem; padding:0 5px; border-radius:999px;">已改</span>` : ''}
       </label>
     `;
   };
@@ -760,14 +760,14 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     return `
       <div style="background:${isMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <div>
-          <div style="font-weight:800; font-size:12.5px; color:#0F172A;">
+          <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:11px; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:11px; color:#1E40AF;">[Settings] ${actualKey}</div>
+          <div class="mono" style="font-size:0.73rem; color:#1E40AF;">[Settings] ${actualKey}</div>
         </div>
         <select onchange="setGlobalIniValueLive('Settings', '${actualKey}', this.value, true)" class="mono"
-          style="width:110px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
+          style="width:110px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
           ${opts}
         </select>
       </div>
@@ -784,14 +784,14 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     return `
       <div style="background:${isMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <div>
-          <div style="font-weight:800; font-size:12.5px; color:#0F172A;">
+          <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:11px; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:11px; color:#1E40AF;">[Settings] ${key}</div>
+          <div class="mono" style="font-size:0.73rem; color:#1E40AF;">[Settings] ${key}</div>
         </div>
         <select onchange="setGlobalIniValueLive('Settings', '${key}', this.value, true)" class="mono"
-          style="width:110px; padding:5px 8px; font-size:13px; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
+          style="width:110px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
           ${opts}
         </select>
       </div>
@@ -807,15 +807,15 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     return `
       <div style="background:${isMod ? '#FEFCE8' : '#F8FAFC'}; border:1.5px solid ${isMod ? '#EAB308' : '#CBD5E1'}; border-radius:8px; padding:9px 12px; display:flex; flex-direction:column; gap:6px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-          <span style="font-weight:800; font-size:13px; color:#0F172A;">${label}</span>
+          <span style="font-weight:800; font-size:0.87rem; color:#0F172A;">${label}</span>
           ${isMod
-            ? `<span style="background:#FEF08A; color:#854D0E; font-size:11px; font-weight:700; padding:1px 6px; border-radius:999px; white-space:nowrap;" title="原本值: ${_escAttr(orig)}">已修改 (原: ${_escAttr(orig)})</span>`
-            : `<span class="mono" style="font-size:11px; color:#64748B;">${_escAttr(key)}</span>`
+            ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.73rem; font-weight:700; padding:1px 6px; border-radius:999px; white-space:nowrap;" title="原本值: ${_escAttr(orig)}">已修改 (原: ${_escAttr(orig)})</span>`
+            : `<span class="mono" style="font-size:0.73rem; color:#64748B;">${_escAttr(key)}</span>`
           }
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <input value="${_escAttr(cur)}" onchange="setGlobalIniValueLive('${_escAttr(sec)}', '${_escAttr(key)}', this.value, true)" class="mono"
-            style="flex:1; min-width:0; padding:5px 9px; font-size:13px; font-weight:${isMod ? '800' : '600'}; border-radius:6px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
+            style="flex:1; min-width:0; padding:5px 9px; font-size:0.87rem; font-weight:${isMod ? '800' : '600'}; border-radius:6px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
         </div>
       </div>
     `;
@@ -841,19 +841,19 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <!-- 頂部醒目返回導覽列 -->
       ${_renderBackToHubBar(
-        `<span>🔌 02 / Global.ini 通訊、槽位與韌體版號</span>${gChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:800;">已改 ${gChangedCount} 項</span>` : ''}`,
+        `<span>🔌 02 / Global.ini 通訊、槽位與韌體版號</span>${gChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${gChangedCount} 項</span>` : ''}`,
         '#EFF6FF',
         '#93C5FD',
         `
-          <button onclick="applyAiPresetBundle('sync_pc_ip')" class="btn" style="padding:5px 11px; font-size:12px; background:#FFFFFF; color:#1E40AF; border:1px solid #60A5FA; font-weight:700;">🔗 同步電腦 PCIP_1 同網段</button>
-          <button onclick="openCommModal()" class="btn" style="padding:5px 11px; font-size:12px; background:#FFFFFF; color:#0369A1; border:1px solid #38BDF8; font-weight:700;">🔄 測站 UART@ 批次轉 SSH@</button>
-          <button onclick="addGlobalIniVar()" class="btn" style="padding:5px 11px; font-size:12px; background:#FFFFFF; color:#334155; border:1px solid #94A3B8; font-weight:700;">+ 新增自訂變數</button>
+          <button onclick="applyAiPresetBundle('sync_pc_ip')" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#FFFFFF; color:#1E40AF; border:1px solid #60A5FA; font-weight:700;">🔗 同步電腦 PCIP_1 同網段</button>
+          <button onclick="openCommModal()" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#FFFFFF; color:#0369A1; border:1px solid #38BDF8; font-weight:700;">🔄 測站 UART@ 批次轉 SSH@</button>
+          <button onclick="addGlobalIniVar()" class="btn" style="padding:5px 11px; font-size:0.8rem; background:#FFFFFF; color:#334155; border:1px solid #94A3B8; font-weight:700;">+ 新增自訂變數</button>
         `
       )}
 
       <!-- 1. 測試槽位開關 -->
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:8px 12px;">
-        <span style="font-weight:800; font-size:13px; color:#334155;">🗂️ 測試槽位開關：</span>
+        <span style="font-weight:800; font-size:0.87rem; color:#334155;">🗂️ 測試槽位開關：</span>
         ${mkLoadSlotCheckbox(1)}
         ${mkLoadSlotCheckbox(2)}
         ${mkLoadSlotCheckbox(3)}
@@ -872,7 +872,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
 
       <!-- 3. 進階摺疊 1：專用儀器埠 (FeasaLED / NI 電壓卡) -->
       <details ${auxComChanged ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#1E3A8A;">
+        <summary style="cursor:pointer; font-weight:800; font-size:0.87rem; color:#1E3A8A;">
           🎛️ 進階：光學與電壓卡硬體埠設定（FeasaLED / NI-6008 電壓卡，平時免動）
         </summary>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; margin-top:10px;">
@@ -884,13 +884,13 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
       <!-- 4. 進階摺疊 2：腳本自訂變數與其餘參數（含關鍵字搜尋） -->
       ${(otherScriptKeys.length > 0 || extraEntries.length > 0) ? `
         <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-          <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#64748B;">
+          <summary style="cursor:pointer; font-weight:700; font-size:0.83rem; color:#64748B;">
             📦 進階：腳本自訂變數與其餘參數（共 ${extraEntries.length} 項，點開可用關鍵字快速過濾）
           </summary>
           <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
             <input type="text" id="globalExtraFilterInput" placeholder="🔍 輸入變數名稱或關鍵字過濾（例如：Boot、SKU、capacity）..."
               oninput="filterGlobalExtraVars(this.value)"
-              style="flex:1; max-width:420px; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:12.5px;">
+              style="flex:1; max-width:420px; padding:6px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.83rem;">
           </div>
           <div id="globalExtraVarsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; margin-top:10px;">
             ${extraEntries.map(e => `<div class="global-extra-var-item" data-search="${_escAttr((e.key + ' ' + e.desc).toLowerCase())}">${mkGlobalText(e.section, e.key, e.desc, 130)}</div>`).join('')}
@@ -902,7 +902,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
       <div id="iniSaveResultBanner" style="display:none; background:#DCFCE7; border:1.5px solid #22C55E; border-radius:6px; padding:10px 14px;"></div>
 
       <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px; padding-top:6px; border-top:1px solid #E2E8F0;">
-        <button onclick="saveAndOpenModifiedIni('global')" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+        <button onclick="saveAndOpenModifiedIni('global')" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 存檔並直接彈出 Global.ini 記事本
         </button>
       </div>
@@ -939,29 +939,29 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
     const patPresets = ['[0-9]', '[0-9A-Z]', '[0-9A-Za-z]'];
     const sbHtml = sb.simple ? `
       <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-        <input value="${_escAttr(sb.name)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,true)" class="mono" style="width:58px;padding:4px;font-size:12px;" title="條碼名稱">
-        <input type="number" min="1" max="64" value="${_escAttr(sb.len)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,true)" class="mono" style="width:56px;padding:4px;font-size:12.5px;font-weight:800;color:#1E3A8A;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:4px;" title="直接輸入條碼位數即刻生效"> 碼
-        <select onchange="if(this.value!=='__CUSTOM__'){_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','pat',this.value,true);}" class="mono" style="padding:4px;font-size:12px;">
+        <input value="${_escAttr(sb.name)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,true)" class="mono" style="width:58px;padding:4px;font-size:0.8rem;" title="條碼名稱">
+        <input type="number" min="1" max="64" value="${_escAttr(sb.len)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,true)" class="mono" style="width:56px;padding:4px;font-size:0.83rem;font-weight:800;color:#1E3A8A;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:4px;" title="直接輸入條碼位數即刻生效"> 碼
+        <select onchange="if(this.value!=='__CUSTOM__'){_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','pat',this.value,true);}" class="mono" style="padding:4px;font-size:0.8rem;">
           <option value="[0-9]" ${sb.pat==='[0-9]'?'selected':''}>純數字 [0-9]</option>
           <option value="[0-9A-Z]" ${sb.pat==='[0-9A-Z]'?'selected':''}>大寫英數 [0-9A-Z]</option>
           <option value="[0-9A-Za-z]" ${sb.pat==='[0-9A-Za-z]'?'selected':''}>大小寫 [0-9A-Za-z]</option>
           ${!patPresets.includes(sb.pat) ? `<option value="__CUSTOM__" selected>自訂 (${_escAttr(sb.pat)})</option>` : ''}
         </select>
       </div>
-    ` : `<input value="${_escAttr(sb.raw)}" onchange="STATE.workspace.duts[${i}]['${_escAttr(scanKey)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:12px;box-sizing:border-box;">`;
+    ` : `<input value="${_escAttr(sb.raw)}" onchange="STATE.workspace.duts[${i}]['${_escAttr(scanKey)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:0.8rem;box-sizing:border-box;">`;
 
     return `
       <tr>
         <td style="text-align:center;">
-          <button onclick="toggleDutLoadState(${i})" class="btn" style="padding:4px 12px; font-size:12px; font-weight:700; ${isEnabled ? 'background:#DCFCE7;color:#166534;border-color:#4ADE80;' : 'background:#F1F5F9;color:#64748B;border-color:#CBD5E1;'}">
+          <button onclick="toggleDutLoadState(${i})" class="btn" style="padding:4px 12px; font-size:0.8rem; font-weight:700; ${isEnabled ? 'background:#DCFCE7;color:#166534;border-color:#4ADE80;' : 'background:#F1F5F9;color:#64748B;border-color:#CBD5E1;'}">
             ${isEnabled ? '🟢 啟用' : '⚪ 停用'}
           </button>
         </td>
-        <td><input value="${_escAttr(d['Station']||'')}" onchange="onDutStationInputChange(${i}, this.value)" class="mono" style="width:155px;padding:4px;font-size:12.5px;" title="格式為「工作表名稱,槽位」，更改名稱可自動建立對應工作表"></td>
-        <td><input value="${_escAttr(d['DUT Name']||'')}" onchange="STATE.workspace.duts[${i}]['DUT Name']=this.value" class="mono" style="width:170px;padding:4px;font-size:12.5px;"></td>
+        <td><input value="${_escAttr(d['Station']||'')}" onchange="onDutStationInputChange(${i}, this.value)" class="mono" style="width:155px;padding:4px;font-size:0.83rem;" title="格式為「工作表名稱,槽位」，更改名稱可自動建立對應工作表"></td>
+        <td><input value="${_escAttr(d['DUT Name']||'')}" onchange="STATE.workspace.duts[${i}]['DUT Name']=this.value" class="mono" style="width:170px;padding:4px;font-size:0.83rem;"></td>
         <td>${sbHtml}</td>
-        <td><input value="${_escAttr(d['SFIS_DeviceID']||'')}" onchange="STATE.workspace.duts[${i}]['SFIS_DeviceID']=this.value" class="mono" style="width:105px;padding:4px;font-size:12.5px;"></td>
-        <td><button class="btn" style="padding:3px 8px;font-size:12px;" onclick="STATE.workspace.duts.splice(${i},1);renderGlobalEditorPanel();">✕</button></td>
+        <td><input value="${_escAttr(d['SFIS_DeviceID']||'')}" onchange="STATE.workspace.duts[${i}]['SFIS_DeviceID']=this.value" class="mono" style="width:105px;padding:4px;font-size:0.83rem;"></td>
+        <td><button class="btn" style="padding:3px 8px;font-size:0.8rem;" onclick="STATE.workspace.duts.splice(${i},1);renderGlobalEditorPanel();">✕</button></td>
       </tr>
     `;
   }).join('');
@@ -988,7 +988,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
     const checksHtml = stationNames.map(sn => {
       const isChecked = curMounted.includes(sn);
       return `
-        <label style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:4px; border:1px solid ${isChecked ? '#4ADE80' : '#CBD5E1'}; background:${isChecked ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer; font-size:12px; font-weight:${isChecked ? '800' : '500'}; color:${isChecked ? '#14532D' : '#475569'};">
+        <label style="display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:4px; border:1px solid ${isChecked ? '#4ADE80' : '#CBD5E1'}; background:${isChecked ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer; font-size:0.8rem; font-weight:${isChecked ? '800' : '500'}; color:${isChecked ? '#14532D' : '#475569'};">
           <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleInstMountStation(${idx}, '${_escAttr(sn)}', this.checked)" style="cursor:pointer; accent-color:#16A34A;">
           <span>${_escAttr(sn)}</span>
         </label>
@@ -998,13 +998,13 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
       <tr>
         <td>
           <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
-            ${checksHtml || '<span style="color:#94A3B8;font-size:12px;">尚無測試站</span>'}
+            ${checksHtml || '<span style="color:#94A3B8;font-size:0.8rem;">尚無測試站</span>'}
           </div>
         </td>
         <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')}</td>
-        <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:245px;padding:4px;font-size:12px;" placeholder="例：192.168.100.254 或 COM Port"></td>
-        <td class="mono" style="font-size:12px;color:#475569;">${_escAttr(inst['Functions']||'')}</td>
-        <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${idx}]['Version']=this.value" class="mono" style="width:78px;padding:4px;font-size:12px;"></td>
+        <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:245px;padding:4px;font-size:0.8rem;" placeholder="例：192.168.100.254 或 COM Port"></td>
+        <td class="mono" style="font-size:0.8rem;color:#475569;">${_escAttr(inst['Functions']||'')}</td>
+        <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${idx}]['Version']=this.value" class="mono" style="width:78px;padding:4px;font-size:0.8rem;"></td>
       </tr>
     `;
   };
@@ -1016,20 +1016,20 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
         `<span>📋 05 / Excel 站別開關、新增測試站與 ISN 條碼設定</span>`,
         '#F0FDF4',
         '#86EFAC',
-        `<button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:6px 14px; font-size:13px; font-weight:800;">+ 新增測試站 (同時建立 Excel 工作表)</button>`
+        `<button onclick="addNewDutRow()" class="btn btn-primary-green" style="padding:6px 14px; font-size:0.87rem; font-weight:800;">+ 新增測試站 (同時建立 Excel 工作表)</button>`
       )}
 
       <!-- 統一批量設定列 -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:8px; padding:10px 14px;">
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13px;">
-          <span style="font-weight:800; color:#1E3A8A;">🔢 統一設定所有站別 ISN 條碼（目前 <span style="color:#DC2626;font-size:15px;">${_escAttr(topIsnLen)}</span> 碼）：</span>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.87rem;">
+          <span style="font-weight:800; color:#1E3A8A;">🔢 統一設定所有站別 ISN 條碼（目前 <span style="color:#DC2626;font-size:1rem;">${_escAttr(topIsnLen)}</span> 碼）：</span>
           <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="${_escAttr(topIsnLen)}" oninput="batchApplyDutIsn(false)" class="mono" style="width:62px;padding:4px 7px;font-weight:800;color:#1E3A8A;"></label>
           <label>規則 <select id="geIsnPat" class="mono" style="padding:4px 7px;">
             <option value="[0-9]" ${topIsnPat==='[0-9]'?'selected':''}>[0-9]（純數字）</option>
             <option value="[0-9A-Z]" ${topIsnPat==='[0-9A-Z]'?'selected':''}>[0-9A-Z]（大寫英數字）</option>
             <option value="[0-9A-Za-z]" ${topIsnPat==='[0-9A-Za-z]'?'selected':''}>[0-9A-Za-z]（大小寫英數字）</option>
           </select></label>
-          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 16px; font-size:13px; font-weight:800;">
+          <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 16px; font-size:0.87rem; font-weight:800;">
             ✔ 套用設定並更新體檢
           </button>
         </div>
@@ -1045,7 +1045,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
 
       <!-- 進階折疊：各測試站掛載的外部儀器與連線設定（白話版） -->
       <details style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13.5px; color:#78350F;">
+        <summary style="cursor:pointer; font-weight:800; font-size:0.9rem; color:#78350F;">
           🔧 進階：各測試站掛載的外部儀器與連線設定（使用中 ${activeInsts.length} 台，點此展開微調）
         </summary>
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
@@ -1060,7 +1060,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
           </div>
           ${idleInsts.length > 0 ? `
             <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:6px 10px;">
-              <summary style="cursor:pointer; font-weight:700; font-size:12px; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
+              <summary style="cursor:pointer; font-weight:700; font-size:0.8rem; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
               <div style="overflow:auto; max-height:260px; margin-top:6px;">
                 <table class="meas-table" style="margin:0;">
                   <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>功能</th><th>驅動版本</th></tr></thead>
@@ -1098,17 +1098,17 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
     <tr>
       <td>
         <div style="display:flex; gap:4px; align-items:center;">
-          <input value="${_escAttr(inst['Mount']||'')}" onchange="STATE.workspace.instruments[${i}]['Mount']=this.value" class="mono" style="width:145px;padding:4px;font-size:12px;" placeholder="站名">
-          <select onchange="appendMountStation(${i}, this.value); this.value='';" style="padding:3px;font-size:11.5px;max-width:90px;">
+          <input value="${_escAttr(inst['Mount']||'')}" onchange="STATE.workspace.instruments[${i}]['Mount']=this.value" class="mono" style="width:145px;padding:4px;font-size:0.8rem;" placeholder="站名">
+          <select onchange="appendMountStation(${i}, this.value); this.value='';" style="padding:3px;font-size:0.77rem;max-width:90px;">
             <option value="">+站別</option>
             ${stationNames.map(sn => `<option value="${_escAttr(sn)}">${sn}</option>`).join('')}
           </select>
         </div>
       </td>
       <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')}</td>
-      <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${i}]['Settings']=this.value" class="mono" style="width:260px;padding:4px;font-size:12px;"></td>
-      <td class="mono" style="font-size:12px;">${_escAttr(inst['Functions']||'')}</td>
-      <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${i}]['Version']=this.value" class="mono" style="width:80px;padding:4px;font-size:12px;"></td>
+      <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${i}]['Settings']=this.value" class="mono" style="width:260px;padding:4px;font-size:0.8rem;"></td>
+      <td class="mono" style="font-size:0.8rem;">${_escAttr(inst['Functions']||'')}</td>
+      <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${i}]['Version']=this.value" class="mono" style="width:80px;padding:4px;font-size:0.8rem;"></td>
     </tr>
   `;
 
@@ -1116,12 +1116,12 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <div style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:13px; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
+          <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:0.87rem; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
             ⬅ 返回 5 格設定入口
           </button>
-          <span style="font-weight:900; font-size:15.5px; color:#78350F;">🎛️ 05-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
+          <span style="font-weight:900; font-size:1.03rem; color:#78350F;">🎛️ 05-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
         </div>
-        <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:13px; font-weight:800;">
+        <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:0.87rem; font-weight:800;">
           ✔ 套用設定並更新體檢
         </button>
       </div>
@@ -1133,7 +1133,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
         </table>
         ${idleInsts.length > 0 ? `
           <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 12px;">
-            <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
+            <summary style="cursor:pointer; font-weight:700; font-size:0.83rem; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
             <table class="meas-table" style="margin-top:6px;">
               <thead><tr><th>Mount</th><th>儀器名稱</th><th>Settings</th><th>Functions</th><th>Version</th></tr></thead>
               <tbody>${idleInsts.map(renderInstRow).join('')}</tbody>
@@ -1143,8 +1143,8 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
-        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:13.5px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
-        <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:14.5px; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+        <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回 5 合 1 主入口</button>
+        <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
           💾 寫入並匯出 Excel (*_FIXED.xlsx)
         </button>
       </div>
@@ -1200,8 +1200,8 @@ async function saveAndOpenModifiedIni(targetMode) {
   if (banner) {
     banner.style.display = 'block';
     banner.innerHTML = `
-      <div style="font-weight:800; color:#14532D; font-size:13.5px;">🎉 已成功將修改寫入硬碟，並直接以記事本 (Notepad) 置頂彈出剛剛修改的 INI 檔案！</div>
-      <div class="mono" style="font-size:12px; color:#166534; margin-top:4px; word-break:break-all;">
+      <div style="font-weight:800; color:#14532D; font-size:0.9rem;">🎉 已成功將修改寫入硬碟，並直接以記事本 (Notepad) 置頂彈出剛剛修改的 INI 檔案！</div>
+      <div class="mono" style="font-size:0.8rem; color:#166534; margin-top:4px; word-break:break-all;">
         • Global.ini：${_escAttr(data.global_ini_path)}<br>
         • System.ini：${_escAttr(data.system_ini_path)}
       </div>

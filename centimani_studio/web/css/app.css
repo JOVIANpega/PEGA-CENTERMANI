@@ -1,5 +1,5 @@
   :root {
-    --app-font-size: 15px;
+    --app-font-size:1rem;
     --app-scale: 1;
     --slate-900: #0F172A;
     --slate-800: #1E293B;
@@ -18,6 +18,9 @@
     --red-600: #DC2626;
   }
   * { box-sizing: border-box; }
+  html {
+    font-size: var(--app-font-size, 15px);
+  }
   body {
     margin: 0;
     padding: 0;
@@ -67,7 +70,7 @@
     gap: 14px;
   }
   .brand-title {
-    font-size: 18px;
+    font-size:1.2rem;
     font-weight: 700;
     color: #FFFFFF;
   }
@@ -76,7 +79,7 @@
     color: #DBEAFE;
     padding: 3px 8px;
     border-radius: 5px;
-    font-size: 12px;
+    font-size:0.8rem;
     border: 1px solid #3B82F6;
   }
 
@@ -117,7 +120,7 @@
     border: 1px solid #475569;
     border-radius: 6px;
     padding: 6px 8px;
-    font-size: 12px;
+    font-size:0.8rem;
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -141,7 +144,7 @@
     color: #94A3B8;
     cursor: pointer;
     font-weight: 700;
-    font-size: 14px;
+    font-size:0.93rem;
     border: 1px solid transparent;
     transition: all 0.16s ease;
     user-select: none;
@@ -174,7 +177,7 @@
     z-index: 999;
     pointer-events: none;
     line-height: 1.5;
-    font-size: 13px;
+    font-size:0.87rem;
     font-weight: 400;
     animation: fadeIn 0.14s ease-out;
   }
@@ -184,7 +187,7 @@
   .popup-card h4 {
     margin: 0 0 6px 0;
     color: #38BDF8;
-    font-size: 14.5px;
+    font-size:0.97rem;
     font-weight: 700;
     border-bottom: 1px solid #334155;
     padding-bottom: 4px;
@@ -219,7 +222,7 @@
     z-index: 999;
     pointer-events: none;
     line-height: 1.5;
-    font-size: 12.5px;
+    font-size:0.83rem;
     font-weight: 400;
     text-align: left;
     white-space: normal;
@@ -503,7 +506,7 @@
     padding: 7px 10px;
     border: 1px solid #CBD5E1;
     border-radius: 5px;
-    font-size: 14px;
+    font-size:0.93rem;
     font-family: inherit;
   }
 
@@ -539,13 +542,13 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
   }
   .kpi-label {
-    font-size: 11.5px;
+    font-size:0.77rem;
     color: #64748B;
     font-weight: 700;
     margin-bottom: 3px;
   }
   .kpi-value {
-    font-size: 15.5px;
+    font-size:1.03rem;
     color: #0F172A;
     font-weight: 700;
     font-family: "Consolas", monospace;
@@ -576,7 +579,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    font-size: 12px;
+    font-size:0.8rem;
     font-weight: 700;
     font-family: "Consolas", monospace;
   }
@@ -589,7 +592,7 @@
   .filter-pill {
     padding: 5px 14px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size:0.87rem;
     font-weight: 700;
     cursor: pointer;
     border: 1px solid #CBD5E1;
@@ -669,7 +672,7 @@
     border: 1px dashed #CBD5E1;
     border-radius: 6px;
     padding: 6px 12px;
-    font-size: 12.5px;
+    font-size:0.83rem;
     color: #475569;
     cursor: pointer;
     display: flex;
@@ -700,7 +703,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
   }
   .kpi-panel-title {
-    font-size: 12.5px;
+    font-size:0.83rem;
     font-weight: 700;
     color: #64748B;
     border-bottom: 1px solid #E2E8F0;
@@ -748,24 +751,24 @@
   user-select: none;
 }
 .home-card .hc-icon {
-  font-size: 26px;
+  font-size:1.73rem;
   filter: grayscale(100%);
   opacity: 0.75;
   transition: filter 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
 }
 .home-card .hc-title {
-  font-size: 16px;
+  font-size:1.07rem;
   font-weight: 700;
   color: #334155;
   transition: color 0.18s ease;
 }
 .home-card .hc-sub {
-  font-size: 12.5px;
+  font-size:0.83rem;
   color: #64748B;
   margin-top: 2px;
 }
 .home-card .hc-arrow {
-  font-size: 15px;
+  font-size:1rem;
   font-weight: 700;
   opacity: 0;
   transform: translateX(-6px);
@@ -833,7 +836,7 @@
 
 .top-home-btn {
   padding: 4px 12px;
-  font-size: 13px;
+  font-size:0.87rem;
   background: #1E293B;
   color: #F8FAFC;
   border: 1px solid #475569;
@@ -855,7 +858,7 @@
 }
 .top-nav-pill {
   padding: 5px 12px;
-  font-size: 13px;
+  font-size:0.87rem;
   font-weight: 700;
   border-radius: 6px;
   background: #1E293B;
@@ -901,7 +904,7 @@
 }
 .cyber-card .cc-num {
   font-family: "Consolas", monospace;
-  font-size: 12px;
+  font-size:0.8rem;
   font-weight: 700;
   padding: 3px 7px;
   border-radius: 5px;
@@ -910,18 +913,18 @@
   border: 1px solid #334155;
 }
 .cyber-card .cc-icon {
-  font-size: 24px;
+  font-size:1.6rem;
   filter: grayscale(100%);
   opacity: 0.7;
   transition: filter 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
 }
 .cyber-card .cc-title {
-  font-size: 15.5px;
+  font-size:1.03rem;
   font-weight: 700;
   color: #CBD5E1;
 }
 .cyber-card .cc-sub {
-  font-size: 12px;
+  font-size:0.8rem;
   color: #64748B;
   margin-top: 2px;
 }
@@ -988,7 +991,7 @@
 .acc-row {
   display: flex;
   gap: 14px;
-  min-height: 320px;
+  min-height: 440px;
   align-items: stretch;
 }
 @media (max-width: 960px) {
@@ -996,18 +999,21 @@
 }
 .acc-card {
   position: relative;
-  flex: 1.15 1 0%;
+  flex: 1.25 1 0%;
   min-width: 0;
   background: #E2E8F0;
   border: 1.5px solid #CBD5E1;
   border-radius: 12px;
-  padding: 20px 16px;
+  padding: 22px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
   cursor: pointer;
   transition: flex 0.32s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+}
+.acc-card > div:first-child {
+  min-height: 9.2rem;
 }
 .acc-card .acc-num {
   font-family: "Consolas", monospace;
@@ -1024,6 +1030,7 @@
 }
 .acc-card .acc-title {
   font-size: 1.12rem;
+  min-height: 2.7rem;
   font-weight: 700;
   color: #334155;
   line-height: 1.32;
@@ -1052,7 +1059,7 @@
 }
 .acc-card.active,
 .acc-card:hover {
-  flex: 2.35 1 0%;
+  flex: 2.15 1 0%;
   box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.14);
 }
 .acc-card.active .acc-icon,
@@ -1215,7 +1222,7 @@ button:not(:disabled):hover {
   background: #FEF3C7 !important;
 }
 .bs-card-moved-tag {
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   color: #92400E;
   background: #FDE68A;
@@ -1256,7 +1263,7 @@ button:not(:disabled):hover {
 }
 .bs-paused-badge {
   display: inline-block;
-  font-size: 10.5px;
+  font-size:0.7rem;
   font-weight: 800;
   color: #92400E;
   background: #FEF3C7;
@@ -1270,7 +1277,7 @@ button:not(:disabled):hover {
   gap: 2px;
   height: 18px;
   padding: 0 5px;
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   background: #FEF3C7;
   color: #92400E;
@@ -1320,7 +1327,7 @@ button:not(:disabled):hover {
   right: -8px;
   background: #2563EB;
   color: #FFFFFF;
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 999px;
@@ -1347,7 +1354,7 @@ button:not(:disabled):hover {
   text-align: center;
   font-family: Consolas, monospace;
   font-weight: 800;
-  font-size: 11px;
+  font-size:0.73rem;
   color: #15803D;
   background: #FFFFFF;
   border: 1px solid #86EFAC;
@@ -1395,7 +1402,7 @@ button:not(:disabled):hover {
   width: 20px;
   height: 18px;
   padding: 0;
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   background: #FFFFFF;
   color: #334155;
@@ -1417,7 +1424,7 @@ button:not(:disabled):hover {
 
 /* 步驟步數膠囊標籤 */
 .bs-card-steps-pill {
-  font-size: 11px;
+  font-size:0.73rem;
   font-weight: 800;
   color: #166534;
   background: #DCFCE7;
@@ -1477,7 +1484,7 @@ button:not(:disabled):hover {
   right: -6px;
   background: #2563EB;
   color: #FFFFFF;
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 999px;
@@ -1499,7 +1506,7 @@ button:not(:disabled):hover {
   right: -6px;
   background: #D97706;
   color: #FFFFFF;
-  font-size: 10px;
+  font-size:0.67rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 999px;
@@ -1615,7 +1622,7 @@ button:not(:disabled):hover {
   align-items: center;
   color: #7C3AED;
   font-weight: 900;
-  font-size: 14px;
+  font-size:0.93rem;
   letter-spacing: -1px;
   user-select: none;
   opacity: 0.85;
@@ -1630,7 +1637,7 @@ button:not(:disabled):hover {
   border: 2px dashed #7C3AED;
   border-radius: 10px;
   color: #5B21B6;
-  font-size: 12.5px;
+  font-size:0.83rem;
   font-weight: 900;
   animation: legoPulse 1.2s infinite ease-in-out;
   pointer-events: none;
@@ -1797,7 +1804,7 @@ button:not(:disabled):hover {
   height: 22px;
   color: #7C3AED;
   font-weight: 900;
-  font-size: 12px;
+  font-size:0.8rem;
   line-height: 1;
   user-select: none;
   text-shadow: 0 0 8px rgba(124, 58, 237, 0.35);
@@ -1813,7 +1820,7 @@ button:not(:disabled):hover {
   align-items: center;
   justify-content: center;
   color: #5B21B6;
-  font-size: 12.5px;
+  font-size:0.83rem;
   font-weight: 900;
   animation: legoPulse 1.2s infinite ease-in-out;
   pointer-events: none;
@@ -1883,7 +1890,7 @@ button:not(:disabled):hover {
   background: #EDE9FE;
   border: 1.5px solid #A78BFA;
   color: #5B21B6;
-  font-size: 16px;
+  font-size:1.07rem;
   font-weight: 900;
   line-height: 1;
   box-shadow: 0 2px 6px rgba(124, 58, 237, 0.16);
