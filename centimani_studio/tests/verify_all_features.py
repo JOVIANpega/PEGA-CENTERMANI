@@ -1656,6 +1656,18 @@ def run_all_verifications():
                   and "kind: 'rw'" not in cat_sec,
                   "v0.8.046 動畫區即時顯示 GET/WRITE 字串、5秒全流程一次跑完、上方膠囊可拖入牌桌且已移除冗餘 R/W")
 
+            # [v0.8.047] 驗證 SFIS 範本保留 Switch/Instrument 未掛載列（解決 LoadScript.MainScript Read Excel for Switch failed / File Name doestn't set）且 :CloseMessage Reply=0
+            close_rows = [r for r in sf_rows_all if ":CloseMessage" in str(r[6] or "")]
+            sw_ws = wb_sf["Switch"]
+            inst_ws = wb_sf["Instrument"]
+            sw_mount = sw_ws.cell(2, 1).value
+            inst_mount = inst_ws.cell(2, 1).value
+            check(sw_ws.max_row >= 2 and inst_ws.max_row >= 2
+                  and not (sw_mount or "").strip() and not (inst_mount or "").strip()
+                  and bool(close_rows) and str(close_rows[0][sf_reply_idx] or "") == "0",
+                  "v0.8.047 SFIS Excel 保留 Switch/Instrument 未掛載列(Mount空值)與 :CloseMessage Reply=0，徹底避免 CentimaniSystem 報 File Name doestn't set",
+                  f"sw_rows={sw_ws.max_row}, inst_rows={inst_ws.max_row}, close={close_rows}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

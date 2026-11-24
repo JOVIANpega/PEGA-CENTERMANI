@@ -730,6 +730,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                 tid="OTFX064",
                 em="8",
                 phase_val=str(phase_num),
+                reply_val="0",
             )
             phase_num += 1
 
@@ -737,17 +738,17 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
         rows.insert(0, {
             "Index": "000",
             "Phase": str(max(0, int(start_phase))),
-            "Title": "0,SFIS ShowISN",
+            "Title": "0,CheckRoute",
             "Description": "Display ISN on Centimani UI",
             "Instrument": "",
             "Switch": "",
             "Send": ':ShowISN,"*(ISN)"',
-            "Reply": "",
+            "Reply": "0",
             "EndPrompt": "",
             "Ref": "",
             "Validation": "",
             "Waiting": "0",
-            "ExecMode": "1",
+            "ExecMode": "0",
             "Parameter": "",
             "Marco": "",
             "TestID": "B7PL025",

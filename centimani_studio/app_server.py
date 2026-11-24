@@ -994,7 +994,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.046",
+                "server_build": "Build v0.8.047",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1693,7 +1693,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.046")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.047")
 
                 self._send_json({
                     "status": "ok",
@@ -1955,7 +1955,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.046")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.047")
 
                 self._send_json({
                     "status": "ok",
@@ -2204,7 +2204,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.046")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.047")
 
                 self._send_json({
                     "status": "ok",
@@ -2445,8 +2445,10 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 ws = get_golden_mother(proj, st)
                 ws["duts"] = ws["duts"][:1]
-                ws["instruments"] = []
-                ws["switches"] = []
+                # Centimani LoadScript.MainScript.ExcelToDTs 要求 Switch 與 Instrument 分頁皆至少須有 1 列資料（否則報 Read Excel for Switch failed / File Name doestn't set.），
+                # 保留 Mount="" (未掛載) 即可通過讀檔檢查且不觸發任何硬體 DLL 載入。
+                ws["switches"] = [dict(x, Mount="") for x in (ws.get("switches") or [])[:1]]
+                ws["instruments"] = [dict(x, Mount="") for x in (ws.get("instruments") or [])[:2]]
                 cfg_op = str(cfg.get("op", "S09166390") or "S09166390").strip()
                 cfg_isn = str(cfg.get("isn", "") or "").strip()
                 isn_len = len(cfg_isn) if (1 <= len(cfg_isn) <= 32) else 13
@@ -2477,7 +2479,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "Instrument": "",
                     "Switch": "",
                     "Send": ":CloseMessage",
-                    "Reply": "",
+                    "Reply": "0",
                     "EndPrompt": "",
                     "Ref": "",
                     "Validation": "",
@@ -2510,7 +2512,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.046")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.047")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2676,7 +2678,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.046) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.047) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
