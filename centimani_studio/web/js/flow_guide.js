@@ -25,16 +25,16 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-blue',
     btnLabel: '開始使用：腳本健檢 ▶',
     steps: [
-      { num: '①', title: '選取單一 Excel', jumpIdx: 0, items: ['單份腳本即時體檢', '自動比對 System.ini'] },
+      { num: '①', title: '選擇 Excel 檔案', jumpIdx: 0, items: ['單份腳本即時體檢', '自動比對 System.ini'] },
       { num: '②', title: '掃描整包資料夾', jumpIdx: 1, items: ['遞迴掃描專案內多站', '支援一鍵整包批次修復'] },
       { num: '③', title: '紅黃燈體檢報告', jumpIdx: 2, items: ['抓出缺碼與格式錯誤', '自動讀取 ISN 條碼位數'] },
-      { num: '④', title: '燈號篩選與跳轉樹', jumpIdx: 3, items: ['依工作表過濾異常站', '展開跳轉樹檢查邏輯'] },
-      { num: '⑤', title: '一鍵修好或前往編修', jumpIdx: 4, items: ['自動補碼匯出 *_FIXED', '或帶入 02 編修中心'] }
+      { num: '④', title: '左側欄與跳轉分支', jumpIdx: 3, items: ['異常工作表自動置頂', '展開跳轉樹檢查邏輯'] },
+      { num: '⑤', title: '一鍵修好並匯出', jumpIdx: 4, items: ['自動補碼與格式修正', '重算 Checksum 寫回原檔旁'] }
     ],
     detailedSteps: [
       {
         stageIdx: 0,
-        step: 'Step 1｜「選取單一 Excel」：針對單份測試腳本進行快速體檢',
+        step: 'Step 1｜「選擇 Excel 檔案」：針對單份測試腳本進行快速體檢',
         desc: '適合您只想檢查某一個站的 TestFlow Excel 時使用（亦可直接從下方最近紀錄清單一鍵載入）。點選後自動讀入同資料夾內的 System.ini 與 Global.ini，檢查 16 欄格式、必填 TestID、ExecMode 與跳轉邏輯。',
         img: '/images/guide_audit_1a.png'
       },
@@ -59,17 +59,11 @@ const FLOW_GUIDE_DATA = {
       {
         stageIdx: 4,
         step: 'Step 5｜「💾 一鍵修好並匯出 (*_FIXED.xlsx)」自動補碼與簽章',
-        desc: '若只需自動修補格式與缺漏的 7 碼 TestID，直接點擊右上角綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統將於同目錄產出修復檔（修正處亮黃底）、重算 64 碼 Checksum 寫入 System.ini、開啟資料夾並彈窗檢查缺漏實機 DLL。',
+        desc: '若要自動修補格式與缺漏的 7 碼 TestID，直接點擊右上角綠色「💾 一鍵修好並匯出 (*_FIXED.xlsx)」，系統將於同目錄產出修復檔（修正處亮黃底）、重算 64 碼 Checksum 寫入 System.ini、開啟資料夾並彈窗檢查缺漏實機 DLL。',
         img: '/images/guide_audit_5b.png'
-      },
-      {
-        stageIdx: 4,
-        step: 'Step 6｜「✏️ 帶入此檔前往編修 ▶」無縫切換至 02 編修中心（既有腳本編修）',
-        desc: '若檢視完報告需要手動插入新儀器、改 PASS/FAIL 跳轉、改 COM / 轉 SSH 或微調 INI 變數，點擊紫色「✏️ 帶入此檔前往編修 ▶」即可免重新選檔直接跳轉至「02 腳本建立與編修中心」的「既有腳本編修」（5 合 1 編修）。',
-        img: '/images/guide_audit_to_editor.png'
       }
     ],
-    tip: '定位：高頻快速檢查單檔或整包專案腳本；需要新增儀器或修改流程時，可一鍵帶入「02 腳本建立與編修中心」'
+    tip: '定位：專注於高頻快速健檢單檔或整包專案腳本並一鍵修補匯出；若需插入儀器、改流程或調整 INI，請使用主畫面的「02 腳本建立與編修中心」'
   },
   gen: {
     icon: '🛠️',

@@ -1351,6 +1351,14 @@ def run_all_verifications():
                   and '.audit-sheet-rail' in app_css,
                   "01 健檢選檔按鈕已收斂為單一『選擇 Excel 檔案』且結果頁升級為「選項 1」左右雙欄（Marco 子表自動收折）")
 
+            # [v0.8.028] 驗證原生選檔 UTF-8 中文路徑防亂碼 + 取消不強迫彈出站內瀏覽 + 01 健檢與 02 編修徹底分離
+            srv_src = open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
+            check('PYTHONIOENCODING' in srv_src
+                  and "reconfigure(encoding='utf-8')" in srv_src
+                  and 'id="btnGoToEditorFromAudit"' not in index_html
+                  and 'formatIsnHtml(STATE.isnInfo, false)' in index_html,
+                  "Windows 原生選檔支援 UTF-8 中文路徑、取消不再強跳站內瀏覽，且 01 健檢已移除 02 編修混合按鈕")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.027">
+<link rel="stylesheet" href="/css/app.css?v=0.8.028">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.027</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.028</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -86,7 +86,7 @@
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#0C4A6E; line-height:1.7;">
             <li>單檔體檢、拖放載入與整包資料夾批次掃描</li>
             <li>紅黃燈錯誤報告、跳轉分支檢查與 MD 規範診斷</li>
-            <li>一鍵補碼修復簽章，或帶入編修中心繼續調整</li>
+            <li>一鍵補碼修復錯誤並重新寫回 Checksum 簽章</li>
           </ul>
           <div class="acc-enter-hint" style="color:#0369A1;">點擊卡片進入 ▶</div>
         </div>
@@ -190,12 +190,8 @@
           </button>
         </div>
 
-        <!-- 健檢右側動作：一鍵帶入編修 / 一鍵修好並匯出 -->
+        <!-- 健檢右側動作：一鍵修好並匯出（不混入 02 編修功能） -->
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <button id="btnGoToEditorFromAudit" class="btn" style="display:none; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;" onclick="openCurrentAuditInEditor()" title="保留目前檔案直接切換至「既有腳本編修」進行 5 合 1 編修">
-            ✏️ 帶入此檔前往編修 ▶
-          </button>
-
           <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)" title="依下方對策自動修補異常項目，輸出 *_FIXED.xlsx 並重算 Checksum">
             💾 一鍵修好並匯出 (*_FIXED.xlsx)
           </button>
@@ -1864,11 +1860,11 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.027"></script>
-<script src="/js/audit_editors.js?v=0.8.027"></script>
-<script src="/js/flow_guide.js?v=0.8.027"></script>
-<script src="/js/block_sorter.js?v=0.8.027"></script>
-<script src="/js/script_qa.js?v=0.8.027"></script>
+<script src="/js/inst_hmi.js?v=0.8.028"></script>
+<script src="/js/audit_editors.js?v=0.8.028"></script>
+<script src="/js/flow_guide.js?v=0.8.028"></script>
+<script src="/js/block_sorter.js?v=0.8.028"></script>
+<script src="/js/script_qa.js?v=0.8.028"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -2563,8 +2559,10 @@ function openIsnEditorFromAudit() {
   }, 80);
 }
 
-function formatIsnHtml(isnInfo) {
-  const editBtn = `<button type="button" onclick="openIsnEditorFromAudit()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12.5px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">✏️ 修改 ISN 位數 ▶</button>`;
+function formatIsnHtml(isnInfo, showEditBtn = true) {
+  const editBtn = showEditBtn
+    ? `<button type="button" onclick="openIsnEditorFromAudit()" class="btn" style="margin-left:8px; padding:3px 10px; font-size:12.5px; background:#FEF3C7; color:#92400E; border-color:#F59E0B;">✏️ 修改 ISN 位數 ▶</button>`
+    : '';
   if (isnInfo && isnInfo.isn_length) {
     return `<span style="display:inline-block; margin-top:4px; background:#1E3A8A; color:#FFFFFF; padding:3px 10px; border-radius:5px; font-weight:700;">🔢 ISN 條碼輸入位數：需輸入 ${isnInfo.isn_length} 碼</span> <span class="mono" style="font-size:12px; color:#475569;">(${isnInfo.scan_rule})</span>${editBtn}`;
   }
@@ -4138,7 +4136,6 @@ async function pickExcelNative() {
       return await res.json();
     });
     if (data.status === 'cancel') {
-      openFolderBrowserModal('', { onSelectFile: (p) => loadSpecificFile(encodeURIComponent(p)) });
       return;
     }
     if (data.status !== 'ok') {
@@ -4399,11 +4396,8 @@ function renderAuditResults() {
   const phaseIssueBanner = phaseIssues.length > 0 ? `
     <div style="margin-top:6px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px; padding:6px 10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
       <div style="font-size:12.5px; color:#92400E; font-weight:700;">
-        ⚠️ 偵測到 <b>${phaseIssues.length} 處 Phase 編號順序倒退或錯位</b>（例如：<b>${phaseIssues[0].sheet}</b> 第 ${phaseIssues[0].start_row} 列 <code>[${phaseIssues[0].title}]</code> — ${phaseIssues[0].reason}）
+        ⚠️ 偵測到 <b>${phaseIssues.length} 處 Phase 編號順序倒退或錯位</b>（例如：<b>${phaseIssues[0].sheet}</b> 第 ${phaseIssues[0].start_row} 列 <code>[${phaseIssues[0].title}]</code> — ${phaseIssues[0].reason}；可點右上「一鍵修好並匯出」自動順編或至「02 腳本建立與編修中心」調整）
       </div>
-      <button type="button" class="btn" style="background:#FACC15; color:#0F172A; border-color:#CA8A04; font-weight:800; padding:4px 10px; font-size:12px;" onclick="openBlockSorterModal('${phaseIssues[0].sheet}')">
-        🧱 開啟積木排序器調整順序 ▶
-      </button>
     </div>
   ` : '';
 
@@ -4411,8 +4405,7 @@ function renderAuditResults() {
     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between;">
       <div>${statusBadge}</div>
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-        ${formatIsnHtml(STATE.isnInfo)}
-        <button type="button" onclick="openBlockSorterModal()" class="btn" style="padding:3px 9px; font-size:12px; background:#FEF9C3; color:#854D0E; border-color:#EAB308; font-weight:700;">🧱 積木排序</button>
+        ${formatIsnHtml(STATE.isnInfo, false)}
         <span class="mono" style="font-size:11.5px; color:#475569; background:rgba(255,255,255,0.7); border:1px solid #CBD5E1; border-radius:4px; padding:2px 7px;" title="修復後寫回原目錄並重算 System.ini Checksum">👉 同目錄 *_FIXED.xlsx</span>
       </div>
     </div>

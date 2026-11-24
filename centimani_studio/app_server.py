@@ -273,6 +273,9 @@ def _run_tk_dialog(child_code, cfg_data):
                 ctypes.windll.user32.AllowSetForegroundWindow(-1)
             except Exception:
                 pass
+            sub_env = dict(os.environ)
+            sub_env["PYTHONIOENCODING"] = "utf-8"
+            sub_env["PYTHONUTF8"] = "1"
             proc = subprocess.Popen(
                 [sys.executable, "-c", child_code, json.dumps(cfg_data, ensure_ascii=False)],
                 stdout=subprocess.PIPE,
@@ -280,6 +283,7 @@ def _run_tk_dialog(child_code, cfg_data):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                env=sub_env,
             )
             _ACTIVE_PICK_PROC = proc
             try:
@@ -303,6 +307,10 @@ def pick_file_native(file_types=None, title="選擇要檢查與修復的 Centima
     child_code = """
 import sys, json, os, ctypes
 try:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
     import tkinter as tk
     from tkinter import filedialog
     try:
@@ -311,9 +319,23 @@ try:
         pass
     cfg = json.loads(sys.argv[1])
     root = tk.Tk()
-    root.withdraw()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    root.geometry(f"1x1+{sw // 2}+{sh // 3}")
+    root.overrideredirect(True)
+    try:
+        root.attributes('-alpha', 0.01)
+    except Exception:
+        pass
     root.attributes('-topmost', True)
-    root.update_idletasks()
+    root.deiconify()
+    root.lift()
+    root.focus_force()
+    root.update()
+    try:
+        ctypes.windll.user32.SetForegroundWindow(root.winfo_id())
+    except Exception:
+        pass
     ft = []
     if cfg.get('file_types'):
         for desc, pat in cfg['file_types']:
@@ -353,6 +375,10 @@ def pick_folder_native(title="選擇要批次掃描的 Centimani 專案資料夾
     child_code = """
 import sys, json, os, ctypes
 try:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
     import tkinter as tk
     from tkinter import filedialog
     try:
@@ -1647,7 +1673,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.027")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.028")
 
                 self._send_json({
                     "status": "ok",
@@ -1909,7 +1935,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.027")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.028")
 
                 self._send_json({
                     "status": "ok",
@@ -2158,7 +2184,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.027")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.028")
 
                 self._send_json({
                     "status": "ok",
@@ -2381,7 +2407,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.027) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.028) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
