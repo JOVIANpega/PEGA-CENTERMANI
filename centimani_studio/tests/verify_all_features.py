@@ -2377,15 +2377,49 @@ def run_all_verifications():
                   "v0.8.060 builder_sequence (SSH+WithinString+Delay+YES/NO+NI6008+CheckLimit+97/98/99) 生成 0 Error 實戰測試包通過",
                   f"errs={v60_errs}")
 
-            # [v0.8.061] 驗證垂直 4 字等高小積木、可拉寬雙欄分割桿、ms 自動解讀為秒、底部導覽與彩/灰進度條
-            cbb_61 = open(cbb_js_path, "r", encoding="utf-8").read()
-            check("bb-palette-list" in cbb_61
-                  and "bb-uniform-brick" in cbb_61
-                  and "bbStartSplitDrag" in cbb_61
-                  and "bb-bottom-dock" in cbb_61
-                  and "bbDelayReadableHint" in cbb_61
-                  and "等 ${sec} 秒" in cbb_61,
-                  "v0.8.061 垂直 4 字等高積木、雙欄可拉寬分割桿、ms 自動換算秒數與底部統一導覽進度條檢查通過")
+            # [v0.8.062] 驗證直立撲克牌積木 (<=2字)、Popup 自動消退、可拉寬分割桿、ms 轉秒數、每積木執行後延遲 (預設 0.5s) 與底部進度條
+            cbb_62 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check("bb-poker-grid" in cbb_62
+                  and "bb-poker-card" in cbb_62
+                  and "bb-poker-track" in cbb_62
+                  and "closest('[data-bb-pop]')" in cbb_62
+                  and "bbStartSplitDrag" in cbb_62
+                  and "bb-bottom-dock" in cbb_62
+                  and "bbDelayReadableHint" in cbb_62
+                  and "post_delay_enabled" in cbb_62
+                  and "等 ${sec} 秒" in cbb_62,
+                  "v0.8.062 直立撲克牌(<=2字)、Popup 自動關閉、分割桿、ms 轉秒與每塊後延遲 UI 檢查通過")
+
+            v62_delay = post_json("/api/generate_new_standalone", {
+                "project_name": "V62_POSTDLY",
+                "station_name": "MB",
+                "dut_count": 1,
+                "builder_sequence": [
+                    {"uid": "d1", "kind": "isn", "config": {"project": "V62_POSTDLY", "station": "MB", "dut_count": 1, "isn_len": 3, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "d2", "kind": "sfis_route", "config": {"sfis_mode": "offline"}},
+                    {"uid": "d3", "kind": "comm_cmd", "config": {
+                        "protocol": "uart", "title": "Ping UART", "command": "ver",
+                        "extract_mode": "reply_only", "reply_keyword": "OK",
+                        "post_delay_enabled": True, "post_delay_sec": "0.5"
+                    }},
+                    {"uid": "d4", "kind": "inst", "config": {
+                        "inst_mode": "ni6009", "title_name": "VCheck",
+                        "channels": [{"ch": 0, "name": "V3", "dl": "3.1", "ul": "3.5"}],
+                        "post_delay_enabled": True, "post_delay_sec": "1.5"
+                    }},
+                    {"uid": "d5", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                ],
+            })
+            ws_v62 = _parse_v50(v62_delay["excel_path"])
+            v62_sends = [str(r.get("Send") or "") for r in ws_v62["stations"]["MB"]]
+            v62_audit = post_json("/api/re_audit", {"workspace": ws_v62})
+            v62_errs = (v62_audit.get("report") or {}).get("errors") or []
+            check(v62_delay.get("status") == "ok"
+                  and ':Delay,"500"' in v62_sends
+                  and ':Delay,"1500"' in v62_sends
+                  and len(v62_errs) == 0,
+                  "v0.8.062 每積木勾選運作後延遲 (0.5s->:Delay,500 / 1.5s->:Delay,1500) 自動插入下一列且 0 Error",
+                  f"sends={v62_sends}, errs={v62_errs}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

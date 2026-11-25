@@ -1,172 +1,203 @@
 // =========================================================================
-// Centimani Studio - 0 -> 1 Visual Drag-and-Drop Block Builder + Q&A Stepper
+// Centimani Studio - 0 -> 1 Visual Poker-Card Block Builder + Q&A Stepper
 // =========================================================================
 (function () {
+  // 所有積木皆為極簡「圖示 + 最多 2 字中文」，詳細用途於滑鼠移入 Pop 視窗顯示
   const BUILDER_CATALOG = [
     {
       kind: 'comm_cmd',
-      name: '💬 指令擷取',
+      icon: '💬',
+      shortName: '指令',
+      name: '💬 指令',
       tier: 'common',
       exclusivePage: false,
       theme: '#EFF6FF',
       border: '#3B82F6',
-      popTitle: '下指令與回傳字串擷取 (UART / ADB / SSH / CMD)',
-      popDesc: '透過 UART / SSH / ADB / CMD / Telnet 對待測物下指令，可設定只檢查關鍵字（如 PASS），或直接貼上 Console 吐出的長字串、自動產生 WithinString / SplitString 擷取數值與上下限比對。',
-      popExample: '例：UART@cat /etc/version ➔ 自動擷取版本號比對'
+      popTitle: '通訊指令與擷取 (UART / ADB / SSH / CMD)',
+      popDesc: '透過 UART / SSH / ADB / CMD / Telnet 下指令，可檢查關鍵字（如 PASS）或貼上 Console 輸出、自動生成 WithinString / SplitString 擷取數值比對。',
+      popExample: '例：UART@cat /etc/version ➔ 擷取版本比對'
     },
     {
       kind: 'delay',
-      name: '⏳ 延遲等待',
+      icon: '⏳',
+      shortName: '等待',
+      name: '⏳ 等待',
       tier: 'common',
       exclusivePage: false,
       theme: '#F0FDF4',
       border: '#22C55E',
-      popTitle: '時間等待 (:Delay)',
-      popDesc: '在兩個動作之間插入固定等待時間（輸入毫秒會自動換算為等幾秒），例如等待開機、放電或治具穩定，可依需要加入多塊。',
+      popTitle: '獨立等待時間 (:Delay)',
+      popDesc: '單獨插入一段時間等待（輸入毫秒會自動換算等幾秒），適合開機緩衝、放電或治具穩定，可依需要插入多塊。',
       popExample: '例：2000 ms（自動解讀為等 2 秒）'
     },
     {
       kind: 'inst',
-      name: '🧪 儀器測試',
+      icon: '🧪',
+      shortName: '儀器',
+      name: '🧪 儀器',
       tier: 'common',
       exclusivePage: true,
       theme: '#FEF2F2',
       border: '#EF4444',
       popTitle: '🔴 專屬設定頁｜外接儀器量測控制',
-      popDesc: '整合全部 40+ 款實機儀器（電源供應器、NI-6008 電壓卡、萬用電表、IQxel RF、FeasaLED 等）。點入後進入專屬儀器選擇與 DL/UL 設定頁，可重複加入多台不同儀器。',
-      popExample: '例：NI6008 量測多通道電壓 / Agilent34401A / PPH1503'
+      popDesc: '整合全部 40+ 款實機儀器（電源供應器、NI-6008 電壓卡、萬用電表、IQxel RF、FeasaLED 等）。進入後挑選型號並填 DL/UL。',
+      popExample: '例：NI6008 多通道電壓 / Agilent34401A / PPH1503'
     },
     {
       kind: 'multi_sku',
-      name: '🎯 品種分流',
+      icon: '🎯',
+      shortName: '分流',
+      name: '🎯 分流',
       tier: 'common',
       exclusivePage: true,
       theme: '#FEF2F2',
       border: '#EF4444',
-      popTitle: '🔴 專屬設定頁｜多 SKU / 衍生品分流 (4:P,F)',
-      popDesc: '依 SFIS 欄位、工單名單 (69MO.txt) 或國別碼自動分流不同機種，決定哪些測項要跑或套用不同 DL/UL 上下限，並自動寫入 Global.ini 與雙色視覺底色。',
-      popExample: '例：整機 / 無電池 / 無 WiFi 三分支分流＋測項閘門'
+      popTitle: '🔴 專屬設定頁｜多 SKU / 品種分流 (4:P,F)',
+      popDesc: '依 SFIS 欄位、工單名單 (69MO.txt) 或國別碼自動分流機種，決定哪些測項執行或切換各別 DL/UL 上下限。',
+      popExample: '例：整機 / 無電池 / 無 WiFi 三分支分流'
     },
     {
       kind: 'var_check',
-      name: '🔍 數值檢查',
+      icon: '🔍',
+      shortName: '檢查',
+      name: '🔍 檢查',
       tier: 'common',
       exclusivePage: false,
       theme: '#ECFEFF',
       border: '#06B6D4',
       popTitle: '變數運算與門檻檢查 (:GetVal / :CheckLimit)',
-      popDesc: '拿前面步驟擷取下來的 $變數 做數值上下限判斷 (:CheckLimit) 或字串比對 (:GetVal)，常搭配儀器量測或字串擷取後進行 PASS / FAIL 驗算。',
+      popDesc: '拿前面步驟抓到的 $變數 做數值上下限判斷 (:CheckLimit) 或字串比對 (:GetVal)。',
       popExample: '例：:CheckLimit,"*(VCC_3V3)","3.15","3.45","%f"'
     },
     {
       kind: 'prompt_box',
-      name: '🙋 人工確認',
+      icon: '🙋',
+      shortName: '提示',
+      name: '🙋 提示',
       tier: 'common',
       exclusivePage: false,
       theme: '#FFFBEB',
       border: '#F59E0B',
-      popTitle: '作業員提示視窗與 YES/NO 確認 (:ShowConfirmBox)',
-      popDesc: '跳出視窗引導產線作業員動作（插拔線材、按 Reset 鍵、確認 LED 燈色）。支援「單顆 OK 確認」、「YES / NO 雙按鈕（選 No 判 FAIL 或跳分支）」以及「輸入框掃副條碼」。',
+      popTitle: '作業員對話框與 YES/NO 確認 (:ShowConfirmBox)',
+      popDesc: '跳出視窗引導作業員動作（插線、按 Reset、看燈號）。支援「好(OK)」、YES / NO 雙按鈕（No 直接判 FAIL 或跳分支）與輸入框掃副條碼。',
       popExample: '例：:ShowConfirmBox,"請確認藍燈是否亮起?","Yes;No"'
     },
     {
       kind: 'fixture',
-      name: '🤖 治具控制',
+      icon: '🤖',
+      shortName: '治具',
+      name: '🤖 治具',
       tier: 'common',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
-      popTitle: '氣動治具下壓與電源控制',
-      popDesc: '設定氣動治具 COM Port (UARTF) 下壓延遲，或使用 iPower 電源控制開關上電。如果本測試站沒有治具，選擇「無治具」或不加入此積木即可。',
-      popExample: '例：UARTF@G 壓下治具並等待 3000ms 上電'
+      popTitle: '氣動治具與電源上電控制',
+      popDesc: '設定氣動治具 COM Port (UARTF) 下壓延遲或 iPower 電源上電；若本測試站沒有治具，在問答頁選「無治具」或不加即可。',
+      popExample: '例：UARTF@G 壓下治具並等待 3000ms'
     },
     {
       kind: 'sfis_rw',
-      name: '🔐 過站讀寫',
+      icon: '🔐',
+      shortName: '過站',
+      name: '🔐 過站',
       tier: 'common',
       exclusivePage: false,
       theme: '#FDF2F8',
       border: '#EC4899',
-      popTitle: 'SFIS 讀取欄位 / 寫回 LinkData / 刷副條碼',
-      popDesc: '從 SFIS 讀取 MAC1 / 69PN / SNA (:SfGetVersion / :SfGetiMAC)、寫回測試值至 SFIS (:SfSaveLinkData)，或讓作業員掃描第二個條碼比對長度。',
+      popTitle: 'SFIS 讀寫屬性 / 刷副條碼',
+      popDesc: '從 SFIS 讀取 MAC1 / 69PN / SNA (:SfGetVersion / :SfGetiMAC)、寫回 :SfSaveLinkData，或讓作業員額外掃描副條碼。',
       popExample: '例：:SfGetVersion,"*(ISN)","ISN_BASEINFO","2","MAC1",""'
     },
     {
       kind: 'python',
-      name: '🐍 外部腳本',
+      icon: '🐍',
+      shortName: '腳本',
+      name: '🐍 腳本',
       tier: 'common',
       exclusivePage: false,
       theme: '#F0FDF4',
       border: '#16A34A',
       popTitle: '呼叫外部 Python / Code 腳本 (.py)',
-      popDesc: '透過 Windows CmdConsole 執行外部 python.exe 程式（免撰寫 C# DLL），並透過 WithinString 擷取終端機 print() 印出的數值進行上下限比對。',
+      popDesc: '透過 Windows CmdConsole 執行外部 python.exe（免做 DLL），並自動擷取終端機 print() 印出的數值比對。',
       popExample: '例：python.exe my_test.py "*(ISN)" ➔ 抓 RESULT='
     },
     {
       kind: 'ping',
-      name: '🌐 Ping測試',
+      icon: '🌐',
+      shortName: '網路',
+      name: '🌐 網路',
       tier: 'common',
       exclusivePage: false,
       theme: '#EFF6FF',
       border: '#0EA5E9',
       popTitle: '網路連通性 Ping 測試 (:Utility.Ping)',
-      popDesc: '呼叫 Centimani 內建 :Utility.Ping 指定待測物 IP (DUTIP) 與電腦網卡 IP (PCIP)，快速驗證 Ethernet / WiFi 連線通暢。',
+      popDesc: '呼叫 :Utility.Ping 指定待測物 IP (DUTIP) 與電腦網卡 IP (PCIP) 驗證網路通暢。',
       popExample: '例：:Utility.Ping,"192.168.11.143","5000","192.168.11.3"'
     },
-    // Advanced blocks (hidden behind checkbox)
+    // Advanced blocks
     {
       kind: 'ext_file',
-      name: '📄 讀外部檔',
+      icon: '📄',
+      shortName: '讀檔',
+      name: '📄 讀檔',
       tier: 'advanced',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
       popTitle: '讀取外部 INI / TXT (:Utility.Rini / Rtxt)',
-      popDesc: '從本機外部設定檔或工單對照表讀取數值到變數中，適合需要讀取外部參考表或測試組態的進階站別。',
+      popDesc: '從外部設定檔或對照表讀取數值到變數中。',
       popExample: '例：:Utility.Rini,".\\System\\config.ini","Scripts","Key"'
     },
     {
       kind: 'usb_fw',
-      name: '🔌 升級抓埠',
+      icon: '🔌',
+      shortName: '抓埠',
+      name: '🔌 抓埠',
       tier: 'advanced',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
       popTitle: 'USB 燒錄與動態抓 COM Port',
-      popDesc: '使用 Utility.CMD 執行 USB 下載工具並搭配 GetChainCOM 自動取得動態分配的 COM Port 號碼。',
+      popDesc: '使用 Utility.CMD 搭配 GetChainCOM 自動抓動態分配的 COM Port。',
       popExample: '例：Download 站 USB 燒錄自動偵測 Port'
     },
     {
       kind: 'subdev_finalgo',
-      name: '🔗 四槽同步',
+      icon: '🔗',
+      shortName: '同步',
+      name: '🔗 同步',
       tier: 'advanced',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
-      popTitle: '多槽共用治具與 FinalGo 同步柵欄',
-      popDesc: '實戰 1 拖 4 站別使用 :ObtainSubDevice("DevUart") 搭配 :InitFinalGo / :CheckFinalGo 同步四個測試槽位進度。',
+      popTitle: '多槽共用治具 FinalGo 同步',
+      popDesc: '1 拖 4 站別使用 :ObtainSubDevice("DevUart") + FinalGo 同步四槽。',
       popExample: '例：四槽同步觸發共享治具繼電器'
     },
     {
       kind: 'sfis_bypass',
-      name: '🔀 雙模旁路',
+      icon: '🔀',
+      shortName: '旁路',
+      name: '🔀 旁路',
       tier: 'advanced',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
       popTitle: ':SfEnabled 雙路線自動旁路',
-      popDesc: '自動建立 :SfEnabled ExecMode=4:P,F 分支：產線連線跑 SFIS 取值，實驗室離線時自動改用預設值不擋測。',
-      popExample: '例：:SfEnabled (Reply=1, EM=4:1,3) 自動切換離線預設值'
+      popDesc: '產線連線跑 SFIS 取值，實驗室離線時自動改用預設值不擋測。',
+      popExample: '例：:SfEnabled (Reply=1, EM=4:1,3)'
     },
     {
       kind: 'stream_flash',
-      name: '📡 串流燒錄',
+      icon: '📡',
+      shortName: '燒錄',
+      name: '📡 燒錄',
       tier: 'advanced',
       exclusivePage: false,
       theme: '#F8FAFC',
       border: '#64748B',
-      popTitle: '長輸出串流燒錄範本 (Prompt="!")',
-      popDesc: '針對會不斷吐出進度字元（如 ! 或進度條）的長耗時燒錄指令，使用 Prompt="!" 防止超時誤判與重試。',
+      popTitle: '長輸出串流燒錄 (Prompt="!")',
+      popDesc: '針對會不斷吐出進度字元的長耗時燒錄指令，防止超時誤判。',
       popExample: '例：大檔韌體燒錄長輸出監控'
     }
   ];
@@ -174,33 +205,39 @@
   const META_BY_KIND = {
     isn: {
       kind: 'isn',
-      name: '🔢 條碼站名',
+      icon: '🔢',
+      shortName: '條碼',
+      name: '🔢 條碼',
       fixed: true,
       exclusivePage: false,
       theme: '#EFF6FF',
       border: '#2563EB',
-      popTitle: '專案名稱、測試站與 ISN 條碼規格（固定開頭）',
-      popDesc: '設定此 Excel 測試包的 Project 名稱、Station 名稱、槽位數 (1/2/4 槽) 與條碼掃描位數（幾 Byte）和字元規則。',
+      popTitle: '專案名稱、站別與 ISN 條碼規格（固定開頭）',
+      popDesc: '設定此測試包的 Project 名稱、Station 名稱、槽位數 (1/2/4 槽) 與條碼位數（幾 Byte）和字元規則。',
     },
     sfis_route: {
       kind: 'sfis_route',
-      name: '🛡️ 路由檢查',
+      icon: '🛡️',
+      shortName: '路由',
+      name: '🛡️ 路由',
       fixed: false,
       exclusivePage: false,
       theme: '#FDF2F8',
       border: '#DB2777',
       popTitle: '開局條碼顯示與 SFIS CheckRoute (Phase 0)',
-      popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由。在問答頁可選擇「工程離線調試」或「產線實機過站」。',
+      popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由。可設為離線調試或產線過站。',
     },
     teardown: {
       kind: 'teardown',
-      name: '🛑 安全收尾',
+      icon: '🛑',
+      shortName: '收尾',
+      name: '🛑 收尾',
       fixed: true,
       exclusivePage: false,
       theme: '#FFF1F2',
       border: '#E11D48',
       popTitle: 'Phase 97/98 安全斷電與資源釋放（固定壓底）',
-      popDesc: '無論前方測項 PASS 或 FAIL 都必跑的安全保護區 (ExecMode=3)：自動斷電、治具復位、關閉所有 COM Port，並可加開 Phase 98 PASS / Phase 99 FAIL 分流。',
+      popDesc: '無論前方 PASS 或 FAIL 都必跑的安全保護區 (ExecMode=3)：斷電、治具復位、關所有 COM Port。',
     }
   };
   BUILDER_CATALOG.forEach((b) => { META_BY_KIND[b.kind] = b; });
@@ -231,51 +268,52 @@
   function _newUid() { return 'blk_' + (_uidSeq++); }
 
   function _defaultConfigForKind(kind) {
+    const base = { post_delay_enabled: false, post_delay_sec: '0.5' };
     switch (kind) {
       case 'isn':
         return { project: 'PEGA_NEW', station: 'MB', dut_count: 1, isn_len: 3, isn_pattern: '[0-9A-Z]' };
       case 'sfis_route':
-        return { sfis_mode: 'offline', tsp: 'PEGA,2', weblink: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx', login_id: '', date_isn: '111111111111111' };
+        return Object.assign({}, base, { sfis_mode: 'offline', tsp: 'PEGA,2', weblink: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx', login_id: '', date_isn: '111111111111111' });
       case 'comm_cmd':
-        return {
+        return Object.assign({}, base, {
           protocol: 'uart', title: 'Check UART & FW Version', port: 'COM4', ssh_user: 'root', ssh_pass: '', dut_ip: '192.168.11.143',
           command: 'cat /etc/version', end_prompt: '#', waiting: '5000', retry: '3',
           extract_mode: 'within', reply_keyword: 'PASS',
           sample_log: 'root@DUT:~# cat /etc/version\nFW version=1.0.0_release\nroot@DUT:~#',
           left_delim: 'version=', right_delim: '\\n', split_sep: ':', split_idx: '1', sub_start: '0', sub_len: '8',
           var_name: 'DUT_FW', val_type: '%s', expect_min: '1.0.0_release', expect_max: '', use_ini_var: false
-        };
+        });
       case 'delay':
         return { ms: '2000', note: '等待開機與供電穩定' };
       case 'prompt_box':
-        return { prompt_mode: 'yes_no', title: 'Operator Confirm', message: '請確認待測物藍燈是否正常亮起？', ok_label: '好(OK)', yes_label: 'Yes', no_label: 'No', no_policy: 'fail', var_name: 'ScanSub', min_len: '1', max_len: '32' };
+        return Object.assign({}, base, { prompt_mode: 'yes_no', title: 'Operator Confirm', message: '請確認待測物藍燈是否正常亮起？', ok_label: '好(OK)', yes_label: 'Yes', no_label: 'No', no_policy: 'fail', var_name: 'ScanSub', min_len: '1', max_len: '32' });
       case 'var_check':
-        return { title: 'Check Limit', var_name: 'VCC_3V3', check_mode: 'limit', val_type: '%f', dl: '3.15', ul: '3.45', expect_str: 'PASS', use_ini_var: false };
+        return Object.assign({}, base, { title: 'Check Limit', var_name: 'VCC_3V3', check_mode: 'limit', val_type: '%f', dl: '3.15', ul: '3.45', expect_str: 'PASS', use_ini_var: false });
       case 'inst':
-        return {
+        return Object.assign({}, base, {
           inst_mode: 'catalog', inst_name: 'NI6008', title_name: 'Measure Voltage Test', dl_val: '3.15', ul_val: '3.45',
           mode: 'RSE', sample_ms: '1000', dev_id: 'Dev1',
           channels: [{ ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25' }, { ch: 1, name: 'VCC_3V3', dl: '3.15', ul: '3.45' }],
           settings_str: '192.168.100.254,1,2,1,60000,PathLoss.ini',
           tx_tests: [{ channel: '6', bw: '20', mcs: '7', antenna: '1', target_pwr: '15', pwr_min: '13', pwr_max: '17', evm_min: '-50', evm_max: '-28' }],
           rx_tests: [{ channel: '6', bw: '20', mcs: '7', antenna: '1', rx_level: '-59' }]
-        };
+        });
       case 'multi_sku':
         return { sku_wizard: null };
       case 'fixture':
-        return { fixture_type: 'none', com_port: 'COM8', delay_ms: '3000' };
+        return Object.assign({}, base, { fixture_type: 'none', com_port: 'COM8', delay_ms: '3000' });
       case 'sfis_rw':
-        return { rw_mode: 'get_version', title: 'SFIS Get MAC', table_name: 'ISN_BASEINFO', field_name: 'MAC1', var_name: 'sfMAC', label_len: '12', save_value: '*(sfMAC)' };
+        return Object.assign({}, base, { rw_mode: 'get_version', title: 'SFIS Get MAC', table_name: 'ISN_BASEINFO', field_name: 'MAC1', var_name: 'sfMAC', label_len: '12', save_value: '*(sfMAC)' });
       case 'python':
-        return { python_path: 'D:\\PythonScript', script_name: 'my_test.py', result_prefix: 'RESULT=', min_val: '0.0', max_val: '100.0' };
+        return Object.assign({}, base, { python_path: 'D:\\PythonScript', script_name: 'my_test.py', result_prefix: 'RESULT=', min_val: '0.0', max_val: '100.0' });
       case 'ping':
-        return { dut_ip: '192.168.11.143', pc_ip: '192.168.11.3', timeout_ms: '5000' };
+        return Object.assign({}, base, { dut_ip: '192.168.11.143', pc_ip: '192.168.11.3', timeout_ms: '5000' });
       case 'ext_file':
-        return { file_mode: 'rini', file_path: '.\\System\\config.ini', section: 'Scripts', key: 'TargetKey', var_name: 'gExtVal' };
+        return Object.assign({}, base, { file_mode: 'rini', file_path: '.\\System\\config.ini', section: 'Scripts', key: 'TargetKey', var_name: 'gExtVal' });
       case 'teardown':
         return { teardown_mode: '97_only' };
       default:
-        return {};
+        return Object.assign({}, base);
     }
   }
 
@@ -283,9 +321,9 @@
     view: 'stack', // 'stack' | 'qa' | 'export'
     showAdvanced: false,
     fullscreen: false,
-    splitLeftPx: 235,
+    splitLeftPx: 300,
     qaIdx: 0,
-    dragSrcType: null, // 'palette' | 'stack'
+    dragSrcType: null,
     dragKind: null,
     dragStackIdx: -1,
     catalogInsts: null,
@@ -304,79 +342,80 @@
 
   function _summarizeBlock(item) {
     const c = item.config || {};
+    const dNote = (c.post_delay_enabled && Number(c.post_delay_sec) > 0) ? ` · +${c.post_delay_sec}s` : '';
     switch (item.kind) {
       case 'isn':
         return `${c.project || 'PEGA_NEW'}/${c.station || 'MB'} · ${c.isn_len || 3}碼`;
       case 'sfis_route':
-        return c.sfis_mode === 'online' ? `線上(${c.tsp || 'PEGA,2'})` : '工程離線';
+        return (c.sfis_mode === 'online' ? `線上(${c.tsp || 'PEGA,2'})` : '工程離線') + dNote;
       case 'comm_cmd':
-        return `${String(c.protocol || 'uart').toUpperCase()}@${(c.command || '').slice(0, 16)}`;
+        return `${String(c.protocol || 'uart').toUpperCase()}@${(c.command || '').slice(0, 14)}${dNote}`;
       case 'delay':
         return `${c.ms || 2000}ms (${_formatMsReadable(c.ms || 2000)})`;
       case 'prompt_box':
-        if (c.prompt_mode === 'yes_no') return `YES/NO (${c.no_policy === 'branch' ? '分支' : c.no_policy === 'retry' ? '重試' : 'No判FAIL'})`;
-        if (c.prompt_mode === 'input') return `輸入 $${c.var_name || 'ScanSub'}`;
-        return `單鈕確認`;
+        return (c.prompt_mode === 'yes_no' ? 'YES/NO' : c.prompt_mode === 'input' ? '掃副條碼' : 'OK確認') + dNote;
       case 'var_check':
-        return c.check_mode === 'string' ? `$${c.var_name}=${c.expect_str}` : `$${c.var_name}(${c.dl}~${c.ul})`;
+        return (c.check_mode === 'string' ? `$${c.var_name}` : `${c.dl}~${c.ul}`) + dNote;
       case 'inst':
-        if (c.inst_mode === 'ni6009') return `NI-6008 (${(c.channels || []).length}通道)`;
-        if (c.inst_mode === 'rf') return `${c.inst_name || 'IQxel'} RF`;
-        return `${c.inst_name || '未選儀器'}`;
+        if (c.inst_mode === 'ni6009') return `NI-6008 (${(c.channels || []).length}ch)${dNote}`;
+        if (c.inst_mode === 'rf') return `${c.inst_name || 'IQxel'}${dNote}`;
+        return `${c.inst_name || '未選'}${dNote}`;
       case 'multi_sku': {
         const sk = c.sku_wizard || (window.STATE && window.STATE.createSkuConfig);
-        return (sk && sk.enabled) ? `${(sk.sku_branches || []).length} 支 SKU` : '待設定';
+        return (sk && sk.enabled) ? `${(sk.sku_branches || []).length}支SKU` : '待設定';
       }
       case 'fixture':
-        return c.fixture_type === 'none' ? '無治具' : (c.fixture_type === 'ipower' ? `iPower ${c.delay_ms}ms` : `${c.com_port} ${c.delay_ms}ms`);
+        return (c.fixture_type === 'none' ? '無治具' : `${c.delay_ms}ms`) + dNote;
       case 'sfis_rw':
-        return `${c.field_name || 'MAC1'}`;
+        return `${c.field_name || 'MAC1'}${dNote}`;
       case 'python':
-        return `${c.script_name || 'my_test.py'}`;
+        return `${c.script_name || 'my_test.py'}${dNote}`;
       case 'ping':
-        return `${c.dut_ip || '192.168.11.143'}`;
+        return `${c.dut_ip || '192.168.11.143'}${dNote}`;
       case 'ext_file':
-        return `${c.key || c.file_path || ''}`;
+        return `${c.key || c.file_path || ''}${dNote}`;
       case 'teardown':
-        return c.teardown_mode === '97_98_99' ? '97 + 98/99 分流' : 'Phase 97 斷電';
+        return c.teardown_mode === '97_98_99' ? '97 + 98/99' : 'Phase 97';
       default:
         return '標準模板';
     }
   }
 
+  let _popListenersBound = false;
   function _ensureStylesAndPop() {
     if (!document.getElementById('bbStyles')) {
       const st = document.createElement('style');
       st.id = 'bbStyles';
       st.textContent = `
         .bb-fullscreen-shell { position:fixed !important; inset:10px !important; z-index:950 !important; background:#F8FAFC !important; border:2px solid #2563EB !important; border-radius:12px !important; padding:14px !important; overflow-y:auto !important; box-shadow:0 24px 64px rgba(15,23,42,0.45) !important; }
-        .bb-split-container { display:flex; align-items:stretch; gap:0; min-height:430px; }
+        .bb-split-container { display:flex; align-items:stretch; gap:0; min-height:420px; }
         .bb-left-pane { flex:0 0 auto; background:#FFFFFF; border:1.5px solid #CBD5E1; border-radius:10px; padding:10px; box-sizing:border-box; overflow-y:auto; max-height:68vh; }
         .bb-splitter { flex:0 0 10px; cursor:col-resize; display:flex; align-items:center; justify-content:center; user-select:none; transition:background 0.12s; border-radius:6px; margin:0 2px; }
         .bb-splitter:hover, .bb-splitter.dragging { background:#BAE6FD; }
         .bb-splitter-bar { width:3px; height:44px; border-radius:999px; background:#94A3B8; }
-        .bb-right-pane { flex:1 1 0%; min-width:260px; background:#F8FAFC; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 12px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
-        .bb-palette-list { display:flex; flex-direction:column; gap:5px; }
-        /* 統一積木尺寸：左欄與右欄積木維持一致緊湊高度 */
-        .bb-uniform-brick { height:38px; min-height:38px; box-sizing:border-box; border-radius:7px; padding:0 8px; border:1.5px solid #CBD5E1; background:#FFFFFF; display:flex; align-items:center; justify-content:space-between; gap:6px; transition:all 0.14s ease; user-select:none; }
-        .bb-uniform-brick.palette-item { cursor:grab; }
-        .bb-uniform-brick:hover { background:#E0F2FE; border-color:#38BDF8; }
-        .bb-uniform-brick.is-red { background:#FEF2F2; border-color:#EF4444; }
-        .bb-uniform-brick.is-red:hover { background:#FEE2E2; border-color:#DC2626; }
-        .bb-uniform-brick.is-fixed { background:#F1F5F9; border-style:dashed; }
-        .bb-plus-btn { width:26px; height:24px; padding:0; border-radius:5px; border:1px solid #94A3B8; background:#F8FAFC; color:#0F172A; font-weight:900; font-size:0.95rem; line-height:1; cursor:pointer; flex-shrink:0; transition:all 0.12s; }
-        .bb-plus-btn:hover { background:#2563EB; border-color:#1D4ED8; color:#FFFFFF; }
-        .bb-uniform-brick.is-red .bb-plus-btn { border-color:#FCA5A5; color:#991B1B; background:#FFFFFF; }
-        .bb-uniform-brick.is-red .bb-plus-btn:hover { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
-        .bb-drop-slot { height:6px; border-radius:5px; transition:all 0.14s ease; border:1.5px dashed transparent; }
-        .bb-drop-slot.drag-over { height:24px; background:#DBEAFE; border-color:#2563EB; }
+        .bb-right-pane { flex:1 1 0%; min-width:260px; background:#FAF5FF; border:1.5px dashed #C084FC; border-radius:10px; padding:12px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
+        /* 直立撲克牌方格（左欄 3 列網格 & 右欄橫向串接共用完全相同尺寸） */
+        .bb-poker-grid { display:grid; grid-template-columns:repeat(auto-fill, 82px); gap:7px; justify-content:start; }
+        .bb-poker-track { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+        .bb-poker-card { width:82px; height:96px; min-width:82px; min-height:96px; box-sizing:border-box; border-radius:9px; padding:6px 6px 5px 6px; border:1.5px solid #CBD5E1; border-top:4px solid #3B82F6; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; transition:all 0.14s ease; user-select:none; position:relative; }
+        .bb-poker-card.palette-card { cursor:grab; }
+        .bb-poker-card:hover { background:#E0F2FE; border-color:#38BDF8; transform:translateY(-2px); box-shadow:0 4px 10px rgba(14,165,233,0.18); }
+        .bb-poker-card.is-red { background:#FEF2F2; border-color:#EF4444; border-top-color:#DC2626; }
+        .bb-poker-card.is-red:hover { background:#FEE2E2; border-color:#DC2626; box-shadow:0 4px 12px rgba(220,38,38,0.22); }
+        .bb-poker-card.is-fixed { background:#F8FAFC; border-style:dashed; }
+        .bb-poker-plus { width:100%; height:22px; padding:0; border-radius:5px; border:1px solid #94A3B8; background:#F8FAFC; color:#0F172A; font-weight:900; font-size:0.95rem; line-height:1; cursor:pointer; transition:all 0.12s; }
+        .bb-poker-plus:hover { background:#2563EB; border-color:#1D4ED8; color:#FFFFFF; }
+        .bb-poker-card.is-red .bb-poker-plus { background:#FFFFFF; border-color:#FCA5A5; color:#991B1B; }
+        .bb-poker-card.is-red .bb-poker-plus:hover { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
+        .bb-drop-slot-v { width:18px; height:86px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94A3B8; font-weight:900; font-size:0.85rem; border:1.5px dashed transparent; transition:all 0.14s ease; flex-shrink:0; }
+        .bb-drop-slot-v.drag-over { width:34px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
         .bb-bottom-dock { margin-top:14px; padding-top:12px; border-top:1.5px solid #CBD5E1; display:flex; flex-direction:column; gap:10px; }
         .bb-progress-strip { display:flex; align-items:stretch; gap:6px; overflow-x:auto; padding:8px 10px; background:#F1F5F9; border:1.5px solid #CBD5E1; border-radius:10px; }
-        .bb-step-pill { min-width:94px; max-width:140px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
+        .bb-step-pill { min-width:82px; max-width:118px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
         .bb-step-pill:hover { opacity:0.92; filter:grayscale(35%); background:#E2E8F0; }
         .bb-step-pill.active { filter:none !important; opacity:1 !important; transform:translateY(-2px); border:2px solid #2563EB; background:#DBEAFE; box-shadow:0 4px 12px rgba(37,99,235,0.22); }
         .bb-step-pill.active.is-red { border-color:#DC2626; background:#FEE2E2; box-shadow:0 4px 12px rgba(220,38,38,0.22); }
-        #bbPopWindow { position:fixed; z-index:1200; max-width:320px; background:#0F172A; color:#F8FAFC; border:1.5px solid #38BDF8; border-radius:10px; padding:10px 12px; box-shadow:0 12px 32px rgba(15,23,42,0.45); pointer-events:none; display:none; font-size:0.82rem; line-height:1.5; }
+        #bbPopWindow { position:fixed; z-index:1200; max-width:300px; background:#0F172A; color:#F8FAFC; border:1.5px solid #38BDF8; border-radius:10px; padding:9px 11px; box-shadow:0 12px 32px rgba(15,23,42,0.45); pointer-events:none; display:none; font-size:0.8rem; line-height:1.45; }
       `;
       document.head.appendChild(st);
     }
@@ -385,20 +424,34 @@
       pop.id = 'bbPopWindow';
       document.body.appendChild(pop);
     }
+    if (!_popListenersBound) {
+      _popListenersBound = true;
+      document.addEventListener('mousemove', (e) => {
+        const pop = document.getElementById('bbPopWindow');
+        if (!pop || pop.style.display === 'none') return;
+        const targetCard = e.target && e.target.closest ? e.target.closest('[data-bb-pop]') : null;
+        if (!targetCard) bbHidePop();
+      });
+      document.addEventListener('pointerdown', () => bbHidePop(), true);
+      document.addEventListener('scroll', () => bbHidePop(), true);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') bbHidePop(); });
+      window.addEventListener('blur', () => bbHidePop());
+    }
   }
 
   window.bbStartSplitDrag = function (ev) {
     ev.preventDefault();
+    bbHidePop();
     const splitter = ev.currentTarget;
     if (splitter) splitter.classList.add('dragging');
     const leftPane = document.getElementById('bbLeftPane');
     const container = document.getElementById('bbSplitContainer');
     const startX = ev.clientX;
     const startW = leftPane ? leftPane.getBoundingClientRect().width : BB_STATE.splitLeftPx;
-    const maxW = container ? Math.max(260, container.getBoundingClientRect().width - 280) : 520;
+    const maxW = container ? Math.max(260, container.getBoundingClientRect().width - 280) : 560;
 
     const onMove = (me) => {
-      const nextW = Math.max(175, Math.min(maxW, Math.round(startW + (me.clientX - startX))));
+      const nextW = Math.max(195, Math.min(maxW, Math.round(startW + (me.clientX - startX))));
       BB_STATE.splitLeftPx = nextW;
       if (leftPane) leftPane.style.width = nextW + 'px';
     };
@@ -417,13 +470,13 @@
     const pop = document.getElementById('bbPopWindow');
     if (!meta || !pop) return;
     pop.innerHTML = `
-      <div style="font-weight:900; font-size:0.88rem; color:${meta.exclusivePage ? '#FCA5A5' : '#7DD3FC'}; margin-bottom:4px;">${_esc(meta.popTitle || meta.name)}</div>
+      <div style="font-weight:900; font-size:0.85rem; color:${meta.exclusivePage ? '#FCA5A5' : '#7DD3FC'}; margin-bottom:4px;">${_esc(meta.popTitle || meta.name)}</div>
       <div style="color:#E2E8F0; margin-bottom:5px;">${_esc(meta.popDesc || '')}</div>
-      ${meta.popExample ? `<div class="mono" style="background:#1E293B; color:#FDE047; padding:4px 7px; border-radius:5px; font-size:0.76rem;">${_esc(meta.popExample)}</div>` : ''}
+      ${meta.popExample ? `<div class="mono" style="background:#1E293B; color:#FDE047; padding:3px 7px; border-radius:5px; font-size:0.74rem;">${_esc(meta.popExample)}</div>` : ''}
     `;
     pop.style.display = 'block';
-    const x = Math.min((evt.clientX || 200) + 14, window.innerWidth - 340);
-    const y = Math.min((evt.clientY || 200) + 14, window.innerHeight - 160);
+    const x = Math.min((evt.clientX || 200) + 14, window.innerWidth - 320);
+    const y = Math.min((evt.clientY || 200) + 14, window.innerHeight - 155);
     pop.style.left = Math.max(10, x) + 'px';
     pop.style.top = Math.max(10, y) + 'px';
   };
@@ -462,6 +515,7 @@
   }
 
   function _insertBlockAt(kind, insertPos) {
+    bbHidePop();
     const cfg = _defaultConfigForKind(kind);
     const newItem = { uid: _newUid(), kind, configured: false, config: cfg };
     const maxPos = Math.max(1, BB_STATE.stack.length - 1);
@@ -475,6 +529,7 @@
   };
 
   window.bbRemoveStackIdx = function (idx) {
+    bbHidePop();
     const item = BB_STATE.stack[idx];
     if (!item) return;
     const meta = META_BY_KIND[item.kind];
@@ -485,6 +540,7 @@
   };
 
   window.bbMoveStackIdx = function (idx, delta) {
+    bbHidePop();
     const target = idx + delta;
     if (target < 1 || target >= BB_STATE.stack.length - 1) return;
     const item = BB_STATE.stack[idx];
@@ -495,6 +551,7 @@
   };
 
   window.bbDragStartPalette = function (ev, kind) {
+    bbHidePop();
     BB_STATE.dragSrcType = 'palette';
     BB_STATE.dragKind = kind;
     BB_STATE.dragStackIdx = -1;
@@ -502,10 +559,10 @@
       ev.dataTransfer.effectAllowed = 'copy';
       ev.dataTransfer.setData('text/plain', kind);
     }
-    bbHidePop();
   };
 
   window.bbDragStartStack = function (ev, idx) {
+    bbHidePop();
     const item = BB_STATE.stack[idx];
     if (!item || (META_BY_KIND[item.kind] && META_BY_KIND[item.kind].fixed)) {
       ev.preventDefault();
@@ -522,7 +579,8 @@
 
   window.bbDropAtSlot = function (ev, slotIdx) {
     ev.preventDefault();
-    document.querySelectorAll('.bb-drop-slot.drag-over').forEach(el => el.classList.remove('drag-over'));
+    bbHidePop();
+    document.querySelectorAll('.bb-drop-slot-v.drag-over').forEach(el => el.classList.remove('drag-over'));
     if (BB_STATE.dragSrcType === 'palette' && BB_STATE.dragKind) {
       _insertBlockAt(BB_STATE.dragKind, slotIdx);
     } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= 1) {
@@ -541,16 +599,19 @@
   };
 
   window.bbToggleFullscreen = function () {
+    bbHidePop();
     BB_STATE.fullscreen = !BB_STATE.fullscreen;
     bbRender();
   };
 
   window.bbToggleAdvanced = function (checked) {
+    bbHidePop();
     BB_STATE.showAdvanced = !!checked;
     bbRender();
   };
 
   window.bbStartQa = async function (startIdx = 0) {
+    bbHidePop();
     await _ensureCatalogLoaded();
     BB_STATE.view = 'qa';
     BB_STATE.qaIdx = Math.max(0, Math.min(startIdx, BB_STATE.stack.length - 1));
@@ -559,6 +620,7 @@
   };
 
   window.bbGoView = function (viewName) {
+    bbHidePop();
     BB_STATE.view = viewName;
     if (viewName === 'qa' && BB_STATE.stack[BB_STATE.qaIdx]) {
       BB_STATE.stack[BB_STATE.qaIdx].configured = true;
@@ -567,6 +629,7 @@
   };
 
   window.bbQaStep = function (delta) {
+    bbHidePop();
     const nxt = BB_STATE.qaIdx + delta;
     if (nxt < 0) {
       BB_STATE.view = 'stack';
@@ -582,6 +645,7 @@
   };
 
   window.bbJumpQa = async function (idx) {
+    bbHidePop();
     await _ensureCatalogLoaded();
     if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
     BB_STATE.view = 'qa';
@@ -600,6 +664,14 @@
     if (it.kind === 'delay' && key === 'ms') {
       const hint = document.getElementById('bbDelayReadableHint');
       if (hint) hint.textContent = _formatMsReadable(val);
+    }
+    if (key === 'post_delay_sec' || key === 'post_delay_enabled') {
+      const pHint = document.getElementById('bbPostDelayPreview');
+      if (pHint) {
+        const secVal = Number(it.config.post_delay_sec || 0.5);
+        const msOut = Math.max(1, Math.round((Number.isFinite(secVal) && secVal > 0 ? secVal : 0.5) * 1000));
+        pHint.textContent = it.config.post_delay_enabled ? `➔ 下一列自動寫入 :Delay,"${msOut}"` : '（未勾選，不加延遲列）';
+      }
     }
     if (rerender) bbRender();
   };
@@ -664,7 +736,7 @@
       window.STATE = window.STATE || {};
       window.STATE._builderSectionsOverride = BB_STATE.stack
         .filter(b => !['isn', 'sfis_route', 'multi_sku', 'teardown'].includes(b.kind))
-        .map(b => ({ section_title: b.config?.title || b.config?.title_name || META_BY_KIND[b.kind]?.name || b.kind, badge: '目前流程積木' }));
+        .map(b => ({ section_title: b.config?.title || b.config?.title_name || META_BY_KIND[b.kind]?.shortName || b.kind, badge: '目前積木' }));
       window.openTemplateSkuWizard('create');
       const origApply = window.tswApplyToTarget;
       if (!origApply.__bbWrapped) {
@@ -687,50 +759,60 @@
     const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
     const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
 
-    // 垂直小條積木，只留圖示與精簡中文（<=4字）及「+」按鈕
+    // 直立撲克牌（82x96px），只放 Icon + 最多 2 字中文 + 下方 [+]
     const mkPaletteCard = (b) => `
-      <div class="bb-uniform-brick palette-item ${b.exclusivePage ? 'is-red' : ''}"
+      <div class="bb-poker-card palette-card ${b.exclusivePage ? 'is-red' : ''}"
+        style="border-top-color:${b.border || '#3B82F6'};"
+        data-bb-pop="${b.kind}"
         draggable="true"
         ondragstart="bbDragStartPalette(event, '${b.kind}')"
+        ondragend="bbHidePop()"
         onmousemove="bbShowPop(event, '${b.kind}')"
         onmouseleave="bbHidePop()">
-        <span style="font-weight:800; font-size:0.84rem; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_esc(b.name)}</span>
-        <button type="button" class="bb-plus-btn" title="加入此積木" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
+        <div style="font-size:1.25rem; line-height:1.1; margin-top:2px;">${b.icon}</div>
+        <div style="font-weight:900; font-size:0.9rem; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; letter-spacing:0.5px;">${_esc(b.shortName)}</div>
+        <button type="button" class="bb-poker-plus" title="加入 ${_esc(b.shortName)}" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
       </div>
     `;
 
-    // 右欄積木採用與左欄一致的 38px 緊湊單行高度與外觀
+    // 右欄採用與左欄完全等大之直立撲克牌 (82x96px)，以「+ / ➔」串接排列
     const stackHtml = BB_STATE.stack.map((item, idx) => {
       const meta = META_BY_KIND[item.kind] || {};
       const isFixed = !!meta.fixed;
       const isRed = !!meta.exclusivePage;
       const slotBefore = idx > 0 ? `
-        <div class="bb-drop-slot"
+        <div class="bb-drop-slot-v"
           ondragover="event.preventDefault(); this.classList.add('drag-over');"
           ondragleave="this.classList.remove('drag-over');"
-          ondrop="bbDropAtSlot(event, ${idx})"></div>
+          ondrop="bbDropAtSlot(event, ${idx})">➔</div>
       ` : '';
       return `
         ${slotBefore}
-        <div class="bb-uniform-brick ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''}"
-          style="cursor:pointer;"
+        <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''}"
+          style="cursor:pointer; border-top-color:${meta.border || '#3B82F6'};"
+          data-bb-pop="${item.kind}"
           draggable="${isFixed ? 'false' : 'true'}"
           ondragstart="bbDragStartStack(event, ${idx})"
+          ondragend="bbHidePop()"
           onmousemove="bbShowPop(event, '${item.kind}')"
           onmouseleave="bbHidePop()"
           onclick="bbJumpQa(${idx})">
-          <div style="display:flex; align-items:center; gap:7px; min-width:0; flex:1;">
-            <span class="mono" style="font-weight:900; font-size:0.75rem; padding:1px 5px; border-radius:4px; background:${isRed ? '#FEE2E2' : '#E2E8F0'}; color:${isRed ? '#991B1B' : '#334155'}; flex-shrink:0;">#${idx + 1}</span>
-            <span style="font-weight:800; font-size:0.84rem; color:${isRed ? '#991B1B' : '#0F172A'}; white-space:nowrap; flex-shrink:0;">${_esc(meta.name || item.kind)}</span>
-            <span style="font-size:0.75rem; color:#64748B; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_esc(_summarizeBlock(item))}</span>
-            ${item.configured ? `<span style="font-size:0.72rem; color:#15803D; font-weight:900; flex-shrink:0;">✓</span>` : ''}
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
+            <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isRed ? '#FEE2E2' : '#E2E8F0'}; color:${isRed ? '#991B1B' : '#334155'};">#${idx + 1}</span>
+            ${!isFixed
+              ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
+              : `<span style="font-size:0.65rem; color:#64748B; font-weight:800;">固定</span>`}
           </div>
-          <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;" onclick="event.stopPropagation();">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+            <span style="font-size:1.15rem; line-height:1;">${meta.icon || '🧩'}</span>
+            <span style="font-weight:900; font-size:0.86rem; color:${isRed ? '#991B1B' : '#0F172A'};">${_esc(meta.shortName || item.kind)}</span>
+          </div>
+          <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
             ${!isFixed ? `
-              <button type="button" class="btn" style="padding:1px 6px; font-size:0.74rem;" title="上移" onclick="bbMoveStackIdx(${idx}, -1)">▲</button>
-              <button type="button" class="btn" style="padding:1px 6px; font-size:0.74rem;" title="下移" onclick="bbMoveStackIdx(${idx}, 1)">▼</button>
-              <button type="button" class="btn" style="padding:1px 6px; font-size:0.74rem; color:#B91C1C; border-color:#FCA5A5;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>
-            ` : `<span style="font-size:0.72rem; color:#64748B; padding:0 4px;">固定</span>`}
+              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
+              <span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>
+              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
+            ` : `<span style="font-size:0.7rem; font-weight:900; color:${item.configured ? '#15803D' : '#64748B'};">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
           </div>
         </div>
       `;
@@ -738,9 +820,7 @@
 
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:9px 14px;">
-        <div>
-          <div style="font-weight:900; font-size:1rem; color:#0F172A;">🧱 拖曳積木堆疊測試流程（移過積木看說明，中間線可左右拖曳調寬）</div>
-        </div>
+        <div style="font-weight:900; font-size:0.98rem; color:#0F172A;">🃏 撲克牌小積木拖曳編排（點 + 或拖到右側排列，中間線可拖曳調寬）</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
             ${BB_STATE.fullscreen ? '🗗 退出全螢幕' : '⛶ 全螢幕編排'}
@@ -752,52 +832,76 @@
       </div>
 
       <div id="bbSplitContainer" class="bb-split-container">
-        <!-- 左欄：垂直單排精簡小積木 -->
-        <div id="bbLeftPane" class="bb-left-pane" style="width:${Number(BB_STATE.splitLeftPx || 235)}px;">
+        <!-- 左欄：直立撲克牌庫（2字中文 + 紅標專屬頁） -->
+        <div id="bbLeftPane" class="bb-left-pane" style="width:${Number(BB_STATE.splitLeftPx || 300)}px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:8px;">
-            <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">📦 積木庫</span>
+            <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🃏 積木庫</span>
             <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.77rem; font-weight:700; color:#334155;">
               <input type="checkbox" ${BB_STATE.showAdvanced ? 'checked' : ''} onchange="bbToggleAdvanced(this.checked)" style="cursor:pointer;">
               <span>進階 (${advCards.length})</span>
             </label>
           </div>
-          <div class="bb-palette-list">
+          <div class="bb-poker-grid">
             ${commonCards.map(mkPaletteCard).join('')}
           </div>
           ${BB_STATE.showAdvanced ? `
-            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #CBD5E1;">
-              <div style="font-size:0.75rem; font-weight:800; color:#64748B; margin-bottom:5px;">進階積木</div>
-              <div class="bb-palette-list">
+            <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #CBD5E1;">
+              <div style="font-size:0.75rem; font-weight:800; color:#64748B; margin-bottom:6px;">進階積木</div>
+              <div class="bb-poker-grid">
                 ${advCards.map(mkPaletteCard).join('')}
               </div>
             </div>
           ` : ''}
         </div>
 
-        <!-- 中間可左右拖曳調整視窗大小的分割桿 -->
+        <!-- 中間可左右拖曳調寬之分割桿 -->
         <div id="bbSplitter" class="bb-splitter" title="按住左右拖曳調整兩欄寬度" onmousedown="bbStartSplitDrag(event)">
           <div class="bb-splitter-bar"></div>
         </div>
 
-        <!-- 右欄：已堆疊測試流程 -->
+        <!-- 右欄：橫向串接的等大直立撲克牌順序 -->
         <div id="bbRightPane" class="bb-right-pane"
           ondragover="event.preventDefault();"
-          ondrop="if(!event.target.classList.contains('bb-drop-slot') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
+          ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
           <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <span style="font-weight:900; font-size:0.88rem; color:#1E3A8A;">🧱 已排定執行順序（共 ${BB_STATE.stack.length} 塊）</span>
-              <span style="font-size:0.76rem; color:#64748B;">點擊積木可直接跳進問答</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+              <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
+              <span style="font-size:0.76rem; color:#64748B;">拖曳插入或點卡片直接設定</span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:3px;">
+            <div class="bb-poker-track">
               ${stackHtml}
             </div>
           </div>
-          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+          <div style="margin-top:14px; display:flex; justify-content:flex-end;">
             <button type="button" class="btn btn-primary-green" style="padding:8px 18px; font-weight:900;" onclick="bbStartQa(0)">
               🚀 排好了，開始逐塊設定 ▶
             </button>
           </div>
         </div>
+      </div>
+    `;
+  }
+
+  function _renderPostDelayBar(item, idx) {
+    if (['isn', 'delay', 'multi_sku'].includes(item.kind)) return '';
+    const c = item.config || {};
+    const enabled = !!c.post_delay_enabled;
+    const secStr = (c.post_delay_sec !== undefined && c.post_delay_sec !== '') ? String(c.post_delay_sec) : '0.5';
+    const secNum = Number(secStr);
+    const msOut = Math.max(1, Math.round((Number.isFinite(secNum) && secNum > 0 ? secNum : 0.5) * 1000));
+    return `
+      <div style="margin-top:14px; background:${enabled ? '#F0FDF4' : '#F8FAFC'}; border:1.5px solid ${enabled ? '#4ADE80' : '#CBD5E1'}; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:800; font-size:0.85rem; color:${enabled ? '#14532D' : '#334155'}; user-select:none;">
+          <input type="checkbox" ${enabled ? 'checked' : ''} onchange="bbUpdateField(${idx},'post_delay_enabled',this.checked,true)" style="width:16px; height:16px; accent-color:#16A34A; cursor:pointer;">
+          <span>⏳ 此積木運作完自動延遲等待</span>
+        </label>
+        <div style="display:inline-flex; align-items:center; gap:5px;">
+          <input type="number" step="0.1" min="0.1" value="${_esc(secStr)}" ${enabled ? '' : 'disabled'} oninput="bbUpdateField(${idx},'post_delay_sec',this.value,false)" class="mono" style="width:74px; padding:4px 7px; border:1px solid #94A3B8; border-radius:5px; font-weight:800; background:${enabled ? '#FFFFFF' : '#E2E8F0'};">
+          <span style="font-weight:700; font-size:0.84rem;">秒</span>
+        </div>
+        <span id="bbPostDelayPreview" class="mono" style="font-size:0.79rem; font-weight:700; color:${enabled ? '#15803D' : '#64748B'};">
+          ${enabled ? `➔ 下一列自動寫入 :Delay,"${msOut}"` : '（未勾選，不加延遲列）'}
+        </span>
       </div>
     `;
   }
@@ -1331,7 +1435,7 @@
       default:
         return `
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px; font-size:0.86rem; color:#334155;">
-            <b>${_esc(META_BY_KIND[item.kind]?.popTitle || item.kind)}</b>：此積木將套用官方實戰標準模板生成，無需額外填寫，可直接按「下一塊 ▶」。
+            <b>${_esc(META_BY_KIND[item.kind]?.popTitle || item.kind)}</b>：此積木將套用官方實戰標準模板生成，無需額外填寫。
           </div>
         `;
     }
@@ -1350,7 +1454,7 @@
                 <span class="mono" style="font-weight:900; font-size:0.74rem; color:${isAct ? (isRed ? '#991B1B' : '#1E3A8A') : '#475569'};">#${i + 1}</span>
                 ${isAct ? `<span style="font-size:0.68rem; font-weight:900; color:${isRed ? '#DC2626' : '#2563EB'};">● 設定中</span>` : (it.configured ? `<span style="font-size:0.72rem; color:#15803D;">✓</span>` : '')}
               </div>
-              <div style="font-weight:800; font-size:0.78rem; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${_esc(meta.name || it.kind)}</div>
+              <div style="font-weight:800; font-size:0.8rem; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${meta.icon || ''} ${_esc(meta.shortName || it.kind)}</div>
             </button>
           `;
         }).join('')}
@@ -1366,13 +1470,13 @@
 
     return `
       <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : '#3B82F6'}; border-radius:11px; padding:16px;">
-        <!-- 上方純問題填寫區 -->
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-          <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.name || item.kind)}</span>
+          <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
         </div>
         <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
           ${_renderQaBody(item, idx)}
+          ${_renderPostDelayBar(item, idx)}
         </div>
 
         <!-- 最底部：固定整排彩/灰積木進度條 ＋ 導覽操作列 -->
@@ -1382,7 +1486,7 @@
             <button type="button" class="btn" style="padding:6px 13px; font-size:0.84rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木編排</button>
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="mono" style="background:${meta.exclusivePage ? '#FEE2E2' : '#DBEAFE'}; color:${meta.exclusivePage ? '#991B1B' : '#1E3A8A'}; padding:3px 10px; border-radius:999px; font-weight:900; font-size:0.83rem;">第 ${idx + 1} / ${BB_STATE.stack.length} 塊</span>
-              <span style="font-weight:800; font-size:0.9rem; color:#334155;">${_esc(meta.name || item.kind)}</span>
+              <span style="font-weight:800; font-size:0.9rem; color:#334155;">${meta.icon || ''} ${_esc(meta.shortName || item.kind)}</span>
             </div>
             <div style="display:flex; gap:8px;">
               <button type="button" class="btn" style="padding:6px 14px; font-size:0.85rem; font-weight:800;" onclick="bbQaStep(-1)">${idx === 0 ? '◀ 回排順序' : '◀ 上一塊'}</button>
@@ -1412,7 +1516,7 @@
             return `
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 8px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px;">
                 <div style="font-size:0.84rem;">
-                  <b class="mono" style="color:#1E40AF;">#${i + 1}</b> <b>${_esc(meta.name || it.kind)}</b>
+                  <b class="mono" style="color:#1E40AF;">#${i + 1}</b> <b>${meta.icon || ''} ${_esc(meta.shortName || it.kind)}</b>
                   <span style="color:#475569; margin-left:6px;">${_esc(_summarizeBlock(it))}</span>
                 </div>
                 <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem;" onclick="bbJumpQa(${i})">修改</button>
@@ -1447,6 +1551,7 @@
   }
 
   window.bbExportExcel = async function (dryRun) {
+    bbHidePop();
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
     const skuBlk = BB_STATE.stack.find(b => b.kind === 'multi_sku');
     const skuCfg = (skuBlk && skuBlk.config && skuBlk.config.sku_wizard) || (window.STATE && window.STATE.createSkuConfig) || null;
@@ -1503,6 +1608,7 @@
   };
 
   window.bbRender = function () {
+    bbHidePop();
     _ensureStylesAndPop();
     const host = document.getElementById('createBlockBuilderRoot');
     if (!host) return;

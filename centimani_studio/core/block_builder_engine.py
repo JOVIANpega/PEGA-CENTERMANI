@@ -626,6 +626,26 @@ def build_workspace_from_sequence(
                 )
             _append_standard_block_steps(bid_map[kind], blk_map, wizard_config, ws, steps, next_phase)
 
+        # Every action block (except isn / delay / multi_sku / disabled fixture) supports optional post-block Delay row
+        skip_post_delay = (
+            kind in ("isn", "delay", "inst", "multi_sku")
+            or (kind == "fixture" and str(cfg.get("fixture_type") or "none").strip().lower() == "none")
+        )
+        if not skip_post_delay and cfg.get("post_delay_enabled"):
+            try:
+                sec = float(cfg.get("post_delay_sec") if cfg.get("post_delay_sec") is not None else 0.5)
+            except (ValueError, TypeError):
+                sec = 0.5
+            if sec > 0:
+                ms_val = max(1, int(round(sec * 1000)))
+                steps.append(_step(
+                    send=f':Delay,"{ms_val}"',
+                    reply="0",
+                    exec_mode="0",
+                    description=f"PC#-#Post-Block Delay ({sec:g}s)",
+                    test_id="B7PL025",
+                ))
+
     # Append Teardown block(s) at the end (always 97, optionally 98/99)
     if teardown_items:
         td_cfg = teardown_items[-1].get("config") or {}
@@ -657,6 +677,7 @@ def build_workspace_from_sequence(
         for bi, blk in enumerate(blks):
             if blk["steps"][-1]["global_idx"] < p_idx:
                 after_blk = bi
+        before_inst_len = len(cur_steps)
         if inst_type == "ni6009":
             channels = icfg.get("channels") or [
                 {"ch": 0, "name": "VCC_5V", "dl": "4.75", "ul": "5.25"},
@@ -692,6 +713,25 @@ def build_workspace_from_sequence(
                 custom_steps=icfg.get("custom_steps"),
                 globals_patch=icfg.get("globals_patch"),
             )
+
+        if icfg.get("post_delay_enabled"):
+            try:
+                sec = float(icfg.get("post_delay_sec") if icfg.get("post_delay_sec") is not None else 0.5)
+            except (ValueError, TypeError):
+                sec = 0.5
+            if sec > 0:
+                ms_val = max(1, int(round(sec * 1000)))
+                after_steps = ws["stations"][station_name]
+                added_n = len(after_steps) - before_inst_len
+                base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
+                delay_insert_pos = min(len(after_steps), max(0, base_pos + max(0, added_n)))
+                after_steps.insert(delay_insert_pos, _step(
+                    send=f':Delay,"{ms_val}"',
+                    reply="0",
+                    exec_mode="0",
+                    description=f"PC#-#Post-Block Delay ({sec:g}s)",
+                    test_id="B7PL025",
+                ))
 
     # Re-sequence contiguous Phases (0, 1, 2... up to 96) preserving 97/98/99
     final_steps = ws["stations"][station_name]
