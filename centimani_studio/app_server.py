@@ -192,6 +192,8 @@ import threading
 _PICK_LOCK = threading.Lock()
 _EXCEL_LAUNCH_LOCK = threading.Lock()
 _LAST_EXCEL_LAUNCH = {"path": "", "time": 0.0}
+_FOLDER_OPEN_LOCK = threading.Lock()
+_LAST_FOLDER_OPEN = {"path": "", "time": 0.0}
 
 
 def _prepare_topmost_tk_root(tk_mod):
@@ -532,11 +534,18 @@ def _bring_window_to_front(class_name, title_keyword="", max_wait_sec=3.5, maxim
 
 
 def open_folder_in_explorer(folder_path):
-    """Reliably opens folder in Windows Explorer and brings it in front of Chrome."""
+    """Reliably opens folder in Windows Explorer and brings it in front of Chrome (debounced to prevent 2 windows)."""
     try:
         if not folder_path or not os.path.exists(folder_path):
             return
-        norm_path = os.path.normpath(folder_path)
+        import time
+        norm_path = os.path.abspath(os.path.normpath(folder_path))
+        with _FOLDER_OPEN_LOCK:
+            now = time.time()
+            if _LAST_FOLDER_OPEN["path"] == norm_path and (now - _LAST_FOLDER_OPEN["time"]) < 2.5:
+                return
+            _LAST_FOLDER_OPEN["path"] = norm_path
+            _LAST_FOLDER_OPEN["time"] = now
 
         def _task():
             try:
@@ -1002,7 +1011,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.063",
+                "server_build": "Build v0.8.064",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1706,7 +1715,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.063")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.064")
 
                 self._send_json({
                     "status": "ok",
@@ -1783,6 +1792,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     self._send_json({"status": "error", "message": "僅支援開啟 .txt 說明檔案"}, 400)
                     return
                 launch_ini_file_async([fpath])
+                self._send_json({"status": "ok"})
+
+            elif parsed.path == "/api/open_folder":
+                dpath = str(payload.get("folder_path", "")).strip()
+                if not dpath or not os.path.isdir(dpath):
+                    self._send_json({"status": "error", "message": "找不到目標資料夾"}, 404)
+                    return
+                open_folder_in_explorer(dpath)
                 self._send_json({"status": "ok"})
 
             elif parsed.path == "/api/generate_new_standalone":
@@ -2039,7 +2056,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     switch_bats = write_env_switch_bats(target_dir, st, taipei_sheet, xlsx_filename=actual_xlsx_name)
                 chk = "已自動寫入 [Checksum]"
 
-                open_folder_in_explorer(target_dir)
+                if bool(payload.get("open_folder", True)):
+                    open_folder_in_explorer(target_dir)
 
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2047,7 +2065,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.063")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.064")
 
                 self._send_json({
                     "status": "ok",
@@ -2288,8 +2306,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     from core.block_sorter import write_env_switch_bats
                     switch_bats = write_env_switch_bats(target_dir, st_name, taipei_sheet, xlsx_filename=actual_xlsx_name)
 
-                # 6. 匯出時一律自動開啟目標目錄，Excel 依前端確認視窗決定是否開啟
-                open_folder_in_explorer(target_dir)
+                # 6. 依前端要求開啟目標目錄與 Excel
+                if bool(payload.get("open_folder", True)):
+                    open_folder_in_explorer(target_dir)
 
                 if bool(payload.get("open_excel", False)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2298,7 +2317,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.063")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.064")
 
                 self._send_json({
                     "status": "ok",
@@ -2668,7 +2687,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.063")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.064")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2834,7 +2853,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.063) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.064) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

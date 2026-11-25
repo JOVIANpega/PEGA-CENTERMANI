@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.063</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.064</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1307,6 +1307,15 @@
 
     <!-- 插入儀器範本與互動人機 (34+ 款人機 - 撲克牌庫 + 細部規格兩步驟生成) -->
     <div id="genModeInst" style="display:none;">
+      <div id="tab3BuilderReturnBar" style="display:none; margin-bottom:10px; background:linear-gradient(90deg,#EEF2FF 0%,#F5F3FF 100%); border:2px solid #6366F1; border-radius:10px; padding:10px 16px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:0.9rem; font-weight:800; color:#312E81;">
+          🔗 正從「<b>0 → 1 積木流程 <span id="tab3BuilderSlotLbl"></span></b>」呼叫儀器堆疊工作區 — 在左欄加入多台儀器並排好右欄順序／調整人機後，點右側完成帶回！
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" onclick="tab3CancelToBuilder()" class="btn" style="padding:6px 14px; font-size:0.85rem; font-weight:800; background:#FFFFFF; color:#475569; border:1.5px solid #CBD5E1;">◀ 取消返回積木頁</button>
+          <button type="button" onclick="tab3FinishToBuilder()" class="btn btn-primary-green" style="padding:7px 18px; font-size:0.9rem; font-weight:900;">✅ 完成堆疊並帶回 0 → 1 積木流程 ▶</button>
+        </div>
+      </div>
       <div style="background:#FFFFFF; border:1.5px solid #C4B5FD; border-top:4px solid #7C3AED; border-radius:10px; padding:16px 20px; margin-bottom:14px;">
         <!-- 頂部標題與步驟指示 -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
@@ -1892,14 +1901,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.063"></script>
-<script src="/js/audit_editors.js?v=0.8.063"></script>
-<script src="/js/flow_guide.js?v=0.8.063"></script>
-<script src="/js/block_sorter.js?v=0.8.063"></script>
-<script src="/js/script_qa.js?v=0.8.063"></script>
-<script src="/js/sfis_hmi.js?v=0.8.063"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.063"></script>
-<script src="/js/create_block_builder.js?v=0.8.063"></script>
+<script src="/js/inst_hmi.js?v=0.8.064"></script>
+<script src="/js/audit_editors.js?v=0.8.064"></script>
+<script src="/js/flow_guide.js?v=0.8.064"></script>
+<script src="/js/block_sorter.js?v=0.8.064"></script>
+<script src="/js/script_qa.js?v=0.8.064"></script>
+<script src="/js/sfis_hmi.js?v=0.8.064"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.064"></script>
+<script src="/js/create_block_builder.js?v=0.8.064"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -3197,6 +3206,108 @@ function tab3HandleDropToTrack(e, targetIdx = null) {
   TAB3_DRAG_PAYLOAD = null;
 }
 
+let TAB3_BUILDER_RETURN_IDX = -1;
+
+function _syncTab3BuilderBanner() {
+  const bar = document.getElementById('tab3BuilderReturnBar');
+  const lbl = document.getElementById('tab3BuilderSlotLbl');
+  if (!bar) return;
+  if (TAB3_BUILDER_RETURN_IDX >= 0) {
+    bar.style.display = 'flex';
+    if (lbl) lbl.textContent = `#${TAB3_BUILDER_RETURN_IDX + 1} 🧪 儀器`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+window.openInstDualPaneForBuilder = function (builderIdx, curConfig) {
+  TAB3_BUILDER_RETURN_IDX = Number(builderIdx);
+  const c = curConfig || {};
+  if (c.inst_mode === 'multi_queue' && Array.isArray(c.inst_queue) && c.inst_queue.length) {
+    TAB3_QUEUE = JSON.parse(JSON.stringify(c.inst_queue));
+  } else if (c.inst_name) {
+    const one = {
+      inst_name: c.inst_name,
+      title_name: c.title_name || `${c.inst_name} Test`,
+      dl_val: String(c.dl_val || ''),
+      ul_val: String(c.ul_val || ''),
+    };
+    if (c.inst_mode === 'ni6009') {
+      one.ni6009_block = {
+        mode: c.mode || 'RSE',
+        sample_ms: c.sample_ms || '1000',
+        dev_id: c.dev_id || 'Dev1',
+        title_name: c.title_name || 'Measure Voltage Test',
+        channels: JSON.parse(JSON.stringify(c.channels || [])),
+      };
+      one._hmiConfigured = true;
+    } else if (c.inst_mode === 'rf') {
+      one.rf_block = {
+        inst_name: c.inst_name || 'InstIQApiA',
+        title_name: c.title_name || 'WIFI RF Test',
+        settings_str: c.settings_str || '',
+        tx_tests: JSON.parse(JSON.stringify(c.tx_tests || [])),
+        rx_tests: JSON.parse(JSON.stringify(c.rx_tests || [])),
+      };
+      one._hmiConfigured = true;
+    }
+    TAB3_QUEUE = [one];
+  } else {
+    TAB3_QUEUE = [];
+  }
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('inst');
+  _syncTab3BuilderBanner();
+  tab3GoStep(1);
+  if (typeof tab3RenderCatalogDeck === 'function') tab3RenderCatalogDeck();
+  if (typeof renderTab3Queue === 'function') renderTab3Queue();
+};
+
+window.tab3CancelToBuilder = function () {
+  TAB3_BUILDER_RETURN_IDX = -1;
+  _syncTab3BuilderBanner();
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('create');
+  if (typeof window.bbRender === 'function') window.bbRender();
+};
+
+window.tab3FinishToBuilder = function () {
+  if (!TAB3_QUEUE || TAB3_QUEUE.length === 0) {
+    alert('右側序列目前是空的，請先從左欄挑選至少 1 台儀器加入（或點「◀ 取消返回積木頁」）。');
+    return;
+  }
+  const idx = TAB3_BUILDER_RETURN_IDX;
+  if (idx >= 0 && window.BB_STATE && window.BB_STATE.stack[idx]) {
+    const blk = window.BB_STATE.stack[idx];
+    const clonedQueue = JSON.parse(JSON.stringify(TAB3_QUEUE));
+    blk.config = blk.config || {};
+    blk.config.inst_queue = clonedQueue;
+    if (clonedQueue.length === 1) {
+      const q0 = clonedQueue[0];
+      blk.config.inst_name = q0.inst_name;
+      blk.config.title_name = q0.title_name;
+      blk.config.dl_val = q0.dl_val || '';
+      blk.config.ul_val = q0.ul_val || '';
+      if (q0.ni6009_block) {
+        blk.config.inst_mode = 'ni6009';
+        Object.assign(blk.config, q0.ni6009_block);
+      } else if (q0.rf_block) {
+        blk.config.inst_mode = 'rf';
+        Object.assign(blk.config, q0.rf_block);
+      } else {
+        blk.config.inst_mode = 'catalog';
+      }
+    } else {
+      blk.config.inst_mode = 'multi_queue';
+      blk.config.inst_name = clonedQueue.map(x => x.inst_name).join('+');
+      blk.config.title_name = `${clonedQueue.length} 台儀器測試序列`;
+    }
+    blk.configured = true;
+  }
+  TAB3_BUILDER_RETURN_IDX = -1;
+  _syncTab3BuilderBanner();
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('create');
+  if (typeof window.bbRender === 'function') window.bbRender();
+};
+
 function tab3OpenStep2Checked() {
   if (TAB3_QUEUE.length === 0) {
     alert('請先從左側撲克牌庫點擊「＋ 加入」或拖曳至少 1 台儀器至右側序列！');
@@ -3440,13 +3551,14 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
             no_hw_phase_pause: noHwPhasePause,
             station_name_mode: stationNameMode,
             taipei_dual_mode: false,
-            open_excel: false
+            open_folder: false,
+            open_excel: true
           })
         });
         return await res.json();
       },
       1200,
-      '正在寫入 16 欄母體 Excel、執行全自動語法體檢、計算 Checksum 並開啟輸出目錄...'
+      '正在寫入 16 欄母體 Excel、執行全自動語法體檢、計算 Checksum 並直接開啟 Excel...'
     );
     if (data.status !== 'ok') {
       alert('產生失敗：' + (data.message || '未知錯誤'));
@@ -3486,10 +3598,10 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
       outBox.style.borderColor = (errCnt === 0 && !hasDllWarn) ? '#86EFAC' : '#F59E0B';
       outBox.innerHTML = `
         <div style="font-size:0.93rem; color:#166534; font-weight:800; margin-bottom:6px;">
-          🎉 [${modeTag}] 成功產出儀器測試範本（${data.total_items || itemsToInsert.length} 台儀器 / 共 ${data.total_steps || '-'} 列步驟），並已自動開啟輸出目錄！
+          🎉 [${modeTag}] 成功產出儀器測試範本（${data.total_items || itemsToInsert.length} 台儀器 / 共 ${data.total_steps || '-'} 列步驟），已直接開啟 Excel！
         </div>
         <div style="font-size:0.83rem; color:#334155; line-height:1.6;">
-          • <b>輸出目錄：</b><span class="mono">${data.output_dir}</span><br>
+          • <b>程式輸出目錄：</b><span class="mono">${data.output_dir}</span> <button type="button" onclick="openOutputFolder(${JSON.stringify(data.output_dir)})" class="btn" style="padding:2px 8px; font-size:0.76rem; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700; margin-left:4px;">📂 打開資料夾</button><br>
           • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
           ${data.guide_txt_path ? `• <b>編寫與使用說明：</b><span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.77rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
           • <b>自動檢查結果：</b><span style="color:${errCnt === 0 ? '#15803D' : '#B45309'}; font-weight:800;">${errCnt === 0 ? '✅ 0 Error (全自動體檢通過、Phase 順編、Phase 97 收尾與 Checksum 已寫入)' : '⚠️ 尚有 ' + errCnt + ' 項待確認 (已自動修復 ' + (data.auto_fixed_count || 0) + ' 項)'}</span>
@@ -3497,19 +3609,6 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
         ${dllWarnHtml}
       `;
     }
-    showExportCompleteModal({
-      title: '🎉 儀器測試範本匯出完成（已開啟輸出資料夾）',
-      excelPath: data.excel_path,
-      guideTxtPath: data.guide_txt_path || '',
-      taipeiSheet: data.taipei_sheet || '',
-      switchBats: data.switch_bats || [],
-      outputDir: data.output_dir,
-      centimaniDir: data.centimani_dir,
-      centimaniDirExists: data.centimani_dir_exists,
-      missingDlls: data.missing_dlls,
-      missingDrivers: data.missing_drivers,
-      summaryHtml: `<div>• <b>儀器 / 步驟數：</b>${data.total_items || itemsToInsert.length} 台儀器 / ${data.total_steps || '-'} 列</div>`
-    });
   } catch (err) {
     alert('呼叫伺服器時發生異常：' + (err && err.message ? err.message : err));
     if (outBox) outBox.style.display = 'none';
@@ -6797,6 +6896,17 @@ async function openGuideTxtFile(fpath) {
   });
   const d = await res.json();
   if (d.status !== 'ok') alert(d.message || '無法開啟說明 .txt 檔案');
+}
+
+async function openOutputFolder(folderPath) {
+  if (!folderPath) return;
+  const res = await fetch('/api/open_folder', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ folder_path: folderPath })
+  });
+  const d = await res.json();
+  if (d.status !== 'ok') alert(d.message || '無法開啟資料夾');
 }
 
 async function openStationDiffModal() {

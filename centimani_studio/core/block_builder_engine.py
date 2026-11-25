@@ -136,6 +136,37 @@ def build_workspace_from_sequence(
     normal_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") != "teardown"]
     teardown_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") == "teardown"]
 
+    def _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route):
+        from core.sfis_client import build_sfis_excel_steps
+        scfg = hmi_bundle.get("config") or {}
+        sys_ini = ws.setdefault("system_ini", {})
+        if is_route or scfg.get("sfis_enable") is not None:
+            sys_ini["SFIS_Enable"] = str(scfg.get("sfis_enable") or ("1" if cfg.get("sfis_mode") == "online" else "0"))
+        if scfg.get("url"):
+            sys_ini["SFIS_WebLink"] = str(scfg["url"]).strip()
+        if scfg.get("tsp"):
+            sys_ini["SFIS_TSP"] = str(scfg["tsp"]).strip()
+        if scfg.get("op"):
+            sys_ini["SFIS_LoginID"] = str(scfg["op"]).strip()
+            sys_ini["SFIS_AutoLogin"] = "1"
+        if scfg.get("isn"):
+            sys_ini["SFIS_GetDateISN"] = str(scfg["isn"]).strip()
+        if "skip_save_on_fail" in scfg:
+            sys_ini["SFIS_SkipSaveResultOnFail"] = "1" if scfg.get("skip_save_on_fail") else "0"
+        if scfg.get("device_id"):
+            g_set["DEVID_1"] = str(scfg["device_id"]).strip()
+        if is_route:
+            _ensure_dut_connection(
+                ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
+            )
+        start_ph = 0 if is_route else int(_alloc_phase())
+        need_show_isn = not has_phase0 and not any(':ShowISN' in str(s.get('Send') or '') for s in steps)
+        sfis_steps = build_sfis_excel_steps(hmi_bundle["items"], start_phase=start_ph, include_show_isn=need_show_isn)
+        if sfis_steps:
+            steps.extend(sfis_steps)
+            return True
+        return False
+
     for item in normal_items:
         kind = str(item.get("kind") or "").strip()
         cfg = item.get("config") or {}
@@ -145,36 +176,41 @@ def build_workspace_from_sequence(
             continue
 
         elif kind == "sfis_route":
-            # Applies System.ini switches and builds Phase 0 CheckRoute
-            mode = str(cfg.get("sfis_mode") or "offline").strip().lower()
-            sys_ini = ws.setdefault("system_ini", {})
-            if mode == "online":
-                sys_ini["SFIS_Enable"] = "1"
-                sys_ini["DebugMode"] = str(cfg.get("debug_mode") or "0")
+            # Applies System.ini switches and builds Phase 0 CheckRoute (or synced SFIS HMI bundle)
+            hmi_bundle = cfg.get("sfis_hmi_bundle")
+            if isinstance(hmi_bundle, dict) and (hmi_bundle.get("items") or []):
+                if _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route=True):
+                    has_phase0 = True
             else:
-                sys_ini["SFIS_Enable"] = "0"
-                sys_ini["DebugMode"] = "1"
-            if cfg.get("tsp"):
-                sys_ini["SFIS_TSP"] = str(cfg["tsp"]).strip()
-            if cfg.get("weblink"):
-                sys_ini["SFIS_WebLink"] = str(cfg["weblink"]).strip()
-            if cfg.get("login_id"):
-                sys_ini["SFIS_LoginID"] = str(cfg["login_id"]).strip()
-                sys_ini["SFIS_AutoLogin"] = "1"
-            if cfg.get("date_isn"):
-                sys_ini["SFIS_GetDateISN"] = str(cfg["date_isn"]).strip()
-            _ensure_dut_connection(
-                ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
-            )
-            steps.extend([
-                _step(phase="0", title="0,CheckRoute", send=':ShowISN,"*(ISN)"', reply="0", exec_mode="1",
-                      description="PC#-#Display ISN", test_id="B7PL025"),
-                _step(send=':Disconnect,"UART"', reply="0", exec_mode="3",
-                      description="PC#-#Ensure UART Closed Before Route", test_id="OTFX082"),
-                _step(send=":SfCheckRoute", reply="0", waiting="2000", exec_mode="8",
-                      description="SFIS#-#Check Station Route", test_id="OTFX085"),
-            ])
-            has_phase0 = True
+                mode = str(cfg.get("sfis_mode") or "offline").strip().lower()
+                sys_ini = ws.setdefault("system_ini", {})
+                if mode == "online":
+                    sys_ini["SFIS_Enable"] = "1"
+                    sys_ini["DebugMode"] = str(cfg.get("debug_mode") or "0")
+                else:
+                    sys_ini["SFIS_Enable"] = "0"
+                    sys_ini["DebugMode"] = "1"
+                if cfg.get("tsp"):
+                    sys_ini["SFIS_TSP"] = str(cfg["tsp"]).strip()
+                if cfg.get("weblink"):
+                    sys_ini["SFIS_WebLink"] = str(cfg["weblink"]).strip()
+                if cfg.get("login_id"):
+                    sys_ini["SFIS_LoginID"] = str(cfg["login_id"]).strip()
+                    sys_ini["SFIS_AutoLogin"] = "1"
+                if cfg.get("date_isn"):
+                    sys_ini["SFIS_GetDateISN"] = str(cfg["date_isn"]).strip()
+                _ensure_dut_connection(
+                    ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
+                )
+                steps.extend([
+                    _step(phase="0", title="0,CheckRoute", send=':ShowISN,"*(ISN)"', reply="0", exec_mode="1",
+                          description="PC#-#Display ISN", test_id="B7PL025"),
+                    _step(send=':Disconnect,"UART"', reply="0", exec_mode="3",
+                          description="PC#-#Ensure UART Closed Before Route", test_id="OTFX082"),
+                    _step(send=":SfCheckRoute", reply="0", waiting="2000", exec_mode="8",
+                          description="SFIS#-#Check Station Route", test_id="OTFX085"),
+                ])
+                has_phase0 = True
 
         elif kind == "fixture":
             fx_type = str(cfg.get("fixture_type") or "none").strip().lower()
@@ -487,64 +523,69 @@ def build_workspace_from_sequence(
                 extracted_sku_cfg = cfg["sku_wizard"]
 
         elif kind == "sfis_rw":
-            rw_mode = str(cfg.get("rw_mode") or "get_version").strip().lower()
-            field_nm = str(cfg.get("field_name") or "MAC1").strip() or "MAC1"
-            out_var = _safe_var(cfg.get("var_name") or f"sf_{field_nm}", "sfField")
-            title_lbl = str(cfg.get("title") or f"SFIS {field_nm}").strip()
-            ph = _alloc_phase()
-            if rw_mode == "save_link":
-                val_expr = str(cfg.get("save_value") or f"*({out_var})").strip()
-                steps.append(_step(
-                    phase=ph,
-                    title=f"0,{title_lbl}",
-                    send=f':SfSaveLinkData,"{field_nm}","{val_expr}"',
-                    reply="0",
-                    waiting="2000",
-                    exec_mode="8",
-                    description=f"SFIS#-#SaveLinkData {field_nm}",
-                    test_id="OTFX085",
-                ))
-            elif rw_mode == "scan_label":
-                lbl_len = str(cfg.get("label_len") or "12").strip() or "12"
-                steps.append(_step(
-                    phase=ph,
-                    title=f"0,{title_lbl},3",
-                    send=':Delay,"10"',
-                    reply="0",
-                    ref=f"${out_var};",
-                    validation=f"({out_var},%len,{lbl_len},{lbl_len});",
-                    prompt=f"請掃描 {field_nm} ({lbl_len} 碼)",
-                    exec_mode="1",
-                    description=f"OP#-#Scan {field_nm}",
-                    test_id="CACK180",
-                ))
-            elif rw_mode == "get_imac":
-                steps.append(_step(
-                    phase=ph,
-                    title=f"0,{title_lbl}",
-                    send=':SfGetiMAC,"*(ISN)","1","1","2"',
-                    reply="",
-                    ref=f"${out_var};",
-                    validation=f"({out_var},%len,12,12);",
-                    waiting="2000",
-                    exec_mode="8",
-                    description="SFIS#-#Get iMAC",
-                    test_id="OTFX085",
-                ))
+            hmi_bundle = cfg.get("sfis_hmi_bundle")
+            if isinstance(hmi_bundle, dict) and (hmi_bundle.get("items") or []):
+                if _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route=False):
+                    has_phase0 = True
             else:
-                table_nm = str(cfg.get("table_name") or "ISN_BASEINFO").strip() or "ISN_BASEINFO"
-                steps.append(_step(
-                    phase=ph,
-                    title=f"0,{title_lbl}",
-                    send=f':SfGetVersion,"*(ISN)","{table_nm}","2","{field_nm}",""',
-                    reply="",
-                    ref=f"${out_var};",
-                    validation=f"({out_var},%len,1,64);",
-                    waiting="2000",
-                    exec_mode="8",
-                    description=f"SFIS#-#GetVersion ({table_nm} {field_nm})",
-                    test_id="OTFX085",
-                ))
+                rw_mode = str(cfg.get("rw_mode") or "get_version").strip().lower()
+                field_nm = str(cfg.get("field_name") or "MAC1").strip() or "MAC1"
+                out_var = _safe_var(cfg.get("var_name") or f"sf_{field_nm}", "sfField")
+                title_lbl = str(cfg.get("title") or f"SFIS {field_nm}").strip()
+                ph = _alloc_phase()
+                if rw_mode == "save_link":
+                    val_expr = str(cfg.get("save_value") or f"*({out_var})").strip()
+                    steps.append(_step(
+                        phase=ph,
+                        title=f"0,{title_lbl}",
+                        send=f':SfSaveLinkData,"{field_nm}","{val_expr}"',
+                        reply="0",
+                        waiting="2000",
+                        exec_mode="8",
+                        description=f"SFIS#-#SaveLinkData {field_nm}",
+                        test_id="OTFX085",
+                    ))
+                elif rw_mode == "scan_label":
+                    lbl_len = str(cfg.get("label_len") or "12").strip() or "12"
+                    steps.append(_step(
+                        phase=ph,
+                        title=f"0,{title_lbl},3",
+                        send=':Delay,"10"',
+                        reply="0",
+                        ref=f"${out_var};",
+                        validation=f"({out_var},%len,{lbl_len},{lbl_len});",
+                        prompt=f"請掃描 {field_nm} ({lbl_len} 碼)",
+                        exec_mode="1",
+                        description=f"OP#-#Scan {field_nm}",
+                        test_id="CACK180",
+                    ))
+                elif rw_mode == "get_imac":
+                    steps.append(_step(
+                        phase=ph,
+                        title=f"0,{title_lbl}",
+                        send=':SfGetiMAC,"*(ISN)","1","1","2"',
+                        reply="",
+                        ref=f"${out_var};",
+                        validation=f"({out_var},%len,12,12);",
+                        waiting="2000",
+                        exec_mode="8",
+                        description="SFIS#-#Get iMAC",
+                        test_id="OTFX085",
+                    ))
+                else:
+                    table_nm = str(cfg.get("table_name") or "ISN_BASEINFO").strip() or "ISN_BASEINFO"
+                    steps.append(_step(
+                        phase=ph,
+                        title=f"0,{title_lbl}",
+                        send=f':SfGetVersion,"*(ISN)","{table_nm}","2","{field_nm}",""',
+                        reply="",
+                        ref=f"${out_var};",
+                        validation=f"({out_var},%len,1,64);",
+                        waiting="2000",
+                        exec_mode="8",
+                        description=f"SFIS#-#GetVersion ({table_nm} {field_nm})",
+                        test_id="OTFX085",
+                    ))
 
         elif kind == "python":
             _ensure_dut_connection(
@@ -707,7 +748,46 @@ def build_workspace_from_sequence(
             if blk["steps"][-1]["global_idx"] < p_idx:
                 after_blk = bi
         before_inst_len = len(cur_steps)
-        if inst_type == "ni6009":
+        if inst_type == "multi_queue" and isinstance(icfg.get("inst_queue"), list) and icfg.get("inst_queue"):
+            cur_after = after_blk
+            for q_it in icfg["inst_queue"]:
+                if not isinstance(q_it, dict):
+                    continue
+                if isinstance(q_it.get("ni6009_block"), dict):
+                    nb = q_it["ni6009_block"]
+                    insert_ni6009_block(
+                        ws, station_name,
+                        mode=nb.get("mode", "RSE"),
+                        sample_ms=str(nb.get("sample_ms", "1000")),
+                        dev_id=str(nb.get("dev_id", "Dev1")),
+                        title_name=str(nb.get("title_name") or q_it.get("title_name") or "Measure Voltage Test"),
+                        channels=nb.get("channels") or [],
+                        after_block_idx=cur_after,
+                    )
+                elif isinstance(q_it.get("rf_block"), dict):
+                    rb = q_it["rf_block"]
+                    insert_rf_iqxel_block(
+                        ws, station_name,
+                        inst_name=str(rb.get("inst_name") or q_it.get("inst_name") or "InstIQApiA"),
+                        title_name=str(rb.get("title_name") or q_it.get("title_name") or "WIFI RF Test"),
+                        settings_str=str(rb.get("settings_str") or ""),
+                        tx_tests=rb.get("tx_tests") or [],
+                        rx_tests=rb.get("rx_tests") or [],
+                        after_block_idx=cur_after,
+                    )
+                else:
+                    q_inst = str(q_it.get("inst_name") or "PPH1503").strip() or "PPH1503"
+                    insert_instrument_title_block(
+                        ws, station_name, q_inst,
+                        str(q_it.get("title_name") or f"{q_inst} Test").strip(),
+                        after_block_idx=cur_after,
+                        dl_val=str(q_it.get("dl_val") or "").strip(),
+                        ul_val=str(q_it.get("ul_val") or "").strip(),
+                        custom_steps=q_it.get("custom_steps"),
+                        globals_patch=q_it.get("globals_patch"),
+                    )
+                cur_after += 1
+        elif inst_type == "ni6009":
             channels = icfg.get("channels") or [
                 {"ch": 0, "name": "VCC_5V", "dl": "4.75", "ul": "5.25"},
                 {"ch": 1, "name": "VCC_3V3", "dl": "3.15", "ul": "3.45"},

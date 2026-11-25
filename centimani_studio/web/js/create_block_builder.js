@@ -379,6 +379,9 @@
       case 'isn':
         return `${c.project || 'PEGA_NEW'}/${c.station || 'MB'} · ${c.isn_len || 3}碼`;
       case 'sfis_route':
+        if (c.sfis_hmi_bundle && Array.isArray(c.sfis_hmi_bundle.items) && c.sfis_hmi_bundle.items.length) {
+          return `SFIS堆疊(${c.sfis_hmi_bundle.items.length}步)${dNote}`;
+        }
         return (c.sfis_mode === 'online' ? `線上(${c.tsp || 'PEGA,2'})` : '工程離線') + dNote;
       case 'comm_cmd':
         return `${String(c.protocol || 'uart').toUpperCase()}@${(c.command || '').slice(0, 14)}${dNote}`;
@@ -389,6 +392,9 @@
       case 'var_check':
         return (c.check_mode === 'string' ? `$${c.var_name}` : `${c.dl}~${c.ul}`) + dNote;
       case 'inst':
+        if (c.inst_mode === 'multi_queue' && Array.isArray(c.inst_queue) && c.inst_queue.length) {
+          return `${c.inst_queue.map(q => q.inst_name).join('+')}${dNote}`;
+        }
         if (c.inst_mode === 'ni6009') return `NI-6008 (${(c.channels || []).length}ch)${dNote}`;
         if (c.inst_mode === 'rf') return `${c.inst_name || 'IQxel'}${dNote}`;
         return `${c.inst_name || '未選'}${dNote}`;
@@ -399,6 +405,9 @@
       case 'fixture':
         return (c.fixture_type === 'none' ? '無治具' : `${c.delay_ms}ms`) + dNote;
       case 'sfis_rw':
+        if (c.sfis_hmi_bundle && Array.isArray(c.sfis_hmi_bundle.items) && c.sfis_hmi_bundle.items.length) {
+          return `SFIS堆疊(${c.sfis_hmi_bundle.items.length}步)${dNote}`;
+        }
         return `${c.field_name || 'MAC1'}${dNote}`;
       case 'python':
         return `${c.script_name || 'my_test.py'}${dNote}`;
@@ -845,6 +854,29 @@
     }
   };
 
+  window.bbOpenFullInstWorkspace = function (idx) {
+    const it = BB_STATE.stack[idx];
+    if (typeof window.openInstDualPaneForBuilder === 'function') {
+      window.openInstDualPaneForBuilder(idx, it ? it.config : {});
+    }
+  };
+
+  window.bbOpenFullSfisWorkspace = function (idx) {
+    const it = BB_STATE.stack[idx];
+    const isnBlk = BB_STATE.stack.find(b => b.kind === 'isn');
+    if (typeof window.openSfisWorkspaceForBuilder === 'function') {
+      window.openSfisWorkspaceForBuilder(idx, isnBlk ? isnBlk.config : {}, it ? it.config : {});
+    }
+  };
+
+  window.bbClearSfisBundle = function (idx) {
+    const it = BB_STATE.stack[idx];
+    if (it && it.config) {
+      delete it.config.sfis_hmi_bundle;
+      bbRender();
+    }
+  };
+
   function _renderStackView() {
     const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
     const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
@@ -1032,27 +1064,54 @@
           </div>
         `;
 
-      case 'sfis_route':
+      case 'sfis_route': {
+        const hb = c.sfis_hmi_bundle;
+        const hasBundle = !!(hb && Array.isArray(hb.items) && hb.items.length);
         return `
           <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <label style="flex:1; min-width:220px; cursor:pointer; padding:10px 14px; border-radius:8px; border:1.5px solid ${c.sfis_mode !== 'online' ? '#2563EB' : '#CBD5E1'}; background:${c.sfis_mode !== 'online' ? '#EFF6FF' : '#F8FAFC'}; font-weight:800;">
-                <input type="radio" name="bbSfisMode_${idx}" ${c.sfis_mode !== 'online' ? 'checked' : ''} onchange="bbUpdateField(${idx},'sfis_mode','offline',true)"> 🛠️ 工程調試離線模式 (SFIS_Enable=0 / DebugMode=1)
-              </label>
-              <label style="flex:1; min-width:220px; cursor:pointer; padding:10px 14px; border-radius:8px; border:1.5px solid ${c.sfis_mode === 'online' ? '#16A34A' : '#CBD5E1'}; background:${c.sfis_mode === 'online' ? '#F0FDF4' : '#F8FAFC'}; font-weight:800;">
-                <input type="radio" name="bbSfisMode_${idx}" ${c.sfis_mode === 'online' ? 'checked' : ''} onchange="bbUpdateField(${idx},'sfis_mode','online',true)"> 🌐 產線正式過站模式 (SFIS_Enable=1)
-              </label>
+            <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:900; color:#1E3A8A; font-size:0.9rem;">🛡️ 想要堆疊 CheckRoute / GET / WRITE 或連線工廠 SFIS 實測？</div>
+                <div style="font-size:0.78rem; color:#475569;">呼叫原本的「SFIS 撲克牌雙欄積木堆疊頁」，設定或實測完可直接帶回這顆積木！</div>
+              </div>
+              <button type="button" class="btn btn-primary-blue" style="padding:7px 14px; font-weight:900; font-size:0.85rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
+                🃏 呼叫 SFIS 撲克牌積木堆疊頁 ▶
+              </button>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
-              <label style="font-weight:700; font-size:0.84rem;">SFIS_TSP 路由代碼
-                <input value="${_esc(c.tsp || 'PEGA,2')}" oninput="bbUpdateField(${idx},'tsp',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-              </label>
-              <label style="font-weight:700; font-size:0.84rem;">SFIS_WebLink 網址
-                <input value="${_esc(c.weblink || '')}" oninput="bbUpdateField(${idx},'weblink',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-              </label>
-            </div>
+            ${hasBundle ? `
+              <div style="background:#EEF2FF; border:1.5px solid #818CF8; border-radius:8px; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                  <span style="font-weight:900; color:#312E81;">✅ 已從 SFIS 堆疊頁帶入 ${hb.items.length} 個步驟（廠區 TSP：<code>${_esc((hb.config && hb.config.tsp) || c.tsp || 'ATLAS,2')}</code>）</span>
+                  <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn" style="padding:3px 9px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #818CF8; color:#3730A3;" onclick="bbOpenFullSfisWorkspace(${idx})">✏️ 回堆疊頁修改</button>
+                    <button type="button" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#FFF; border:1px solid #FCA5A5; color:#B91C1C;" onclick="bbClearSfisBundle(${idx})">🧹 改回下方簡易選項</button>
+                  </div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  ${hb.items.map((st, si) => `<span class="mono" style="background:#FFFFFF; border:1px solid #C7D2FE; padding:3px 8px; border-radius:6px; font-size:0.78rem; font-weight:800; color:#1E293B;">#${si + 1} ${_esc(st.kind || 'step')}${st.field ? ` (${_esc(st.field)})` : ''}</span>`).join('')}
+                </div>
+              </div>
+            ` : `
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <label style="flex:1; min-width:220px; cursor:pointer; padding:10px 14px; border-radius:8px; border:1.5px solid ${c.sfis_mode !== 'online' ? '#2563EB' : '#CBD5E1'}; background:${c.sfis_mode !== 'online' ? '#EFF6FF' : '#F8FAFC'}; font-weight:800;">
+                  <input type="radio" name="bbSfisMode_${idx}" ${c.sfis_mode !== 'online' ? 'checked' : ''} onchange="bbUpdateField(${idx},'sfis_mode','offline',true)"> 🛠️ 工程調試離線模式 (SFIS_Enable=0 / DebugMode=1)
+                </label>
+                <label style="flex:1; min-width:220px; cursor:pointer; padding:10px 14px; border-radius:8px; border:1.5px solid ${c.sfis_mode === 'online' ? '#16A34A' : '#CBD5E1'}; background:${c.sfis_mode === 'online' ? '#F0FDF4' : '#F8FAFC'}; font-weight:800;">
+                  <input type="radio" name="bbSfisMode_${idx}" ${c.sfis_mode === 'online' ? 'checked' : ''} onchange="bbUpdateField(${idx},'sfis_mode','online',true)"> 🌐 產線正式過站模式 (SFIS_Enable=1)
+                </label>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+                <label style="font-weight:700; font-size:0.84rem;">SFIS_TSP 路由代碼
+                  <input value="${_esc(c.tsp || 'PEGA,2')}" oninput="bbUpdateField(${idx},'tsp',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">SFIS_WebLink 網址
+                  <input value="${_esc(c.weblink || '')}" oninput="bbUpdateField(${idx},'weblink',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+              </div>
+            `}
           </div>
         `;
+      }
 
       case 'comm_cmd': {
         const sim = _simulateExtract(c);
@@ -1336,8 +1395,36 @@
 
         return `
           <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:12px;">
+            <div style="background:linear-gradient(90deg,#F5F3FF 0%,#FDF2F8 100%); border:1.5px solid #C084FC; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+              <div>
+                <div style="font-weight:900; color:#4C1D95; font-size:0.9rem;">🃏 要從左牌庫連續加入多台儀器並排順序，或調完整人機？</div>
+                <div style="font-size:0.77rem; color:#64748B;">可呼叫原本設計的「儀器撲克牌雙欄堆疊工作區」，疊完 #01→#02→#03 後自動帶回這顆積木！</div>
+              </div>
+              <button type="button" class="btn" style="padding:7px 14px; font-weight:900; font-size:0.85rem; background:#7C3AED; color:#FFFFFF; border:none;" onclick="bbOpenFullInstWorkspace(${idx})">
+                🃏 呼叫「儀器撲克牌雙欄堆疊頁」 ▶
+              </button>
+            </div>
+
+            ${c.inst_mode === 'multi_queue' && Array.isArray(c.inst_queue) && c.inst_queue.length ? `
+              <div style="background:#FFFFFF; border:1.5px solid #A78BFA; border-radius:9px; padding:11px 13px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                  <span style="font-weight:900; color:#4C1D95;">✅ 已堆疊 ${c.inst_queue.length} 台儀器序列（依序寫入 Excel）：</span>
+                  <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#F5F3FF; border:1px solid #C084FC; color:#5B21B6;" onclick="bbOpenFullInstWorkspace(${idx})">✏️ 回雙欄堆疊頁調整順序／人機</button>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  ${c.inst_queue.map((qi, qidx) => `
+                    ${qidx > 0 ? '<span style="font-weight:900; color:#7C3AED;">➔</span>' : ''}
+                    <div style="background:#FAF5FF; border:1.5px solid #C4B5FD; border-radius:8px; padding:6px 10px; font-size:0.8rem;">
+                      <b class="mono" style="color:#5B21B6;">#${qidx + 1} ${_esc(qi.inst_name)}</b>
+                      <div style="font-size:0.73rem; color:#475569;">${_esc(qi.title_name || '')}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-              <span style="font-weight:900; color:#991B1B;">🔴 專屬設定頁｜挑選儀器撲克牌卡牌 (點卡牌直接切換細節設定)：</span>
+              <span style="font-weight:900; color:#991B1B;">🔴 快速單選儀器卡牌（點卡牌切換參數）：</span>
               <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #FCA5A5; color:#7F1D1D;"
                 onclick="if(typeof openInstIntroPage==='function') openInstIntroPage('gen','${_esc(selectedName)}',${idx});">📖 查看 ${_esc(selectedName)} 簡介</button>
             </div>
@@ -1487,25 +1574,54 @@
           </div>
         `;
 
-      case 'sfis_rw':
+      case 'sfis_rw': {
+        const hb = c.sfis_hmi_bundle;
+        const hasBundle = !!(hb && Array.isArray(hb.items) && hb.items.length);
         return `
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-            <label style="font-weight:700; font-size:0.84rem;">動作類型
-              <select onchange="bbUpdateField(${idx},'rw_mode',this.value,true)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
-                <option value="get_version" ${c.rw_mode === 'get_version' ? 'selected' : ''}>讀取 SFIS 欄位 (:SfGetVersion)</option>
-                <option value="get_imac" ${c.rw_mode === 'get_imac' ? 'selected' : ''}>讀取 SFIS MAC (:SfGetiMAC)</option>
-                <option value="save_link" ${c.rw_mode === 'save_link' ? 'selected' : ''}>寫回資料至 SFIS (:SfSaveLinkData)</option>
-                <option value="scan_label" ${c.rw_mode === 'scan_label' ? 'selected' : ''}>作業員額外掃描副條碼 (ScanLabel)</option>
-              </select>
-            </label>
-            <label style="font-weight:700; font-size:0.84rem;">欄位 / 標籤名稱
-              <input value="${_esc(c.field_name || 'MAC1')}" oninput="bbUpdateField(${idx},'field_name',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-            </label>
-            <label style="font-weight:700; font-size:0.84rem;">存進變數 ($) / 寫回值
-              <input value="${_esc(c.rw_mode === 'save_link' ? (c.save_value || '*(sfMAC)') : (c.var_name || 'sfMAC'))}" oninput="bbUpdateField(${idx},'${c.rw_mode === 'save_link' ? 'save_value' : 'var_name'}',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-            </label>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:900; color:#1E3A8A; font-size:0.89rem;">🛡️ 需要多種 SFIS 讀寫組合或實測 GET / WRITE 回傳字串？</div>
+                <div style="font-size:0.77rem; color:#475569;">可呼叫原本的「SFIS 撲克牌積木堆疊頁」一次串好並實測帶回！</div>
+              </div>
+              <button type="button" class="btn btn-primary-blue" style="padding:6px 13px; font-weight:900; font-size:0.84rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
+                🃏 呼叫 SFIS 撲克牌積木堆疊頁 ▶
+              </button>
+            </div>
+            ${hasBundle ? `
+              <div style="background:#EEF2FF; border:1.5px solid #818CF8; border-radius:8px; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                  <span style="font-weight:900; color:#312E81;">✅ 已從 SFIS 堆疊頁帶入 ${hb.items.length} 個步驟</span>
+                  <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn" style="padding:3px 9px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #818CF8; color:#3730A3;" onclick="bbOpenFullSfisWorkspace(${idx})">✏️ 回堆疊頁修改</button>
+                    <button type="button" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#FFF; border:1px solid #FCA5A5; color:#B91C1C;" onclick="bbClearSfisBundle(${idx})">🧹 改回單筆欄位</button>
+                  </div>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  ${hb.items.map((st, si) => `<span class="mono" style="background:#FFFFFF; border:1px solid #C7D2FE; padding:3px 8px; border-radius:6px; font-size:0.78rem; font-weight:800; color:#1E293B;">#${si + 1} ${_esc(st.kind || 'step')}${st.field ? ` (${_esc(st.field)})` : ''}</span>`).join('')}
+                </div>
+              </div>
+            ` : `
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                <label style="font-weight:700; font-size:0.84rem;">動作類型
+                  <select onchange="bbUpdateField(${idx},'rw_mode',this.value,true)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
+                    <option value="get_version" ${c.rw_mode === 'get_version' ? 'selected' : ''}>讀取 SFIS 欄位 (:SfGetVersion)</option>
+                    <option value="get_imac" ${c.rw_mode === 'get_imac' ? 'selected' : ''}>讀取 SFIS MAC (:SfGetiMAC)</option>
+                    <option value="save_link" ${c.rw_mode === 'save_link' ? 'selected' : ''}>寫回資料至 SFIS (:SfSaveLinkData)</option>
+                    <option value="scan_label" ${c.rw_mode === 'scan_label' ? 'selected' : ''}>作業員額外掃描副條碼 (ScanLabel)</option>
+                  </select>
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">欄位 / 標籤名稱
+                  <input value="${_esc(c.field_name || 'MAC1')}" oninput="bbUpdateField(${idx},'field_name',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">存進變數 ($) / 寫回值
+                  <input value="${_esc(c.rw_mode === 'save_link' ? (c.save_value || '*(sfMAC)') : (c.var_name || 'sfMAC'))}" oninput="bbUpdateField(${idx},'${c.rw_mode === 'save_link' ? 'save_value' : 'var_name'}',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+              </div>
+            `}
           </div>
         `;
+      }
 
       case 'python':
         return `
@@ -1749,7 +1865,8 @@
       dry_run: !!dryRun,
       no_hw_phase_pause: !!BB_STATE.exportOpts.no_hw_phase_pause,
       station_name_mode: BB_STATE.exportOpts.station_name_mode || 'fixed',
-      open_excel: false,
+      open_folder: false,
+      open_excel: true,
       wizard_config: {
         isn_length: Number(isnCfg.isn_len || 3),
         isn_pattern: isnCfg.isn_pattern || '[0-9A-Z]',
@@ -1759,7 +1876,7 @@
     if (skuCfg && skuCfg.enabled) body.sku_wizard = skuCfg;
 
     const data = await window.withLoadingTimer(
-      dryRun ? '正在依積木順序產生「無硬體試跑版」' : '正在依積木順序產出 16 欄正式測試包與 INI',
+      dryRun ? '正在依積木順序產生「無硬體試跑版」並開啟 Excel' : '正在依積木順序產出 16 欄正式測試包與 INI 並直接開啟 Excel',
       async () => {
         const res = await fetch('/api/generate_new_standalone', {
           method: 'POST',
@@ -1778,19 +1895,13 @@
     if (alertBox) {
       alertBox.style.display = 'block';
       alertBox.innerHTML = `
-        ✅ <strong>測試包產出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
-        📂 <span class="mono">${_esc(data.output_dir)}</span><br>
-        📄 <span class="mono">${_esc(data.excel_path)}</span><br>
+        ✅ <strong>測試包產出完成，已直接開啟 Excel</strong>（已自動寫入 Checksum；儲存於程式預設輸出目錄）<br>
+        📂 <span class="mono">${_esc(data.output_dir)}</span>
+        <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem; margin-left:6px;" onclick="if(typeof openOutputFolder==='function') openOutputFolder(${JSON.stringify(data.output_dir)})">📂 打開資料夾</button><br>
+        📄 <span class="mono">${_esc(data.excel_path)}</span>
+        ${data.guide_txt_path ? `<button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem; margin-left:6px;" onclick="if(typeof openGuideTxtFile==='function') openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})">📄 開啟說明 .txt</button>` : ''}<br>
         ${typeof window.formatIsnHtml === 'function' ? window.formatIsnHtml(data.isn_info) : ''}
       `;
-    }
-    if (typeof window.showExportCompleteModal === 'function') {
-      window.showExportCompleteModal({
-        title: '🎉 積木組裝 Excel 測試包匯出完成',
-        excelPath: data.excel_path,
-        guideTxtPath: data.guide_txt_path || '',
-        missingDlls: data.missing_dlls || [],
-      });
     }
   };
 

@@ -162,6 +162,7 @@ const SFIS_HMI_STATE = {
     logs: [] // 累積所有積木實測之送出與吐回完整字串
   },
   isRunning: false,
+  openedFromBuilderIdx: -1,
   dragSrcIdx: -1,
   dropTargetIdx: -1,
   dropPos: 'before',
@@ -1666,6 +1667,57 @@ function sfisGetHmiPayloadForWizard() {
   };
 }
 
+function sfisSyncToBuilderAndReturn() {
+  const bundle = sfisGetHmiPayloadForWizard();
+  if (!bundle.items.length) {
+    alert('牌桌上尚無可匯出之 SFIS 步驟，請至少保留 CheckRoute / GET / WRITE。');
+    return;
+  }
+  const bIdx = SFIS_HMI_STATE.openedFromBuilderIdx;
+  if (bIdx >= 0 && window.BB_STATE && window.BB_STATE.stack[bIdx]) {
+    const blk = window.BB_STATE.stack[bIdx];
+    blk.config = blk.config || {};
+    blk.config.sfis_hmi_bundle = bundle;
+    if (bundle.config) {
+      blk.config.sfis_mode = (bundle.config.sfis_enable === '0') ? 'offline' : 'online';
+      if (bundle.config.tsp) blk.config.tsp = bundle.config.tsp;
+      if (bundle.config.url) blk.config.weblink = bundle.config.url;
+      if (bundle.config.op) blk.config.login_id = bundle.config.op;
+      if (bundle.config.isn) blk.config.date_isn = bundle.config.isn;
+    }
+    blk.configured = true;
+  }
+  SFIS_HMI_STATE.openedFromBuilderIdx = -1;
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('create');
+  if (typeof window.bbRender === 'function') window.bbRender();
+}
+
+function sfisCancelBuilderReturn() {
+  SFIS_HMI_STATE.openedFromBuilderIdx = -1;
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('create');
+  if (typeof window.bbRender === 'function') window.bbRender();
+}
+
+window.openSfisWorkspaceForBuilder = function (builderIdx, isnCfg, curCfg) {
+  SFIS_HMI_STATE.openedFromBuilderIdx = Number(builderIdx);
+  if (isnCfg) {
+    SFIS_HMI_STATE.config.project_name = isnCfg.project || 'PEGA_NEW';
+    SFIS_HMI_STATE.config.station = isnCfg.station || 'MB';
+  }
+  if (curCfg) {
+    if (curCfg.weblink) SFIS_HMI_STATE.config.url = curCfg.weblink;
+    if (curCfg.tsp) SFIS_HMI_STATE.config.tsp = curCfg.tsp;
+    if (curCfg.login_id) SFIS_HMI_STATE.config.op = curCfg.login_id;
+    if (curCfg.date_isn) SFIS_HMI_STATE.config.isn = curCfg.date_isn;
+  }
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('tools');
+  if (typeof switchToolsVerifyTab === 'function') {
+    const mMode = SFIS_HMI_STATE.mockMode ? 'mock' : 'real';
+    switchToolsVerifyTab(mMode);
+  }
+  if (typeof renderSfisHmiWorkspace === 'function') renderSfisHmiWorkspace();
+};
+
 function sfisSyncToWizardAndReturn() {
   const bundle = sfisGetHmiPayloadForWizard();
   if (!bundle.items.length) {
@@ -2035,7 +2087,18 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.053');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.064');
+  const builderBannerHtml = (s.openedFromBuilderIdx >= 0) ? `
+    <div id="sfisBuilderReturnBar" style="margin-bottom:10px; background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:2px solid #2563EB; border-radius:10px; padding:9px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div style="font-size:0.88rem; font-weight:800; color:#1E3A8A;">
+        🔗 正從「<b>0 → 1 積木流程 #${s.openedFromBuilderIdx + 1}</b>」呼叫 SFIS 積木堆疊頁 — 調整或實測好過站／GET／WRITE 卡牌後，點右側按鈕帶回流程！
+      </div>
+      <div style="display:flex; gap:7px; flex-wrap:wrap;">
+        <button type="button" onclick="sfisCancelBuilderReturn()" class="btn" style="padding:5px 12px; font-size:0.82rem; font-weight:800; background:#FFFFFF; color:#475569; border:1px solid #CBD5E1;">◀ 取消返回積木頁</button>
+        <button type="button" onclick="sfisSyncToBuilderAndReturn()" class="btn btn-primary-green" style="padding:6px 15px; font-size:0.86rem; font-weight:900;">✅ 套用這套 SFIS 積木並帶回 0 → 1 ▶</button>
+      </div>
+    </div>
+  ` : '';
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
@@ -2096,6 +2159,7 @@ function renderSfisHmiWorkspace() {
 
   root.innerHTML = `
     <div id="sfisHmiWrap" class="sfis-hmi-wrap ${isMock ? 'sfis-mode-mock' : 'sfis-mode-real'}" style="background:${hmiWrapBg}; border:2px solid ${hmiWrapBorder}; border-radius:12px; padding:12px 14px; font-size:var(--app-font-size, 15px); transition:background 0.22s ease, border-color 0.22s ease;">
+      ${builderBannerHtml}
       ${serverStale ? '<div style="margin-bottom:8px; padding:5px 10px; border-radius:7px; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; font-size:0.79rem; font-weight:800;">⚠️ 偵測到後端伺服器仍為舊版，請重雙擊 啟動_Centimani腳本工具.bat（模擬目前由瀏覽器引擎自動接手）</div>' : ''}
       ${stageBannerHtml}
 
@@ -2257,7 +2321,9 @@ function renderSfisHmiWorkspace() {
           <div style="display:flex; gap:7px; flex-wrap:wrap;">
             <button type="button" onclick="sfisHmiExport('new_template')" class="btn" style="padding:5px 12px; font-size:0.81rem; background:#15803D; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">📥 獨立產出純 SFIS Excel</button>
             <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開腳本開頭</button>
-            <button type="button" onclick="sfisSyncToWizardAndReturn()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:${s.openedFromWizard ? '#1D4ED8' : '#EFF6FF'}; color:${s.openedFromWizard ? '#FFFFFF' : '#1E40AF'}; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 空範本精靈』">🌱 套用至「0 → 1 空範本」</button>
+            ${s.openedFromBuilderIdx >= 0
+              ? `<button type="button" onclick="sfisSyncToBuilderAndReturn()" class="btn btn-primary-green" style="padding:5px 14px; font-size:0.84rem; font-weight:900;">✅ 帶回「0 → 1 積木流程」 ▶</button>`
+              : `<button type="button" onclick="sfisSyncToWizardAndReturn()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:${s.openedFromWizard ? '#1D4ED8' : '#EFF6FF'}; color:${s.openedFromWizard ? '#FFFFFF' : '#1E40AF'}; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 空範本精靈』">🌱 套用至「0 → 1 空範本」</button>`}
           </div>
         </div>
         <details>

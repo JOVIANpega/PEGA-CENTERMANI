@@ -2462,6 +2462,65 @@ def run_all_verifications():
                   "v0.8.063 新增積木 (設值 :SetVal / 屬性 :AddAttribute / 儀器 NI6008) 產出 16 欄 Excel 且 0 Error",
                   f"sends={v63_sends}, errs={v63_errs}")
 
+            # [v0.8.064] 驗證直接開啟 Excel、免彈完成視窗／免連開雙目錄視窗，以及呼叫「儀器雙欄堆疊頁」與「SFIS 撲克牌積木堆疊頁」雙向帶回 0->1
+            sfis_js_v64 = open(os.path.join(os.path.dirname(cbb_js_path), "sfis_hmi.js"), "r", encoding="utf-8").read()
+            check("open_folder: false" in cbb_62
+                  and "open_excel: true" in cbb_62
+                  and "showExportCompleteModal" not in cbb_62
+                  and "bbOpenFullInstWorkspace" in cbb_62
+                  and "bbOpenFullSfisWorkspace" in cbb_62
+                  and "tab3FinishToBuilder" in index_html
+                  and "openInstDualPaneForBuilder" in index_html
+                  and "openSfisWorkspaceForBuilder" in sfis_js_v64
+                  and "sfisSyncToBuilderAndReturn" in sfis_js_v64,
+                  "v0.8.064 匯出直接開啟 Excel 免確認視窗、與呼叫儀器雙欄/SFIS撲克牌積木堆疊頁雙向帶回 UI 檢查通過")
+
+            opened_folders.clear()
+            launched_excels.clear()
+            v64_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V64_MULTI_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": True,
+                "wizard_config": {"isn_length": 3, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "m1", "kind": "isn", "config": {"project": "V64_MULTI_PROJ", "station": "MB", "dut_count": 1, "isn_len": 3, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "m2", "kind": "sfis_route", "config": {
+                        "sfis_hmi_bundle": {
+                            "items": [
+                                {"kind": "checkroute", "title": "SFIS CheckRoute"},
+                                {"kind": "get", "table": "ISN_BASEINFO", "field": "MAC1", "var_name": "sfMAC"},
+                            ],
+                            "config": {"sfis_enable": "1", "tsp": "ATLAS,2", "op": "S09166390", "device_id": "710001"}
+                        }
+                    }},
+                    {"uid": "m3", "kind": "inst", "config": {
+                        "inst_mode": "multi_queue",
+                        "inst_queue": [
+                            {"inst_name": "NI6008", "title_name": "NI6008 Rail Check", "ni6009_block": {"mode": "RSE", "title_name": "NI6008 Rail Check", "channels": [{"ch": 0, "name": "VCC_5V", "dl": "4.75", "ul": "5.25"}]}},
+                            {"inst_name": "Agilent34401A", "title_name": "DMM Voltage Check", "dl_val": "3.15", "ul_val": "3.45"},
+                        ]
+                    }},
+                    {"uid": "m4", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                ],
+            })
+            ws_v64 = _parse_v50(v64_res["excel_path"])
+            v64_sends = [str(r.get("Send") or "") for r in ws_v64["stations"]["MB"]]
+            v64_switches = [str(r.get("Switch") or "") for r in ws_v64["stations"]["MB"]]
+            v64_audit = post_json("/api/re_audit", {"workspace": ws_v64})
+            v64_errs = (v64_audit.get("report") or {}).get("errors") or []
+            check(v64_res.get("status") == "ok"
+                  and len(opened_folders) == 0
+                  and len(launched_excels) == 1
+                  and any(":SfCheckRoute" in s for s in v64_sends)
+                  and any("MAC1" in s for s in v64_sends)
+                  and any("NI6008" in sw for sw in v64_switches)
+                  and any("Agilent34401A" in sw for sw in v64_switches)
+                  and len(v64_errs) == 0,
+                  "v0.8.064 SFIS堆疊+多儀器堆疊(NI6008+Agilent34401A)產出0 Error且open_folder=False不開目錄只直接開Excel通過",
+                  f"folders={len(opened_folders)}, excels={len(launched_excels)}, sends={v64_sends}, switches={v64_switches}, errs={v64_errs}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
