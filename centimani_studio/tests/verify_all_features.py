@@ -1961,6 +1961,27 @@ def run_all_verifications():
                   and ins_sys.get("SFIS_GetDateISN") == "2695160300001",
                   "v0.8.052 SFIS insert_current 自動合併取代舊 CheckRoute 不重複，並同步寫入 SFIS_LoginID/GetDateISN")
 
+            # [v0.8.053] 驗證 Step 2 進階專家積木已收納進預設收合抽屜，且 BLK_UART_BOOT_FW/BLK_PYTHON_SCRIPT_CALL 不含 :Trim
+            v53_gen = post_json("/api/generate_new_standalone", {
+                "project_name": "V53_CLEAN",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_UART_BOOT_FW", "BLK_PYTHON_SCRIPT_CALL", "BLK_PHASE97_TEARDOWN"],
+                "open_excel": False,
+                "wizard_config": {
+                    "fw_config": {"mode": "uart", "port": "COM4", "cmd": "cat /etc/version", "fw_version": "1.0.0"},
+                    "python_config": {"python_path": "D:\\Py", "script_name": "t.py", "result_prefix": "RESULT=", "min_val": "0", "max_val": "100"},
+                },
+            })
+            ws_v53 = _parse_v50(v53_gen["excel_path"])
+            v53_refs = [str(r.get("Ref") or "") for r in ws_v53["stations"]["MB"]]
+            check('id="wizAdvancedBlocksDrawer"' in index_html
+                  and 'id="advancedBlockCheckGrid"' in index_html
+                  and "ADVANCED_FLOW_BLOCK_IDS" in index_html
+                  and all(":Trim" not in rf for rf in v53_refs),
+                  "v0.8.053 Step 2 進階積木收合分流精簡完成，且 UART_BOOT_FW / PYTHON 積木無 :Trim 相容性問題",
+                  str(v53_refs))
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

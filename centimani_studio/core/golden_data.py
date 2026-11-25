@@ -598,7 +598,7 @@ STANDARD_BLOCKS = [
         "steps": [
             {"Phase": "4", "Title": "0,Check UART & FW Version,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Connect UART Port", "TestID": "OTFX082"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r\\n", "Reply": "@#", "EndPrompt": "#", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Check Console Prompt", "TestID": "OTFX079"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@cat /etc/version\\r\\n", "Reply": "@", "EndPrompt": "#", "Ref": '$DUT_FW:WithinString,"version=","\\r\\n","":Trim', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version", "TestID": "VSCH026"}
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@cat /etc/version\\r\\n", "Reply": "@", "EndPrompt": "#", "Ref": '$DUT_FW:WithinString,"version=","\\r\\n",""', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version", "TestID": "VSCH026"}
         ]
     },
     {
@@ -637,7 +637,7 @@ STANDARD_BLOCKS = [
         "required_globals": {"Settings": {}, "Scripts": {"PythonPath": "D:\\PythonScript"}},
         "steps": [
             {"Phase": "6", "Title": "0,Run External Python Script,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Open Windows CMD Console", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": 'CmdConsole@cd *$(PythonPath)&&cmd /c python.exe my_test.py "*(ISN)"\\r\\n', "Reply": "@Command pass", "EndPrompt": ">", "Ref": '$PyVal:WithinString,"RESULT=","\\n","":Trim', "Validation": "(PyVal,%f,0.0,100.0)", "Prompt": "", "Waiting": "10000", "ExecMode": "1", "Description": "PC#-#Execute Python Script & Validate Output", "TestID": "OTFX054"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": 'CmdConsole@cd *$(PythonPath)&&cmd /c python.exe my_test.py "*(ISN)"\\r\\n', "Reply": "@Command pass", "EndPrompt": ">", "Ref": '$PyVal:WithinString,"RESULT=","\\n",""', "Validation": "(PyVal,%f,0.0,100.0)", "Prompt": "", "Waiting": "10000", "ExecMode": "1", "Description": "PC#-#Execute Python Script & Validate Output", "TestID": "OTFX054"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close Windows CMD Console", "TestID": "B7PL025"}
         ]
     },

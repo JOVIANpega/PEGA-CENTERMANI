@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.052">
+<link rel="stylesheet" href="/css/app.css?v=0.8.053">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.052</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.053</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1090,6 +1090,10 @@
 
       <div style="font-weight:700; font-size:0.9rem; color:#334155; margin-bottom:6px;">① 標準測試流程骨架（純流程控制 / 治具 / 韌體 / SFIS / 收尾）：</div>
       <div id="blockCheckGrid" class="block-grid"></div>
+      <details id="wizAdvancedBlocksDrawer" style="margin-top:10px; background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:8px 12px;">
+        <summary style="cursor:pointer; font-weight:700; font-size:0.86rem; color:#475569;">⚙️ 進階產線專家積木（一拖四治具同步／多晶片串流燒錄／離線雙模旁路／PASS-FAIL 收尾，一般專案可略過）▾</summary>
+        <div id="advancedBlockCheckGrid" class="block-grid" style="margin-top:8px;"></div>
+      </details>
 
       <!-- 整合後：所有儀器測項統一由此選用（全 34 款分類選單） -->
       <div style="margin-top:14px; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
@@ -1869,12 +1873,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.052"></script>
-<script src="/js/audit_editors.js?v=0.8.052"></script>
-<script src="/js/flow_guide.js?v=0.8.052"></script>
-<script src="/js/block_sorter.js?v=0.8.052"></script>
-<script src="/js/script_qa.js?v=0.8.052"></script>
-<script src="/js/sfis_hmi.js?v=0.8.052"></script>
+<script src="/js/inst_hmi.js?v=0.8.053"></script>
+<script src="/js/audit_editors.js?v=0.8.053"></script>
+<script src="/js/flow_guide.js?v=0.8.053"></script>
+<script src="/js/block_sorter.js?v=0.8.053"></script>
+<script src="/js/script_qa.js?v=0.8.053"></script>
+<script src="/js/sfis_hmi.js?v=0.8.053"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3976,48 +3980,64 @@ async function initPage() {
 const FLOW_ONLY_BLOCK_IDS = new Set([
   'BLK_PRETEST_ROUTE',
   'BLK_FIXTURE_ACTION',
-  'BLK_SUBDEV_DEVUART_FINALGO',
   'BLK_UART_BOOT_FW',
-  'BLK_FW_STREAM_PROMPT_FLASH',
-  'BLK_SFIS_ENABLED_BRANCH',
   'BLK_SFIS_MAC_69PN',
   'BLK_PYTHON_SCRIPT_CALL',
   'BLK_UTILITY_PING_LAN',
-  'BLK_PHASE97_TEARDOWN',
+  'BLK_PHASE97_TEARDOWN'
+]);
+
+const ADVANCED_FLOW_BLOCK_IDS = new Set([
+  'BLK_SUBDEV_DEVUART_FINALGO',
+  'BLK_FW_STREAM_PROMPT_FLASH',
+  'BLK_SFIS_ENABLED_BRANCH',
   'BLK_PHASE98_99_BRANCH_TEARDOWN'
 ]);
 
+function _createBlockChecklistCard(blk) {
+  const isChecked = STATE.selectedBlockIds.includes(blk.block_id);
+  const card = document.createElement('div');
+  card.className = 'blk-card' + (isChecked ? ' checked' : '');
+  card.onclick = (e) => {
+    if (e.target.tagName !== 'INPUT') {
+      const cb = card.querySelector('input');
+      cb.checked = !cb.checked;
+    }
+    const cb = card.querySelector('input');
+    if (cb.checked) {
+      if (!STATE.selectedBlockIds.includes(blk.block_id)) STATE.selectedBlockIds.push(blk.block_id);
+      card.classList.add('checked');
+    } else {
+      STATE.selectedBlockIds = STATE.selectedBlockIds.filter(id => id !== blk.block_id);
+      card.classList.remove('checked');
+    }
+  };
+  card.innerHTML = `
+    <input type="checkbox" ${isChecked ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
+    <div>
+      <div class="bold-title" style="color:var(--slate-900);">${blk.name}</div>
+      <div style="font-size:0.8rem; color:#2563EB; margin:1px 0;">預設 Phase: ${blk.default_phase || '-'} (${(blk.steps||[]).length} 步)</div>
+      <div style="font-size:0.8rem; color:var(--slate-700);">${blk.description || ''}</div>
+    </div>
+  `;
+  return card;
+}
+
 function renderBlockChecklist() {
   const grid = document.getElementById('blockCheckGrid');
-  grid.innerHTML = '';
-  STATE.blocks.filter(blk => FLOW_ONLY_BLOCK_IDS.has(blk.block_id)).forEach(blk => {
-    const isChecked = STATE.selectedBlockIds.includes(blk.block_id);
-    const card = document.createElement('div');
-    card.className = 'blk-card' + (isChecked ? ' checked' : '');
-    card.onclick = (e) => {
-      if (e.target.tagName !== 'INPUT') {
-        const cb = card.querySelector('input');
-        cb.checked = !cb.checked;
-      }
-      const cb = card.querySelector('input');
-      if (cb.checked) {
-        if (!STATE.selectedBlockIds.includes(blk.block_id)) STATE.selectedBlockIds.push(blk.block_id);
-        card.classList.add('checked');
-      } else {
-        STATE.selectedBlockIds = STATE.selectedBlockIds.filter(id => id !== blk.block_id);
-        card.classList.remove('checked');
-      }
-    };
-    card.innerHTML = `
-      <input type="checkbox" ${isChecked ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
-      <div>
-        <div class="bold-title" style="color:var(--slate-900);">${blk.name}</div>
-        <div style="font-size:0.8rem; color:#2563EB; margin:1px 0;">預設 Phase: ${blk.default_phase || '-'} (${(blk.steps||[]).length} 步)</div>
-        <div style="font-size:0.8rem; color:var(--slate-700);">${blk.description || ''}</div>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
+  const advGrid = document.getElementById('advancedBlockCheckGrid');
+  if (grid) {
+    grid.innerHTML = '';
+    STATE.blocks.filter(blk => FLOW_ONLY_BLOCK_IDS.has(blk.block_id)).forEach(blk => {
+      grid.appendChild(_createBlockChecklistCard(blk));
+    });
+  }
+  if (advGrid) {
+    advGrid.innerHTML = '';
+    STATE.blocks.filter(blk => ADVANCED_FLOW_BLOCK_IDS.has(blk.block_id)).forEach(blk => {
+      advGrid.appendChild(_createBlockChecklistCard(blk));
+    });
+  }
 }
 
 async function withLoadingTimer(label, asyncFn, minDurationMs = 0, subText = '') {
@@ -5942,6 +5962,7 @@ function toggleWizSfEnabled(checked) {
   } else {
     STATE.selectedBlockIds = STATE.selectedBlockIds.filter(id => id !== 'BLK_SFIS_ENABLED_BRANCH');
   }
+  if (typeof renderBlockChecklist === 'function') renderBlockChecklist();
   renderWizStep3();
 }
 

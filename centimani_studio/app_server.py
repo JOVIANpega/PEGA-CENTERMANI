@@ -726,18 +726,18 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
             return [
                 {"Phase": "4", "Title": "0,Check UART & FW Version,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Connect UART Port", "TestID": "OTFX082"},
                 {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r\\n", "Reply": "@#", "EndPrompt": "#", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Check Console Prompt", "TestID": "OTFX079"},
-                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"UART@{cmd}\\r\\n", "Reply": "@", "EndPrompt": "#", "Ref": '$DUT_FW:WithinString,"version=","\\r\\n","":Trim', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (UART)", "TestID": "VSCH026"},
+                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"UART@{cmd}\\r\\n", "Reply": "@", "EndPrompt": "#", "Ref": '$DUT_FW:WithinString,"version=","\\r\\n",""', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (UART)", "TestID": "VSCH026"},
             ]
         elif mode == "adb":
             return [
                 {"Phase": "4", "Title": "0,Check ADB & FW Version,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Open CMD Console for ADB", "TestID": "B7PL025"},
-                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"CmdConsole@{cmd}\\r\\n", "Reply": "@", "EndPrompt": ">", "Ref": '$DUT_FW:WithinString,"version=","\\n","":Trim', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "8000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (ADB)", "TestID": "VSCH026"},
+                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"CmdConsole@{cmd}\\r\\n", "Reply": "@", "EndPrompt": ">", "Ref": '$DUT_FW:WithinString,"version=","\\n",""', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "8000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (ADB)", "TestID": "VSCH026"},
                 {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close CMD Console", "TestID": "B7PL025"},
             ]
         elif mode == "ssh":
             return [
                 {"Phase": "4", "Title": "0,Check SSH & FW Version,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Open CMD Console for SSH", "TestID": "B7PL025"},
-                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"CmdConsole@{cmd}\\r\\n", "Reply": "@", "EndPrompt": ">", "Ref": '$DUT_FW:WithinString,"version=","\\n","":Trim', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "8000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (SSH)", "TestID": "VSCH026"},
+                {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f"CmdConsole@{cmd}\\r\\n", "Reply": "@", "EndPrompt": ">", "Ref": '$DUT_FW:WithinString,"version=","\\n",""', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "8000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version (SSH)", "TestID": "VSCH026"},
                 {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close CMD Console", "TestID": "B7PL025"},
             ]
 
@@ -753,7 +753,7 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
         ws["global_ini"]["Scripts"]["PythonPath"] = py_path
         return [
             {"Phase": "6", "Title": "0,Run External Python Script,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Open Windows CMD Console", "TestID": "B7PL025"},
-            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f'CmdConsole@cd *$(PythonPath)&&cmd /c python.exe {script_name} "*(ISN)"\\r\\n', "Reply": "@Command pass", "EndPrompt": ">", "Ref": f'$PyVal:WithinString,"{prefix}","\\n","":Trim', "Validation": f"(PyVal,%f,{pmin},{pmax})", "Prompt": "", "Waiting": "10000", "ExecMode": "1", "Description": f"PC#-#Execute {script_name} & Validate Output", "TestID": "OTFX054"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": f'CmdConsole@cd *$(PythonPath)&&cmd /c python.exe {script_name} "*(ISN)"\\r\\n', "Reply": "@Command pass", "EndPrompt": ">", "Ref": f'$PyVal:WithinString,"{prefix}","\\n",""', "Validation": f"(PyVal,%f,{pmin},{pmax})", "Prompt": "", "Waiting": "10000", "ExecMode": "1", "Description": f"PC#-#Execute {script_name} & Validate Output", "TestID": "OTFX054"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"CmdConsole"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close Windows CMD Console", "TestID": "B7PL025"},
         ]
 
@@ -1002,7 +1002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.052",
+                "server_build": "Build v0.8.053",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1701,7 +1701,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.052")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.053")
 
                 self._send_json({
                     "status": "ok",
@@ -1987,7 +1987,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.052")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.053")
 
                 self._send_json({
                     "status": "ok",
@@ -2236,7 +2236,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.052")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.053")
 
                 self._send_json({
                     "status": "ok",
@@ -2559,7 +2559,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.052")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.053")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2725,7 +2725,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.052) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.053) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
