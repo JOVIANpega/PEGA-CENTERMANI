@@ -627,8 +627,10 @@
     });
     closeTemplateSkuWizard();
     if (typeof window.renderAuditResults === 'function') window.renderAuditResults();
-    if (typeof window.bsLoadBlocks === 'function') {
-      try { await window.bsLoadBlocks(true); } catch (_e) {}
+    if (typeof window.syncEditorView === 'function') window.syncEditorView();
+    const bsModal = document.getElementById('modalBlockSorter');
+    if (bsModal && bsModal.classList.contains('open') && typeof window.bsLoadSheetBlocks === 'function') {
+      try { await window.bsLoadSheetBlocks(); } catch (_e) {}
     }
   };
 

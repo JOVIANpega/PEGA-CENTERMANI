@@ -276,3 +276,49 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
             f.write(cur_sys)
 
     return system_ini_path, global_ini_path
+
+
+def prune_unused_global_ini(workspace, keep_settings=None, keep_scripts=None):
+    """
+    Prune unreferenced template keys from workspace['global_ini'] so standalone builds
+    only emit variables actually referenced (*$(VAR)) by active sheets or explicitly requested.
+    """
+    g_ini = workspace.get("global_ini")
+    if not isinstance(g_ini, dict):
+        return workspace
+
+    ref_settings = {str(k).strip().lower() for k in (keep_settings or []) if str(k).strip()}
+    ref_scripts = {str(k).strip().lower() for k in (keep_scripts or []) if str(k).strip()}
+
+    for sec in ("duts", "instruments", "switches"):
+        for row in workspace.get(sec, []) or []:
+            if not isinstance(row, dict):
+                continue
+            text = " ".join(str(v) for v in row.values() if v)
+            for m in re.finditer(r"\*\$\(([^)]+)\)", text):
+                ref_settings.add(m.group(1).strip().lower())
+
+    for sheet_group in (workspace.get("stations", {}), workspace.get("marcos", {})):
+        if not isinstance(sheet_group, dict):
+            continue
+        for steps in sheet_group.values():
+            if not isinstance(steps, list):
+                continue
+            for step in steps:
+                if not isinstance(step, dict):
+                    continue
+                text = " ".join(str(v) for v in step.values() if v)
+                for m in re.finditer(r"\*\$\(([^)]+)\)", text):
+                    ref_scripts.add(m.group(1).strip().lower())
+
+    orig_settings = g_ini.get("Settings") or {}
+    g_ini["Settings"] = {
+        k: v for k, v in orig_settings.items()
+        if str(k).strip().lower() in ref_settings
+    }
+    orig_scripts = g_ini.get("Scripts") or {}
+    g_ini["Scripts"] = {
+        k: v for k, v in orig_scripts.items()
+        if str(k).strip().lower() in ref_scripts
+    }
+    return workspace

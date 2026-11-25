@@ -1002,7 +1002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.056",
+                "server_build": "Build v0.8.057",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1706,7 +1706,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.056")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.057")
 
                 self._send_json({
                     "status": "ok",
@@ -1974,6 +1974,23 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     xlsx_name = f"{proj}_TestFlow_{st}.xlsx"
                     folder_label = f"{proj}_{st}"
 
+                from core.ini_engine import prune_unused_global_ini
+                keep_set = []
+                keep_scr = []
+                for ci in custom_inst_blocks:
+                    gp = (ci.get("globals_patch") or {}) if isinstance(ci, dict) else {}
+                    keep_set.extend((gp.get("Settings") or {}).keys())
+                    keep_scr.extend((gp.get("Scripts") or {}).keys())
+                if isinstance(tpl_bundle, dict):
+                    ini_ov = tpl_bundle.get("ini_overrides") or {}
+                    keep_set.extend((ini_ov.get("Settings") or {}).keys())
+                    keep_scr.extend((ini_ov.get("Scripts") or {}).keys())
+                if isinstance(sku_wizard_cfg, dict):
+                    for br in (sku_wizard_cfg.get("sku_branches") or []):
+                        if isinstance(br, dict):
+                            keep_scr.extend((br.get("globals_override") or {}).keys())
+                prune_unused_global_ini(ws, keep_settings=keep_set, keep_scripts=keep_scr)
+
                 target_dir = os.path.join(OUTPUT_ROOT, folder_label, "System")
                 os.makedirs(target_dir, exist_ok=True)
                 for old_f in os.listdir(target_dir):
@@ -2002,7 +2019,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.056")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.057")
 
                 self._send_json({
                     "status": "ok",
@@ -2253,7 +2270,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.056")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.057")
 
                 self._send_json({
                     "status": "ok",
@@ -2623,7 +2640,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.056")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.057")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2789,7 +2806,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.056) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.057) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

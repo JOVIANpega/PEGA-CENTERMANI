@@ -35,6 +35,7 @@ import tempfile
 import threading
 import urllib.request
 import urllib.error
+import urllib.parse
 from http.server import ThreadingHTTPServer
 import openpyxl
 
@@ -2079,7 +2080,7 @@ def run_all_verifications():
             tsw_js_path = os.path.join(STUDIO_DIR, "web", "js", "template_sku_wizard.js")
             tsw_js_txt = open(tsw_js_path, encoding="utf-8").read() if os.path.exists(tsw_js_path) else ""
             check(os.path.exists(tsw_js_path)
-                  and '/js/template_sku_wizard.js?v=0.8.056' in index_html
+                  and bool(re.search(r'/js/template_sku_wizard\.js\?v=\d+\.\d+\.\d+', index_html))
                   and "openTemplateSkuWizard('create')" in index_html
                   and "openTemplateSkuWizard('edit')" in index_html
                   and 'id="btnEmptyEditorSkuWizard"' in index_html
@@ -2087,7 +2088,7 @@ def run_all_verifications():
                   and "tswSelectReason" in tsw_js_txt
                   and "tswToggleRowLimit" in tsw_js_txt
                   and "param_to_ini" in tsw_js_txt,
-                  "v0.8.056 一頁式多 SKU 精靈 UI（含 INI 參數化預設勾選）、雙模式三大入口與 Build v0.8.056 掛載檢查通過")
+                  "v0.8.056 一頁式多 SKU 精靈 UI（含 INI 參數化預設勾選）、雙模式三大入口掛載檢查通過")
 
             # [v0.8.055] 驗證各 SKU 專屬 DL/UL 上下限 ＋ 匯合後共用指令 (直寫模式 param_to_ini=False)
             v55_lim = post_json("/api/template_bundle/apply", {
@@ -2210,6 +2211,68 @@ def run_all_verifications():
                   and any(pv.get("fill_hex") == "E0F7FA" for pv in pv_vis),
                   "v0.8.056 全流程 ExecMode=4 4+分支分色、條件略過柔青、SFIS粉紅字、Phase97/98/99配色、預覽row_visuals與INI參數化完整通過",
                   f"fills={sorted(set(v56_fills))}, sfis={set(v56_sfis_fonts)}")
+
+            # [v0.8.057] 驗證 window.STATE 互通、既有範本 DS_C3PO 載入與多 SKU 套用、Global.ini 精簡去冗
+            check("var STATE = window.STATE =" in index_html,
+                  "v0.8.057 前端 STATE 與 window.STATE 互通（修復既有腳本編修無法開啟多 SKU 精靈）")
+
+            v57_clean = post_json("/api/generate_new_standalone", {
+                "project_name": "V57_CLEAN",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_PHASE97_TEARDOWN"],
+                "sku_wizard": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "param_to_ini": True,
+                    "offline_default_sku": "FULL",
+                    "sku_branches": [
+                        {"code": "FULL", "label": "整機", "iplas_model": "MODEL_FULL"},
+                        {"code": "NO_BAT", "label": "無電池", "iplas_model": "MODEL_NBAT"},
+                        {"code": "NO_WIFI", "label": "無WiFi", "iplas_model": "MODEL_NOWF"},
+                    ],
+                },
+            })
+            v57_glb = open(v57_clean["global_ini"], "r", encoding="utf-8").read()
+            check(v57_clean.get("status") == "ok"
+                  and "SFIS_SKU_DEFAULT=FULL" in v57_glb
+                  and all(k not in v57_glb for k in ("FW_VERSION=", "sfisSKU=", "Boot_Delay=", "PythonPath=", "SKU_FULL_CODE=", "SKU_FULL_MODEL=", "SKU_NO_BAT_CODE=", "SKU_NO_WIFI_CODE=", "LED_AZ1=", "DAQ_1=")),
+                  "v0.8.057 3-SKU Global.ini 精簡僅保留有效 SFIS_SKU_DEFAULT，完全去除未使用範本鍵與 CODE/MODEL 重複鍵")
+
+            v57_uart = post_json("/api/generate_new_standalone", {
+                "project_name": "V57_UART",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"],
+            })
+            v57_uart_glb = open(v57_uart["global_ini"], "r", encoding="utf-8").read()
+            check("FW_VERSION=" in v57_uart_glb and "DUT_UR1=" in v57_uart_glb,
+                  "v0.8.057 勾選 UART FW 區塊時自動保留被測項引用的 FW_VERSION 與 DUT_UR1")
+
+            c3po_path = os.path.join(PROJECT_ROOT, "SCRIPTS", "DS_C3PO_TestFlow-0707_jackson.xlsx")
+            if os.path.exists(c3po_path):
+                c3po_load = get_json("/api/load_specific_file?path=" + urllib.parse.quote(c3po_path))
+                c3po_apply = post_json("/api/template_bundle/apply", {
+                    "target_mode": "edit",
+                    "project_name": c3po_load["workspace"].get("project_name", "DS_C3PO"),
+                    "station_name": "MainBoard",
+                    "workspace": c3po_load["workspace"],
+                    "bundle_spec": {},
+                    "sku_spec": {
+                        "enabled": True,
+                        "source_mode": "CUSTITEM",
+                        "compare_mode": "BRANCH_RULES",
+                        "param_to_ini": True,
+                        "sku_branches": [
+                            {"code": "FULL", "label": "整機"},
+                            {"code": "NO_BAT", "label": "無電池"},
+                        ],
+                    },
+                })
+                check(c3po_load.get("status") == "ok" and c3po_apply.get("status") == "ok"
+                      and len((c3po_apply.get("report") or {}).get("errors") or []) == 0,
+                      "v0.8.057 實測載入 DS_C3PO_TestFlow-0707_jackson.xlsx 並於 MainBoard 套用 SKU 編修 0 Error")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

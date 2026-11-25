@@ -746,23 +746,13 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
                 tag = f"{tag[:12]}_{br_idx + 1}"
             used_tags.add(tag)
 
-            if param_to_ini:
-                code_key = f"SKU_{tag}_CODE"
-                global_scripts[code_key] = code
-                match_reply = f"@*$({code_key})"
-            else:
-                match_reply = f"@{code}"
+            # 分流條件碼與 iPLAS 機種名稱維持可讀直寫於 Excel，避免每個 SKU 產生多餘對照鍵
+            match_reply = f"@{code}"
 
             act_rows = []
             if iplas_model:
-                if param_to_ini:
-                    m_key = f"SKU_{tag}_MODEL"
-                    global_scripts[m_key] = iplas_model
-                    m_arg = f"*$({m_key})"
-                else:
-                    m_arg = iplas_model
                 act_rows.append(_make_step(
-                    send=f':SetModelName,"{m_arg}"',
+                    send=f':SetModelName,"{iplas_model}"',
                     reply="0",
                     exec_mode="0",
                     description=f"PC#-#Set iPLAS Model ({code}->{iplas_model})",
