@@ -1877,6 +1877,90 @@ def run_all_verifications():
                   "v0.8.051 script_doctor 可預警 SplitString 誤用 '\\,' 逗號跳脫陷阱",
                   trap_warns)
 
+            # [v0.8.052] 驗證 0 → 1 空範本整合 SFIS 人機積木與 :SfEnabled、insert_current 不重複 CheckRoute
+            check("BLK_SUBDEV_DEVUART_FINALGO" in index_html
+                  and "BLK_SFIS_ENABLED_BRANCH" in index_html
+                  and "openSfisHmiFromWizard" in index_html
+                  and "toggleWizSfEnabled" in index_html
+                  and "sfisGetHmiPayloadForWizard" in sfis_hmi_js
+                  and "sfisSyncToWizardAndReturn" in sfis_hmi_js,
+                  "v0.8.052 0→1 空範本 Step 2/3/4 已整合 SFIS 人機積木組、:SfEnabled 旁路開關與四項新流程積木")
+
+            v52_gen = post_json("/api/generate_new_standalone", {
+                "project_name": "V52_INT",
+                "station_name": "MB",
+                "dut_count": 2,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_SFIS_ENABLED_BRANCH", "BLK_SFIS_MAC_69PN", "BLK_PHASE97_TEARDOWN"],
+                "system_ini_overrides": {"SFIS_Enable": "1", "iPLAS_Enable": "1", "iPLAS_Site": "SUZHOU"},
+                "open_excel": False,
+                "wizard_config": {
+                    "isn_length": 13,
+                    "isn_pattern": "[0-9A-Z]",
+                    "sfis_config": {
+                        "use_hmi_items": True,
+                        "hmi_items": [
+                            {"kind": "checkroute"},
+                            {"kind": "getimac", "slot_code": "2", "ref_var": "sfMAC", "ref_expr": '$sfMAC:SubString,"0","12";', "validation": "(sfMAC,%len,12,12);"},
+                            {"kind": "savelink", "save_key": "SNA", "save_val": "VAL_52"},
+                        ],
+                        "hmi_config": {
+                            "url": "http://172.24.248.15/SFISWebService/SFISTSPWebService.asmx",
+                            "tsp": "V52,2",
+                            "op": "S09166390",
+                            "isn": "2695160300001",
+                            "device_id": "710001",
+                            "skip_save_on_fail": True,
+                        },
+                    },
+                },
+            })
+            ws_v52 = _parse_v50(v52_gen["excel_path"])
+            v52_rows = ws_v52["stations"]["MB"]
+            v52_sys = open(os.path.join(v52_gen["output_dir"], "System.ini"), "r", encoding="utf-8").read()
+            v52_rep = _audit_ws(ws_v52)
+            check(v52_gen.get("status") == "ok"
+                  and sum(1 for r in v52_rows if ":ShowISN" in str(r.get("Send", ""))) == 1
+                  and any(":SfGetiMAC" in str(r.get("Send", "")) for r in v52_rows)
+                  and any(':SfSaveLinkData,"SNA","VAL_52"' in str(r.get("Send", "")) for r in v52_rows)
+                  and any(":SfEnabled" in str(r.get("Send", "")) for r in v52_rows)
+                  and "SFIS_LoginID=S09166390" in v52_sys
+                  and "SFIS_GetDateISN=2695160300001" in v52_sys
+                  and "iPLAS_Enable=1" in v52_sys
+                  and v52_rep.get("error_count", -1) == 0,
+                  "v0.8.052 0→1 精靈整合 SFIS 人機積木產出不重複 :ShowISN、含 iPLAS/SFIS LoginID 且 0 Error",
+                  f"errs={v52_rep.get('errors')}, sends={[r.get('Send') for r in v52_rows]}")
+
+            ins_res = post_json("/api/export_sfis_hmi_script", {
+                "mode": "insert_current",
+                "items": [
+                    {"kind": "checkroute"},
+                    {"kind": "savelink", "save_key": "BT1", "save_val": "OK52"},
+                ],
+                "config": {"project_name": "INS52", "station": "MB", "op": "S09166390", "isn": "2695160300001", "device_id": "710001", "sfis_enable": "1"},
+                "workspace": {
+                    "project_name": "INS52", "station_name": "MB",
+                    "global_ini": {"Settings": {"LOAD_1": "true"}, "Scripts": {}},
+                    "instruments": [], "switches": [],
+                    "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "INS52$MB", "Station": "MB,1"}],
+                    "marcos": {}, "system_ini": {},
+                    "stations": {"MB": [
+                        {"Index": "000", "Phase": "0", "Title": "0,CheckRoute", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                        {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "TestID": "OTCH013"},
+                        {"Index": "002", "Phase": "1", "Title": "0,OtherTest", "Send": ':Delay,"100"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                        {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "Reply": "0", "ExecMode": "3", "TestID": "B7PL025"},
+                    ]},
+                },
+            })
+            ins_mb = ins_res["workspace"]["stations"]["MB"]
+            ins_sys = ins_res["workspace"]["system_ini"]
+            check(ins_res.get("status") == "ok"
+                  and sum(1 for r in ins_mb if ":ShowISN" in str(r.get("Send", ""))) == 1
+                  and any(':SfSaveLinkData,"BT1","OK52"' in str(r.get("Send", "")) for r in ins_mb)
+                  and any(':Delay,"100"' in str(r.get("Send", "")) for r in ins_mb)
+                  and ins_sys.get("SFIS_LoginID") == "S09166390"
+                  and ins_sys.get("SFIS_GetDateISN") == "2695160300001",
+                  "v0.8.052 SFIS insert_current 自動合併取代舊 CheckRoute 不重複，並同步寫入 SFIS_LoginID/GetDateISN")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

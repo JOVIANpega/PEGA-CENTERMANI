@@ -909,6 +909,14 @@ def build_wizard_block_steps(bid, block_def, wizard_config, ws):
 
     if bid == "BLK_SFIS_MAC_69PN":
         sf = wizard_config.get("sfis_config") or {}
+        if sf.get("use_hmi_items") and sf.get("hmi_items"):
+            from core.sfis_client import build_sfis_excel_steps
+            raw_items = [it for it in (sf.get("hmi_items") or []) if str(it.get("kind", "")).lower() not in ("login", "logout")]
+            has_pre = bool(sf.get("has_pretest_route", False))
+            if has_pre:
+                raw_items = [it for it in raw_items if str(it.get("kind", "")).lower() != "checkroute"]
+            if raw_items:
+                return build_sfis_excel_steps(raw_items, start_phase=0 if not has_pre else 5, include_show_isn=not has_pre)
         fields = sf.get("fields") or []
         if not fields:
             return None
@@ -994,7 +1002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.051",
+                "server_build": "Build v0.8.052",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1693,7 +1701,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.051")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.052")
 
                 self._send_json({
                     "status": "ok",
@@ -1799,6 +1807,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 # Sort selected block_ids strictly by official pipeline order
                 # Ensuring BLK_PRETEST_ROUTE (Phase 0) is first, test blocks in sequence, and BLK_PHASE97_TEARDOWN is always last
                 sorted_block_ids = sorted(block_ids, key=lambda bid: blk_order.get(bid, 999))
+                sf_cfg_wiz = wizard_config.get("sfis_config")
+                if isinstance(sf_cfg_wiz, dict):
+                    sf_cfg_wiz["has_pretest_route"] = ("BLK_PRETEST_ROUTE" in sorted_block_ids)
                 steps = []
                 for bid in sorted_block_ids:
                     b = blk_map.get(bid)
@@ -1866,6 +1877,23 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             pass
 
                 ws["stations"] = {st: steps}
+
+                sf_hmi_meta = (wizard_config.get("sfis_config") or {}).get("hmi_config") if isinstance(wizard_config.get("sfis_config"), dict) else None
+                if isinstance(sf_hmi_meta, dict) and (wizard_config.get("sfis_config") or {}).get("use_hmi_items"):
+                    sys_target = ws.setdefault("system_ini", {})
+                    if sf_hmi_meta.get("url"):
+                        sys_target["SFIS_WebLink"] = str(sf_hmi_meta["url"]).strip()
+                    if sf_hmi_meta.get("tsp"):
+                        sys_target["SFIS_TSP"] = str(sf_hmi_meta["tsp"]).strip()
+                    if sf_hmi_meta.get("op"):
+                        sys_target["SFIS_LoginID"] = str(sf_hmi_meta["op"]).strip()
+                        sys_target["SFIS_AutoLogin"] = "1"
+                    if sf_hmi_meta.get("isn"):
+                        sys_target["SFIS_GetDateISN"] = str(sf_hmi_meta["isn"]).strip()
+                    if "skip_save_on_fail" in sf_hmi_meta:
+                        sys_target["SFIS_SkipSaveResultOnFail"] = "1" if sf_hmi_meta.get("skip_save_on_fail") else "0"
+                    if sf_hmi_meta.get("device_id"):
+                        ws.setdefault("global_ini", {}).setdefault("Settings", {})["DEVID_1"] = str(sf_hmi_meta["device_id"]).strip()
 
                 sys_overrides = payload.get("system_ini_overrides") or {}
                 if isinstance(sys_overrides, dict) and sys_overrides:
@@ -1959,7 +1987,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.051")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.052")
 
                 self._send_json({
                     "status": "ok",
@@ -2208,7 +2236,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.051")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.052")
 
                 self._send_json({
                     "status": "ok",
@@ -2413,6 +2441,16 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             teardown.append(r)
                         else:
                             non_teardown.append(r)
+                    # Replace existing leading CheckRoute block if sfis_steps already provides Phase 0 CheckRoute
+                    if non_teardown and any(":ShowISN" in str(r.get("Send", "")) for r in sfis_steps):
+                        first_blk_end = 0
+                        for idx_nt, nt_row in enumerate(non_teardown):
+                            if idx_nt > 0 and (str(nt_row.get("Phase", "")).strip() != "" or str(nt_row.get("Title", "")).strip() != ""):
+                                break
+                            first_blk_end = idx_nt + 1
+                        head_sends = " ".join(str(x.get("Send", "")) for x in non_teardown[:first_blk_end])
+                        if ":ShowISN" in head_sends or ":SfCheckRoute" in head_sends:
+                            non_teardown = non_teardown[first_blk_end:]
                     combined = sfis_steps + non_teardown + teardown
                     next_p = 0
                     for r in combined:
@@ -2426,6 +2464,11 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         sys_ini["SFIS_WebLink"] = url
                     if tsp:
                         sys_ini["SFIS_TSP"] = tsp
+                    if cfg.get("op"):
+                        sys_ini["SFIS_LoginID"] = str(cfg.get("op")).strip()
+                        sys_ini["SFIS_AutoLogin"] = "1"
+                    if cfg.get("isn"):
+                        sys_ini["SFIS_GetDateISN"] = str(cfg.get("isn")).strip()
                     sys_ini["SFIS_Enable"] = sfis_en
                     if "skip_save_on_fail" in cfg:
                         sys_ini["SFIS_SkipSaveResultOnFail"] = "1" if cfg.get("skip_save_on_fail") else "0"
@@ -2516,7 +2559,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.051")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.052")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2682,7 +2725,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.051) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.052) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

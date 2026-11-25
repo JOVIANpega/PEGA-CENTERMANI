@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.051">
+<link rel="stylesheet" href="/css/app.css?v=0.8.052">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.051</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.052</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1869,12 +1869,12 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.051"></script>
-<script src="/js/audit_editors.js?v=0.8.051"></script>
-<script src="/js/flow_guide.js?v=0.8.051"></script>
-<script src="/js/block_sorter.js?v=0.8.051"></script>
-<script src="/js/script_qa.js?v=0.8.051"></script>
-<script src="/js/sfis_hmi.js?v=0.8.051"></script>
+<script src="/js/inst_hmi.js?v=0.8.052"></script>
+<script src="/js/audit_editors.js?v=0.8.052"></script>
+<script src="/js/flow_guide.js?v=0.8.052"></script>
+<script src="/js/block_sorter.js?v=0.8.052"></script>
+<script src="/js/script_qa.js?v=0.8.052"></script>
+<script src="/js/sfis_hmi.js?v=0.8.052"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -3976,11 +3976,15 @@ async function initPage() {
 const FLOW_ONLY_BLOCK_IDS = new Set([
   'BLK_PRETEST_ROUTE',
   'BLK_FIXTURE_ACTION',
+  'BLK_SUBDEV_DEVUART_FINALGO',
   'BLK_UART_BOOT_FW',
+  'BLK_FW_STREAM_PROMPT_FLASH',
+  'BLK_SFIS_ENABLED_BRANCH',
   'BLK_SFIS_MAC_69PN',
   'BLK_PYTHON_SCRIPT_CALL',
   'BLK_UTILITY_PING_LAN',
-  'BLK_PHASE97_TEARDOWN'
+  'BLK_PHASE97_TEARDOWN',
+  'BLK_PHASE98_99_BRANCH_TEARDOWN'
 ]);
 
 function renderBlockChecklist() {
@@ -5905,11 +5909,41 @@ let WIZ_IPOWER = { delay_ms: '2000' };
 let WIZ_DIFF_VOLT = { channel: '0', name: 'VCC_12V', min: '11.40', max: '12.60' };
 let WIZ_LED = { port: 'COM17', channel: '01', wave_min: '515', wave_max: '535', int_min: '1000', int_max: '99999' };
 let WIZ_SFIS = {
+  use_hmi_items: true,
   fields: [
     { field_name: 'MAC1', var_name: 'sfisLANMAC', len_min: '12', len_max: '12' },
     { field_name: '69PN', var_name: 'sf69PN', len_min: '', len_max: '' }
   ]
 };
+
+function openSfisHmiFromWizard() {
+  if (typeof SFIS_HMI_STATE !== 'undefined' && SFIS_HMI_STATE.config) {
+    const p = (document.getElementById('genProj') ? document.getElementById('genProj').value.trim() : '') || 'PEGA_NEW';
+    const st = (document.getElementById('genStation') ? document.getElementById('genStation').value.trim() : '') || 'MB';
+    const gs = STATE.genSystemIni || {};
+    SFIS_HMI_STATE.config.project_name = p;
+    SFIS_HMI_STATE.config.station = st;
+    if (gs.SFIS_WebLink) SFIS_HMI_STATE.config.url = gs.SFIS_WebLink;
+    if (gs.SFIS_TSP) SFIS_HMI_STATE.config.tsp = gs.SFIS_TSP;
+    if (gs.SFIS_LoginID) SFIS_HMI_STATE.config.op = gs.SFIS_LoginID;
+    if (gs.SFIS_GetDateISN) SFIS_HMI_STATE.config.isn = gs.SFIS_GetDateISN;
+    SFIS_HMI_STATE.openedFromWizard = true;
+  }
+  switchGenSubMode('tools');
+  if (typeof switchToolsVerifyTab === 'function') {
+    const mMode = (typeof SFIS_HMI_STATE !== 'undefined' && SFIS_HMI_STATE.mockMode) ? 'mock' : 'real';
+    switchToolsVerifyTab(mMode);
+  }
+}
+
+function toggleWizSfEnabled(checked) {
+  if (checked) {
+    if (!STATE.selectedBlockIds.includes('BLK_SFIS_ENABLED_BRANCH')) STATE.selectedBlockIds.push('BLK_SFIS_ENABLED_BRANCH');
+  } else {
+    STATE.selectedBlockIds = STATE.selectedBlockIds.filter(id => id !== 'BLK_SFIS_ENABLED_BRANCH');
+  }
+  renderWizStep3();
+}
 
 function updateIsnRulePreview() {
   const len = Math.max(1, parseInt(document.getElementById('genIsnLen').value || '3', 10));
@@ -6239,6 +6273,20 @@ function renderWizStep3() {
   }
 
   if (sel.includes('BLK_SFIS_MAC_69PN')) {
+    const hmiBundle = (typeof sfisGetHmiPayloadForWizard === 'function') ? sfisGetHmiPayloadForWizard() : { items: [], config: {} };
+    const hmiCards = (hmiBundle.items || []).filter(x => !(sel.includes('BLK_PRETEST_ROUTE') && x.kind === 'checkroute'));
+    const hmiCfg = hmiBundle.config || {};
+    const useHmi = (WIZ_SFIS.use_hmi_items !== false);
+    const hasBypass = sel.includes('BLK_SFIS_ENABLED_BRANCH');
+    const previewLines = hmiCards.length
+      ? hmiCards.map((c, ci) => {
+          if (c.kind === 'getversion') return `<li><code>Phase +${ci+1}</code> 📥 <b>GET</b> <code>${c.ver_type}</code> / <code>${c.chk_data || '-'}</code> (格[${c.slot_code}]) ➔ <code>${c.ref_expr || ('$' + c.ref_var)}</code></li>`;
+          if (c.kind === 'getimac') return `<li><code>Phase +${ci+1}</code> 📡 <b>GET iMAC</b> ➔ <code>${c.ref_expr}</code> ${c.validation ? `<code>${c.validation}</code>` : ''}</li>`;
+          if (c.kind === 'savelink') return `<li><code>Phase +${ci+1}</code> 📤 <b>WRITE</b> <code>${c.save_key}</code> = <code>${c.save_val}</code></li>`;
+          if (c.kind === 'rw') return `<li><code>Phase +${ci+1}</code> 🔄 <b>R/W</b> <code>${c.save_key}</code> = <code>${c.save_val}</code></li>`;
+          return `<li><code>Phase +${ci+1}</code> 🔹 ${c.kind}</li>`;
+        }).join('')
+      : '<li style="color:#64748B;">（牌桌目前只有 CheckRoute；請點右側按鈕開啟 SFIS 人機加入 GET / WRITE / iMAC 測項）</li>';
     let sRows = WIZ_SFIS.fields.map((f, i) => `
       <tr>
         <td><input type="text" value="${f.field_name}" onchange="WIZ_SFIS.fields[${i}].field_name=this.value" style="width:110px; padding:4px;" class="mono"></td>
@@ -6249,15 +6297,39 @@ function renderWizStep3() {
       </tr>
     `).join('');
     html += `
-      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px;">
+      <div style="background:#FFFFFF; border:1.5px solid #93C5FD; border-radius:8px; padding:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-          <span style="font-weight:700; font-size:1rem; color:#0F172A;">🏷️ SFIS 讀取欄位與長度驗證設定</span>
-          <button class="btn btn-primary-green" style="padding:3px 10px; font-size:0.8rem;" onclick="WIZ_SFIS.fields.push({field_name:'MAC2',var_name:'sfisWIFIMAC',len_min:'12',len_max:'12'});renderWizStep3();">+ 新增 SFIS 欄位</button>
+          <span style="font-weight:800; font-size:1rem; color:#0F172A;">🏷️ SFIS 資料讀寫與實機驗證設定（整合 SFIS 人機）</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" onclick="openSfisHmiFromWizard()" class="btn" style="padding:4px 12px; font-size:0.83rem; background:#1D4ED8; color:#FFFFFF; border:none; font-weight:800;">🛡️ 開啟 SFIS 實機人機設定並實測 ➔</button>
+            <button type="button" onclick="openSfisIplasModal('gen')" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#F0FDF4; color:#166534; border-color:#86EFAC;">🌐 設定 SFIS / iPLAS INI 開關</button>
+          </div>
         </div>
-        <table class="meas-table">
-          <thead><tr><th>SFIS 欄位名</th><th>儲存變數名</th><th>最短長度</th><th>最長長度</th><th>刪除</th></tr></thead>
-          <tbody>${sRows}</tbody>
-        </table>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding:7px 10px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0; font-size:0.84rem;">
+          <label style="cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+            <input type="radio" name="wizSfisMode" ${useHmi ? 'checked' : ''} onchange="WIZ_SFIS.use_hmi_items=true;renderWizStep3();"> 🃏 使用 SFIS 人機牌桌步驟（支援 0~7 選格 / GetiMAC / SaveLinkData / Ref 切片）
+          </label>
+          <label style="cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+            <input type="radio" name="wizSfisMode" ${!useHmi ? 'checked' : ''} onchange="WIZ_SFIS.use_hmi_items=false;renderWizStep3();"> 📝 簡易快速欄位表
+          </label>
+        </div>
+        ${useHmi ? `
+          <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:10px 12px; font-size:0.84rem; color:#1E293B;">
+            <div style="font-weight:800; color:#1E40AF; margin-bottom:4px;">📋 目前同步之 SFIS 人機清單（OP: <code>${hmiCfg.op || 'S09166390'}</code> / Dev: <code>${hmiCfg.device_id || '710001'}</code> / TSP: <code>${hmiCfg.tsp || 'ATLAS,2'}</code>）：</div>
+            <ul style="margin:4px 0 6px 18px; padding:0; line-height:1.6;">${previewLines}</ul>
+            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:700; color:#0F766E; margin-top:4px;">
+              <input type="checkbox" ${hasBypass ? 'checked' : ''} onchange="toggleWizSfEnabled(this.checked)"> 🔁 同時附加 <code>:SfEnabled (ExecMode=4:P,F)</code> 離線除錯／產線雙用旁路積木
+            </label>
+          </div>
+        ` : `
+          <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+            <button class="btn btn-primary-green" style="padding:3px 10px; font-size:0.8rem;" onclick="WIZ_SFIS.fields.push({field_name:'MAC2',var_name:'sfisWIFIMAC',len_min:'12',len_max:'12'});renderWizStep3();">+ 新增 SFIS 欄位</button>
+          </div>
+          <table class="meas-table">
+            <thead><tr><th>SFIS 欄位名</th><th>儲存變數名</th><th>最短長度</th><th>最長長度</th><th>刪除</th></tr></thead>
+            <tbody>${sRows}</tbody>
+          </table>
+        `}
       </div>
     `;
   }
@@ -6284,6 +6356,16 @@ function renderWizStep4() {
   if (STATE.selectedBlockIds.includes('BLK_UTILITY_PING_LAN')) details.push(`🌐 Ping IP：<b>${WIZ_PING.targets.length}</b> 組（<code>${WIZ_PING.targets.map(t=>t.dut_ip).join(', ')}</code>）`);
   if (STATE.selectedBlockIds.includes('BLK_WIFI_RF_IQXEL')) details.push(`📶 WiFi RF Marco：<b>${WIZ_WIFI.tx_tests.length}</b> Tx / <b>${WIZ_WIFI.rx_tests.length}</b> Rx 測項`);
   if (STATE.selectedBlockIds.includes('BLK_LED_FEASA')) details.push(`💡 Feasa LED：Ch${WIZ_LED.channel} (${WIZ_LED.wave_min}~${WIZ_LED.wave_max}nm)`);
+  if (STATE.selectedBlockIds.includes('BLK_SFIS_MAC_69PN')) {
+    const hmiB = (WIZ_SFIS.use_hmi_items && typeof sfisGetHmiPayloadForWizard === 'function') ? sfisGetHmiPayloadForWizard() : null;
+    if (hmiB && hmiB.items && hmiB.items.length) {
+      details.push(`🏷️ SFIS 人機積木：<b>${hmiB.items.length}</b> 項 (${hmiB.items.map(x => x.kind).join(' → ')})`);
+    } else {
+      details.push(`🏷️ SFIS 欄位：<b>${WIZ_SFIS.fields.length}</b> 項`);
+    }
+  }
+  const sysIniGen = STATE.genSystemIni || {};
+  details.push(`🌐 System.ini：SFIS=<b>${sysIniGen.SFIS_Enable==='1'?'ON':'OFF'}</b> / iPLAS=<b>${sysIniGen.iPLAS_Enable==='1'?'ON':'OFF'}</b>`);
 
   const niArr = STATE.genNi6009Blocks || [];
   let niHtml = '';
@@ -6350,7 +6432,10 @@ async function generateNewMother(dryRun) {
             ipower_config: WIZ_IPOWER,
             diff_volt_config: WIZ_DIFF_VOLT,
             led_config: WIZ_LED,
-            sfis_config: WIZ_SFIS
+            sfis_config: Object.assign({}, WIZ_SFIS, (WIZ_SFIS.use_hmi_items && typeof sfisGetHmiPayloadForWizard === 'function') ? {
+              hmi_items: sfisGetHmiPayloadForWizard().items,
+              hmi_config: sfisGetHmiPayloadForWizard().config
+            } : { hmi_items: [], hmi_config: null })
           }
         })
       });

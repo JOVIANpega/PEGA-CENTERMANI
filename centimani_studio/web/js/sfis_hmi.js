@@ -1317,7 +1317,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.051') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.052') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1618,7 +1618,7 @@ async function sfisHmiExport(mode) {
     return;
   }
   if (mode === 'insert_current' && (typeof STATE === 'undefined' || !STATE.workspace)) {
-    alert('目前尚未開啟任何測試腳本，請改點「📥 抄空白範本產生 SFIS Excel」。');
+    alert('目前尚未開啟任何測試腳本，請改點「📥 獨立產出純 SFIS 驗證 Excel」或「🌱 套用至 0 → 1 空範本」。');
     return;
   }
   try {
@@ -1641,7 +1641,7 @@ async function sfisHmiExport(mode) {
       if (typeof renderStations === 'function') renderStations();
       if (typeof renderAuditAlerts === 'function') renderAuditAlerts();
       if (typeof switchGenSubMode === 'function') switchGenSubMode('edit');
-      alert(`✅ 已將 ${data.inserted_count} 列 SFIS 標準步驟（含 :ShowISN 與 ExecMode=8）插入 [${data.station}] 開頭！\n(System.ini: SFIS_SkipSaveResultOnFail=${cfg.skip_save_on_fail ? 1 : 0})`);
+      alert(`✅ 已將 ${data.inserted_count} 列 SFIS 標準步驟（含 :ShowISN 與 ExecMode=8）整合寫入 [${data.station}] 開頭！\n(System.ini: SFIS_LoginID=${cfg.op}, SFIS_SkipSaveResultOnFail=${cfg.skip_save_on_fail ? 1 : 0})`);
       return;
     }
     const skipStr = cfg.skip_save_on_fail ? '1（測錯故意不上傳）' : '0';
@@ -1654,6 +1654,51 @@ async function sfisHmiExport(mode) {
   } catch (e) {
     alert('匯出發生錯誤：' + e);
   }
+}
+
+function sfisGetHmiPayloadForWizard() {
+  const items = (SFIS_HMI_STATE.items || [])
+    .map(_itemToBackendStep)
+    .filter(x => x.kind !== 'login' && x.kind !== 'logout');
+  return {
+    items,
+    config: Object.assign({}, SFIS_HMI_STATE.config || {})
+  };
+}
+
+function sfisSyncToWizardAndReturn() {
+  const bundle = sfisGetHmiPayloadForWizard();
+  if (!bundle.items.length) {
+    alert('牌桌上尚無可匯出之 SFIS 步驟，請至少保留 CheckRoute / GET / WRITE。');
+    return;
+  }
+  if (typeof WIZ_SFIS !== 'undefined') {
+    WIZ_SFIS.use_hmi_items = true;
+  }
+  if (typeof STATE !== 'undefined') {
+    if (Array.isArray(STATE.selectedBlockIds)) {
+      if (!STATE.selectedBlockIds.includes('BLK_PRETEST_ROUTE')) STATE.selectedBlockIds.unshift('BLK_PRETEST_ROUTE');
+      if (!STATE.selectedBlockIds.includes('BLK_SFIS_MAC_69PN')) STATE.selectedBlockIds.push('BLK_SFIS_MAC_69PN');
+      if (!STATE.selectedBlockIds.includes('BLK_PHASE97_TEARDOWN')) STATE.selectedBlockIds.push('BLK_PHASE97_TEARDOWN');
+    }
+    STATE.genSystemIni = Object.assign(STATE.genSystemIni || {}, {
+      SFIS_Enable: '1',
+      SFIS_WebLink: bundle.config.url || '',
+      SFIS_TSP: bundle.config.tsp || '',
+      SFIS_LoginID: bundle.config.op || '',
+      SFIS_GetDateISN: bundle.config.isn || '',
+      SFIS_SkipSaveResultOnFail: bundle.config.skip_save_on_fail ? '1' : '0'
+    });
+    const badge = document.getElementById('genSfisIplasBadge');
+    if (badge) {
+      const iplasOn = (STATE.genSystemIni.iPLAS_Enable === '1');
+      const iplasSite = STATE.genSystemIni.iPLAS_Site || 'DC';
+      badge.innerHTML = `🌐 <b>System.ini 連線：</b>SFIS：<span class="mono">ON (1)</span> ｜ iPLAS：<span class="mono">${iplasOn ? 'ON (1)' : 'OFF (0)'}</span> ｜ Site：<span class="mono">${iplasSite}</span>`;
+    }
+  }
+  SFIS_HMI_STATE.openedFromWizard = false;
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('create');
+  if (typeof goWizardStep === 'function') goWizardStep(3);
 }
 
 function _renderSimpleCardInputs(it, idx) {
@@ -1990,7 +2035,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.051');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.052');
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
@@ -2210,8 +2255,9 @@ function renderSfisHmiWorkspace() {
             🛡️ <code>SFIS_SkipSaveResultOnFail=1</code>（失敗不上傳保護 ISN；產檔自動略過 Login/Logout 改由 INI 登入）
           </label>
           <div style="display:flex; gap:7px; flex-wrap:wrap;">
-            <button type="button" onclick="sfisHmiExport('new_template')" class="btn" style="padding:5px 12px; font-size:0.81rem; background:#15803D; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">📥 抄空白範本產生 SFIS Excel</button>
-            <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開 Excel 開頭</button>
+            <button type="button" onclick="sfisHmiExport('new_template')" class="btn" style="padding:5px 12px; font-size:0.81rem; background:#15803D; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">📥 獨立產出純 SFIS Excel</button>
+            <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開腳本開頭</button>
+            <button type="button" onclick="sfisSyncToWizardAndReturn()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:${s.openedFromWizard ? '#1D4ED8' : '#EFF6FF'}; color:${s.openedFromWizard ? '#FFFFFF' : '#1E40AF'}; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 空範本精靈』">🌱 套用至「0 → 1 空範本」</button>
           </div>
         </div>
         <details>
