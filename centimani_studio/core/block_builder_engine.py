@@ -613,6 +613,35 @@ def build_workspace_from_sequence(
                     test_id="IPPR005",
                 ))
 
+        elif kind == "set_val":
+            vname = _safe_var(cfg.get("var_name") or "gTag", "gTag")
+            vexpr = str(cfg.get("value_expr") or "*(ISN)").strip()
+            title_lbl = str(cfg.get("title") or f"Set {vname}").strip()
+            steps.append(_step(
+                phase=_alloc_phase(),
+                title=f"0,{title_lbl}",
+                send=f':SetVal,"${vname}","{vexpr}"',
+                reply="0",
+                exec_mode="0",
+                description=f"PC#-#Set ${vname} = {vexpr}",
+                test_id="OTFX054",
+            ))
+
+        elif kind == "add_attr":
+            target_obj = str(cfg.get("target") or "UART").strip() or "UART"
+            attr_k = str(cfg.get("attr_key") or "COM").strip() or "COM"
+            attr_v = str(cfg.get("attr_val") or "*(comPort)").strip()
+            title_lbl = str(cfg.get("title") or f"Bind {target_obj} {attr_k}").strip()
+            steps.append(_step(
+                phase=_alloc_phase(),
+                title=f"0,{title_lbl}",
+                send=f':AddAttribute,"{target_obj}","{attr_k}","{attr_v}"',
+                reply="0",
+                exec_mode="0",
+                description=f"PC#-#AddAttribute {target_obj}.{attr_k}",
+                test_id="OTFX15D",
+            ))
+
         elif kind in ("usb_fw", "subdev_finalgo", "sfis_bypass", "stream_flash"):
             bid_map = {
                 "usb_fw": "BLK_USB_FW_UPGRADE_COM",

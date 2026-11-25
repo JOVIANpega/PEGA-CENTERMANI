@@ -46,14 +46,14 @@
     {
       kind: 'multi_sku',
       icon: '🎯',
-      shortName: '分流',
-      name: '🎯 分流',
+      shortName: 'SKU',
+      name: '🎯 SKU',
       tier: 'common',
       exclusivePage: true,
       theme: '#FEF2F2',
       border: '#EF4444',
       popTitle: '🔴 專屬設定頁｜多 SKU / 品種分流 (4:P,F)',
-      popDesc: '依 SFIS 欄位、工單名單 (69MO.txt) 或國別碼自動分流機種，決定哪些測項執行或切換各別 DL/UL 上下限。',
+      popDesc: '直接同頁設定 SFIS 欄位、工單名單 (69MO.txt) 或國別碼自動分流機種，決定哪些測項跳過與個別 DL/UL。',
       popExample: '例：整機 / 無電池 / 無 WiFi 三分支分流'
     },
     {
@@ -124,8 +124,8 @@
     {
       kind: 'ping',
       icon: '🌐',
-      shortName: '網路',
-      name: '🌐 網路',
+      shortName: 'PING',
+      name: '🌐 PING',
       tier: 'common',
       exclusivePage: false,
       theme: '#EFF6FF',
@@ -199,6 +199,32 @@
       popTitle: '長輸出串流燒錄 (Prompt="!")',
       popDesc: '針對會不斷吐出進度字元的長耗時燒錄指令，防止超時誤判。',
       popExample: '例：大檔韌體燒錄長輸出監控'
+    },
+    {
+      kind: 'set_val',
+      icon: '📝',
+      shortName: '設值',
+      name: '📝 設值',
+      tier: 'advanced',
+      exclusivePage: false,
+      theme: '#F8FAFC',
+      border: '#64748B',
+      popTitle: '組裝／指定全域變數 (:SetVal)',
+      popDesc: '用 :SetVal 設定或組合 $變數 值（例：將 $(MAC1)_$(SKU) 組成報告標籤，或設定預設值）。',
+      popExample: '例：:SetVal,"$gFullTag","*(MAC1)_*(SKU)"'
+    },
+    {
+      kind: 'add_attr',
+      icon: '🏷️',
+      shortName: '屬性',
+      name: '🏷️ 屬性',
+      tier: 'advanced',
+      exclusivePage: false,
+      theme: '#F8FAFC',
+      border: '#64748B',
+      popTitle: '動態綁定連線／裝置屬性 (:AddAttribute)',
+      popDesc: '執行時期透過 :AddAttribute 修改連線（例如將偵測到的 COM Port 動態綁定給 UART）。',
+      popExample: '例：:AddAttribute,"UART","COM","*(comPort)"'
     }
   ];
 
@@ -291,13 +317,17 @@
         return Object.assign({}, base, { title: 'Check Limit', var_name: 'VCC_3V3', check_mode: 'limit', val_type: '%f', dl: '3.15', ul: '3.45', expect_str: 'PASS', use_ini_var: false });
       case 'inst':
         return Object.assign({}, base, {
-          inst_mode: 'catalog', inst_name: 'NI6008', title_name: 'Measure Voltage Test', dl_val: '3.15', ul_val: '3.45',
+          inst_mode: 'ni6009', inst_name: 'NI6008', title_name: 'Measure Voltage Test', dl_val: '3.15', ul_val: '3.45',
           mode: 'RSE', sample_ms: '1000', dev_id: 'Dev1',
           channels: [{ ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25' }, { ch: 1, name: 'VCC_3V3', dl: '3.15', ul: '3.45' }],
           settings_str: '192.168.100.254,1,2,1,60000,PathLoss.ini',
           tx_tests: [{ channel: '6', bw: '20', mcs: '7', antenna: '1', target_pwr: '15', pwr_min: '13', pwr_max: '17', evm_min: '-50', evm_max: '-28' }],
           rx_tests: [{ channel: '6', bw: '20', mcs: '7', antenna: '1', rx_level: '-59' }]
         });
+      case 'set_val':
+        return Object.assign({}, base, { title: 'Set Variable Value', var_name: 'gTag', value_expr: '*(ISN)' });
+      case 'add_attr':
+        return Object.assign({}, base, { title: 'Bind Dynamic Attribute', target: 'UART', attr_key: 'COM', attr_val: '*(comPort)' });
       case 'multi_sku':
         return { sku_wizard: null };
       case 'fixture':
@@ -327,6 +357,8 @@
     dragKind: null,
     dragStackIdx: -1,
     catalogInsts: null,
+    instFilter: 'USABLE',
+    instSearch: '',
     stack: [
       { uid: _newUid(), kind: 'isn', configured: true, config: _defaultConfigForKind('isn') },
       { uid: _newUid(), kind: 'sfis_route', configured: false, config: _defaultConfigForKind('sfis_route') },
@@ -374,6 +406,10 @@
         return `${c.dut_ip || '192.168.11.143'}${dNote}`;
       case 'ext_file':
         return `${c.key || c.file_path || ''}${dNote}`;
+      case 'set_val':
+        return `$${c.var_name || 'gTag'}=${(c.value_expr || '').slice(0, 12)}${dNote}`;
+      case 'add_attr':
+        return `${c.target || 'UART'}.${c.attr_key || 'COM'}${dNote}`;
       case 'teardown':
         return c.teardown_mode === '97_98_99' ? '97 + 98/99' : 'Phase 97';
       default:
@@ -416,6 +452,14 @@
         .bb-step-pill.active { filter:none !important; opacity:1 !important; transform:translateY(-2px); border:2px solid #2563EB; background:#DBEAFE; box-shadow:0 4px 12px rgba(37,99,235,0.22); }
         .bb-step-pill.active.is-red { border-color:#DC2626; background:#FEE2E2; box-shadow:0 4px 12px rgba(220,38,38,0.22); }
         #bbPopWindow { position:fixed; z-index:1200; max-width:300px; background:#0F172A; color:#F8FAFC; border:1.5px solid #38BDF8; border-radius:10px; padding:9px 11px; box-shadow:0 12px 32px rgba(15,23,42,0.45); pointer-events:none; display:none; font-size:0.8rem; line-height:1.45; }
+        .bb-inst-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); gap:8px; max-height:230px; overflow-y:auto; padding:6px; background:#FFFFFF; border:1px solid #FECACA; border-radius:9px; margin-bottom:10px; }
+        .bb-inst-card { border:1.5px solid #CBD5E1; border-top:4px solid #EF4444; border-radius:8px; padding:7px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; gap:4px; transition:all 0.14s ease; text-align:left; min-height:84px; }
+        .bb-inst-card:hover { background:#E0F2FE; border-color:#38BDF8; transform:translateY(-2px); box-shadow:0 4px 10px rgba(14,165,233,0.16); }
+        .bb-inst-card.selected { background:#FFF1F2; border:2px solid #DC2626; border-top-width:4px; box-shadow:0 4px 12px rgba(220,38,38,0.2); }
+        .bb-inst-card.missing-dll { background:#FFF8F8; border-color:#FCA5A5; }
+        .bb-inst-pill { cursor:pointer; padding:4px 10px; border-radius:999px; font-size:0.78rem; font-weight:800; border:1px solid #FCA5A5; background:#FFFFFF; color:#7F1D1D; transition:all 0.12s; }
+        .bb-inst-pill:hover { background:#FEE2E2; }
+        .bb-inst-pill.active { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
       `;
       document.head.appendChild(st);
     }
@@ -726,32 +770,78 @@
     `;
   };
 
-  window.bbOpenMultiSkuForBlock = function (idx) {
+  window.bbSetInstFilter = function (filterKey) {
+    BB_STATE.instFilter = filterKey || 'ALL';
+    bbRender();
+  };
+
+  window.bbSelectBuilderInst = function (idx, instName) {
     const it = BB_STATE.stack[idx];
-    if (it && it.config && it.config.sku_wizard) {
-      window.STATE = window.STATE || {};
-      window.STATE.createSkuConfig = JSON.parse(JSON.stringify(it.config.sku_wizard));
-    }
-    if (typeof window.openTemplateSkuWizard === 'function') {
-      window.STATE = window.STATE || {};
-      window.STATE._builderSectionsOverride = BB_STATE.stack
-        .filter(b => !['isn', 'sfis_route', 'multi_sku', 'teardown'].includes(b.kind))
-        .map(b => ({ section_title: b.config?.title || b.config?.title_name || META_BY_KIND[b.kind]?.shortName || b.kind, badge: '目前積木' }));
-      window.openTemplateSkuWizard('create');
-      const origApply = window.tswApplyToTarget;
-      if (!origApply.__bbWrapped) {
-        const wrapped = async function () {
-          await origApply.apply(this, arguments);
-          const cur = BB_STATE.stack.find(b => b.kind === 'multi_sku');
-          if (cur && window.STATE && window.STATE.createSkuConfig) {
-            cur.config.sku_wizard = JSON.parse(JSON.stringify(window.STATE.createSkuConfig));
-            cur.configured = true;
-          }
-          bbRender();
-        };
-        wrapped.__bbWrapped = true;
-        window.tswApplyToTarget = wrapped;
+    if (!it) return;
+    it.config = it.config || {};
+    const nm = String(instName || 'NI6008').trim();
+    const base = nm.replace(/-\d+$/, '');
+    it.config.inst_name = nm;
+    if (/ni6008/i.test(base)) {
+      it.config.inst_mode = 'ni6009';
+      it.config.title_name = 'Measure Voltage Test';
+      if (!Array.isArray(it.config.channels) || !it.config.channels.length) {
+        it.config.channels = [
+          { ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25' },
+          { ch: 1, name: 'VCC_3V3', dl: '3.15', ul: '3.45' },
+        ];
       }
+    } else if (/iqapi|iqflex|xelm8|mt8870/i.test(base)) {
+      it.config.inst_mode = 'rf';
+      it.config.title_name = 'WIFI RF Test';
+    } else {
+      it.config.inst_mode = 'catalog';
+      it.config.title_name = `${nm} Test`;
+      if (/feasa/i.test(base)) {
+        it.config.title_name = 'Feasa LED Color Check';
+        it.config.dl_val = '515';
+        it.config.ul_val = '535';
+      } else if (/pph1503|ps2005|keithley2302/i.test(base)) {
+        it.config.title_name = `${nm} Current Check`;
+        it.config.dl_val = '50';
+        it.config.ul_val = '800';
+      } else if (/agilent34401|keithley2700|mda2700|gdm/i.test(base)) {
+        it.config.title_name = `${nm} Voltage Check`;
+        it.config.dl_val = '3.15';
+        it.config.ul_val = '3.45';
+      }
+    }
+    it.configured = true;
+    bbRender();
+  };
+
+  window.bbSetInstNiPreset = function (idx, count) {
+    const it = BB_STATE.stack[idx];
+    if (!it) return;
+    const presets = [
+      { ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25' },
+      { ch: 1, name: 'VCC_3V3', dl: '3.15', ul: '3.45' },
+      { ch: 2, name: 'VCC_1V8', dl: '1.70', ul: '1.90' },
+      { ch: 3, name: 'VCC_1V2', dl: '1.14', ul: '1.26' },
+      { ch: 4, name: 'VCC_12V', dl: '11.40', ul: '12.60' },
+      { ch: 5, name: 'VREF_A', dl: '2.40', ul: '2.60' },
+      { ch: 6, name: 'VREF_B', dl: '0.90', ul: '1.10' },
+      { ch: 7, name: 'V_VBAT', dl: '3.60', ul: '4.35' },
+    ];
+    const n = Math.max(1, Math.min(8, Number(count) || 1));
+    it.config.channels = JSON.parse(JSON.stringify(presets.slice(0, n)));
+    it.config.mode = (n > 4) ? 'RSE' : (it.config.mode || 'RSE');
+    it.configured = true;
+    bbRender();
+  };
+
+  window.bbOpenNi6DiagramFromBuilder = function (idx) {
+    const it = BB_STATE.stack[idx];
+    const instNm = (it && it.config && it.config.inst_name) || 'NI6008';
+    if (typeof window.openNi6009Hmi === 'function') {
+      window.openNi6009Hmi('builder', idx, instNm);
+    } else if (typeof window.openInstIntroPage === 'function') {
+      window.openInstIntroPage('gen', instNm, idx);
     }
   };
 
@@ -1210,30 +1300,105 @@
 
       case 'inst': {
         const insts = BB_STATE.catalogInsts || [];
-        const usable = insts.filter(i => i.dll_exists !== false);
-        const allList = usable.length ? usable : insts;
+        const usableCount = insts.filter(i => i.dll_exists !== false).length;
+        const popularNames = ['NI6008', 'FeasaLED', 'InstIQApiA', 'Agilent34401A', 'PPH1503', 'PS2005', 'IPOWER2401', 'Relay'];
+        const activeFilter = BB_STATE.instFilter || (usableCount > 0 ? 'USABLE' : 'ALL');
+        const q = (BB_STATE.instSearch || '').trim().toLowerCase();
+        let filtered = insts;
+        if (q) {
+          filtered = insts.filter(i =>
+            String(i.Name || '').toLowerCase().includes(q) ||
+            String(i.Desc || '').toLowerCase().includes(q) ||
+            String(i.Functions || '').toLowerCase().includes(q)
+          );
+        } else if (activeFilter === 'USABLE') {
+          filtered = insts.filter(i => i.dll_exists !== false);
+          if (!filtered.length) filtered = insts;
+        } else if (activeFilter === 'POPULAR') {
+          filtered = popularNames.map(n => insts.find(i => i.Name === n)).filter(Boolean);
+        } else if (activeFilter === 'MEASURE') {
+          filtered = insts.filter(i => /NI6008|Agilent|Keithley27|MDA|GDM|Scp|TDS/i.test(i.Name || ''));
+        } else if (activeFilter === 'POWER') {
+          filtered = insts.filter(i => /IPOWER|IPRO|PPH|PS2005|Chroma|KEITHLEY23/i.test(i.Name || ''));
+        } else if (activeFilter === 'RF') {
+          filtered = insts.filter(i => /IQ|XelM8|MT8870|U2004|RFSwitch/i.test(i.Name || ''));
+        }
+
+        const catBadge = (nm) => {
+          if (/NI6008/i.test(nm)) return '⚡ DAQ';
+          if (/IQ|XelM8|MT8870|U2004/i.test(nm)) return '📶 RF';
+          if (/Feasa|LED/i.test(nm)) return '💡 LED';
+          if (/PPH|PS2005|IPOWER|IPRO|Chroma|2302|2380/i.test(nm)) return '🔋 電源';
+          if (/Agilent|34401|GDM|Keithley|MDA/i.test(nm)) return '📏 電錶';
+          return '🧪 儀器';
+        };
+        const selectedName = c.inst_name || 'NI6008';
+
         return `
           <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:12px;">
-            <div style="font-weight:900; color:#991B1B; margin-bottom:8px;">🔴 專屬設定頁｜挑選這一步要使用的儀器類型與參數：</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-              ${[
-                ['ni6009', '⚡ NI-6008 / NI-6009 多通道電壓卡'],
-                ['rf', '📶 LitePoint IQxel WiFi RF'],
-                ['catalog', '🧪 挑選其他全部儀器 (電源/電表/LED/34+款)']
-              ].map(([m, lbl]) => `
-                <button type="button" class="btn" onclick="bbUpdateField(${idx},'inst_mode','${m}',true)"
-                  style="padding:6px 12px; font-weight:800; font-size:0.83rem; ${c.inst_mode === m ? 'background:#DC2626;color:#FFF;border-color:#991B1B;' : 'background:#FFF;color:#7F1D1D;border-color:#FCA5A5;'}">${lbl}</button>
-              `).join('')}
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <span style="font-weight:900; color:#991B1B;">🔴 專屬設定頁｜挑選儀器撲克牌卡牌 (點卡牌直接切換細節設定)：</span>
+              <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #FCA5A5; color:#7F1D1D;"
+                onclick="if(typeof openInstIntroPage==='function') openInstIntroPage('gen','${_esc(selectedName)}',${idx});">📖 查看 ${_esc(selectedName)} 簡介</button>
             </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+              <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                ${[
+                  ['USABLE', `✅ 本機實機可用 (${usableCount})`],
+                  ['POPULAR', '⭐ 常用儀器'],
+                  ['MEASURE', '⚡ 量測 / 電錶'],
+                  ['POWER', '🔋 電源'],
+                  ['RF', '📶 RF 無線'],
+                  ['ALL', `全部 (${insts.length})`]
+                ].map(([fid, flbl]) => `
+                  <button type="button" class="bb-inst-pill ${activeFilter === fid && !q ? 'active' : ''}" onclick="BB_STATE.instSearch=''; bbSetInstFilter('${fid}')">${flbl}</button>
+                `).join('')}
+              </div>
+              <input type="text" value="${_esc(BB_STATE.instSearch || '')}" placeholder="🔍 搜尋型號如 NI6008..."
+                oninput="BB_STATE.instSearch=this.value; bbRender();"
+                style="width:190px; padding:4px 9px; font-size:0.8rem; border:1px solid #FCA5A5; border-radius:999px; background:#FFFFFF;">
+            </div>
+
+            <div class="bb-inst-grid">
+              ${filtered.map(inst => {
+                const nm = inst.Name || '';
+                const isSel = (selectedName === nm);
+                const missingDll = (inst.dll_exists === false);
+                return `
+                  <button type="button" class="bb-inst-card ${isSel ? 'selected' : ''} ${missingDll ? 'missing-dll' : ''}"
+                    onclick="bbSelectBuilderInst(${idx},'${_esc(nm)}')"
+                    title="${_esc(inst.Desc || inst.Functions || nm)}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; width:100%;">
+                      <span style="font-size:0.67rem; font-weight:900; padding:1px 5px; border-radius:999px; background:${missingDll ? '#FEE2E2' : '#EEF2FF'}; color:${missingDll ? '#B91C1C' : '#3730A3'};">${catBadge(nm)}</span>
+                      <span style="font-size:0.68rem; font-weight:900; color:${isSel ? '#DC2626' : (missingDll ? '#B91C1C' : '#15803D')};">${isSel ? '✓已選' : (missingDll ? '缺DLL' : '實機')}</span>
+                    </div>
+                    <div class="mono" style="font-weight:900; font-size:0.8rem; color:#0F172A; word-break:break-all;">${_esc(nm)}</div>
+                    <div style="font-size:0.68rem; color:#64748B; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${_esc(inst.Desc || inst.Functions || '')}</div>
+                  </button>
+                `;
+              }).join('') || '<div style="grid-column:1/-1; text-align:center; padding:14px; color:#64748B; font-size:0.83rem;">找不到符合的儀器，請清除搜尋字或點「全部」</div>'}
+            </div>
+
+            <div style="background:#FFFFFF; border:1.5px solid #FCA5A5; border-radius:9px; padding:11px 13px;">
             ${c.inst_mode === 'ni6009' ? `
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <div style="font-weight:900; color:#991B1B; font-size:0.92rem;">⚡ NI-6008 / NI-6009 多通道類比電壓量測設定</div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},1)">1 軌預設</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},3)">3 軌(5V/3V3/1V8)</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},8)">8 軌全配 AI0~7</button>
+                  <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:900; background:#DBEAFE; border:1.5px solid #2563EB; color:#1E40AF;" onclick="bbOpenNi6DiagramFromBuilder(${idx})">🔌 開啟 NI-6008 圖解接線頁</button>
+                </div>
+              </div>
               <div style="display:grid; grid-template-columns:1fr 140px 140px; gap:10px; margin-bottom:8px;">
                 <label style="font-size:0.82rem; font-weight:700;">測項標題
                   <input value="${_esc(c.title_name || 'Measure Voltage Test')}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                 </label>
                 <label style="font-size:0.82rem; font-weight:700;">量測模式
-                  <select onchange="bbUpdateField(${idx},'mode',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
-                    <option value="RSE" ${c.mode !== 'DIFF' ? 'selected' : ''}>RSE (單端)</option>
-                    <option value="DIFF" ${c.mode === 'DIFF' ? 'selected' : ''}>DIFF (差動)</option>
+                  <select onchange="bbUpdateField(${idx},'mode',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
+                    <option value="RSE" ${c.mode !== 'DIFF' ? 'selected' : ''}>RSE (單端 8 軌 AI0~7)</option>
+                    <option value="DIFF" ${c.mode === 'DIFF' ? 'selected' : ''}>DIFF (差動 4 對)</option>
                   </select>
                 </label>
                 <label style="font-size:0.82rem; font-weight:700;">DAQ 裝置 ID
@@ -1242,37 +1407,34 @@
               </div>
               <div style="font-size:0.81rem; font-weight:800; margin-bottom:4px;">通道腳位與 DL/UL 上下限：</div>
               ${(c.channels || []).map((ch, ci) => `
-                <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; flex-wrap:wrap;">
-                  <span class="mono" style="font-weight:800;">AI</span>
-                  <input type="number" value="${_esc(ch.ch)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].ch=parseInt(this.value,10)||0" class="mono" style="width:55px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
-                  <input value="${_esc(ch.name)}" placeholder="名稱如 VCC_3V3" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].name=this.value" class="mono" style="width:110px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
-                  <span>DL:</span>
-                  <input value="${_esc(ch.dl)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].dl=this.value" class="mono" style="width:75px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
-                  <span>UL:</span>
-                  <input value="${_esc(ch.ul)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].ul=this.value" class="mono" style="width:75px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px; flex-wrap:wrap; background:#F8FAFC; padding:4px 8px; border-radius:6px; border:1px solid #E2E8F0;">
+                  <span class="mono" style="font-weight:900; color:#1E40AF;">AI</span>
+                  <input type="number" min="0" max="7" value="${_esc(ch.ch)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].ch=parseInt(this.value,10)||0" class="mono" style="width:52px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  <input value="${_esc(ch.name)}" placeholder="名稱如 VCC_3V3" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].name=this.value" class="mono" style="width:120px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  <span style="font-size:0.78rem; font-weight:700;">DL:</span>
+                  <input value="${_esc(ch.dl)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].dl=this.value" class="mono" style="width:74px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  <span style="font-size:0.78rem; font-weight:700;">UL:</span>
+                  <input value="${_esc(ch.ul)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].ul=this.value" class="mono" style="width:74px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
                   <button type="button" class="btn" style="padding:2px 7px; font-size:0.75rem;" onclick="BB_STATE.stack[${idx}].config.channels.splice(${ci},1); bbRender();">✕</button>
                 </div>
               `).join('')}
               <button type="button" class="btn" style="padding:4px 10px; font-size:0.8rem;" onclick="BB_STATE.stack[${idx}].config.channels.push({ch:BB_STATE.stack[${idx}].config.channels.length,name:'V_CH',dl:'3.15',ul:'3.45'}); bbRender();">+ 新增一個 AI 通道</button>
             ` : c.inst_mode === 'rf' ? `
+              <div style="font-weight:900; color:#6D28D9; margin-bottom:8px;">📶 已選 RF 儀器：<span class="mono">${_esc(selectedName)}</span></div>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <label style="font-size:0.82rem; font-weight:700;">RF 儀器名稱
-                  <input value="${_esc(c.inst_name || 'InstIQApiA')}" oninput="bbUpdateField(${idx},'inst_name',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                <label style="font-size:0.82rem; font-weight:700;">儀器連線字串 / IP &amp; PathLoss
+                  <input value="${_esc(c.settings_str || '192.168.100.254,1,2,1,60000,PathLoss.ini')}" oninput="bbUpdateField(${idx},'settings_str',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                 </label>
                 <label style="font-size:0.82rem; font-weight:700;">測項標題
                   <input value="${_esc(c.title_name || 'WIFI RF Test')}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                 </label>
               </div>
-              <div style="font-size:0.81rem; color:#7F1D1D; margin-top:6px;">預設附帶標準 CH6 MCS7 Tx Power (13~17dBm) &amp; EVM + Rx 驗測與 Marco 子工作表。</div>
+              <div style="font-size:0.81rem; color:#4C1D95; margin-top:6px;">預設附帶標準 CH6 MCS7 Tx Power (13~17dBm) &amp; EVM + Rx 驗測與 Marco 子工作表。</div>
             ` : `
+              <div style="font-weight:900; color:#0F172A; margin-bottom:8px;">🧪 已選儀器：<span class="mono" style="color:#DC2626;">${_esc(selectedName)}</span></div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
-                <label style="font-size:0.82rem; font-weight:700;">選擇儀器型號
-                  <select onchange="bbUpdateField(${idx},'inst_name',this.value,true)" class="mono" style="width:100%; margin-top:2px; padding:6px; border:1px solid #94A3B8; border-radius:5px;">
-                    ${allList.map(i => `<option value="${_esc(i.Name)}" ${c.inst_name === i.Name ? 'selected' : ''}>${_esc(i.Name)} — ${_esc(i.Desc || i.Functions || '')}</option>`).join('')}
-                  </select>
-                </label>
-                <label style="font-size:0.82rem; font-weight:700;">測項名稱
-                  <input value="${_esc(c.title_name || '')}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:6px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                <label style="font-size:0.82rem; font-weight:700;">測項名稱 (Title)
+                  <input value="${_esc(c.title_name || `${selectedName} Test`)}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:6px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                 </label>
                 <label style="font-size:0.82rem; font-weight:700;">下限 DL
                   <input value="${_esc(c.dl_val || '')}" oninput="bbUpdateField(${idx},'dl_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:6px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
@@ -1282,24 +1444,15 @@
                 </label>
               </div>
             `}
+            </div>
           </div>
         `;
       }
 
       case 'multi_sku': {
-        const sk = c.sku_wizard || (window.STATE && window.STATE.createSkuConfig);
         return `
-          <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:14px;">
-            <div style="font-weight:900; color:#991B1B; font-size:0.96rem; margin-bottom:6px;">🔴 專屬設定頁｜多 SKU 分流與衍生品閘門設定</div>
-            <div style="font-size:0.84rem; color:#7F1D1D; margin-bottom:10px;">
-              點擊下方按鈕進入多 SKU 一頁式設定精靈（可挑 3 SKU / 工單名單 / 國別碼、設定個別 DL/UL 與「哪個 SKU 跑哪些積木」），套用後會自動回來並顯示於本積木。
-            </div>
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <button type="button" class="btn" style="background:#DC2626; color:#FFFFFF; border:none; padding:8px 18px; font-weight:900; font-size:0.92rem;" onclick="bbOpenMultiSkuForBlock(${idx})">
-                🎯 開啟多 SKU 分流精靈設定
-              </button>
-              ${(sk && sk.enabled) ? `<span style="background:#DCFCE7; color:#15803D; border:1px solid #4ADE80; padding:5px 10px; border-radius:6px; font-weight:800; font-size:0.83rem;">✓ 已設定 ${(sk.sku_branches || []).length} 支 SKU（來源：${_esc(sk.source_mode)}）</span>` : `<span style="color:#991B1B; font-weight:700; font-size:0.82rem;">（尚未設定 SKU 規則）</span>`}
-            </div>
+          <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:12px;">
+            <div id="bbInlineSkuMount_${idx}">⏳ 正在載入同頁多 SKU 分流設定...</div>
           </div>
         `;
       }
@@ -1418,6 +1571,39 @@
           </div>
         `;
 
+      case 'set_val':
+        return `
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+            <label style="font-weight:700; font-size:0.84rem;">變數名稱 (會產生 :SetVal,"$變數")
+              <input value="${_esc(c.var_name || 'gTag')}" oninput="bbUpdateField(${idx},'var_name',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:0.84rem;">設定數值或組合公式 (支援 *(ISN) / *(MAC1))
+              <input value="${_esc(c.value_expr || '*(ISN)')}" oninput="bbUpdateField(${idx},'value_expr',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:0.84rem;">測項標題 (Title)
+              <input value="${_esc(c.title || 'Set Variable Value')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+          </div>
+        `;
+
+      case 'add_attr':
+        return `
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+            <label style="font-weight:700; font-size:0.84rem;">目標連線物件 (如 UART)
+              <input value="${_esc(c.target || 'UART')}" oninput="bbUpdateField(${idx},'target',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:0.84rem;">屬性欄位 (如 COM / BaudRate)
+              <input value="${_esc(c.attr_key || 'COM')}" oninput="bbUpdateField(${idx},'attr_key',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:0.84rem;">屬性值 (例 *(comPort))
+              <input value="${_esc(c.attr_val || '*(comPort)')}" oninput="bbUpdateField(${idx},'attr_val',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+            <label style="font-weight:700; font-size:0.84rem;">測項標題 (Title)
+              <input value="${_esc(c.title || 'Bind Dynamic Attribute')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            </label>
+          </div>
+        `;
+
       case 'teardown':
         return `
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1470,8 +1656,9 @@
 
     return `
       <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : '#3B82F6'}; border-radius:11px; padding:16px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
+          <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#334155;" onclick="bbGoView('stack')">◀ 回到積木調整</button>
         </div>
         <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
@@ -1615,6 +1802,26 @@
     host.classList.toggle('bb-fullscreen-shell', !!BB_STATE.fullscreen);
     if (BB_STATE.view === 'qa') {
       host.innerHTML = _renderQaView();
+      const idx = Math.max(0, Math.min(BB_STATE.qaIdx, BB_STATE.stack.length - 1));
+      const curItem = BB_STATE.stack[idx];
+      if (curItem && curItem.kind === 'multi_sku') {
+        const inlineHost = document.getElementById(`bbInlineSkuMount_${idx}`);
+        if (inlineHost && typeof window.tswMountInline === 'function') {
+          const secs = BB_STATE.stack
+            .filter(b => !['isn', 'sfis_route', 'multi_sku', 'teardown'].includes(b.kind))
+            .map(b => ({
+              section_title: (b.config && (b.config.title || b.config.title_name)) || (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind,
+              badge: '目前積木'
+            }));
+          window.tswMountInline(inlineHost, curItem.config && curItem.config.sku_wizard, secs, function (updatedSku) {
+            curItem.config = curItem.config || {};
+            curItem.config.sku_wizard = updatedSku;
+            curItem.configured = true;
+            window.STATE = window.STATE || {};
+            window.STATE.createSkuConfig = updatedSku;
+          });
+        }
+      }
     } else if (BB_STATE.view === 'export') {
       host.innerHTML = _renderExportView();
     } else {

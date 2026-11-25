@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.062</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.063</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1013,9 +1013,6 @@
     <!-- 全新 0 -> 1 積木拖曳堆疊 + 逐塊你問我答工作區 -->
     <div id="createBlockBuilderRoot"></div>
     <div id="genAlertBox" class="alert-banner" style="display:none; margin-top:10px;"></div>
-    <div style="margin-top:10px; text-align:right;">
-      <button type="button" class="btn" style="padding:4px 11px; font-size:0.79rem; color:#64748B; background:#F8FAFC; border:1px solid #CBD5E1;" onclick="const lw=document.getElementById('wizLegacyWrap'); if(lw) lw.style.display=(lw.style.display==='none'?'block':'none');">🔁 顯示／隱藏傳統 4 步驟表單精靈（備用）</button>
-    </div>
     <div id="wizLegacyWrap" style="display:none; margin-top:10px;">
     <!-- 頂部步驟導覽列 -->
     <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -1895,14 +1892,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.062"></script>
-<script src="/js/audit_editors.js?v=0.8.062"></script>
-<script src="/js/flow_guide.js?v=0.8.062"></script>
-<script src="/js/block_sorter.js?v=0.8.062"></script>
-<script src="/js/script_qa.js?v=0.8.062"></script>
-<script src="/js/sfis_hmi.js?v=0.8.062"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.062"></script>
-<script src="/js/create_block_builder.js?v=0.8.062"></script>
+<script src="/js/inst_hmi.js?v=0.8.063"></script>
+<script src="/js/audit_editors.js?v=0.8.063"></script>
+<script src="/js/flow_guide.js?v=0.8.063"></script>
+<script src="/js/block_sorter.js?v=0.8.063"></script>
+<script src="/js/script_qa.js?v=0.8.063"></script>
+<script src="/js/sfis_hmi.js?v=0.8.063"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.063"></script>
+<script src="/js/create_block_builder.js?v=0.8.063"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -5502,6 +5499,15 @@ function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
       const pk = (nom === 1.8) ? '1.8V' : ((nom === 3.3) ? '3.3V' : ((nom === 5) ? '5V' : ((nom === 12) ? '12V' : 'custom')));
       return { ch: chNum, name: r.name || `VCC_AI${chNum}`, dl: String(r.min || '3.15'), ul: String(r.max || '3.45'), preset: pk };
     });
+  } else if (targetMode === 'builder' && editGenIdx >= 0 && window.BB_STATE && window.BB_STATE.stack[editGenIdx]) {
+    const blkCfg = window.BB_STATE.stack[editGenIdx].config || {};
+    NI6_STATE.mode = blkCfg.mode || 'RSE';
+    NI6_STATE.channels = (Array.isArray(blkCfg.channels) && blkCfg.channels.length)
+      ? blkCfg.channels.map(c => ({ ...c, preset: c.preset || 'custom' }))
+      : [{ ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25', preset: '5V' }, { ch: 1, name: 'VCC_3V3', dl: '3.15', ul: '3.45', preset: '3.3V' }];
+    document.getElementById('ni6TitleInput').value = blkCfg.title_name || 'Measure Voltage Test';
+    document.getElementById('ni6SampleInput').value = blkCfg.sample_ms || '1000';
+    document.getElementById('ni6DevInput').value = blkCfg.dev_id || devDef;
   } else if (targetMode === 'gen' && editGenIdx >= 0 && STATE.genNi6009Blocks && STATE.genNi6009Blocks[editGenIdx]) {
     const blk = STATE.genNi6009Blocks[editGenIdx];
     NI6_STATE.mode = blk.mode || 'RSE';
@@ -5545,7 +5551,10 @@ function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
 function closeNi6009Hmi() {
   document.getElementById('panelNi6009').style.display = 'none';
   document.getElementById('panelGen').style.display = 'block';
-  if (NI6_STATE.targetMode === 'gen' || NI6_STATE.targetMode === 'wiz_volt') {
+  if (NI6_STATE.targetMode === 'builder') {
+    switchGenSubMode('create');
+    if (typeof window.bbRender === 'function') window.bbRender();
+  } else if (NI6_STATE.targetMode === 'gen' || NI6_STATE.targetMode === 'wiz_volt') {
     switchGenSubMode('create');
   } else if (NI6_STATE.targetMode === 'tab3') {
     switchGenSubMode('inst');
@@ -5757,6 +5766,24 @@ async function ni6ConfirmSubmit() {
         ni6009_block: Object.assign({}, payloadBlock, { inst_name: tgtInstName })
       });
     }
+    return;
+  }
+
+  if (NI6_STATE.targetMode === 'builder') {
+    if (window.BB_STATE && window.BB_STATE.stack[NI6_STATE.editGenIdx]) {
+      const targetBlk = window.BB_STATE.stack[NI6_STATE.editGenIdx];
+      targetBlk.config = Object.assign({}, targetBlk.config || {}, {
+        inst_mode: 'ni6009',
+        inst_name: NI6_STATE.instName || 'NI6008',
+        title_name: payloadBlock.title_name,
+        mode: payloadBlock.mode,
+        sample_ms: payloadBlock.sample_ms,
+        dev_id: payloadBlock.dev_id,
+        channels: JSON.parse(JSON.stringify(payloadBlock.channels || [])),
+      });
+      targetBlk.configured = true;
+    }
+    closeNi6009Hmi();
     return;
   }
 

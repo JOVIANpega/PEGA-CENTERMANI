@@ -2421,6 +2421,47 @@ def run_all_verifications():
                   "v0.8.062 每積木勾選運作後延遲 (0.5s->:Delay,500 / 1.5s->:Delay,1500) 自動插入下一列且 0 Error",
                   f"sends={v62_sends}, errs={v62_errs}")
 
+            # [v0.8.063] 驗證 SKU/PING 命名、Q&A 頂部回到積木調整、同頁 Multi-SKU、儀器卡牌與移除備用表單精靈按鈕 + set_val/add_attr 積木
+            tsw_js = open(os.path.join(os.path.dirname(cbb_js_path), "template_sku_wizard.js"), "r", encoding="utf-8").read()
+            check("shortName: 'SKU'" in cbb_62 and "shortName: 'PING'" in cbb_62
+                  and "shortName: '設值'" in cbb_62 and "shortName: '屬性'" in cbb_62
+                  and "回到積木調整" in cbb_62
+                  and "顯示／隱藏傳統 4 步驟表單精靈" not in index_html,
+                  "v0.8.063 積木改名(SKU/PING)、新增設值/屬性積木、頂部回到積木調整與隱藏舊精靈切換鈕檢查通過")
+
+            check("bb-inst-grid" in cbb_62 and "bb-inst-card" in cbb_62
+                  and "bbOpenNi6DiagramFromBuilder" in cbb_62
+                  and "tswMountInline" in tsw_js and "tswMountInline" in cbb_62
+                  and "mdOnBackdrop" in tsw_js
+                  and "tsw-guard-chip" in tsw_js,
+                  "v0.8.063 儀器卡牌格網+NI6008圖解接線按鈕、同頁嵌入 Multi-SKU (免彈窗)、防誤關監聽與清晰跳測勾選 UI 檢查通過")
+
+            v63_ext = post_json("/api/generate_new_standalone", {
+                "project_name": "V63_BLK_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 3, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "b1", "kind": "isn", "config": {"project": "V63_BLK_PROJ", "station": "MB", "dut_count": 1, "isn_len": 3, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "b2", "kind": "sfis_route", "config": {"sfis_mode": "offline"}},
+                    {"uid": "b3", "kind": "set_val", "config": {"title": "Build Composite Tag", "var_name": "gFullTag", "value_expr": "*(ISN)_OK"}},
+                    {"uid": "b4", "kind": "add_attr", "config": {"title": "Bind UART Port", "target": "UART", "attr_key": "COM", "attr_val": "COM6"}},
+                    {"uid": "b5", "kind": "inst", "config": {"inst_mode": "ni6009", "inst_name": "NI6008", "mode": "RSE", "title_name": "Measure Voltage Test", "channels": [{"ch": 0, "name": "VCC_5V", "dl": "4.75", "ul": "5.25"}]}},
+                    {"uid": "b6", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                ],
+            })
+            ws_v63 = _parse_v50(v63_ext["excel_path"])
+            v63_sends = [str(r.get("Send") or "") for r in ws_v63["stations"]["MB"]]
+            v63_audit = post_json("/api/re_audit", {"workspace": ws_v63})
+            v63_errs = (v63_audit.get("report") or {}).get("errors") or []
+            check(v63_ext.get("status") == "ok"
+                  and any(':SetVal,"$gFullTag"' in s for s in v63_sends)
+                  and any(':AddAttribute,"UART","COM","COM6"' in s for s in v63_sends)
+                  and len(v63_errs) == 0,
+                  "v0.8.063 新增積木 (設值 :SetVal / 屬性 :AddAttribute / 儀器 NI6008) 產出 16 欄 Excel 且 0 Error",
+                  f"sends={v63_sends}, errs={v63_errs}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
