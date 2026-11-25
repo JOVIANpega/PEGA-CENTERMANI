@@ -2377,6 +2377,16 @@ def run_all_verifications():
                   "v0.8.060 builder_sequence (SSH+WithinString+Delay+YES/NO+NI6008+CheckLimit+97/98/99) 生成 0 Error 實戰測試包通過",
                   f"errs={v60_errs}")
 
+            # [v0.8.061] 驗證垂直 4 字等高小積木、可拉寬雙欄分割桿、ms 自動解讀為秒、底部導覽與彩/灰進度條
+            cbb_61 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check("bb-palette-list" in cbb_61
+                  and "bb-uniform-brick" in cbb_61
+                  and "bbStartSplitDrag" in cbb_61
+                  and "bb-bottom-dock" in cbb_61
+                  and "bbDelayReadableHint" in cbb_61
+                  and "等 ${sec} 秒" in cbb_61,
+                  "v0.8.061 垂直 4 字等高積木、雙欄可拉寬分割桿、ms 自動換算秒數與底部統一導覽進度條檢查通過")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
