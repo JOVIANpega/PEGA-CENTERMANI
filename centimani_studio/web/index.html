@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.053</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.054</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1082,11 +1082,13 @@
           <span id="genCustomTicBadge" class="badge badge-pass" style="display:none; cursor:pointer;" onclick="switchTab('tic')"></span>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn" style="padding:4px 12px; font-size:0.84rem; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('create')">🧩 挑範本測項＋SKU 精靈</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('minimal')">🧩 最小骨架</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('basic')">⚡ 基礎上電量測</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('none')">☐ 全部取消</button>
         </div>
       </div>
+      <div id="wizTemplateSkuBanner" style="display:none; background:#EEF2FF; border:1.5px solid #818CF8; border-radius:8px; padding:8px 12px; margin-bottom:10px;"></div>
 
       <div style="font-weight:700; font-size:0.9rem; color:#334155; margin-bottom:6px;">① 標準測試流程骨架（純流程控制 / 治具 / 韌體 / SFIS / 收尾）：</div>
       <div id="blockCheckGrid" class="block-grid"></div>
@@ -1179,6 +1181,9 @@
             <span style="font-size:0.83rem; color:#475569;">（點擊可載入其他腳本進行編修）</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button id="btnEditorTplSkuWizard" class="btn" style="background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('edit')">
+              🧩 挑範本測項＋SKU 精靈
+            </button>
             <button class="btn" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
               📋 跨檔案複製整張 Sheet
             </button>
@@ -1873,12 +1878,13 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.053"></script>
-<script src="/js/audit_editors.js?v=0.8.053"></script>
-<script src="/js/flow_guide.js?v=0.8.053"></script>
-<script src="/js/block_sorter.js?v=0.8.053"></script>
-<script src="/js/script_qa.js?v=0.8.053"></script>
-<script src="/js/sfis_hmi.js?v=0.8.053"></script>
+<script src="/js/inst_hmi.js?v=0.8.054"></script>
+<script src="/js/audit_editors.js?v=0.8.054"></script>
+<script src="/js/flow_guide.js?v=0.8.054"></script>
+<script src="/js/block_sorter.js?v=0.8.054"></script>
+<script src="/js/script_qa.js?v=0.8.054"></script>
+<script src="/js/sfis_hmi.js?v=0.8.054"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.054"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {
@@ -6404,6 +6410,14 @@ function renderWizStep4() {
     </div>`;
   });
 
+  const createExtras = (typeof tswGetCreatePayloadExtras === 'function') ? tswGetCreatePayloadExtras() : {};
+  if (createExtras.template_bundle && (createExtras.template_bundle.selected_block_keys || []).length) {
+    details.push(`🧩 移植範本測項：<b>${createExtras.template_bundle.selected_block_keys.length}</b> 塊`);
+  }
+  if (createExtras.sku_wizard && createExtras.sku_wizard.enabled) {
+    details.push(`🏷️ SKU 動態分流：<b>${(createExtras.sku_wizard.sku_branches || []).length}</b> 支 (<code>${createExtras.sku_wizard.source_mode}</code>)`);
+  }
+
   document.getElementById('wizSummaryBox').innerHTML = `
     <div>📌 <strong>專案 / 站別：</strong><code>${proj}</code> / <code>${st}</code>（多工槽位：<b>${dutCount}</b>）</div>
     <div>🔢 <strong>ISN 條碼規格：</strong>需輸入 <b>${isnLen} 碼</b>（規則：<code>{ISN,${isnLen},${isnPat}}</code>）</div>
@@ -6426,7 +6440,7 @@ async function generateNewMother(dryRun) {
       const res = await fetch('/api/generate_new_standalone', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
+        body: JSON.stringify(Object.assign({
           project_name: proj,
           station_name: st,
           dut_count: dutCount,
@@ -6441,7 +6455,7 @@ async function generateNewMother(dryRun) {
           taipei_dual_mode: false,
           open_excel: false,
           testid_overrides: MOTHER_TESTID_OVERRIDES,
-          wizard_config: {
+          wizard_config: Object.assign({
             isn_length: isnLen,
             isn_pattern: isnPat,
             volt_rails: WIZ_VOLT_RAILS,
@@ -6457,8 +6471,8 @@ async function generateNewMother(dryRun) {
               hmi_items: sfisGetHmiPayloadForWizard().items,
               hmi_config: sfisGetHmiPayloadForWizard().config
             } : { hmi_items: [], hmi_config: null })
-          }
-        })
+          }, (typeof tswGetCreatePayloadExtras === 'function') ? tswGetCreatePayloadExtras() : {})
+        }, (typeof tswGetCreatePayloadExtras === 'function') ? tswGetCreatePayloadExtras() : {}))
       });
       return await res.json();
     },

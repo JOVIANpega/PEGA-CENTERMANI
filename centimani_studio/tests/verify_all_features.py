@@ -1982,6 +1982,106 @@ def run_all_verifications():
                   "v0.8.053 Step 2 進階積木收合分流精簡完成，且 UART_BOOT_FW / PYTHON 積木無 :Trim 相容性問題",
                   str(v53_refs))
 
+            # [v0.8.054] 驗證共用「範本測項移植 ＋ 引導式 SKU 精靈」前後端完整串接
+            tsw_cat = get_json("/api/template_bundle/catalog")
+            lock_tpls = [t for t in tsw_cat.get("templates", []) if "Olympus_LOCK_TestFlow_20260522.xlsx" in t.get("name", "")]
+            check(tsw_cat.get("status") == "ok" and len(lock_tpls) >= 1,
+                  "v0.8.054 /api/template_bundle/catalog 正確掃描列出 perter_SCRIPT_11102026 主力範本",
+                  f"count={len(tsw_cat.get('templates', []))}")
+
+            lock_insp = post_json("/api/template_bundle/inspect", {"excel_path": lock_tpls[0]["path"]})
+            cc_blocks = [b for b in lock_insp.get("stations", {}).get("Lock", []) if "Country Code" in b.get("title", "")]
+            check(lock_insp.get("status") == "ok"
+                  and bool((lock_insp.get("sku_hints") or {}).get("has_custitem"))
+                  and len(cc_blocks) == 1
+                  and "LinuxUART" in (cc_blocks[0].get("connections") or {}),
+                  "v0.8.054 /api/template_bundle/inspect 正確萃取出 LOCK 範本之 CUSTITEM 提示與 LinuxUART 相依連線",
+                  str(lock_insp.get("sku_hints")))
+
+            # Edit 模式套用：移植 Country Code + 3 種硬體衍生品 SKU (FULL / NO_BAT / NO_WIFI) + 閘門
+            cc_key = cc_blocks[0]["block_key"]
+            edit_apply = post_json("/api/template_bundle/apply", {
+                "target_mode": "edit",
+                "station_name": "MB",
+                "workspace": ws_v53,
+                "bundle_spec": {
+                    "source_xlsx": lock_tpls[0]["path"],
+                    "selected_block_keys": [cc_key],
+                    "conn_remap": {"LinuxUART": "UART"},
+                },
+                "sku_spec": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "offline_wrap": True,
+                    "offline_default_sku": "FULL",
+                    "no_match_policy": "FAIL",
+                    "sku_branches": [
+                        {"code": "FULL", "label": "整機全配", "iplas_model": "OLYMPUS_FULL", "expected_hw": "11"},
+                        {"code": "NO_BAT", "label": "整機無電池", "iplas_model": "OLYMPUS_NBAT", "expected_hw": "11"},
+                        {"code": "NO_WIFI", "label": "無WiFi版", "iplas_model": "OLYMPUS_NOWF", "expected_hw": "10"},
+                    ],
+                    "section_guards": [
+                        {"section_title": "Country Code", "target_block_key": cc_key, "allowed_skus": ["FULL", "NO_BAT"]},
+                        {"section_title": "CHECK BATTERY", "allowed_skus": ["FULL", "NO_WIFI"]},
+                    ],
+                },
+                "preview": False,
+            })
+            ea_rep = edit_apply.get("report") or {}
+            ea_steps = (edit_apply.get("workspace") or {}).get("stations", {}).get("MB", [])
+            ea_sends = [str(s.get("Send") or "") for s in ea_steps]
+            ea_replies = [str(s.get("Reply") or "") for s in ea_steps]
+            check(edit_apply.get("status") == "ok"
+                  and len(ea_rep.get("errors") or []) == 0
+                  and len(ea_rep.get("manual_warnings") if "manual_warnings" in ea_rep else (ea_rep.get("warnings") or [])) == 0
+                  and any("CUSTITEM" in sd for sd in ea_sends)
+                  and any("@FULL||@NO_BAT" in rp for rp in ea_replies)
+                  and any(":SetModelName" in sd for sd in ea_sends),
+                  "v0.8.054 /api/template_bundle/apply 在 Edit 模式正確移植區塊＋3 SKU 分支＋衍生品閘門且 0 Error/0 Warning")
+
+            # Create 模式 (0 -> 1)：套用 EXTERNAL_TXT (69MO.txt) + Global.ini 同步輸出實體檔案驗證
+            v54_create = post_json("/api/generate_new_standalone", {
+                "project_name": "V54_SKU",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_PHASE97_TEARDOWN"],
+                "open_excel": False,
+                "template_bundle": {
+                    "source_xlsx": lock_tpls[0]["path"],
+                    "selected_block_keys": [cc_key],
+                    "conn_remap": {"LinuxUART": "UART"},
+                },
+                "sku_wizard": {
+                    "enabled": True,
+                    "source_mode": "ISN_ITEMINFO",
+                    "compare_mode": "EXTERNAL_TXT",
+                    "txt_filename": "69MO.txt",
+                    "txt_content": "A=24386522\nB=1B412008",
+                    "offline_wrap": True,
+                    "offline_default_sku": "24386522",
+                    "sku_branches": [
+                        {"code": "A", "label": "HW11", "expected_hw": "11"},
+                        {"code": "B", "label": "HW10", "expected_hw": "10"},
+                    ],
+                },
+            })
+            v54_txt_p = os.path.join(v54_create.get("output_dir", ""), "69MO.txt")
+            v54_glb_txt = open(v54_create.get("global_ini", ""), encoding="utf-8", errors="ignore").read()
+            ws_v54 = _parse_v50(v54_create["excel_path"])
+            check(os.path.exists(v54_txt_p)
+                  and "24386522" in open(v54_txt_p, encoding="utf-8").read()
+                  and "SFIS_SKU_DEFAULT=24386522" in v54_glb_txt
+                  and any("69MO.txt" in str(r.get("Send") or "") for r in ws_v54["stations"]["MB"]),
+                  "v0.8.054 /api/generate_new_standalone 正確生成 0->1 SKU Excel + Global.ini + 附屬 69MO.txt")
+
+            tsw_js_path = os.path.join(STUDIO_DIR, "web", "js", "template_sku_wizard.js")
+            check(os.path.exists(tsw_js_path)
+                  and '/js/template_sku_wizard.js?v=0.8.054' in index_html
+                  and "openTemplateSkuWizard('create')" in index_html
+                  and "openTemplateSkuWizard('edit')" in index_html,
+                  "v0.8.054 前端雙模式共用精靈元件 template_sku_wizard.js 與 Build v0.8.054 掛載檢查通過")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

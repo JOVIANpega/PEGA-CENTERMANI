@@ -1002,7 +1002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.053",
+                "server_build": "Build v0.8.054",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1010,6 +1010,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 "settings": get_app_settings(),
                 "centimani_profile": scan_centimani_environment(persist=False)
             })
+        elif parsed.path == "/api/template_bundle/catalog":
+            from core.template_sku_engine import list_perter_templates
+            self._send_json({"status": "ok", **list_perter_templates()})
         elif parsed.path == "/api/recent_files":
             self._send_json({
                 "status": "ok",
@@ -1682,6 +1685,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
 
                 # Sync and generate INIs in the original directory (preserving original SFIS keys & computing Checksum)
                 sys_ini, glb_ini = sync_and_generate_inis(ws_to_export, actual_xlsx_name, orig_dir)
+                from core.template_sku_engine import write_companion_files_to_dir
+                written_companions = write_companion_files_to_dir(ws_to_export.get("_companion_files"), orig_dir)
 
                 switch_bats = []
                 if taipei_sheet:
@@ -1701,13 +1706,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.053")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.054")
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": orig_dir,
                     "excel_path": actual_xlsx_path,
                     "guide_txt_path": guide_txt_path,
+                    "written_companions": written_companions,
                     "taipei_sheet": taipei_sheet,
                     "switch_bats": switch_bats,
                     "system_ini": sys_ini,
@@ -1935,6 +1941,13 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         after_block_idx=-1
                     )
 
+                tpl_bundle = payload.get("template_bundle") or wizard_config.get("template_bundle")
+                sku_wizard_cfg = payload.get("sku_wizard") or wizard_config.get("sku_wizard")
+                bundle_summary = None
+                if (isinstance(tpl_bundle, dict) and (tpl_bundle.get("selected_block_keys") or tpl_bundle.get("ini_overrides") or tpl_bundle.get("companion_overrides"))) or (isinstance(sku_wizard_cfg, dict) and sku_wizard_cfg.get("enabled")):
+                    from core.template_sku_engine import apply_bundle_and_sku_to_workspace
+                    ws, bundle_summary = apply_bundle_and_sku_to_workspace(ws, st, bundle_spec=tpl_bundle, sku_spec=sku_wizard_cfg)
+
                 auto_fix_workspace(ws)
                 taipei_dual_mode = bool(payload.get("taipei_dual_mode", False))
                 no_hw_phase_pause = bool(payload.get("no_hw_phase_pause", False))
@@ -1973,6 +1986,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_xlsx_name = os.path.basename(actual_xlsx)
                 sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, target_dir)
+                from core.template_sku_engine import write_companion_files_to_dir
+                written_companions = write_companion_files_to_dir(ws.get("_companion_files"), target_dir)
                 switch_bats = []
                 if taipei_sheet:
                     from core.block_sorter import write_env_switch_bats
@@ -1987,13 +2002,15 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.053")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.054")
 
                 self._send_json({
                     "status": "ok",
                     "output_dir": target_dir,
                     "excel_path": actual_xlsx,
                     "guide_txt_path": guide_txt_path,
+                    "written_companions": written_companions,
+                    "bundle_summary": bundle_summary,
                     "taipei_sheet": taipei_sheet,
                     "switch_bats": switch_bats,
                     "system_ini": sys_ini,
@@ -2236,7 +2253,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.053")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.054")
 
                 self._send_json({
                     "status": "ok",
@@ -2287,6 +2304,50 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     if open_excel:
                         launch_excel_file_async(dst_path)
                 self._send_json(res)
+            elif parsed.path == "/api/template_bundle/inspect":
+                from core.template_sku_engine import inspect_template_bundle
+                excel_path = str(payload.get("excel_path") or "").strip()
+                sheet_name = str(payload.get("sheet_name") or "").strip() or None
+                if not excel_path or not os.path.exists(excel_path):
+                    self._send_json({"status": "error", "message": f"找不到來源範本 Excel：{excel_path}"}, 404)
+                    return
+                res = inspect_template_bundle(excel_path, sheet_name=sheet_name)
+                self._send_json({"status": "ok", **res})
+            elif parsed.path == "/api/template_bundle/apply":
+                from core.template_sku_engine import apply_bundle_and_sku_to_workspace
+                target_mode = str(payload.get("target_mode") or "edit").strip().lower()
+                bundle_spec = payload.get("bundle_spec") or {}
+                sku_spec = payload.get("sku_spec") or {}
+                preview_only = bool(payload.get("preview", False))
+
+                if target_mode == "create" or not isinstance(payload.get("workspace"), dict) or not payload.get("workspace", {}).get("stations"):
+                    proj = str(payload.get("project_name") or "PEGA_NEW").strip() or "PEGA_NEW"
+                    st_name = str(payload.get("station_name") or "MB").strip() or "MB"
+                    base_ws = get_golden_mother(proj, st_name)
+                    base_ws["stations"] = {st_name: [
+                        {"Index": "000", "Phase": "0", "Title": "0,CheckRoute", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Show ISN", "TestID": "B7PL025"},
+                        {"Index": "001", "Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SfCheckRoute", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "2000", "ExecMode": "8", "Description": "PC#-#CheckRoute", "TestID": "OTFX064"},
+                        {"Index": "002", "Phase": "97", "Title": "1,End Test,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close UART", "TestID": "B7PL025"},
+                    ]}
+                else:
+                    base_ws = payload["workspace"]
+                    st_name = str(payload.get("station_name") or base_ws.get("station_name") or next(iter(base_ws.get("stations", {}).keys()), "MB")).strip()
+
+                ws_out, summary = apply_bundle_and_sku_to_workspace(
+                    base_ws, st_name, bundle_spec=bundle_spec, sku_spec=sku_spec
+                )
+                fix_logs = auto_fix_workspace(ws_out)
+                rep = audit_workspace(ws_out)
+                self._send_json({
+                    "status": "ok",
+                    "preview": preview_only,
+                    "station_name": st_name,
+                    "summary": summary,
+                    "fixed_logs": fix_logs,
+                    "report": rep,
+                    "workspace": ws_out,
+                    "companion_files": ws_out.get("_companion_files", {}),
+                })
             elif parsed.path == "/api/pick_file":
                 path_only = bool(payload.get("path_only", False))
                 dlg_title = str(payload.get("title", "")).strip() or "選擇 Centimani Excel 檔案 (*.xlsx)"
@@ -2559,7 +2620,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.053")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.054")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2725,7 +2786,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.053) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.054) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
