@@ -88,9 +88,8 @@ const SFIS_GETVERSION_TYPES = [
 const SFIS_CATALOG_BLOCKS = [
   { kind: 'login', icon: '🔐', title: 'Login / Logout', desc: '測電腦與 OP 通否', theme: '#0284C7', bg: '#F0F9FF', border: '#7DD3FC' },
   { kind: 'checkroute', icon: '🔍', title: 'CheckRoute 過站', desc: '刷單顆 ISN 途程', theme: '#2563EB', bg: '#EFF6FF', border: '#93C5FD' },
-  { kind: 'get', icon: '📥', title: 'GET 查欄位', desc: '支援 0~7 堆疊拆解＋Ref 切字', theme: '#059669', bg: '#ECFDF5', border: '#6EE7B7' },
-  { kind: 'getimac', icon: '📡', title: 'GET iMAC', desc: '取用配對 MAC 位址', theme: '#0D9488', bg: '#F0FDFA', border: '#5EEAD4' },
-  { kind: 'getlabel', icon: '🏷', title: 'GET 標籤', desc: 'WTSP_GETLABEL 條碼查詢', theme: '#6366F1', bg: '#EEF2FF', border: '#A5B4FC' },
+  { kind: 'get', icon: '📥', title: 'GET 查欄位', desc: '支援 0~7 堆疊拆解＋Ref 抓字串＋Validation 驗證', theme: '#059669', bg: '#ECFDF5', border: '#6EE7B7' },
+  { kind: 'getimac', icon: '📡', title: 'GET iMAC', desc: '取用配對 MAC 位址＋長度驗證', theme: '#0D9488', bg: '#F0FDFA', border: '#5EEAD4' },
   { kind: 'savelink', icon: '📤', title: 'WRITE 寫欄位', desc: '⚠️ 可能推站慎按', theme: '#D97706', bg: '#FFFBEB', border: '#FCD34D' },
   { kind: 'clear', icon: '🧹', title: 'CLEAR 清空試探', desc: '寫空值並回讀', theme: '#475569', bg: '#F8FAFC', border: '#CBD5E1' }
 ];
@@ -302,9 +301,10 @@ function _itemToBackendStep(it) {
   const f = _resolveCardField(it);
   if (k === 'get' || k === 'getversion') {
     const refExpr = _buildCentimaniRefExpr(it);
-    if (!it.ver_type && f === 'ITEMINFO_60') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '4', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf60ISN', ref_expr: refExpr };
-    if (!it.ver_type && f === 'ITEMINFO_80') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '5', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf80ISN', ref_expr: refExpr };
-    if (!it.ver_type && f === 'SSN') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: it.slot_code || '3', chk_data: 'SSN', chk_data2: '', ref_var: it.ref_var || 'sfSSN', ref_expr: refExpr };
+    const valExpr = String(it.validation || '').trim();
+    if (!it.ver_type && f === 'ITEMINFO_60') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '4', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf60ISN', ref_expr: refExpr, validation: valExpr };
+    if (!it.ver_type && f === 'ITEMINFO_80') return { kind: 'getversion', ver_type: 'ITEMINFO', slot_code: it.slot_code || '5', chk_data: '', chk_data2: '', ref_var: it.ref_var || 'sf80ISN', ref_expr: refExpr, validation: valExpr };
+    if (!it.ver_type && f === 'SSN') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: it.slot_code || '3', chk_data: 'SSN', chk_data2: '', ref_var: it.ref_var || 'sfSSN', ref_expr: refExpr, validation: valExpr };
     const vt = it.ver_type || 'ISN_BASEINFO';
     const chk1 = (vt === 'ITEMINFO') ? (it.chk_data || '') : (it.chk_data !== undefined && it.field_key === '__CUSTOM__' ? it.chk_data : (f === 'ITEMINFO_60' || f === 'ITEMINFO_80' ? '' : f));
     return {
@@ -314,11 +314,12 @@ function _itemToBackendStep(it) {
       chk_data: it.ver_type === 'ITEM_FEATURE_BASEINFO' || it.ver_type === 'MOKP_SN' || it.ver_type === 'GETSN_BYRULE' ? (it.chk_data || f) : chk1,
       chk_data2: it.chk_data2 || '',
       ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')),
-      ref_expr: refExpr
+      ref_expr: refExpr,
+      validation: valExpr
     };
   }
-  if (k === 'getimac') return { kind: 'getimac', slot_code: it.slot_code || '2', imacnum: '1', ref_var: it.ref_var || 'sfMAC', ref_expr: _buildCentimaniRefExpr(it) };
-  if (k === 'getlabel') return { kind: 'login' }; // WebService lookup helper
+  if (k === 'getimac') return { kind: 'getimac', slot_code: it.slot_code || '2', imacnum: '1', ref_var: it.ref_var || 'sfMAC', ref_expr: _buildCentimaniRefExpr(it), validation: String(it.validation || '').trim() };
+  if (k === 'getlabel') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: '2', chk_data: 'ISN', chk_data2: '', ref_var: 'sfLabel', ref_expr: '$sfLabel:SplitString,"\\;","0":Trim;', validation: '(sfLabel,%len,1,64);' };
   if (k === 'savelink') return { kind: 'savelink', save_key: f, save_val: it.save_val || 'TEST_VAL' };
   if (k === 'rw') return { kind: 'rw', save_key: f, save_val: it.save_val || 'TEST_RW_01', ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')) };
   if (k === 'clear') return { kind: 'clear', save_key: f };
@@ -335,14 +336,16 @@ function _buildCardExcelPreview(it) {
       ? 'SOAP: WTSP_LOGINOUT(status=0 登出)'
       : 'SOAP: WTSP_LOGINOUT(status=1 登入) — System.ini SFIS_AutoLogin=1';
   }
-  if (k === 'checkroute') return ':ShowISN,"*(ISN)" ➔ :SfCheckRoute  |  ExecMode: 8';
+  if (k === 'checkroute') return ':ShowISN,"*(ISN)" ➔ :SetVal/$ScanISN + :GetVal (Validation %len) ➔ :SfCheckRoute  |  EM: 8';
   if (k === 'get' || k === 'getversion') {
     const st = _itemToBackendStep(it);
-    return `:SfGetVersion,"*(ISN)","${st.ver_type}","${st.slot_code}","${st.chk_data}","${st.chk_data2}"  |  Ref: ${st.ref_expr}  |  EM: 8`;
+    const valTxt = st.validation ? `  |  Val: ${st.validation}` : '';
+    return `:SfGetVersion,"*(ISN)","${st.ver_type}","${st.slot_code}","${st.chk_data}","${st.chk_data2}"  |  Ref: ${st.ref_expr}${valTxt}  |  EM: 8`;
   }
   if (k === 'getimac') {
     const st = _itemToBackendStep(it);
-    return `:SfGetiMAC,"*(ISN)","1","1","${st.slot_code}"  |  Ref: ${st.ref_expr}  |  EM: 8`;
+    const valTxt = st.validation ? `  |  Val: ${st.validation}` : '';
+    return `:SfGetiMAC,"*(ISN)","1","1","${st.slot_code}"  |  Ref: ${st.ref_expr}${valTxt}  |  EM: 8`;
   }
   if (k === 'getlabel') return 'SOAP: WTSP_GETLABEL（線邊標籤資料查詢輔助，不寫入測試步驟）';
   if (k === 'savelink') return `:SfSaveLinkData,"${f}","${it.save_val || 'TEST_VAL'}"  |  EM: 8`;
@@ -931,15 +934,17 @@ function sfisAddItem(kind, insertAt = -1) {
     item.chk_data2 = '';
     item.slot_code = '2';
     item.ref_var = 'sfSNA';
-    item.ref_mode = 'raw';
+    item.ref_mode = 'split';
     item.ref_delim = ';';
     item.ref_seg_idx = 0;
+    item.validation = '(sfSNA,%len,1,64);';
   } else if (kind === 'getimac') {
     item.slot_code = '2';
     item.ref_var = 'sfMAC';
     item.ref_mode = 'substr';
     item.ref_sub_start = 0;
     item.ref_sub_len = 12;
+    item.validation = '(sfMAC,%len,12,12);';
   } else if (kind === 'getlabel') {
     item.label_type = 'ISN';
   } else if (kind === 'savelink') { item.field_key = 'SNA'; item.custom_field = ''; item.save_val = 'TEST_VAL_01'; }
@@ -982,7 +987,16 @@ function sfisUpdateItemField(idx, field, value) {
   it[field] = value;
   if (field === 'field_key' && value !== '__CUSTOM__') {
     const clean = String(value || 'Data').replace(/^ITEMINFO_/, 'Item').replace(/[^A-Za-z0-9_]/g, '');
+    const oldVar = it.ref_var || '';
     it.ref_var = 'sf' + clean;
+    if (value === 'MAC1' || value === 'MAC2') {
+      it.ref_mode = 'substr';
+      it.ref_sub_start = 0;
+      it.ref_sub_len = 12;
+      it.validation = `(${it.ref_var},%len,12,12);`;
+    } else if (!it.validation || (oldVar && it.validation.includes(`(${oldVar},`))) {
+      it.validation = `(${it.ref_var},%len,1,64);`;
+    }
     if (value === 'ITEMINFO_60') { it.ver_type = 'ITEMINFO'; it.slot_code = '4'; it.chk_data = ''; }
     else if (value === 'ITEMINFO_80') { it.ver_type = 'ITEMINFO'; it.slot_code = '5'; it.chk_data = ''; }
     else if (value === 'SSN') { it.ver_type = 'ISN_BASEINFO'; it.slot_code = '3'; it.chk_data = 'SSN'; }
@@ -991,7 +1005,7 @@ function sfisUpdateItemField(idx, field, value) {
   if (field === 'ver_type') {
     if (value === 'ITEMINFO') { it.slot_code = '4'; it.chk_data = ''; it.chk_data2 = ''; }
     else if (value === 'MOKP_SN') { it.slot_code = '2'; it.chk_data = 'W3G'; it.chk_data2 = ''; }
-    else if (value === 'GET_IVMAC_NEW') { it.slot_code = '2'; it.chk_data = ''; it.chk_data2 = ''; }
+    else if (value === 'GET_IVMAC_NEW') { it.slot_code = '2'; it.chk_data = ''; it.chk_data2 = ''; it.ref_mode = 'within'; it.ref_left = 'MAC1:'; it.ref_right = ';'; }
     else if (value === 'ITEM_FEATURE_BASEINFO') { it.slot_code = '4'; it.chk_data = 'AURORA'; it.chk_data2 = 'ModelNumber'; }
   }
   if (['field_key', 'login_status', 'ver_type', 'ref_mode', 'slot_code', 'ref_delim'].includes(field)) {
@@ -1299,7 +1313,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.047') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.048') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1331,6 +1345,37 @@ function sfisToggleSlowDemo(checked) {
   SFIS_HMI_STATE.anim.slowDemo = !!checked;
   try { localStorage.setItem('centimani_sfis_slow_demo', checked ? '1' : '0'); } catch (e) {}
   renderSfisHmiWorkspace();
+}
+
+async function sfisQuickQueryLabel() {
+  const isn = SFIS_HMI_STATE.config.isn || '(空)';
+  SFIS_HMI_STATE.anim.phase = 'sending';
+  SFIS_HMI_STATE.anim.stage = 'to_cloud';
+  SFIS_HMI_STATE.anim.liveSendStr = `WTSP_GETLABEL(ISN="${isn}", type="ISN")`;
+  SFIS_HMI_STATE.anim.liveRecvStr = '⏳ 查詢標籤資料中...';
+  SFIS_HMI_STATE.anim.packetText = '⬆ GETLABEL';
+  SFIS_HMI_STATE.anim.actionLabel = '🏷 查詢 SFIS 標籤中...';
+  renderSfisHmiWorkspace();
+  try {
+    const data = await _callSingleSoap('WTSP_GETLABEL', { label_type: 'ISN' });
+    const ok = !!data.passed;
+    const offline = !data.reachable || data.status === 'offline';
+    const slots = data.slots || {};
+    const valStr = slots.P_CAVER || data.msg || data.raw_result || '';
+    SFIS_HMI_STATE.anim.stage = 'idle';
+    SFIS_HMI_STATE.anim.packetText = '';
+    SFIS_HMI_STATE.anim.phase = offline ? 'offline' : (ok ? 'pass' : 'fail');
+    SFIS_HMI_STATE.anim.netConnected = !offline;
+    SFIS_HMI_STATE.anim.liveRecvStr = offline ? (data.msg || '無法連通 SFIS 內網') : (valStr || (ok ? 'PASS' : 'FAIL'));
+    SFIS_HMI_STATE.anim.actionLabel = `🏷 查標籤 ➔ ${ok ? '✅ PASS' : (offline ? '⚠️ 離線' : '❌ FAIL')}`;
+    _pushResponseLog('🏷 WTSP_GETLABEL', SFIS_HMI_STATE.anim.liveSendStr, data, '');
+    renderSfisHmiWorkspace();
+  } catch (e) {
+    SFIS_HMI_STATE.anim.stage = 'idle';
+    SFIS_HMI_STATE.anim.phase = 'fail';
+    SFIS_HMI_STATE.anim.liveRecvStr = String(e);
+    renderSfisHmiWorkspace();
+  }
 }
 
 function _sfisSleep(ms) {
@@ -1744,10 +1789,11 @@ function _renderSimpleCardInputs(it, idx) {
           </select>
           ${refExtraInputs}
           <label style="font-size:0.73rem; font-weight:700;">變數:<input type="text" value="${_escH(it.ref_var || 'sfData')}" oninput="sfisUpdateItemField(${idx},'ref_var',this.value)" class="mono" style="width:76px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+          <label style="font-size:0.73rem; font-weight:700;" title="Centimani Validation 欄位規則（例：(sfSNA,%len,1,64); 或 (sfMAC,%len,12,12);）">✅ 驗證:<input type="text" value="${_escH(it.validation || '')}" placeholder="例:(${_escH(it.ref_var || 'sfData')},%len,1,64);" oninput="sfisUpdateItemField(${idx},'validation',this.value)" class="mono" style="width:165px; padding:2px 4px; border:1px solid #6EE7B7; border-radius:4px; background:#FFFFFF;"></label>
         </div>
         ${segBtnsHtml}
         <div id="sfisSlicePrev_${idx}" class="mono" style="margin-top:4px; font-size:0.72rem; color:#047857; font-weight:800; word-break:break-all;">
-          ${pickedRawVal ? `預期切出：${_escH(slicedVal)}  |  ` : ''}Ref 公式：${_escH(refExprStr)}
+          ${pickedRawVal ? `預期切出：${_escH(slicedVal)}  |  ` : ''}Ref 公式：${_escH(refExprStr)}${it.validation ? `  |  Val：${_escH(it.validation)}` : ''}
         </div>
       </div>`;
   }
@@ -1940,7 +1986,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.047');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.048');
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
@@ -2027,6 +2073,7 @@ function renderSfisHmiWorkspace() {
           <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.77rem; font-weight:800; color:#9A3412;">🎯 ISN
             <input type="text" value="${_escH(cfg.isn)}" oninput="sfisSyncConfig('isn', this.value)" class="mono" style="width:136px; padding:4px 6px; border:1.5px solid #F59E0B; border-radius:5px; font-size:0.8rem; background:#FFFBEB; font-weight:800;">
           </label>
+          <button type="button" onclick="sfisQuickQueryLabel()" class="btn" style="padding:4px 8px; font-size:0.77rem; background:#EEF2FF; color:#4338CA; border-color:#A5B4FC; font-weight:800;" title="呼叫 WTSP_GETLABEL 線上查詢標籤資料（結果顯示於上方動畫與右側終端，不寫入 Excel）">🏷 查標籤</button>
         </div>
 
         ${s.showPlantEditor ? `

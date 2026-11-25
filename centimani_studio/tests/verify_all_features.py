@@ -1668,6 +1668,24 @@ def run_all_verifications():
                   "v0.8.047 SFIS Excel 保留 Switch/Instrument 未掛載列(Mount空值)與 :CloseMessage Reply=0，徹底避免 CentimaniSystem 報 File Name doestn't set",
                   f"sw_rows={sw_ws.max_row}, inst_rows={inst_ws.max_row}, close={close_rows}")
 
+            # [v0.8.048] 驗證 Phase 0 刷條碼起手式 (:ShowISN + :SetVal $ScanISN + :GetVal Validation) + GET 預設抓字串 Ref & Validation + 移除假 GET 標籤積木避免漏匯出
+            set_scan_rows = [r for r in sf_rows_all if ':SetVal,"$ScanISN"' in str(r[6] or "")]
+            get_scan_rows = [r for r in sf_rows_all if ':GetVal,"$ScanISN"' in str(r[6] or "")]
+            get_with_val = sfis_client.build_sfis_excel_steps([
+                {"kind": "checkroute"},
+                {"kind": "get", "field_key": "SNA", "ref_expr": '$sfSNA:SplitString,"\\;","0":Trim;', "validation": "(sfSNA,%len,1,64);"},
+            ], start_phase=0, include_show_isn=True)
+            check(bool(set_scan_rows) and bool(get_scan_rows)
+                  and "(gISN,%len,3,32);" in str(get_scan_rows[0][10] or "")
+                  and any(':SfGetVersion,"*(ISN)","ISN_BASEINFO","2","SNA",""' in r.get("Send", "")
+                          and ':SplitString,"\\;","0":Trim;' in r.get("Ref", "")
+                          and r.get("Validation") == "(sfSNA,%len,1,64);" for r in get_with_val)
+                  and "kind: 'getlabel'" not in cat_sec
+                  and "sfisQuickQueryLabel" in sfis_hmi_js
+                  and "item.ref_mode = 'split'" in sfis_hmi_js,
+                  "v0.8.048 Phase 0 開頭刷條碼起手式(:SetVal/:GetVal)、GET 預設抓字串+Validation 與避免 getlabel 漏匯出皆就緒",
+                  str(get_with_val))
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

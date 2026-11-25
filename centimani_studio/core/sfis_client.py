@@ -627,7 +627,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             if include_show_isn and not has_show_isn:
                 _add(
                     "0,CheckRoute",
-                    "Display ISN on Centimani UI",
+                    "Scan ISN barcode & display on Centimani UI",
                     ':ShowISN,"*(ISN)"',
                     tid="B7PL025",
                     em="0",
@@ -635,6 +635,25 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                     reply_val="0",
                 )
                 has_show_isn = True
+                _add(
+                    "",
+                    "Capture scanned ISN barcode to $ScanISN",
+                    ':SetVal,"$ScanISN","*(ISN)"',
+                    tid="CACK088",
+                    em="1",
+                    phase_val="",
+                    reply_val="0",
+                )
+                _add(
+                    "",
+                    "Validate scanned ISN barcode length",
+                    ':GetVal,"$ScanISN"',
+                    ref="$gISN:Trim;",
+                    val="(gISN,%len,3,32);",
+                    tid="CACK180",
+                    em="1",
+                    phase_val="",
+                )
                 _add("", "Check SFIS Station Route", ":SfCheckRoute", tid="OTCH013", em="8", phase_val="", reply_val="0")
             else:
                 _add(
@@ -651,11 +670,13 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
         elif kind in ("getversion", "get"):
             ver_type, slot_code, chk1, chk2, ref_var = _resolve_get_params(item)
             send_cmd = f':SfGetVersion,"*(ISN)","{ver_type}","{slot_code}","{chk1}","{chk2}"'
+            val_rule = str(item.get("validation") or "").strip()
             _add(
                 f"0,SFIS GET {chk1 or ver_type}",
                 f"SFIS GetVersion ({ver_type} {chk1})".strip(),
                 send_cmd,
                 ref=escape_build_get_ref(item, ref_var),
+                val=val_rule,
                 tid="OTFX085",
                 em="8",
                 phase_val=str(phase_num),
@@ -668,11 +689,13 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             ref_var = str(item.get("ref_var", "sfMAC") or "sfMAC").strip().lstrip("$")
             send_cmd = f':SfGetiMAC,"*(ISN)","1","{imac_num}","{slot_code}"'
             ref_val = str(item.get("ref_expr") or "").strip() or f'${ref_var}:SubString,"0","12":lwString;'
+            val_rule = str(item.get("validation") or "").strip()
             _add(
                 "0,SFIS GET MAC",
                 "SFIS Get iMAC",
                 send_cmd,
                 ref=ref_val,
+                val=val_rule,
                 tid="OTFX085",
                 em="8",
                 phase_val=str(phase_num),
