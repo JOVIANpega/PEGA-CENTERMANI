@@ -2274,6 +2274,54 @@ def run_all_verifications():
                       and len((c3po_apply.get("report") or {}).get("errors") or []) == 0,
                       "v0.8.057 實測載入 DS_C3PO_TestFlow-0707_jackson.xlsx 並於 MainBoard 套用 SKU 編修 0 Error")
 
+            # [v0.8.058] 驗證 Step 2 頂部多 SKU Checkbox、NI6009+SKU 插入後黃色標註列位精準跟隨、Phase=-1 原編號提示
+            check('id="wizMultiSkuChk"' in index_html
+                  and "onWizMultiSkuCheckboxChange" in tsw_js_txt
+                  and "openTemplateSkuWizard('create')" in index_html,
+                  "v0.8.058 Step 2 最上方已設置多 SKU 啟用 Checkbox 控制列")
+
+            v58_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V58_SHIFT",
+                "station_name": "MB2",
+                "dut_count": 1,
+                "no_hw_phase_pause": True,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_FIXTURE_ACTION", "BLK_UART_BOOT_FW", "BLK_PHASE97_TEARDOWN"],
+                "ni6009_blocks": [{
+                    "mode": "RSE",
+                    "sample_ms": "1000",
+                    "dev_id": "Dev1",
+                    "title_name": "Measure Voltage Test",
+                    "channels": [{"ch": 0, "name": "VCC_3V3", "dl": "3.15", "ul": "3.45"}],
+                }],
+                "sku_wizard": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "param_to_ini": True,
+                    "sku_branches": [
+                        {"code": "FULL", "label": "整機"},
+                        {"code": "NO_BAT", "label": "無電池"},
+                    ],
+                },
+            })
+            v58_wb = openpyxl.load_workbook(v58_res["excel_path"])
+            v58_ws = v58_wb["MB2"]
+            v58_sku_has_ni_cmt = any(
+                "NI-6009" in (v58_ws.cell(r_i, 1).comment.text if v58_ws.cell(r_i, 1).comment else "")
+                and "SetVal" in str(v58_ws.cell(r_i, 7).value or "")
+                for r_i in range(2, v58_ws.max_row + 1)
+            )
+            v58_p_minus1_cmt = next(
+                (v58_ws.cell(r_i, 2).comment.text for r_i in range(2, v58_ws.max_row + 1)
+                 if str(v58_ws.cell(r_i, 2).value or "").strip() == "-1" and v58_ws.cell(r_i, 2).comment),
+                ""
+            )
+            v58_wb.close()
+            check(v58_res.get("status") == "ok"
+                  and not v58_sku_has_ni_cmt
+                  and "原編號為 Phase" in v58_p_minus1_cmt,
+                  "v0.8.058 SKU 區塊前插後 NI-6009 標註列位零位移錯位，且 Phase=-1 註解清楚保留原 Phase 編號")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

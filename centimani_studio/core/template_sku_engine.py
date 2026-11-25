@@ -1175,6 +1175,9 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
     s_spec = sku_spec if isinstance(sku_spec, dict) else {}
 
     existing_steps = list(ws.get("stations", {}).get(st_name, []))
+    for _orig_idx, _orig_step in enumerate(existing_steps):
+        if isinstance(_orig_step, dict):
+            _orig_step["_orig_row_num"] = _orig_idx + 2
     g_settings = ws.setdefault("global_ini", {}).setdefault("Settings", {})
     g_scripts = ws.setdefault("global_ini", {}).setdefault("Scripts", {})
     comp_map = ws.setdefault("_companion_files", {})
@@ -1479,6 +1482,16 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
 
     # Renumber contiguous non-paused, non-teardown Phases cleanly
     _renumber_station_phases(existing_steps)
+    row_remap = {}
+    for _new_idx, _st_row in enumerate(existing_steps):
+        if isinstance(_st_row, dict):
+            _old_r = _st_row.pop("_orig_row_num", None)
+            if _old_r is not None:
+                row_remap[_old_r] = _new_idx + 2
+    if row_remap and isinstance(ws.get("_modified_cells"), list):
+        for _mod in ws["_modified_cells"]:
+            if isinstance(_mod, dict) and _mod.get("sheet") == st_name and _mod.get("row") in row_remap:
+                _mod["row"] = row_remap[_mod["row"]]
     ws.setdefault("stations", {})[st_name] = existing_steps
 
     if output_dir and comp_map:

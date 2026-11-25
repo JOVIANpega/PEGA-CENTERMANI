@@ -123,6 +123,7 @@
   window.closeTemplateSkuWizard = function () {
     const m = document.getElementById('templateSkuModal');
     if (m) m.classList.remove('open');
+    if (typeof window._syncWizMultiSkuToggleUi === 'function') window._syncWizMultiSkuToggleUi();
   };
 
   function _getTargetStationName() {
@@ -634,7 +635,40 @@
     }
   };
 
+  function _syncWizMultiSkuToggleUi() {
+    const chk = document.getElementById('wizMultiSkuChk');
+    const bar = document.getElementById('wizMultiSkuTopToggleBar');
+    const btn = document.getElementById('btnWizMultiSkuEdit');
+    const enabled = !!(window.STATE && window.STATE.createSkuConfig && window.STATE.createSkuConfig.enabled);
+    if (chk) chk.checked = enabled;
+    if (bar) {
+      bar.style.background = enabled ? '#EEF2FF' : '#F8FAFC';
+      bar.style.borderColor = enabled ? '#818CF8' : '#CBD5E1';
+    }
+    if (btn) {
+      btn.textContent = enabled ? '✏️ 編輯 SKU 規則' : '⚙️ 設定 SKU 規則';
+    }
+  }
+  window._syncWizMultiSkuToggleUi = _syncWizMultiSkuToggleUi;
+
+  window.onWizMultiSkuCheckboxChange = function (checked) {
+    if (!window.STATE) window.STATE = {};
+    if (checked) {
+      if (window.STATE.createSkuConfig && Array.isArray(window.STATE.createSkuConfig.sku_branches) && window.STATE.createSkuConfig.sku_branches.length) {
+        window.STATE.createSkuConfig.enabled = true;
+        _renderCreateModeBanner();
+      }
+      openTemplateSkuWizard('create');
+    } else {
+      if (window.STATE.createSkuConfig) {
+        window.STATE.createSkuConfig.enabled = false;
+      }
+      _renderCreateModeBanner();
+    }
+  };
+
   function _renderCreateModeBanner() {
+    _syncWizMultiSkuToggleUi();
     const banner = document.getElementById('wizTemplateSkuBanner');
     if (!banner || !window.STATE) return;
     const sk = window.STATE.createSkuConfig || {};
@@ -655,11 +689,12 @@
         </div>
         <div style="display:flex; gap:6px;">
           <button type="button" class="tsw-btn-soft" onclick="openTemplateSkuWizard('create')">✏️ 修改設定</button>
-          <button type="button" class="tsw-btn-soft" style="color:#B91C1C; border-color:#FCA5A5;" onclick="window.STATE.createSkuConfig=null; document.getElementById('wizTemplateSkuBanner').style.display='none';">🧹 清除</button>
+          <button type="button" class="tsw-btn-soft" style="color:#B91C1C; border-color:#FCA5A5;" onclick="window.STATE.createSkuConfig=null; _renderCreateModeBanner();">🧹 清除</button>
         </div>
       </div>
     `;
   }
+  window._renderCreateModeBanner = _renderCreateModeBanner;
 
   window.tswGetCreatePayloadExtras = function () {
     const out = {};

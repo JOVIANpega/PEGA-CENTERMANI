@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.057</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.058</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1082,11 +1082,18 @@
           <span id="genCustomTicBadge" class="badge badge-pass" style="display:none; cursor:pointer;" onclick="switchTab('tic')"></span>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn" style="padding:4px 12px; font-size:0.84rem; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('create')">🎯 多 SKU 分流設定</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('minimal')">🧩 最小骨架</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('basic')">⚡ 基礎上電量測</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('none')">☐ 全部取消</button>
         </div>
+      </div>
+      <!-- 最上方多 SKU Checkbox 切換列 -->
+      <div id="wizMultiSkuTopToggleBar" style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:8px 12px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:800; font-size:0.9rem; color:#1E1B4B; user-select:none;">
+          <input id="wizMultiSkuChk" type="checkbox" onchange="if(typeof window.onWizMultiSkuCheckboxChange==='function') window.onWizMultiSkuCheckboxChange(this.checked);" style="width:17px; height:17px; accent-color:#4F46E5; cursor:pointer;">
+          <span>🎯 啟用多 SKU 分流設定（依 SFIS 機種／MO／區域自動切分測項或 DL／UL）</span>
+        </label>
+        <button id="btnWizMultiSkuEdit" type="button" class="btn" style="padding:4px 12px; font-size:0.84rem; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('create')">⚙️ 設定 SKU 規則</button>
       </div>
       <div id="wizTemplateSkuBanner" style="display:none; background:#EEF2FF; border:1.5px solid #818CF8; border-radius:8px; padding:8px 12px; margin-bottom:10px;"></div>
 
@@ -1881,13 +1888,13 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.057"></script>
-<script src="/js/audit_editors.js?v=0.8.057"></script>
-<script src="/js/flow_guide.js?v=0.8.057"></script>
-<script src="/js/block_sorter.js?v=0.8.057"></script>
-<script src="/js/script_qa.js?v=0.8.057"></script>
-<script src="/js/sfis_hmi.js?v=0.8.057"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.057"></script>
+<script src="/js/inst_hmi.js?v=0.8.058"></script>
+<script src="/js/audit_editors.js?v=0.8.058"></script>
+<script src="/js/flow_guide.js?v=0.8.058"></script>
+<script src="/js/block_sorter.js?v=0.8.058"></script>
+<script src="/js/script_qa.js?v=0.8.058"></script>
+<script src="/js/sfis_hmi.js?v=0.8.058"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.058"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -4026,7 +4033,7 @@ function _createBlockChecklistCard(blk) {
     <input type="checkbox" ${isChecked ? 'checked' : ''} style="cursor:pointer; margin-top:2px;">
     <div>
       <div class="bold-title" style="color:var(--slate-900);">${blk.name}</div>
-      <div style="font-size:0.8rem; color:#2563EB; margin:1px 0;">預設 Phase: ${blk.default_phase || '-'} (${(blk.steps||[]).length} 步)</div>
+      <div style="font-size:0.8rem; color:#2563EB; margin:1px 0;">預設 Phase: ${blk.default_phase || '0 (併入 Phase 0)'} (${(blk.steps||[]).length} 步)</div>
       <div style="font-size:0.8rem; color:var(--slate-700);">${blk.description || ''}</div>
     </div>
   `;

@@ -686,7 +686,10 @@ def pause_hardware_phases_minus_one(workspace, target_sheet=None):
                     "new": "-1",
                     "highlight": "blue",
                     "show_comment": True,
-                    "note": "【無儀器預寫 Phase=-1】暫不掛載此儀器 Mount 避免無硬體連線報錯；回產線補回 Instrument.Mount 並將此 Phase 改回數字 (1, 2...) 即可跑。",
+                    "note": (
+                        f"【無儀器預寫 Phase=-1】原編號為 Phase {old_p}（暫不掛載此儀器 Mount 以免無硬體連線報錯）。"
+                        f"後方 Phase 刻意保留原編號不跳號，回產線補回 Instrument.Mount 後直接把 -1 改回 {old_p} 即可恢復執行，不會與後續 Phase 撞號。"
+                    ),
                 })
                 paused_blocks.append({"sheet": st_name, "title": blk.get("title", ""), "old_phase": old_p})
 
