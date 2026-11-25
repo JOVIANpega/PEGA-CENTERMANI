@@ -524,42 +524,42 @@ def call_sfis_mock_soap(action: str, params: dict) -> dict:
 
 def escape_centimani_ref_arg(raw: str) -> str:
     """
-    Escape Centimani Ref helper function parameters per 'Ref輔助Function說明' (User Guide R20-R22):
-    " -> \", , -> \,, * -> \*, \ -> \\, / -> \/, : -> \:, ; -> \;, } -> }}
+    Escape Centimani Ref helper function parameters per CentimaniSystem.exe IL:
+    CheckFunctions / DoMainTest ONLY unescape \\: (/u003a), \\; (/u003b), \\" (/u0022), } (-> }}).
+    NEVER escape ',' because SplitString splits literally on the parameter string (e.g. ",").
     """
     s = str(raw or "")
-    s = s.replace("\\", "\\\\")
-    for ch in ('"', ",", "*", "/", ":", ";"):
+    for ch in ('"', ":", ";"):
         s = s.replace(ch, "\\" + ch)
     s = s.replace("}", "}}")
     return s
 
 
 def build_centimani_ref_expr(var_name: str, mode: str = "raw", **kw) -> str:
-    """Build a compliant Centimani Ref string-extraction formula."""
+    """Build a Centimani Ref string-extraction formula compatible across 1.2.1.2 ~ 1.5+."""
     vn = str(var_name or "sfData").strip().lstrip("$") or "sfData"
     m = str(mode or "raw").strip().lower()
     if m == "split":
         delim = escape_centimani_ref_arg(kw.get("delim", ";") or ";")
         idx = str(int(kw.get("index", 0) or 0))
-        return f'${vn}:SplitString,"{delim}","{idx}":Trim;'
+        return f'${vn}:SplitString,"{delim}","{idx}";'
     if m == "within":
         left_s = escape_centimani_ref_arg(kw.get("left", "") or "")
         right_s = escape_centimani_ref_arg(kw.get("right", "") or "")
         idx = str(kw.get("index", "") or "")
-        return f'${vn}:WithinString,"{left_s}","{right_s}","{idx}":Trim;'
+        return f'${vn}:WithinString,"{left_s}","{right_s}","{idx}";'
     if m == "substr":
         start = str(int(kw.get("start", 0) or 0))
         length = str(int(kw.get("length", 12) or 12))
         return f'${vn}:SubString,"{start}","{length}";'
     if m == "ma":
         tok = escape_centimani_ref_arg(kw.get("marker", "") or "")
-        return f'${vn}:maString,"{tok}":Trim;'
+        return f'${vn}:maString,"{tok}";'
     if m == "mb":
         tok = escape_centimani_ref_arg(kw.get("marker", "") or "")
-        return f'${vn}:mbString,"{tok}":Trim;'
+        return f'${vn}:mbString,"{tok}";'
     if m == "getmac2":
-        return f'${vn}:getMAC2;'
+        return f'${vn}:getMACs2;'
     return f'${vn};'
 
 
@@ -567,7 +567,7 @@ def escape_build_get_ref(item: dict, default_var: str) -> str:
     explicit = str(item.get("ref_expr") or "").strip()
     if explicit:
         return explicit
-    return f"${default_var}:lwString;"
+    return f"${default_var};"
 
 
 def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: bool = True) -> list:
@@ -648,7 +648,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                     "",
                     "Validate scanned ISN barcode length",
                     ':GetVal,"$ScanISN"',
-                    ref="$gISN:Trim;",
+                    ref="$gISN;",
                     val="(gISN,%len,3,32);",
                     tid="CACK180",
                     em="1",
@@ -688,8 +688,10 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
             imac_num = str(item.get("imacnum", "1") or "1").strip()
             ref_var = str(item.get("ref_var", "sfMAC") or "sfMAC").strip().lstrip("$")
             send_cmd = f':SfGetiMAC,"*(ISN)","1","{imac_num}","{slot_code}"'
-            ref_val = str(item.get("ref_expr") or "").strip() or f'${ref_var}:SubString,"0","12":lwString;'
+            ref_val = str(item.get("ref_expr") or "").strip() or f'${ref_var}:SubString,"0","12";'
             val_rule = str(item.get("validation") or "").strip()
+            if ':SplitString,"\\;"' in ref_val and "%len,12,12" in val_rule:
+                ref_val = f'${ref_var}:SubString,"0","12";'
             _add(
                 "0,SFIS GET MAC",
                 "SFIS Get iMAC",
@@ -736,7 +738,7 @@ def build_sfis_excel_steps(items: list, start_phase: int = 1, include_show_isn: 
                 "",
                 f"SFIS ReadBack Verify ({save_key})",
                 f':SfGetVersion,"*(ISN)","ISN_BASEINFO","2","{save_key}",""',
-                ref=f"${ref_var}:lwString;",
+                ref=f"${ref_var};",
                 tid="OTFX085",
                 em="8",
                 phase_val="",

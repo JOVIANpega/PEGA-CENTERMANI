@@ -1520,9 +1520,9 @@ def run_all_verifications():
             ref_split = sfis_client.build_centimani_ref_expr("sf5G", "split", delim=";", index=1)
             ref_within = sfis_client.build_centimani_ref_expr("sfSN", "within", left="SN:", right=";IMEI")
             ref_steps = sfis_client.build_sfis_excel_steps([{"kind": "getversion", "ver_type": "MOKP_SN", "slot_code": "4", "chk_data": "W3G", "ref_expr": ref_within}])
-            check(ref_split == '$sf5G:SplitString,"\\;","1":Trim;'
-                  and ref_within == '$sfSN:WithinString,"SN\\:","\\;IMEI","":Trim;'
-                  and ref_steps[1]["Ref"] == '$sfSN:WithinString,"SN\\:","\\;IMEI","":Trim;'
+            check(ref_split == '$sf5G:SplitString,"\\;","1";'
+                  and ref_within == '$sfSN:WithinString,"SN\\:","\\;IMEI","";'
+                  and ref_steps[1]["Ref"] == '$sfSN:WithinString,"SN\\:","\\;IMEI","";'
                   and ',\"4\",\"W3G\"' in ref_steps[1]["Send"]
                   and "sfisPickSlotIndex" in sfis_hmi_js and "sfisPickSegment" in sfis_hmi_js and "sfisSetMockMode" in sfis_hmi_js,
                   "v0.8.035 支援 0~7 堆疊選格、Centimani 官方 Ref 找字串轉義 (SplitString/WithinString) 與完整積木清單")
@@ -1812,6 +1812,70 @@ def run_all_verifications():
                 check(not any("Connection Name :" in e for e in fwdl_rep.get("errors", [])),
                       "v0.8.050 實戰 01. FWDL (20241016-42V.xlsx) 4 槽同名通道連線零誤報",
                       str(fwdl_rep.get("errors")))
+
+            # [v0.8.051] 驗證 SFIS 產出與 CentimaniSystem.exe v1.2.1.2~v1.5.x 完全相容：
+            # 1) 不誤吐 :Trim / :lwString、SplitString 逗號不誤跳脫為 \,
+            # 2) :SfGetiMAC 若前端誤夾 SplitString,"\;","0" + %len(12,12) 自動補正為 :SubString,"0","12";
+            # 3) System.ini 完整寫入 SFIS_LoginID 與 SFIS_GetDateISN
+            check(sfis_client.escape_centimani_ref_arg(",") == ","
+                  and sfis_client.escape_centimani_ref_arg(";") == "\\;"
+                  and sfis_client.build_centimani_ref_expr("sfMAC", "split", delim=",", index=0) == '$sfMAC:SplitString,",","0";',
+                  "v0.8.051 Centimani Ref 轉義不破壞逗號 (,)、移除不相容之 :Trim/:lwString")
+
+            sf_v51_exp = post_json("/api/export_sfis_hmi_script", {
+                "mode": "new_template",
+                "open_excel": False,
+                "config": {
+                    "project_name": "SFIS_V51",
+                    "station": "MB",
+                    "url": "http://172.24.248.15/SFISWebService/SFISTSPWebService.asmx",
+                    "tsp": "ATLAS,2",
+                    "device_id": "710001",
+                    "op": "S09166390",
+                    "isn": "2695160300001",
+                    "sfis_enable": "1",
+                    "skip_save_on_fail": True,
+                },
+                "items": [
+                    {"kind": "checkroute"},
+                    {"kind": "getimac", "slot_code": "2", "ref_var": "sfMAC", "ref_expr": '$sfMAC:SplitString,"\\;","0";', "validation": "(sfMAC,%len,12,12);"},
+                    {"kind": "savelink", "save_key": "SNA", "save_val": "TEST_VAL_01"},
+                    {"kind": "get", "ver_type": "ISN_BASEINFO", "slot_code": "2", "chk_data": "SNA", "ref_var": "sfSNA", "validation": "(sfSNA,%len,1,64);"},
+                ],
+            })
+            v51_sys_txt = open(os.path.join(sf_v51_exp["output_dir"], "System.ini"), "r", encoding="utf-8").read()
+            ws_v51_sf = _parse_v50(sf_v51_exp["excel_path"])
+            v51_rows = ws_v51_sf["stations"]["MB"]
+            getval_v51 = [r for r in v51_rows if ':GetVal,"$ScanISN"' in str(r.get("Send", ""))]
+            imac_v51 = [r for r in v51_rows if ":SfGetiMAC" in str(r.get("Send", ""))]
+            getsna_v51 = [r for r in v51_rows if ":SfGetVersion" in str(r.get("Send", ""))]
+            check(sf_v51_exp.get("status") == "ok"
+                  and "SFIS_LoginID=S09166390" in v51_sys_txt
+                  and "SFIS_GetDateISN=2695160300001" in v51_sys_txt
+                  and bool(getval_v51) and getval_v51[0].get("Ref") == "$gISN;"
+                  and bool(imac_v51) and imac_v51[0].get("Ref") == '$sfMAC:SubString,"0","12";'
+                  and bool(getsna_v51) and getsna_v51[0].get("Ref") == "$sfSNA;",
+                  "v0.8.051 SFIS System.ini 完整寫入 SFIS_LoginID/GetDateISN、且 GetVal/GetiMAC/GetVersion Ref 完全相容實機",
+                  f"sys_has_op={'SFIS_LoginID=S09166390' in v51_sys_txt}, getval={getval_v51}, imac={imac_v51}, getsna={getsna_v51}")
+
+            # 驗證 script_doctor 可偵測 SplitString 誤跳脫逗號 '\,' 與 iMAC 誤用分號切割
+            comma_trap_ws = {
+                "project_name": "TRAP", "station_name": "MB",
+                "global_ini": {"Settings": {"LOAD_1": "true"}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "TRAP$MB", "Station": "MB,1"}],
+                "marcos": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "TestID": "OTCH013"},
+                    {"Index": "002", "Phase": "1", "Title": "0,MAC", "Send": ':SfGetiMAC,"*(ISN)","1","1","2"', "Ref": '$sfMAC:SplitString,"\\,","0";', "Validation": "(sfMAC,%len,12,12);", "ExecMode": "8", "TestID": "OTFX085"},
+                    {"Index": "003", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "Reply": "0", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            trap_warns = "\n".join((_audit_ws(comma_trap_ws).get("warnings") or []) + (_audit_ws(comma_trap_ws).get("manual_warnings") or []))
+            check("誤用跳脫逗號 '\\,'" in trap_warns,
+                  "v0.8.051 script_doctor 可預警 SplitString 誤用 '\\,' 逗號跳脫陷阱",
+                  trap_warns)
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

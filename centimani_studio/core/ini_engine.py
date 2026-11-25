@@ -141,7 +141,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 ):
                     if re.search(r"(?m)^StationName=.*$", raw_sys):
                         raw_sys = re.sub(r"(?m)^StationName=.*$", "StationName=", raw_sys)
-                for k_ov in ("DebugMode", "RetryCount", "StationList", "StationName", "SFIS_Enable", "SFIS_AutoLogin", "SFIS_SkipSaveResultOnFail", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
+                for k_ov in ("DebugMode", "RetryCount", "StationList", "StationName", "SFIS_Enable", "SFIS_AutoLogin", "SFIS_LoginID", "SFIS_GetDateISN", "SFIS_SkipSaveResultOnFail", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
                     if k_ov in sys_cfg and str(sys_cfg[k_ov]).strip() != "":
                         v_ov = str(sys_cfg[k_ov]).strip()
                         if re.search(rf"(?m)^{re.escape(k_ov)}=.*$", raw_sys):
@@ -197,12 +197,12 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
             "SFIS_RepairDuty=7C0",
             "SFIS_RepairNGRP=AUTO2A",
             f"SFIS_SkipSaveResultOnFail={sys_cfg.get('SFIS_SkipSaveResultOnFail', '0')}",
-            "SFIS_GetDateISN=111111111111111",
+            f"SFIS_GetDateISN={sys_cfg.get('SFIS_GetDateISN', '111111111111111')}",
             "SFIS_ResultFile=",
             "SFIS_SaveGPRS=0",
             "SFIS_SaveError=0",
             "SFIS_SyncTime=0",
-            "SFIS_LoginID=",
+            f"SFIS_LoginID={sys_cfg.get('SFIS_LoginID', '')}",
             "",
             "[FTP]",
             "FTP_Enable=0",

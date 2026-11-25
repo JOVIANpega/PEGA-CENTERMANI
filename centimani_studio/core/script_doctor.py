@@ -749,6 +749,14 @@ def audit_workspace(workspace):
                         warnings.append(
                             f"[{st_name} 第 {r_num} 列] Send 指令 '{s_send}' 變數前出現重複雙引號 '\"\"$'（請移除多餘引號以免主程式變數解析失敗）"
                         )
+                    if ':SplitString,"\\,"' in s_ref:
+                        warnings.append(
+                            f"[{st_name} 第 {r_num} 列] Ref '{s_ref}' 在 SplitString 誤用跳脫逗號 '\\,'（Centimani 僅還原 \\: 與 \\;，逗號應直接寫為 \",\"）"
+                        )
+                    if cmd_head_low == ":sfgetimac" and ':SplitString,"\\;"' in s_ref and "%len,12,12" in s_val:
+                        warnings.append(
+                            f"[{st_name} 第 {r_num} 列] :SfGetiMAC 多 MAC 回傳常以逗號分隔（如 MAC1,MAC2），建議改用 :SubString,\"0\",\"12\"; 或 :SplitString,\",\",\"0\";"
+                        )
                     if mode_head not in VALID_EXEC_PREFIXES:
                         errors.append(f"[{st_name} 第 {r_num} 列] ExecMode '{s_mode}' 主代碼無效（僅支援 0~11）")
                     elif mode_head == "2":

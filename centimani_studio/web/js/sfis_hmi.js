@@ -216,8 +216,7 @@ function _resolveCardField(it) {
 
 function _escCentimaniArg(raw) {
   let s = String(raw == null ? '' : raw);
-  s = s.replace(/\\/g, '\\\\');
-  s = s.replace(/([",*/:;])/g, '\\$1');
+  s = s.replace(/([":;])/g, '\\$1');
   s = s.replace(/\}/g, '}}');
   return s;
 }
@@ -227,22 +226,23 @@ function _buildCentimaniRefExpr(it) {
   const vn = String(it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, ''))).trim().replace(/^\$+/, '') || 'sfData';
   const rm = it.ref_mode || 'raw';
   if (rm === 'split') {
-    const delim = _escCentimaniArg(it.ref_delim || ';');
+    const defDelim = (it.kind === 'getimac') ? ',' : ';';
+    const delim = _escCentimaniArg(it.ref_delim || defDelim);
     const idx = parseInt(it.ref_seg_idx || 0, 10) || 0;
-    return `$${vn}:SplitString,"${delim}","${idx}":Trim;`;
+    return `$${vn}:SplitString,"${delim}","${idx}";`;
   }
   if (rm === 'within') {
     const l = _escCentimaniArg(it.ref_left || '');
     const r = _escCentimaniArg(it.ref_right || '');
-    return `$${vn}:WithinString,"${l}","${r}","":Trim;`;
+    return `$${vn}:WithinString,"${l}","${r}","";`;
   }
   if (rm === 'ma') {
     const mk = _escCentimaniArg(it.ref_marker || ':');
-    return `$${vn}:maString,"${mk}":Trim;`;
+    return `$${vn}:maString,"${mk}";`;
   }
   if (rm === 'mb') {
     const mk = _escCentimaniArg(it.ref_marker || ';');
-    return `$${vn}:mbString,"${mk}":Trim;`;
+    return `$${vn}:mbString,"${mk}";`;
   }
   if (rm === 'substr') {
     const st = parseInt(it.ref_sub_start || 0, 10) || 0;
@@ -250,9 +250,9 @@ function _buildCentimaniRefExpr(it) {
     return `$${vn}:SubString,"${st}","${ln}";`;
   }
   if (rm === 'getmac2') {
-    return `$${vn}:getMAC2;`;
+    return `$${vn}:getMACs2;`;
   }
-  return `$${vn}:lwString;`;
+  return `$${vn};`;
 }
 
 function _previewCentimaniSlice(rawText, it) {
@@ -319,7 +319,7 @@ function _itemToBackendStep(it) {
     };
   }
   if (k === 'getimac') return { kind: 'getimac', slot_code: it.slot_code || '2', imacnum: '1', ref_var: it.ref_var || 'sfMAC', ref_expr: _buildCentimaniRefExpr(it), validation: String(it.validation || '').trim() };
-  if (k === 'getlabel') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: '2', chk_data: 'ISN', chk_data2: '', ref_var: 'sfLabel', ref_expr: '$sfLabel:SplitString,"\\;","0":Trim;', validation: '(sfLabel,%len,1,64);' };
+  if (k === 'getlabel') return { kind: 'getversion', ver_type: 'ISN_BASEINFO', slot_code: '2', chk_data: 'ISN', chk_data2: '', ref_var: 'sfLabel', ref_expr: '$sfLabel:SplitString,"\\;","0";', validation: '(sfLabel,%len,1,64);' };
   if (k === 'savelink') return { kind: 'savelink', save_key: f, save_val: it.save_val || 'TEST_VAL' };
   if (k === 'rw') return { kind: 'rw', save_key: f, save_val: it.save_val || 'TEST_RW_01', ref_var: it.ref_var || ('sf_' + f.replace(/[^A-Za-z0-9_]/g, '')) };
   if (k === 'clear') return { kind: 'clear', save_key: f };
@@ -1002,6 +1002,10 @@ function sfisUpdateItemField(idx, field, value) {
     else if (value === 'SSN') { it.ver_type = 'ISN_BASEINFO'; it.slot_code = '3'; it.chk_data = 'SSN'; }
     else { it.chk_data = value; }
   }
+  if (field === 'ref_mode' && value === 'split' && it.kind === 'getimac' && (!it.ref_delim || it.ref_delim === ';')) {
+    it.ref_delim = ',';
+    it.ref_seg_idx = 0;
+  }
   if (field === 'ver_type') {
     if (value === 'ITEMINFO') { it.slot_code = '4'; it.chk_data = ''; it.chk_data2 = ''; }
     else if (value === 'MOKP_SN') { it.slot_code = '2'; it.chk_data = 'W3G'; it.chk_data2 = ''; }
@@ -1313,7 +1317,7 @@ async function _callSingleSoap(action, extraParams = {}) {
   const cfg = SFIS_HMI_STATE.config;
   const fullParams = { device: cfg.device_id, isn: cfg.isn, tsp: cfg.tsp, op: cfg.op, ...extraParams };
   // 若使用者選「本機模擬 SFIS 內網」且偵測後端仍為尚未重啟的舊版伺服器，直接在瀏覽器引擎即時執行模擬，免等逾時
-  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.050') {
+  if (SFIS_HMI_STATE.mockMode && window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.051') {
     return _runLocalBrowserSfisMock(action, fullParams);
   }
   try {
@@ -1752,7 +1756,7 @@ function _renderSimpleCardInputs(it, idx) {
 
     const rm = it.ref_mode || 'raw';
     const refExtraInputs = rm === 'split'
-      ? `<label style="font-size:0.72rem;">分隔字:<input type="text" value="${_escH(it.ref_delim || ';')}" oninput="sfisUpdateItemField(${idx},'ref_delim',this.value)" class="mono" style="width:36px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+      ? `<label style="font-size:0.72rem;">分隔字:<input type="text" value="${_escH(it.ref_delim || (it.kind === 'getimac' ? ',' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_delim',this.value)" class="mono" style="width:36px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
          <label style="font-size:0.72rem;">第N段(0起):<input type="number" min="0" value="${parseInt(it.ref_seg_idx || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_seg_idx',this.value)" class="mono" style="width:42px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
       : (rm === 'within'
         ? `<label style="font-size:0.72rem;">左界:<input type="text" value="${_escH(it.ref_left || 'SN:')}" oninput="sfisUpdateItemField(${idx},'ref_left',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
@@ -1986,7 +1990,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.050');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.051');
 
   const stageBannerHtml = `
       <!-- 跨雙欄頂部寬幅即時動畫舞台 (PC.png ⇄ cloud.png ⇄ database.png) -->
