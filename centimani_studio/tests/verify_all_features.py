@@ -1686,6 +1686,38 @@ def run_all_verifications():
                   "v0.8.048 Phase 0 開頭刷條碼起手式(:SetVal/:GetVal)、GET 預設抓字串+Validation 與避免 getlabel 漏匯出皆就緒",
                   str(get_with_val))
 
+            # [v0.8.049] 驗證 01. FWDL (20241016-42V) 深度解析後之程式改進：Col 17 LocalStepIndex 自動重算寫入、未掛載 Instrument 不誤報 Error/Warning、:SfSaveLinkData EM 與 ""$ 雙引號防呆
+            mb_ws_v49 = wb_sf["MB"]
+            col17_vals = [mb_ws_v49.cell(r, 17).value for r in range(2, mb_ws_v49.max_row + 1)]
+            chk_em_ws = {
+                "project_name": "V49_CHK", "station_name": "MB",
+                "global_ini": {"Settings": {}, "Scripts": {}},
+                "instruments": [
+                    {"Mount": "", "Name": "MDA2700", "ControlDLL": "MDA2700.dll", "Settings": "*$(UNMOUNTED_VAR)", "Version": "0.0.0.1"}
+                ],
+                "switches": [],
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "V49_CHK$MB", "Station": "MB,1"}],
+                "marcos": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "TestID": "OTCH013"},
+                    {"Index": "002", "Phase": "1", "Title": "0,Test", "Send": ':GetVal,""$Fixauto"', "Reply": "0", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "2", "Title": "0,Save", "Send": ':SfSaveLinkData,"SNA","1"', "Reply": "0", "ExecMode": "1", "TestID": "OTFX064"},
+                    {"Index": "004", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "Reply": "0", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            v49_rep = _audit_ws(chk_em_ws)
+            v49_err_txt = "\n".join(v49_rep.get("errors") or [])
+            v49_warn_txt = "\n".join((v49_rep.get("warnings") or []) + (v49_rep.get("auto_fix_warnings") or []))
+            check(col17_vals[:4] == [0, 1, 2, 3]
+                  and col17_vals[4] == 0
+                  and "UNMOUNTED_VAR" not in v49_warn_txt
+                  and "Version mismatch" not in v49_err_txt
+                  and "ExecMode='1'" in v49_err_txt
+                  and "重複雙引號" in v49_warn_txt,
+                  "v0.8.049 Col 17 LocalStepIndex 重算、未掛載儀器降噪、:SfSaveLinkData EM 與 ""$ 雙引號防呆驗證全數通過",
+                  f"col17={col17_vals}, errs={v49_rep.get('errors')}, warns={v49_warn_txt}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

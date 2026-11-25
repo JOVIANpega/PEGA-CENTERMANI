@@ -390,16 +390,19 @@ def audit_workspace(workspace):
     settings_vars = set(g_ini.get("Settings", {}).keys())
     scripts_vars = set(g_ini.get("Scripts", {}).keys())
 
-    # Rule 5A: Check DUTs & Instrument *$(VAR) against Global.ini [Settings]
+    # Rule 5A: Check DUTs & mounted Instrument *$(VAR) against Global.ini [Settings]
     for sec_label, rows in [("DUTs", workspace.get("duts", [])), ("Instrument", workspace.get("instruments", []))]:
         for idx, r in enumerate(rows, start=2):
+            is_unmounted_inst = (sec_label == "Instrument" and not str(r.get("Mount", "") or "").strip())
             row_text = " ".join([str(v) for v in r.values() if v])
             for m in re.finditer(r"\*\$\(([^)]+)\)", row_text):
                 vname = m.group(1).strip()
                 if vname not in settings_vars:
-                    warnings.append(
-                        f"[{sec_label} 第 {idx} 列] 變數 *$({vname}) 尚未在 Global.ini 的 [Settings] 區段宣告（系統將自動補入 [Settings]）"
-                    )
+                    msg_var = f"[{sec_label} 第 {idx} 列] 變數 *$({vname}) 尚未在 Global.ini 的 [Settings] 區段宣告（系統將自動補入 [Settings]）"
+                    if is_unmounted_inst:
+                        suggestions.append(msg_var)
+                    else:
+                        warnings.append(msg_var)
 
     # Rule 5A-2: Ensure every non-empty Station sheet has matching rows in DUTs (otherwise Centimani throws "No any DUT is set.")
     dut_station_prefixes = {
@@ -460,9 +463,12 @@ def audit_workspace(workspace):
             if pe_ver:
                 declared_ver = str(inst_row.get("Version", "")).strip()
                 if declared_ver != pe_ver:
-                    errors.append(
-                        f"[Instrument 第 {idx} 列] 儀器 {inst_row.get('Name','')} 的 ControlDLL ({c_dll}) 版本 '{declared_ver}' 與實體 DLL 版本 '{pe_ver}' 不符！(Centimani 將報 Version mismatch，存檔時將自動校正為 {pe_ver})"
-                    )
+                    is_mounted = bool(str(inst_row.get("Mount", "") or "").strip())
+                    msg_ver = f"[Instrument 第 {idx} 列] 儀器 {inst_row.get('Name','')} 的 ControlDLL ({c_dll}) 版本 '{declared_ver}' 與實體 DLL 版本 '{pe_ver}' 不符！(Centimani 將報 Version mismatch，存檔時將自動校正為 {pe_ver})"
+                    if is_mounted:
+                        errors.append(msg_ver)
+                    else:
+                        suggestions.append(msg_ver)
     except Exception:
         pass
 
@@ -723,6 +729,15 @@ def audit_workspace(workspace):
                         errors.append(
                             f"[{st_name} 第 {r_num} 列] SFIS 指令 '{s_send.split(',', 1)[0].strip()}' 之 ExecMode='{s_mode}' "
                             f"不合 Centimani 1.2.1.2 規定（必須為 8~11，否則主程式將報錯 'ExecMode of {s_send.split(',', 1)[0].strip().lstrip(':')} must be 8~11.'，一鍵修復可自動改為 8/9）"
+                        )
+                    elif cmd_head_low in (":sfgetimac", ":sfsavelinkdata") and mode_head not in ("6", "8", "9"):
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] SFIS 指令 '{s_send.split(',', 1)[0].strip()}' 之 ExecMode='{s_mode}' "
+                            f"不合規定（必須為 8 或 9，否則主程式將報錯 'ExecMode of {s_send.split(',', 1)[0].strip().lstrip(':')} must be 8 or 9.'）"
+                        )
+                    if re.search(r',""\$[A-Za-z_]', s_send):
+                        warnings.append(
+                            f"[{st_name} 第 {r_num} 列] Send 指令 '{s_send}' 變數前出現重複雙引號 '\"\"$'（請移除多餘引號以免主程式變數解析失敗）"
                         )
                     if mode_head not in VALID_EXEC_PREFIXES:
                         errors.append(f"[{st_name} 第 {r_num} 列] ExecMode '{s_mode}' 主代碼無效（僅支援 0~11）")

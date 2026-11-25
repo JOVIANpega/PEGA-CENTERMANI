@@ -81,16 +81,20 @@ def _apply_station_header_tooltips(ws_st, preserved_dvs=None):
 
 
 def _write_station_sheet_contents(ws_st, steps, fixed_cell_map, preserved_dvs=None):
-    """Writes a 16-column Station sheet consistently across In-Place and Brand-New exports, preserving hidden rows."""
+    """Writes a 16-column Station sheet consistently across In-Place and Brand-New exports, preserving hidden rows and writing Col 17 (0-based Title LocalStepIndex)."""
     total_steps = len(steps)
     ws_st.append([f"Index_{total_steps:03d}"] + STATION_HEADERS_16[1:])
+    local_offset = 0
     for idx, step in enumerate(steps):
         step["Index"] = f"{idx:03d}"
+        if idx > 0 and str(step.get("Title") or "").strip():
+            local_offset = 0
         row_vals = [
             step.get(h, "") if (step.get(h, "") is not None and str(step.get(h, "")) != "") else None
             for h in STATION_HEADERS_16
-        ]
+        ] + [local_offset]
         ws_st.append(row_vals)
+        local_offset += 1
         if step.get("_hidden"):
             ws_st.row_dimensions[idx + 2].hidden = True
     apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=fixed_cell_map)
