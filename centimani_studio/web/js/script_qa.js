@@ -173,6 +173,31 @@ const QA_SCENARIOS = [
     ],
     tip: '💡 勾選匯出區的「加入 Global.ini 一鍵開關」即可自動產生 *$(EN_xxx) 並在輸出目錄附上 _編寫與使用說明.txt 供現場查閱！',
     sourceRef: 'perter_SCRIPT_11102026（01. FWDL / 08. UF 多工作表分流 + Global.ini AULAB/RL/TitleStatus 切換架構）'
+  },
+  {
+    id: 'qa_phase_gap_minus1',
+    badge: '🔢 Phase = -1 跳號',
+    cardTitle: 'Phase = 0, 1, 2, -1, 4, 97（跳過 3）會被 Centimani 誤判嗎？',
+    cardHint: '不會誤判！引擎會忽略 -1，依 0 ➔ 1 ➔ 2 ➔ 4 ➔ 97 由小到大執行',
+    theme: '#E0F2FE',
+    accent: '#0369A1',
+    chipText: 'Phase=-1 跳號會誤判嗎',
+    keywords: 'phase -1 跳過 跳號 3 直接 4 誤判 不連續 順序 撞號 恢復 還原 centimani',
+    directSteps: [
+      { col: '引擎執行邏輯（不會誤判）', what: 'Centimani 會略過 Phase = -1 的區塊，其餘正整數 Phase 只要「由小到大」即可，不強制連號', ex: '0 ➔ 1 ➔ 2 ➔ -1 ➔ 4 ➔ 97 會正常跑完 Phase 0, 1, 2, 4, 97' },
+      { col: '為何刻意不重編後方的 4？', what: '保留「3」的空位給目前暫停成 -1 的區塊，回產線才不會撞號', ex: '原先是 Phase 3 暫停成 -1，回產線只需把 -1 改回 3，不用連帶修改 Phase 4' },
+      { col: '實戰與體檢雙重驗證', what: '產線既有實戰腳本（如 SwitchBoard 寫 1,2,3,-1,-1,4,-1,5）與 Script Doctor 皆 0 Error 通過', ex: '若要把舊專案的 Phase=-1 復原，對照儲存在該格的註解「原編號為 Phase 3」改回即可' }
+    ],
+    previewCols: ['Phase', 'Title', 'Instrument', 'Send', '執行結果'],
+    highlightCols: ['Phase'],
+    sampleRows: [
+      { Phase: '2', Title: '0,Check UART & FW,3', Instrument: '', Send: 'UART@cat /etc/version\\r\\n', '執行結果': '✅ 正常執行 (第 2 階段)' },
+      { Phase: '-1', Title: '0,Measure Voltage Test,3', Instrument: 'Voltage', Send: ':ObtainDevice', '執行結果': '⏸️ 整段略過（原 Phase 3 暫停）' },
+      { Phase: '4', Title: '0,CHECK_5G_BOARD', Instrument: '', Send: ':GetVal,"$sfSKUCode"', '執行結果': '✅ 正常執行（保留 4 不與原 3 撞號）' },
+      { Phase: '97', Title: '1,End Test Safe Teardown,1', Instrument: '', Send: ':ObtainDevice', '執行結果': '✅ 最後安全收尾執行' }
+    ],
+    tip: '💡 只有在「後方數字小於前方（例如 4 排在 2 前面）」或「一般測項排在 95~99 收尾之後」才會判錯；Phase = -1 造成的空號不會影響執行！',
+    sourceRef: 'SCRIPTS 實戰母體（SwitchBoard: 1,2,3,-1,-1,4,-1,5... / DS_C3PO MainBoard: 1,2,3,4,-1,-1,-1,4,97）'
   }
 ];
 
@@ -219,7 +244,7 @@ function qaHandleSearchInput() {
 function qaRenderChips() {
   const box = document.getElementById('qaQuickChips');
   if (!box) return;
-  const chipIds = ['qa_retry_where', 'qa_pause_skip', 'qa_instrument_once', 'qa_multi_title', 'qa_taipei_vs_line'];
+  const chipIds = ['qa_retry_where', 'qa_pause_skip', 'qa_phase_gap_minus1', 'qa_instrument_once', 'qa_multi_title', 'qa_taipei_vs_line'];
   box.innerHTML = chipIds.map(id => QA_SCENARIOS.find(s => s.id === id)).filter(Boolean).map(s => `
     <button type="button" class="btn qa-chip-btn"
       onclick="qaSelectScenario('${s.id}')"
@@ -332,7 +357,7 @@ function qaRenderResults(rawQuery, forcedId) {
     resBox.innerHTML = `
       <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px 16px; color:#92400E; font-size:0.9rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <span>找不到符合「<b>${qaEscapeHtml(q)}</b>」的條目，請試著輸入 <code>retry 哪裡改</code>、<code>暫停 Phase</code>、<code>Instrument</code>、<code>Title</code>、<code>$</code>，或點選下方「全部 6 大常見情境」。</span>
-        <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:6px 12px; font-size:0.84rem; background:#FFFFFF;">⬅ 回 6 大常見情境</button>
+        <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:6px 12px; font-size:0.84rem; background:#FFFFFF;">⬅ 回 ${QA_SCENARIOS.length} 大常見情境</button>
       </div>
     `;
     return;
@@ -341,7 +366,7 @@ function qaRenderResults(rawQuery, forcedId) {
   resBox.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
       <span style="font-weight:900; font-size:0.93rem; color:#312E81;">🎯 直接解答：${qaEscapeHtml(q)}（共 ${matched.length} 筆最相關方案，越上面越符合）</span>
-      <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:5px 12px; font-size:0.83rem; font-weight:800; background:#F1F5F9; border:1px solid #CBD5E1;">⬅ 回 6 大常見情境</button>
+      <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:5px 12px; font-size:0.83rem; font-weight:800; background:#F1F5F9; border:1px solid #CBD5E1;">⬅ 回 ${QA_SCENARIOS.length} 大常見情境</button>
     </div>
   ` + matched.map((sc, idx) => `
     <div style="background:#FFFFFF; border:${idx === 0 ? '2px solid ' + sc.accent : '1px solid #CBD5E1'}; border-radius:12px; padding:14px 16px; margin-bottom:12px; box-shadow:0 3px 10px rgba(15,23,42,0.06);">

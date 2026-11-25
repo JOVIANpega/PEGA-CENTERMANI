@@ -2322,6 +2322,10 @@ def run_all_verifications():
                   and "原編號為 Phase" in v58_p_minus1_cmt,
                   "v0.8.058 SKU 區塊前插後 NI-6009 標註列位零位移錯位，且 Phase=-1 註解清楚保留原 Phase 編號")
 
+            qa_js_txt = open(os.path.join(STUDIO_DIR, "web", "js", "script_qa.js"), "r", encoding="utf-8").read()
+            check("qa_phase_gap_minus1" in qa_js_txt and "0, 1, 2, -1, 4, 97" in qa_js_txt,
+                  "v0.8.059 Q&A 問答集已新增「Phase = 0, 1, 2, -1, 4, 97 跳號是否誤判」專題說明")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
