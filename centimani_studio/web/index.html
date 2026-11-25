@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.059</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.060</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1010,6 +1010,13 @@
     </div>
 
     <div id="genModeCreate" style="display:none;">
+    <!-- 全新 0 -> 1 積木拖曳堆疊 + 逐塊你問我答工作區 -->
+    <div id="createBlockBuilderRoot"></div>
+    <div id="genAlertBox" class="alert-banner" style="display:none; margin-top:10px;"></div>
+    <div style="margin-top:10px; text-align:right;">
+      <button type="button" class="btn" style="padding:4px 11px; font-size:0.79rem; color:#64748B; background:#F8FAFC; border:1px solid #CBD5E1;" onclick="const lw=document.getElementById('wizLegacyWrap'); if(lw) lw.style.display=(lw.style.display==='none'?'block':'none');">🔁 顯示／隱藏傳統 4 步驟表單精靈（備用）</button>
+    </div>
+    <div id="wizLegacyWrap" style="display:none; margin-top:10px;">
     <!-- 頂部步驟導覽列 -->
     <div class="action-bar" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
       <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
@@ -1164,7 +1171,6 @@
           </button>
         </div>
       </div>
-      <div id="genAlertBox" class="alert-banner" style="display:none;"></div>
     </div>
 
     <!-- 底部步驟導覽按鈕（與上方同步） -->
@@ -1173,6 +1179,7 @@
       <span></span>
       <button id="btnWizNextBottom" class="btn btn-primary-blue" style="padding:8px 20px; font-size:0.93rem;" onclick="goWizardStep(WIZ_STEP + 1)">下一步 ▶</button>
     </div>
+    </div><!-- /wizLegacyWrap -->
     </div><!-- /genModeCreate -->
 
     <!-- 既有腳本編修與加儀器 (1 → N) -->
@@ -1888,13 +1895,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.059"></script>
-<script src="/js/audit_editors.js?v=0.8.059"></script>
-<script src="/js/flow_guide.js?v=0.8.059"></script>
-<script src="/js/block_sorter.js?v=0.8.059"></script>
-<script src="/js/script_qa.js?v=0.8.059"></script>
-<script src="/js/sfis_hmi.js?v=0.8.059"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.059"></script>
+<script src="/js/inst_hmi.js?v=0.8.060"></script>
+<script src="/js/audit_editors.js?v=0.8.060"></script>
+<script src="/js/flow_guide.js?v=0.8.060"></script>
+<script src="/js/block_sorter.js?v=0.8.060"></script>
+<script src="/js/script_qa.js?v=0.8.060"></script>
+<script src="/js/sfis_hmi.js?v=0.8.060"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.060"></script>
+<script src="/js/create_block_builder.js?v=0.8.060"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -2997,6 +3005,9 @@ function switchGenSubMode(mode) {
   if (qBtn) qBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'qa' ? ' active' : '');
   if (tBtn) tBtn.className = 'source-mode-tab' + (GEN_SUB_MODE === 'tools' ? ' active' : '');
 
+  if (GEN_SUB_MODE === 'create' && typeof initCreateBlockBuilder === 'function') {
+    initCreateBlockBuilder();
+  }
   if (GEN_SUB_MODE === 'edit') {
     if (typeof AUDIT_GLOBAL_TAB !== 'undefined') AUDIT_GLOBAL_TAB = 'hub';
     syncEditorView();

@@ -1002,7 +1002,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.059",
+                "server_build": "Build v0.8.060",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1706,7 +1706,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.059")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.060")
 
                 self._send_json({
                     "status": "ok",
@@ -1808,81 +1808,109 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         for suffix in [f"LOAD_{slot}", f"PCIP_{slot}", f"DUTIP_{slot}", f"DUT_UR{slot}", f"PCUART_fixture_{slot}", f"DEVID_{slot}"]:
                             ws["global_ini"]["Settings"].pop(suffix, None)
 
-                blk_order = {b["block_id"]: idx for idx, b in enumerate(STANDARD_BLOCKS)}
-                blk_map = {b["block_id"]: b for b in STANDARD_BLOCKS}
-                # Sort selected block_ids strictly by official pipeline order
-                # Ensuring BLK_PRETEST_ROUTE (Phase 0) is first, test blocks in sequence, and BLK_PHASE97_TEARDOWN is always last
-                sorted_block_ids = sorted(block_ids, key=lambda bid: blk_order.get(bid, 999))
-                sf_cfg_wiz = wizard_config.get("sfis_config")
-                if isinstance(sf_cfg_wiz, dict):
-                    sf_cfg_wiz["has_pretest_route"] = ("BLK_PRETEST_ROUTE" in sorted_block_ids)
-                steps = []
-                for bid in sorted_block_ids:
-                    b = blk_map.get(bid)
-                    if not b:
-                        continue
-                    for k, v in b.get("required_globals", {}).get("Settings", {}).items():
-                        ws["global_ini"]["Settings"][k] = v
-                    for k, v in b.get("required_globals", {}).get("Scripts", {}).items():
-                        ws["global_ini"]["Scripts"][k] = v
-                    for m_name, m_rows in b.get("required_marcos", {}).items():
-                        ws.setdefault("marcos", {})[m_name] = [dict(mr) for mr in m_rows]
-                    custom_steps = build_wizard_block_steps(bid, b, wizard_config, ws)
-                    source_steps = custom_steps if custom_steps is not None else b.get("steps", [])
-                    for st_idx, st_row in enumerate(source_steps):
-                        row_copy = dict(st_row)
-                        ov = testid_overrides.get(f"{bid}::{st_idx}")
-                        if ov:
-                            if ov.get("test_id"):
-                                row_copy["TestID"] = ov["test_id"]
-                            if ov.get("description"):
-                                row_copy["Description"] = ov["description"]
-                        steps.append(row_copy)
+                builder_sequence = payload.get("builder_sequence")
+                sku_wizard_cfg = payload.get("sku_wizard") or wizard_config.get("sku_wizard")
+                if isinstance(builder_sequence, list) and len(builder_sequence) > 0:
+                    from core.block_builder_engine import build_workspace_from_sequence
+                    ws, seq_sku_cfg = build_workspace_from_sequence(
+                        ws, st, builder_sequence, wizard_config, build_wizard_block_steps
+                    )
+                    if seq_sku_cfg and not (isinstance(sku_wizard_cfg, dict) and sku_wizard_cfg.get("enabled")):
+                        sku_wizard_cfg = seq_sku_cfg
+                    steps = ws.get("stations", {}).get(st, [])
+                    # Keep only instruments mounted to st or referenced by built steps
+                    used_inst_funcs = {str(s.get("Instrument", "")).strip().upper() for s in steps if str(s.get("Instrument", "")).strip()}
+                    used_sw_names = {str(s.get("Switch", "")).strip().split(",")[0].strip().lower() for s in steps if str(s.get("Switch", "")).strip()}
+                    for s in steps:
+                        m_sub = re.match(r'^:ObtainSubDevice\s*,\s*"([^"]+)"', str(s.get("Send", "")).strip(), re.IGNORECASE)
+                        if m_sub:
+                            used_sw_names.add(m_sub.group(1).strip().lower())
+                    filtered_insts = []
+                    for inst in ws.get("instruments", []):
+                        inst_name_low = str(inst.get("Name", "")).strip().lower()
+                        inst_funcs = [f.strip().upper() for f in str(inst.get("Functions", "")).split(",") if f.strip()]
+                        mount_list = [m.strip() for m in str(inst.get("Mount", "")).split(",") if m.strip()]
+                        if st in mount_list or any(fn in used_inst_funcs for fn in inst_funcs) or inst_name_low in used_sw_names:
+                            if st not in mount_list:
+                                inst["Mount"] = st
+                            filtered_insts.append(inst)
+                    ws["instruments"] = filtered_insts
+                else:
+                    blk_order = {b["block_id"]: idx for idx, b in enumerate(STANDARD_BLOCKS)}
+                    blk_map = {b["block_id"]: b for b in STANDARD_BLOCKS}
+                    # Sort selected block_ids strictly by official pipeline order
+                    # Ensuring BLK_PRETEST_ROUTE (Phase 0) is first, test blocks in sequence, and BLK_PHASE97_TEARDOWN is always last
+                    sorted_block_ids = sorted(block_ids, key=lambda bid: blk_order.get(bid, 999))
+                    sf_cfg_wiz = wizard_config.get("sfis_config")
+                    if isinstance(sf_cfg_wiz, dict):
+                        sf_cfg_wiz["has_pretest_route"] = ("BLK_PRETEST_ROUTE" in sorted_block_ids)
+                    steps = []
+                    for bid in sorted_block_ids:
+                        b = blk_map.get(bid)
+                        if not b:
+                            continue
+                        for k, v in b.get("required_globals", {}).get("Settings", {}).items():
+                            ws["global_ini"]["Settings"][k] = v
+                        for k, v in b.get("required_globals", {}).get("Scripts", {}).items():
+                            ws["global_ini"]["Scripts"][k] = v
+                        for m_name, m_rows in b.get("required_marcos", {}).items():
+                            ws.setdefault("marcos", {})[m_name] = [dict(mr) for mr in m_rows]
+                        custom_steps = build_wizard_block_steps(bid, b, wizard_config, ws)
+                        source_steps = custom_steps if custom_steps is not None else b.get("steps", [])
+                        for st_idx, st_row in enumerate(source_steps):
+                            row_copy = dict(st_row)
+                            ov = testid_overrides.get(f"{bid}::{st_idx}")
+                            if ov:
+                                if ov.get("test_id"):
+                                    row_copy["TestID"] = ov["test_id"]
+                                if ov.get("description"):
+                                    row_copy["Description"] = ov["description"]
+                            steps.append(row_copy)
 
-                # Keep only instruments actually referenced by selected blocks (cleaner mother workbook) and set Mount=st
-                used_inst_funcs = {str(s.get("Instrument", "")).strip().upper() for s in steps if str(s.get("Instrument", "")).strip()}
-                used_sw_names = {str(s.get("Switch", "")).strip().split(",")[0].strip().lower() for s in steps if str(s.get("Switch", "")).strip()}
-                for s in steps:
-                    m_sub = re.match(r'^:ObtainSubDevice\s*,\s*"([^"]+)"', str(s.get("Send", "")).strip(), re.IGNORECASE)
-                    if m_sub:
-                        used_sw_names.add(m_sub.group(1).strip().lower())
-                filtered_insts = []
-                func_to_inst_name = {}
-                seen_funcs = set()
-                for inst in ws.get("instruments", []):
-                    inst_name_low = str(inst.get("Name", "")).strip().lower()
-                    inst_funcs = [f.strip().upper() for f in str(inst.get("Functions", "")).split(",") if f.strip()]
-                    matched = [fn for fn in inst_funcs if fn in used_inst_funcs and fn not in seen_funcs]
-                    if matched or inst_name_low in used_sw_names:
-                        inst["Mount"] = st
-                        seen_funcs.update(matched)
-                        for fn in matched:
-                            func_to_inst_name.setdefault(fn, inst.get("Name", ""))
-                        filtered_insts.append(inst)
-                ws["instruments"] = filtered_insts
-                # Fill missing Col F (Switch) on Instrument rows (e.g. POWERSWITCH) with mounted device Name
-                for st_row in steps:
-                    if str(st_row.get("Instrument", "")).strip() and not str(st_row.get("Switch", "")).strip():
-                        fn_up = str(st_row.get("Instrument", "")).strip().upper()
-                        if fn_up in func_to_inst_name and func_to_inst_name[fn_up]:
-                            st_row["Switch"] = func_to_inst_name[fn_up]
+                    # Keep only instruments actually referenced by selected blocks (cleaner mother workbook) and set Mount=st
+                    used_inst_funcs = {str(s.get("Instrument", "")).strip().upper() for s in steps if str(s.get("Instrument", "")).strip()}
+                    used_sw_names = {str(s.get("Switch", "")).strip().split(",")[0].strip().lower() for s in steps if str(s.get("Switch", "")).strip()}
+                    for s in steps:
+                        m_sub = re.match(r'^:ObtainSubDevice\s*,\s*"([^"]+)"', str(s.get("Send", "")).strip(), re.IGNORECASE)
+                        if m_sub:
+                            used_sw_names.add(m_sub.group(1).strip().lower())
+                    filtered_insts = []
+                    func_to_inst_name = {}
+                    seen_funcs = set()
+                    for inst in ws.get("instruments", []):
+                        inst_name_low = str(inst.get("Name", "")).strip().lower()
+                        inst_funcs = [f.strip().upper() for f in str(inst.get("Functions", "")).split(",") if f.strip()]
+                        matched = [fn for fn in inst_funcs if fn in used_inst_funcs and fn not in seen_funcs]
+                        if matched or inst_name_low in used_sw_names:
+                            inst["Mount"] = st
+                            seen_funcs.update(matched)
+                            for fn in matched:
+                                func_to_inst_name.setdefault(fn, inst.get("Name", ""))
+                            filtered_insts.append(inst)
+                    ws["instruments"] = filtered_insts
+                    # Fill missing Col F (Switch) on Instrument rows (e.g. POWERSWITCH) with mounted device Name
+                    for st_row in steps:
+                        if str(st_row.get("Instrument", "")).strip() and not str(st_row.get("Switch", "")).strip():
+                            fn_up = str(st_row.get("Instrument", "")).strip().upper()
+                            if fn_up in func_to_inst_name and func_to_inst_name[fn_up]:
+                                st_row["Switch"] = func_to_inst_name[fn_up]
 
-                # Ensure non-teardown Phases are strictly contiguous (0, 1, 2, 3...) with no gaps
-                if steps and str(steps[0].get("Phase", "")).strip() == "":
-                    steps[0]["Phase"] = "0"
-                next_phase = 0
-                for st_row in steps:
-                    p_str = str(st_row.get("Phase", "")).strip()
-                    if p_str != "":
-                        try:
-                            p_val = int(p_str)
-                            if 0 <= p_val < 97:
-                                st_row["Phase"] = str(next_phase)
-                                next_phase += 1
-                        except ValueError:
-                            pass
+                    # Ensure non-teardown Phases are strictly contiguous (0, 1, 2, 3...) with no gaps
+                    if steps and str(steps[0].get("Phase", "")).strip() == "":
+                        steps[0]["Phase"] = "0"
+                    next_phase = 0
+                    for st_row in steps:
+                        p_str = str(st_row.get("Phase", "")).strip()
+                        if p_str != "":
+                            try:
+                                p_val = int(p_str)
+                                if 0 <= p_val < 97:
+                                    st_row["Phase"] = str(next_phase)
+                                    next_phase += 1
+                            except ValueError:
+                                pass
 
-                ws["stations"] = {st: steps}
+                    ws["stations"] = {st: steps}
 
                 sf_hmi_meta = (wizard_config.get("sfis_config") or {}).get("hmi_config") if isinstance(wizard_config.get("sfis_config"), dict) else None
                 if isinstance(sf_hmi_meta, dict) and (wizard_config.get("sfis_config") or {}).get("use_hmi_items"):
@@ -2019,7 +2047,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.059")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.060")
 
                 self._send_json({
                     "status": "ok",
@@ -2270,7 +2298,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.059")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.060")
 
                 self._send_json({
                     "status": "ok",
@@ -2640,7 +2668,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.059")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.060")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2806,7 +2834,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.059) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.060) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

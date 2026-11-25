@@ -101,6 +101,9 @@
       return;
     }
     TSW.targetMode = (mode === 'edit') ? 'edit' : 'create';
+    if (TSW.targetMode === 'edit' && window.STATE) {
+      window.STATE._builderSectionsOverride = null;
+    }
     TSW.previewOpen = false;
     TSW.previewRes = null;
 
@@ -161,6 +164,15 @@
         }
       });
     } else if (window.STATE) {
+      if (Array.isArray(window.STATE._builderSectionsOverride) && window.STATE._builderSectionsOverride.length) {
+        window.STATE._builderSectionsOverride.forEach((sec) => {
+          const lbl = String(sec.section_title || '').trim();
+          if (lbl && !seen.has(lbl.toLowerCase())) {
+            seen.add(lbl.toLowerCase());
+            items.push({ section_title: lbl, badge: sec.badge || '積木測項' });
+          }
+        });
+      }
       const blkMap = {};
       (window.STATE.blocks || []).forEach((b) => { blkMap[b.block_id] = b; });
       (window.STATE.selectedBlockIds || []).forEach((bid) => {

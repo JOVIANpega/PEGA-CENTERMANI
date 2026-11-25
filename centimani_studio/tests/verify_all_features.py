@@ -2326,6 +2326,57 @@ def run_all_verifications():
             check("qa_phase_gap_minus1" in qa_js_txt and "0, 1, 2, -1, 4, 97" in qa_js_txt,
                   "v0.8.059 Q&A 問答集已新增「Phase = 0, 1, 2, -1, 4, 97 跳號是否誤判」專題說明")
 
+            # [v0.8.060] 驗證 0->1 積木拖曳堆疊與逐塊你問我答工作區 + builder_sequence 後端端到端生成
+            cbb_js_path = os.path.join(STUDIO_DIR, "web", "js", "create_block_builder.js")
+            cbb_js_txt = open(cbb_js_path, "r", encoding="utf-8").read() if os.path.exists(cbb_js_path) else ""
+            check(os.path.exists(cbb_js_path)
+                  and 'id="createBlockBuilderRoot"' in index_html
+                  and "create_block_builder.js" in index_html
+                  and "bbShowPop" in cbb_js_txt
+                  and "bbToggleFullscreen" in cbb_js_txt
+                  and "exclusivePage: true" in cbb_js_txt
+                  and ".bb-step-pill" in cbb_js_txt,
+                  "v0.8.060 新版 0→1 小積木拖曳庫（含 Pop 視窗/紅標專屬頁/全螢幕/彩灰進度條）已掛載完成")
+
+            v60_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V60_BUILDER",
+                "station_name": "FT",
+                "dut_count": 1,
+                "wizard_config": {"isn_length": 12, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "u1", "kind": "isn", "config": {"project": "V60_BUILDER", "station": "FT", "dut_count": 1, "isn_len": 12, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "u2", "kind": "sfis_route", "config": {"sfis_mode": "offline", "tsp": "PEGA,2"}},
+                    {"uid": "u3", "kind": "comm_cmd", "config": {
+                        "protocol": "ssh", "title": "SSH Get Ver", "command": "cat /etc/version",
+                        "end_prompt": "#", "waiting": "5000", "retry": "3", "extract_mode": "within",
+                        "left_delim": "version=", "right_delim": "\\n", "var_name": "gFwVer", "val_type": "%s", "expect_min": "1.2.3"
+                    }},
+                    {"uid": "u4", "kind": "delay", "config": {"ms": "1500", "note": "Wait 1.5s"}},
+                    {"uid": "u5", "kind": "prompt_box", "config": {"prompt_mode": "yes_no", "title": "LED Check", "message": "Blue LED ON?", "yes_label": "Yes", "no_label": "No", "no_policy": "fail"}},
+                    {"uid": "u6", "kind": "inst", "config": {
+                        "inst_mode": "ni6009", "mode": "RSE", "sample_ms": "1000", "dev_id": "Dev1",
+                        "title_name": "Volt Check", "channels": [{"ch": 0, "name": "VCC_3V3", "dl": "3.15", "ul": "3.45"}]
+                    }},
+                    {"uid": "u7", "kind": "var_check", "config": {"title": "Double Check 3V3", "var_name": "VCC_3V3", "check_mode": "limit", "val_type": "%f", "dl": "3.15", "ul": "3.45"}},
+                    {"uid": "u8", "kind": "teardown", "config": {"teardown_mode": "97_98_99"}},
+                ],
+            })
+            ws_v60 = _parse_v50(v60_res["excel_path"])
+            v60_sends = [str(r.get("Send") or "") for r in ws_v60["stations"]["FT"]]
+            v60_refs = [str(r.get("Ref") or "") for r in ws_v60["stations"]["FT"]]
+            v60_audit = post_json("/api/re_audit", {"workspace": ws_v60})
+            v60_errs = (v60_audit.get("report") or {}).get("errors") or []
+            check(v60_res.get("status") == "ok"
+                  and any("SSH1@cat /etc/version" in s for s in v60_sends)
+                  and any("WithinString" in rf for rf in v60_refs)
+                  and any(':Delay,"1500"' in s for s in v60_sends)
+                  and any(':ShowConfirmBox,"Blue LED ON?","Yes;No"' in s for s in v60_sends)
+                  and any(':Dev.VOLTAGE' in s for s in v60_sends)
+                  and any(':CheckLimit,"*(VCC_3V3)"' in s for s in v60_sends)
+                  and len(v60_errs) == 0,
+                  "v0.8.060 builder_sequence (SSH+WithinString+Delay+YES/NO+NI6008+CheckLimit+97/98/99) 生成 0 Error 實戰測試包通過",
+                  f"errs={v60_errs}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
