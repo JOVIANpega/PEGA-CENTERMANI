@@ -1210,8 +1210,15 @@ def run_all_verifications():
                 "global_ini": {"Settings": {}, "Scripts": {}},
                 "instruments": [], "switches": [],
                 "duts": [
-                    {"Load": "*$(LOAD_1)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,1", "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM1"'},
-                    {"Load": "*$(LOAD_2)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,2", "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM2"'},
+                    {
+                        "Load": "*$(LOAD_1)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,1",
+                        "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM1"',
+                        "Connection2 (Type,Name,ConnectString)": '"Uart","UART","COM2"',
+                    },
+                    {
+                        "Load": "*$(LOAD_2)", "DUT Name": "MD_AUDIT$MB", "Station": "MB,2",
+                        "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM3"',
+                    },
                 ],
                 "marcos": {},
                 "stations": {"MB": [
@@ -1717,6 +1724,94 @@ def run_all_verifications():
                   and "重複雙引號" in v49_warn_txt,
                   "v0.8.049 Col 17 LocalStepIndex 重算、未掛載儀器降噪、:SfSaveLinkData EM 與 ""$ 雙引號防呆驗證全數通過",
                   f"col17={col17_vals}, errs={v49_rep.get('errors')}, warns={v49_warn_txt}")
+
+            # [v0.8.050] 驗證 4 大新實戰積木 (Sub=1 DevUart+FinalGo / Prompt="!" 串流 / :SfEnabled 4:2,4 / Phase 98/99 分流) 與多槽同連線別名驗證
+            from core.golden_data import STANDARD_BLOCKS as _STD_V50
+            from core.excel_engine import import_excel_to_workspace as _parse_v50
+            std_ids_v50 = {b["block_id"] for b in _STD_V50}
+            new_v50_blocks = [
+                "BLK_SUBDEV_DEVUART_FINALGO",
+                "BLK_SFIS_ENABLED_BRANCH",
+                "BLK_FW_STREAM_PROMPT_FLASH",
+                "BLK_PHASE98_99_BRANCH_TEARDOWN",
+            ]
+            check(all(bid in std_ids_v50 for bid in new_v50_blocks),
+                  "v0.8.050 STANDARD_BLOCKS 已完整納入 4 大實戰積木 (DevUart+FinalGo / :SfEnabled / Prompt='!' / Phase 98-99)",
+                  str(sorted(std_ids_v50)))
+
+            wiz_v50 = post_json("/api/generate_new_standalone", {
+                "project_name": "V50_STD",
+                "station_name": "MB",
+                "dut_count": 4,
+                "block_ids": [
+                    "BLK_PRETEST_ROUTE",
+                    "BLK_SUBDEV_DEVUART_FINALGO",
+                    "BLK_SFIS_ENABLED_BRANCH",
+                    "BLK_FW_STREAM_PROMPT_FLASH",
+                    "BLK_PHASE97_TEARDOWN",
+                    "BLK_PHASE98_99_BRANCH_TEARDOWN",
+                ],
+                "open_excel": False,
+            })
+            ws_v50 = _parse_v50(wiz_v50["excel_path"])
+            rep_v50 = _audit_ws(ws_v50)
+            v50_mb_rows = ws_v50["stations"].get("MB", [])
+            v50_inst_map = {str(i.get("Name", "")): i for i in ws_v50.get("instruments", [])}
+            v50_phases = {str(r.get("Phase", "")).strip() for r in v50_mb_rows if str(r.get("Phase", "")).strip()}
+            v50_conns = [str(d.get("Connection1 (Type,Name,ConnectString)", "")) for d in ws_v50.get("duts", [])]
+            check(wiz_v50.get("status") == "ok"
+                  and v50_inst_map.get("DevUart", {}).get("Mount") == "MB"
+                  and any(str(r.get("Prompt", "")).strip() == "!" for r in v50_mb_rows)
+                  and any(":SfEnabled" in str(r.get("Send", "")) and str(r.get("ExecMode", "")).strip() == "4:2,4" for r in v50_mb_rows)
+                  and {"0", "97", "98", "99"}.issubset(v50_phases)
+                  and len(v50_conns) == 4 and all('"UART"' in c for c in v50_conns)
+                  and rep_v50.get("error_count", -1) == 0,
+                  "v0.8.050 四大新積木一鍵產出含 4 槽共用 UART、DevUart 自動掛載、Prompt='!'、:SfEnabled 4:2,4 與 Phase 98/99 且 0 Error",
+                  f"errs={rep_v50.get('errors')}, inst={v50_inst_map.get('DevUart')}, phases={sorted(v50_phases)}")
+
+            # 驗證單一 DUT 列內重複 Connection5 與跨槽 4 槽共用 UART/STCmd 區分 + auto_fix 不破壞 DUT Name
+            mdut_ws = {
+                "project_name": "MDUT", "station_name": "MB",
+                "global_ini": {"Settings": {"LOAD_1": "true", "LOAD_2": "true"}, "Scripts": {}},
+                "instruments": [], "switches": [],
+                "duts": [
+                    {
+                        "Load": "*$(LOAD_1)", "DUT Name": "MDUT$MB", "Station": "MB,1",
+                        "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM1"',
+                        "Connection5(Type,Name,ConnectString)": '"Uart","UART","COM9"',
+                    },
+                    {
+                        "Load": "*$(LOAD_2)", "DUT Name": "MDUT$MB", "Station": "MB,2",
+                        "Connection1 (Type,Name,ConnectString)": '"Uart","UART","COM2"',
+                    },
+                ],
+                "marcos": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ':ShowISN,"*(ISN)"', "Reply": "0", "ExecMode": "0", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "Reply": "0", "ExecMode": "8", "TestID": "OTCH013"},
+                    {"Index": "002", "Phase": "97", "Title": "1,End", "Send": ":CloseMessage", "Reply": "0", "ExecMode": "3", "TestID": "B7PL025"},
+                ]},
+            }
+            mdut_before = _audit_ws(mdut_ws)
+            _autofix_ws(mdut_ws)
+            mdut_after = _audit_ws(mdut_ws)
+            check(any("同一 DUT 列內出現重複連線名稱 'UART'" in e for e in mdut_before.get("errors", []))
+                  and '"UART_5"' in str(mdut_ws["duts"][0].get("Connection5(Type,Name,ConnectString)", ""))
+                  and '"UART"' in str(mdut_ws["duts"][1].get("Connection1 (Type,Name,ConnectString)", ""))
+                  and mdut_ws["duts"][1].get("DUT Name") == "MDUT$MB"
+                  and mdut_after.get("error_count", -1) == 0,
+                  "v0.8.050 DUTs 同列 Connection1..10 重複精準攔截修復、跨槽共用 UART 與 DUT Name (Project$Station) 完整保留",
+                  f"before={mdut_before.get('errors')}, duts={mdut_ws['duts']}, after={mdut_after.get('errors')}")
+
+            fwdl_sample = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                                       "SCRIPTS", "perter_SCRIPT_11102026", "01. FWDL", "System",
+                                       "Centimani_Olympus_TestFlow_FWDL_20241016-42V.xlsx")
+            if os.path.exists(fwdl_sample):
+                fwdl_ws = _parse_v50(fwdl_sample)
+                fwdl_rep = _audit_ws(fwdl_ws)
+                check(not any("Connection Name :" in e for e in fwdl_rep.get("errors", [])),
+                      "v0.8.050 實戰 01. FWDL (20241016-42V.xlsx) 4 槽同名通道連線零誤報",
+                      str(fwdl_rep.get("errors")))
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

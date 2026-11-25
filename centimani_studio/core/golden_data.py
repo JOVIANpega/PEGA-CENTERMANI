@@ -43,11 +43,12 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
     """Returns a complete Golden Blank Mother Template (Properties, 4-Slot DUTs, Switch, Instrument, and initial Station)."""
     duts_rows = []
     for slot in range(1, 5):
-        # Centimani requires unique Connection Names across DUTs if multi-slot (e.g. UART_1, UART_2)
+        # Centimani checks ConnectionList uniqueness per DUT row (NOT across multi-DUT slots):
+        # Parallel slots 1..4 share connection aliases ("UART", "CmdConsole", "UARTF") while each row binds its own COM Port,
         # and Utility is built-in so Connection4 is not needed
-        conn1_name = "UART" if slot == 1 else f"UART_{slot}"
-        conn2_name = "CmdConsole" if slot == 1 else f"CmdConsole_{slot}"
-        conn3_name = "UARTF" if slot == 1 else f"UARTF_{slot}"
+        conn1_name = "UART"
+        conn2_name = "CmdConsole"
+        conn3_name = "UARTF"
         duts_rows.append({
             "Load": f"*$(LOAD_{slot})",
             "DUT Name": f"{project_name}${station_name}",
@@ -116,7 +117,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
             {"Mount": "", "Name": "Redrat", "Sub": "", "ControlDLL": "RedratOut.dll", "Settings": "", "Functions": "IR,RRout", "Version": "1.0.0.0", "Switch": "", "Desc": "RedRat IR Blaster"},
             {"Mount": "", "Name": "SFE100", "Sub": "", "ControlDLL": "SFE100.dll", "Settings": "", "Functions": "SFE,SETDVBC,PREDEV,RESDEV,DEFDEV", "Version": "1.0.0.0", "Switch": "", "Desc": "SFE100 Test Device"},
             {"Mount": "", "Name": "ScpTDS3014B", "Sub": "", "ControlDLL": "ScpTDS3014B.dll", "Settings": "", "Functions": "Scope,RMS,VOLAGE,FREQ,MEAN,AMPL,PK2PK", "Version": "1.0.3.2", "Switch": "", "Desc": "Tektronix TDS3014B Oscilloscope"},
-            {"Mount": "", "Name": "DevUart", "Sub": "1", "ControlDLL": "DevUart.dll", "Settings": "", "Functions": "UART", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller (SubDevice)"},
+            {"Mount": "", "Name": "DevUart", "Sub": "1", "ControlDLL": "DevUart.dll", "Settings": "*$(FIXUART_1),19200,8,One,None,None,10000,5000", "Functions": "AddAttributes,Send,Receive", "Version": "1.0.1.1", "Switch": "", "Desc": "SubDevice UART Controller (SubDevice)"},
             {"Mount": "", "Name": "AutoTFTP", "Sub": "", "ControlDLL": "AutoTFTP.dll", "Settings": "", "Functions": "TFTP", "Version": "1.0.0.0", "Switch": "", "Desc": "Auto TFTP Server"},
             {"Mount": "", "Name": "DevQueue", "Sub": "", "ControlDLL": "DevQueue.dll", "Settings": "", "Functions": "Queue", "Version": "1.0.1.0", "Switch": "", "Desc": "Device Queue Sync"},
             {"Mount": "", "Name": "LVdev", "Sub": "", "ControlDLL": "tf_LVDevice.dll", "Settings": "", "Functions": "LV", "Version": "1.0.0.0", "Switch": "", "Desc": "LabVIEW Test Device"},
@@ -147,6 +148,7 @@ def get_golden_mother(project_name="NEW_PROJECT", station_name="MB"):
                 "PCUART_fixture_3": "COM10",
                 "PCUART_fixture_4": "COM11",
                 "PCUART_P": "COM12",
+                "FIXUART_1": "COM43",
                 "DUT_Login": "root",
                 "LOAD_1": "true",
                 "LOAD_2": "false",
@@ -541,6 +543,22 @@ STANDARD_BLOCKS = [
         ]
     },
     {
+        "block_id": "BLK_SUBDEV_DEVUART_FINALGO",
+        "category": "01. 前置與治具控制 (Phase 0)",
+        "name": "Sub=1 共用子裝置 (DevUart) 與一拖四 FinalGo 同步柵欄",
+        "description": "01. FWDL 實戰寫法：多槽共用單一治具 COM Port (Sub=1 DevUart)，Col E/F 留空，以 :InitFinalGo / :CheckFinalGo 同步四槽並夾住 :ObtainSubDevice -> :sDev.* -> :ReleaseSubDevice。",
+        "default_phase": "1",
+        "required_globals": {"Settings": {"FIXUART_1": "COM43"}, "Scripts": {}},
+        "steps": [
+            {"Phase": "1", "Title": "0,Fixture Sync & SubDevice,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ObtainSubDevice,"DevUart"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "Fixture#-#Obtain Shared SubDevice DevUart", "TestID": "BRME027"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":InitFinalGo", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Init Multi-DUT FinalGo Barrier", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':sDev.Send,"55 AA 01 00 00 00 00 00 00 00 0D 0A,,@55 AA,,5000,true"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "Fixture#-#Trigger Shared Fixture Relay", "TestID": "OTFX157"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':sDev.Announce,"SAT{1},start"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "Fixture#-#Announce Slot Ready to Barrier", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":CheckFinalGo", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Wait All Slots Reach FinalGo Barrier", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":ReleaseSubDevice", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Fixture#-#Release SubDevice DevUart", "TestID": "BRME027"}
+        ]
+    },
+    {
         "block_id": "BLK_VOLT_NI6008_BATCH",
         "category": "02. 電壓與電流測試 (Voltage & Power)",
         "name": "NI-6008 / NI-6009 電壓量測（支援單端 RSE 與差動 DIFF）",
@@ -581,6 +599,21 @@ STANDARD_BLOCKS = [
             {"Phase": "4", "Title": "0,Check UART & FW Version,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Connect UART Port", "TestID": "OTFX082"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r\\n", "Reply": "@#", "EndPrompt": "#", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Check Console Prompt", "TestID": "OTFX079"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@cat /etc/version\\r\\n", "Reply": "@", "EndPrompt": "#", "Ref": '$DUT_FW:WithinString,"version=","\\r\\n","":Trim', "Validation": "(DUT_FW,%s,*$(FW_VERSION),*$(FW_VERSION))", "Prompt": "", "Waiting": "5000", "ExecMode": "1", "Description": "DUT#-#Verify Firmware Version", "TestID": "VSCH026"}
+        ]
+    },
+    {
+        "block_id": "BLK_SFIS_ENABLED_BRANCH",
+        "category": "04. SFIS 資料讀取與寫入 (SFIS & MAC/SN)",
+        "name": "SFIS 線上／離線雙模自動旁路分支 (:SfEnabled + 4:P,F)",
+        "description": "01. FWDL Phase 3/4 實戰骨架：以 :SfEnabled 判斷 System.ini SFIS_Enable；產線 (=1) 執行線上取號，離線除錯 (=0) 依 ExecMode=4:2,4 自動保留離線預設值並匯流向下執行。",
+        "default_phase": "5",
+        "required_globals": {"Settings": {}, "Scripts": {"DebugMAC_Def": "001122334455"}},
+        "steps": [
+            {"Phase": "5", "Title": "0,SFIS Dual-Mode Branch,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':SetVal,"gMAC","*$(DebugMAC_Def)"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#Preset Offline Fallback MAC", "TestID": "OTFX054"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":SfEnabled", "Reply": "1", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "4:2,4", "Description": "SFIS#-#Check SFIS_Enable (Online=2, Offline=4)", "TestID": "OTCH013"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':SfGetVersion,"*(ISN)","ISN_BASEINFO","2","MAC1",""', "Reply": "", "EndPrompt": "", "Ref": "$gMAC", "Validation": "(gMAC,%len,12,12)", "Prompt": "", "Waiting": "", "ExecMode": "9", "Description": "SFIS#-#Get Online MAC1", "TestID": "OTFX133"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':SfGetiMAC,"*(ISN)","1","1","2"', "Reply": "", "EndPrompt": "", "Ref": '$sfMAC:SubString,"0","12";', "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "8", "Description": "SFIS#-#Get Online iMAC", "TestID": "OTFX085"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Delay,"200"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "0", "Description": "PC#-#SFIS Online/Offline Branch Convergence", "TestID": "B7PL025"}
         ]
     },
     {
@@ -710,6 +743,22 @@ STANDARD_BLOCKS = [
         ]
     },
     {
+        "block_id": "BLK_FW_STREAM_PROMPT_FLASH",
+        "category": "03. UART 通訊與韌體升級 (Console & FW)",
+        "name": "長輸出串流分段燒錄範本 (Prompt=\"!\" ＋ 階段重試)",
+        "description": "01. FWDL STM32/MT7682/Vi37 燒錄實戰寫法：Prompt 欄填 '!' 持續監聽同一支 Console 串流（Erase -> Download -> Verify），分段設定 Waiting 與 ExecMode=2:0 退回重試。",
+        "default_phase": "11",
+        "required_globals": {"Settings": {"FlashTool": "STM32_Programmer_CLI.exe"}, "Scripts": {}},
+        "steps": [
+            {"Phase": "11", "Title": "0,Streaming FW Flash,3", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Connect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "1", "Description": "PC#-#Connect Flash Console", "TestID": "OTFX082"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@erase_and_flash\\r\\n", "Reply": "@ERASE_START", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "!", "Waiting": "10000", "ExecMode": "2:0", "Description": "DUT#-#Stage 1 Erase Start", "TestID": "OTFX079"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r", "Reply": "@Mass erase successfully achieved", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "!", "Waiting": "20000", "ExecMode": "2:0", "Description": "DUT#-#Stage 2 Mass Erase Complete", "TestID": "OTFX079"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r", "Reply": "@File download complete", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "!", "Waiting": "30000", "ExecMode": "2:0", "Description": "DUT#-#Stage 3 Firmware Download Complete", "TestID": "IPIO01D"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UART@\\r", "Reply": "@Start operation achieved successfully", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "!", "Waiting": "30000", "ExecMode": "1", "Description": "DUT#-#Stage 4 Verify & Start OK", "TestID": "VSCH026"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close Flash Console", "TestID": "B7PL025"}
+        ]
+    },
+    {
         "block_id": "BLK_PHASE97_TEARDOWN",
         "category": "97. 強制安全收尾 (Phase 97 End Test)",
         "name": "Phase 97 強制斷電、治具抬起與資源釋放",
@@ -723,6 +772,20 @@ STANDARD_BLOCKS = [
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": "UARTF@F\\r\\n", "Reply": "", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Fixture#-#Pneumatic Fixture UP", "TestID": "OTFX157"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UARTF"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "Fixture#-#Disconnect Fixture UART", "TestID": "B7PL025"},
             {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ':Disconnect,"UART"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Disconnect DUT UART", "TestID": "B7PL025"}
+        ]
+    },
+    {
+        "block_id": "BLK_PHASE98_99_BRANCH_TEARDOWN",
+        "category": "97. 強制安全收尾 (Phase 97 End Test)",
+        "name": "Phase 98 (PASS 後) 與 Phase 99 (FAIL 後) 分流收尾",
+        "description": "01. FWDL / 09. ACOUSTIC 實戰架構：Phase 98 僅在整站 PASS 後執行（成功提示／狀態寫回）；Phase 99 僅在 FAIL 後執行（故障提示與安全復位）。",
+        "default_phase": "98",
+        "required_globals": {"Settings": {}, "Scripts": {}},
+        "steps": [
+            {"Phase": "98", "Title": "0,End Test PASS Branch,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowMessage,"TEST PASS - Ready for Unload"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#PASS Only Post-Action", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":CloseMessage", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close PASS Prompt", "TestID": "B7PL025"},
+            {"Phase": "99", "Title": "0,End Test FAIL Branch,1", "Marco": "", "Instrument": "", "Switch": "", "Send": ':ShowMessage,"TEST FAIL - Check Fixture & Log"', "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#FAIL Only Alarm & Log", "TestID": "B7PL025"},
+            {"Phase": "", "Title": "", "Marco": "", "Instrument": "", "Switch": "", "Send": ":CloseMessage", "Reply": "0", "EndPrompt": "", "Ref": "", "Validation": "", "Prompt": "", "Waiting": "", "ExecMode": "3", "Description": "PC#-#Close FAIL Prompt", "TestID": "B7PL025"}
         ]
     }
 ]

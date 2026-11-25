@@ -368,6 +368,18 @@ def _collect_dll_search_dirs(src_file=""):
     return dirs
 
 
+def _iter_dut_connection_columns(d_row):
+    """Yields (col_index, col_key) for Connection1..10 columns of a DUT row in numeric order."""
+    conn_cols = []
+    for key in d_row.keys():
+        m_col = re.match(r"^Connection(\d+)\b", str(key).strip(), re.I)
+        if m_col:
+            conn_cols.append((int(m_col.group(1)), key))
+    conn_cols.sort(key=lambda item: item[0])
+    for col_idx, col_key in conn_cols:
+        yield col_idx, col_key
+
+
 def audit_workspace(workspace):
     """
     Runs the 10-Point Logic & Optimization Audit on a workspace dict.
@@ -416,14 +428,12 @@ def audit_workspace(workspace):
                 f"[DUTs 表] 找不到測試站 '{st_n}' 的 DUT 設定列（Centimani 啟動將報錯 'No any DUT is set.'，一鍵修復可自動補齊）"
             )
 
-    # Rule 5A-3: Ensure Connection1..4 names are unique per Station across active DUTs slots
-    dut_conns_by_st = {}
+    # Rule 5A-3: Ensure Connection1..10 names are unique within each DUT row
+    # (In CentimaniSystem.exe, DUT.ConnectionList is checked per DUT object; multi-DUT slots share aliases like UART/STCmd.)
     for idx_d, d_row in enumerate(workspace.get("duts", []), start=2):
-        st_prefix = str(d_row.get("Station", "")).split(",")[0].strip()
-        if not st_prefix:
-            continue
-        seen_c = dut_conns_by_st.setdefault(st_prefix, set())
-        for c_col in [f"Connection{i} (Type,Name,ConnectString)" for i in range(1, 5)] + ["Connection4(Type,Name,ConnectString)"]:
+        st_prefix = str(d_row.get("Station", "")).split(",")[0].strip() or "?"
+        seen_c = set()
+        for _, c_col in _iter_dut_connection_columns(d_row):
             c_raw = str(d_row.get(c_col, "")).strip()
             m_cn = re.match(r'^"[^"]*","([^"]*)"', c_raw)
             if m_cn:
@@ -431,7 +441,7 @@ def audit_workspace(workspace):
                 if c_name:
                     if c_name in seen_c:
                         errors.append(
-                            f"[DUTs 第 {idx_d} 列] 站別 '{st_prefix}' 的連線名稱 '{c_name}' 重複（Centimani 啟動將報錯 'Connection Name :{c_name} is duplicate.'，一鍵修復可自動區隔）"
+                            f"[DUTs 第 {idx_d} 列] 站別 '{st_prefix}' 同一 DUT 列內出現重複連線名稱 '{c_name}'（Centimani 啟動將報錯 'Connection Name :{c_name} is duplicate.'，一鍵修復可自動區隔）"
                         )
                     else:
                         seen_c.add(c_name)
@@ -1166,15 +1176,14 @@ def auto_fix_workspace(workspace, user_choices=None):
             dut_station_prefixes.add(st_n)
             fixed_logs.append(f"[DUTs 表] 已為測試站 '{st_n}' 自動補齊 DUT 設定列（防止 Centimani 啟動報錯 'No any DUT is set.'）")
 
-    if len(duts) > 1:
+    if len(duts) >= 1:
         st_row_groups = {}
         for d in duts:
             sv = str(d.get("Station", "")).strip()
             sp = sv.split(",")[0].strip() if sv else (next(iter(workspace.get("stations", {}).keys()), "MB"))
             st_row_groups.setdefault(sp, []).append(d)
 
-        seen_dut_by_st = {}
-        seen_conn_by_st = {}
+        proj_fallback = str(workspace.get("project_name", "")).strip() or "PROJ"
         slot_counters = {}
         for d in duts:
             st_val = str(d.get("Station", "")).strip()
@@ -1183,16 +1192,10 @@ def auto_fix_workspace(workspace, user_choices=None):
             slot_counters[st_prefix] = slot_idx
             group_len = len(st_row_groups.get(st_prefix, [d]))
 
-            seen_dut_names = seen_dut_by_st.setdefault(st_prefix, set())
-            seen_conn_names = seen_conn_by_st.setdefault(st_prefix, set())
-
             d_name = str(d.get("DUT Name", "")).strip()
-            if not d_name or d_name in seen_dut_names:
-                base = d_name.split("_")[0] if "_" in d_name else (d_name or "DUT")
-                new_d_name = f"{base}_{slot_idx}"
-                d["DUT Name"] = new_d_name
-                fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列 DUT Name 重複或空白，已自動更名為唯一識別名 '{new_d_name}'")
-            seen_dut_names.add(d.get("DUT Name"))
+            if not d_name or not d_name.endswith(st_prefix):
+                d["DUT Name"] = f"{proj_fallback}${st_prefix}"
+                fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列 DUT Name 已標準化為 '{d['DUT Name']}'（符合 Project$StationName 規範）")
 
             # Update Station column per-station (preserve single-slot ',0' or dynamic '*$(...)', else 1..4)
             if "," in st_val:
@@ -1204,9 +1207,10 @@ def auto_fix_workspace(workspace, user_choices=None):
                 elif group_len > 1 or raw_slot.isdigit():
                     d["Station"] = f"{st_prefix},{slot_idx}"
 
-            # Make connection names unique across slots within the same station
-            for c_col in [f"Connection{i} (Type,Name,ConnectString)" for i in range(1, 5)] + ["Connection4(Type,Name,ConnectString)"]:
-                if c_col in d and d[c_col]:
+            # Enforce Connection1..10 uniqueness within each DUT row (multi-DUT slots 1..4 intentionally share aliases)
+            seen_conn_names = set()
+            for c_idx, c_col in _iter_dut_connection_columns(d):
+                if d.get(c_col):
                     raw_c = str(d[c_col]).strip()
                     if "UtilityLibrary.dll" in raw_c:
                         d[c_col] = ""
@@ -1218,9 +1222,9 @@ def auto_fix_workspace(workspace, user_choices=None):
                         c_name = parts[1]
                         c_conn = ",".join(parts[2:])
                         if c_name in seen_conn_names:
-                            new_c_name = f"{c_name}_{slot_idx}"
+                            new_c_name = f"{c_name}_{c_idx}"
                             d[c_col] = f'"{c_type}","{new_c_name}","{c_conn}"'
-                            fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列連線名稱 '{c_name}' 重複，已自動更名為 '{new_c_name}' 避免 Centimani 索引鍵衝突")
+                            fixed_logs.append(f"[DUTs 表] {st_prefix} 第 {slot_idx} 列同一 DUT 內連線名稱 '{c_name}' 重複，已自動更名為 '{new_c_name}' 避免 Centimani 索引鍵衝突")
                             seen_conn_names.add(new_c_name)
                         else:
                             seen_conn_names.add(c_name)

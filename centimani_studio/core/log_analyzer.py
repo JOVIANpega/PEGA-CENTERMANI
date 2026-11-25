@@ -257,8 +257,8 @@ def analyze_centimani_log(log_text, file_path=""):
                     "category": "連線名稱重複 (Duplicate Key)", "severity": "ERROR",
                     "title": "DUT 連線名稱重複衝突（已經加入含有相同索引鍵的項目）",
                     "raw_match": sline,
-                    "cause": "DUTs 表內各槽位的連線名稱宣告重複（例如多槽位皆命名為 UART），或重複宣告了 Centimani 系統內建的 UtilityLibrary.dll。",
-                    "solution": "點擊左側【💾 一鍵修好】，系統會自動為多工連線名稱加上槽位分流後綴（UART_1, UART_2...）並自動剔除重複之 Utility 宣告。"
+                    "cause": "同一 DUT 列內的 Connection1..10 出現重複連線名稱，或重複宣告了 Centimani 系統內建的 UtilityLibrary.dll。",
+                    "solution": "點擊左側【💾 一鍵修好】，系統會自動區隔同一 DUT 列內重複的連線別名（保留多槽同站別共用的 UART/STCmd）並剔除多餘 Utility 宣告。"
                 })
 
         if "doesn't set" in line and "checksum" in line.lower():
