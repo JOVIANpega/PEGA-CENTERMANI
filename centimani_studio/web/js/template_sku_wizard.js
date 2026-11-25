@@ -24,6 +24,7 @@
       offline_wrap: true,
       offline_default_sku: 'FULL',
       no_match_policy: 'FAIL',
+      param_to_ini: true,
       toggle_var: '',
       dut_conn: 'UART',
       end_prompt: '/#',
@@ -415,6 +416,10 @@
             </label>
           </div>
           <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:0.8rem; font-weight:700;">
+            <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="開啟後，SKU 代碼、版號、iPLAS 名與 DL/UL 會以 *$(...) 寫進 Global.ini [Scripts]，日後免改 Excel 即可微調">
+              <input type="checkbox" ${sk.param_to_ini !== false ? 'checked' : ''} onchange="TSW_STATE.sku.param_to_ini=this.checked; TSW_STATE.previewRes=null; window.tswRerender();">
+              <span>數值同步抽出至 Global.ini [Scripts]（免改 Excel 即可微調門檻）</span>
+            </label>
             <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
               <input type="checkbox" ${sk.offline_wrap ? 'checked' : ''} onchange="TSW_STATE.sku.offline_wrap=this.checked">
               <span>自動包一層 :SfEnabled（無網路時不紅字）</span>
@@ -512,27 +517,41 @@
     const rep = pr.report || { errors: [], manual_warnings: [] };
     const errs = rep.errors || [];
     const warns = rep.manual_warnings !== undefined ? rep.manual_warnings : (rep.warnings || []);
-    const stSteps = ((pr.workspace && pr.workspace.stations && pr.workspace.stations[pr.station_name]) || []).slice(0, 45);
+    const stSteps = ((pr.workspace && pr.workspace.stations && pr.workspace.stations[pr.station_name]) || []).slice(0, 60);
+    const visList = pr.row_visuals || [];
     return `
       <div class="tsw-card" style="background:${errs.length === 0 && warns.length === 0 ? '#F0FDF4' : '#FFFBEB'}; border-color:${errs.length === 0 ? '#22C55E' : '#F59E0B'};">
-        <div style="font-weight:900; font-size:0.9rem; margin-bottom:6px;">
-          ${errs.length === 0 && warns.length === 0 ? '🟢 Script Doctor 預檢通過：0 Error / 0 Warning' : `⚠️ 檢出 ${errs.length} 錯誤 / ${warns.length} 警告`}
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+          <span style="font-weight:900; font-size:0.9rem;">
+            ${errs.length === 0 && warns.length === 0 ? '🟢 Script Doctor 預檢通過：0 Error / 0 Warning' : `⚠️ 檢出 ${errs.length} 錯誤 / ${warns.length} 警告`}
+          </span>
+          <span style="font-size:0.75rem; color:#475569; font-weight:700;">
+            🎨 與匯出 Excel 同步配色：多分支粉彩輪替 ｜ 條件略過柔青 ｜ <span style="color:#BE185D;">SFIS 粉紅字</span> ｜ <span style="background:#FFF2CC;padding:0 4px;">P97金</span>/<span style="background:#DCFCE7;color:#15803D;padding:0 4px;">P98綠</span>/<span style="background:#FFE4E6;color:#9F1239;padding:0 4px;">P99紅</span>
+          </span>
         </div>
-        <div style="max-height:240px; overflow:auto; border:1px solid #CBD5E1; border-radius:6px; background:#FFFFFF;">
+        <div style="max-height:280px; overflow:auto; border:1px solid #CBD5E1; border-radius:6px; background:#FFFFFF;">
           <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
-            <thead><tr style="background:#E2E8F0; text-align:left;"><th style="padding:3px 6px;">#</th><th style="padding:3px 6px;">Phase</th><th style="padding:3px 6px;">Title</th><th style="padding:3px 6px;">Send</th><th style="padding:3px 6px;">Reply</th><th style="padding:3px 6px;">Validation</th><th style="padding:3px 6px;">ExecMode</th></tr></thead>
+            <thead><tr style="background:#D9E1F2; text-align:left;"><th style="padding:3px 6px;">列</th><th style="padding:3px 6px;" title="Title 內 0 起算步號（對齊 ExecMode 4:P,F）">步號</th><th style="padding:3px 6px;">Phase</th><th style="padding:3px 6px;">Title</th><th style="padding:3px 6px;">Send</th><th style="padding:3px 6px;">Reply</th><th style="padding:3px 6px;">Validation</th><th style="padding:3px 6px;">ExecMode</th><th style="padding:3px 6px;">分流角色</th></tr></thead>
             <tbody>
-              ${stSteps.map((r, i) => `
-                <tr style="border-bottom:1px solid #E2E8F0; background:${r.Title ? '#F8FAFC' : '#FFFFFF'};">
-                  <td class="mono" style="padding:2px 6px;">${i}</td>
-                  <td class="mono" style="padding:2px 6px; font-weight:700;">${_esc(r.Phase || '')}</td>
-                  <td style="padding:2px 6px; font-weight:700; color:#1E3A8A;">${_esc(r.Title || '')}</td>
-                  <td class="mono" style="padding:2px 6px;">${_esc(r.Send || '')}</td>
-                  <td class="mono" style="padding:2px 6px;">${_esc(r.Reply || '')}</td>
-                  <td class="mono" style="padding:2px 6px;">${_esc(r.Validation || '')}</td>
-                  <td class="mono" style="padding:2px 6px; color:#7C3AED; font-weight:700;">${_esc(r.ExecMode || '')}</td>
-                </tr>
-              `).join('')}
+              ${stSteps.map((r, i) => {
+                const v = visList[i] || {};
+                const bg = v.fill_hex ? ('#' + v.fill_hex) : '#FFFFFF';
+                const fg = v.font_hex ? ('#' + v.font_hex) : '#0F172A';
+                const fw = v.font_bold ? '700' : '400';
+                return `
+                  <tr style="border-bottom:1px solid #E2E8F0; background:${bg}; color:${fg}; font-weight:${fw};">
+                    <td class="mono" style="padding:2px 6px; color:#64748B;">${i}</td>
+                    <td class="mono" style="padding:2px 6px; font-weight:800; color:#1E40AF;">${v.local_idx !== undefined ? v.local_idx : i}</td>
+                    <td class="mono" style="padding:2px 6px; font-weight:700;">${_esc(r.Phase || '')}</td>
+                    <td style="padding:2px 6px; font-weight:700;">${_esc(r.Title || '')}</td>
+                    <td class="mono" style="padding:2px 6px;">${_esc(r.Send || '')}</td>
+                    <td class="mono" style="padding:2px 6px;">${_esc(r.Reply || '')}</td>
+                    <td class="mono" style="padding:2px 6px;">${_esc(r.Validation || '')}</td>
+                    <td class="mono" style="padding:2px 6px; color:#6D28D9; font-weight:800;">${_esc(r.ExecMode || '')}</td>
+                    <td style="padding:2px 6px; font-size:0.73rem;">${_esc(v.role_label || '')}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>

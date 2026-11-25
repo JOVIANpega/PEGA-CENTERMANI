@@ -723,12 +723,14 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
     else:
         # BRANCH_RULES: 2, 3, or N explicit SKUs!
         # Pre-compute each branch's action rows so we know exact start offsets before writing 4:P,F
+        param_to_ini = bool(cfg.get("param_to_ini", True))
         branch_specs = []
         dut_cmd = str(cfg.get("dut_query_cmd") or "").strip()
         dut_prefix = str(cfg.get("dut_prefix_kw") or "").strip()
         can_any_action_fail = False
+        used_tags = set()
 
-        for br in raw_branches:
+        for br_idx, br in enumerate(raw_branches):
             code = str(br.get("code") or "").strip()
             label = str(br.get("label") or code).strip()
             iplas_model = str(br.get("iplas_model") or "").strip()
@@ -738,10 +740,29 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
                 if str(gk).strip():
                     global_scripts[str(gk).strip()] = str(gv)
 
+            raw_tag = re.sub(r"[^A-Za-z0-9_]", "_", code).upper().strip("_") or f"SKU{br_idx + 1}"
+            tag = raw_tag[:16]
+            if tag in used_tags:
+                tag = f"{tag[:12]}_{br_idx + 1}"
+            used_tags.add(tag)
+
+            if param_to_ini:
+                code_key = f"SKU_{tag}_CODE"
+                global_scripts[code_key] = code
+                match_reply = f"@*$({code_key})"
+            else:
+                match_reply = f"@{code}"
+
             act_rows = []
             if iplas_model:
+                if param_to_ini:
+                    m_key = f"SKU_{tag}_MODEL"
+                    global_scripts[m_key] = iplas_model
+                    m_arg = f"*$({m_key})"
+                else:
+                    m_arg = iplas_model
                 act_rows.append(_make_step(
-                    send=f':SetModelName,"{iplas_model}"',
+                    send=f':SetModelName,"{m_arg}"',
                     reply="0",
                     exec_mode="0",
                     description=f"PC#-#Set iPLAS Model ({code}->{iplas_model})",
@@ -761,12 +782,18 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
             if exp_hw:
                 q_cmd = dut_cmd or "mfg get-hw-version"
                 q_pfx = dut_prefix or "HardwareVersion:"
+                if param_to_ini:
+                    s_key = f"SKU_{tag}_SPEC"
+                    global_scripts[s_key] = exp_hw
+                    spec_expr = f"*$({s_key})"
+                else:
+                    spec_expr = exp_hw
                 act_rows.append(_make_step(
                     send=f"{dut_conn}@{q_cmd}\\n",
                     reply="@",
                     end_prompt=end_prompt,
                     ref=_safe_within_string_ref("gSKUSpec", q_pfx),
-                    validation=f"(gSKUSpec,%s,{exp_hw},);",
+                    validation=f"(gSKUSpec,%s,{spec_expr},);",
                     waiting="3000",
                     exec_mode="1",
                     description=f"DUT#-#Verify Spec ({label}={exp_hw})",
@@ -782,7 +809,20 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
                     l_type = "%f"
                 l_cmd = str(br.get("limit_cmd") or "").strip()
                 l_pfx = str(br.get("limit_prefix") or "").strip()
-                val_expr = f"({l_var},{l_type},{dl_val},{ul_val});"
+                if param_to_ini:
+                    dl_expr = ""
+                    ul_expr = ""
+                    if dl_val != "":
+                        dl_k = f"SKU_{tag}_DL"
+                        global_scripts[dl_k] = dl_val
+                        dl_expr = f"*$({dl_k})"
+                    if ul_val != "":
+                        ul_k = f"SKU_{tag}_UL"
+                        global_scripts[ul_k] = ul_val
+                        ul_expr = f"*$({ul_k})"
+                else:
+                    dl_expr, ul_expr = dl_val, ul_val
+                val_expr = f"({l_var},{l_type},{dl_expr},{ul_expr});"
                 if l_cmd:
                     cmd_send = l_cmd if "@" in l_cmd else f"{dut_conn}@{l_cmd}\\r\\n"
                     act_rows.append(_make_step(
@@ -815,7 +855,7 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
                     description=f"PC#-#Select SKU Profile ({label})",
                     test_id="B7PL025",
                 ))
-            branch_specs.append({"code": code, "label": label, "act_rows": act_rows})
+            branch_specs.append({"code": code, "label": label, "match_reply": match_reply, "act_rows": act_rows})
 
         base_idx = len(steps)
         cursor = base_idx
@@ -835,7 +875,7 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
             )
             steps.append(_make_step(
                 send=f':GetVal,"${res_var}"',
-                reply=f"@{bs['code']}",
+                reply=bs["match_reply"],
                 exec_mode=f"4:{bs['act_start']},{next_chk}",
                 description=f"PC#-#Check SKU == {bs['code']} ({bs['label']})",
                 test_id="CACK182",
@@ -914,11 +954,12 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
     }
 
 
-def wrap_block_with_sku_guard(block_steps, sku_var="sfSKUCode", allowed_skus=None, section_title=""):
+def wrap_block_with_sku_guard(block_steps, sku_var="sfSKUCode", allowed_skus=None, section_title="", global_scripts_out=None):
     """
     Prepends a zero-delay Centimani SKU gate (:GetVal,"$sku_var", Reply=@A||@B, ExecMode=4:1,end)
     at step 0 of a Title block and shifts all internal 2:S / 4:P,F offsets by +1,
     cleanly skipping the entire test section for derivative SKUs without failing.
+    When global_scripts_out dict is provided, extracts allowed SKU list into Global.ini [Scripts].
     """
     skus = [str(x).strip() for x in (allowed_skus or []) if str(x).strip()]
     if not block_steps or not skus:
@@ -950,11 +991,19 @@ def wrap_block_with_sku_guard(block_steps, sku_var="sfSKUCode", allowed_skus=Non
     end_idx = len(orig)  # after prepending guard at index 0, last row sits at index len(orig)
     reply_expr = "||".join(f"@{c}" for c in skus)
     lbl = section_title or orig_title or "Section"
+    if isinstance(global_scripts_out, dict):
+        sec_tag = re.sub(r"[^A-Za-z0-9_]", "_", lbl).upper().strip("_")[:18] or "SEC"
+        guard_key = f"SKU_ALLOW_{sec_tag}"
+        global_scripts_out[guard_key] = reply_expr
+        reply_cell = f"*$({guard_key})"
+    else:
+        reply_cell = reply_expr
+
     guard_step = _make_step(
         phase=orig_phase,
         title=orig_title,
         send=f':GetVal,"${var_clean}"',
-        reply=reply_expr,
+        reply=reply_cell,
         exec_mode=f"4:1,{end_idx}",
         description=f"PC#-#Enable Section [{lbl}] for ({','.join(skus)})",
         test_id="OTFX076",
@@ -1365,6 +1414,7 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
     # Apply Hardware-Derivative Section Guards on matching transplanted or existing Title blocks
     guards = [g for g in (s_spec.get("section_guards") or []) if isinstance(g, dict) and g.get("allowed_skus")]
     sku_var_name = sku_res.get("result_var") or _sanitize_var_name(s_spec.get("result_var") or "sfSKUCode")
+    guard_scripts_target = g_scripts if bool(s_spec.get("param_to_ini", True)) else None
 
     if guards:
         # 1) Guard transplanted blocks matching block_key or title substring
@@ -1375,7 +1425,8 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
                 if (t_key and t_key == tb["block_key"]) or (s_title and s_title in tb["title"].lower()):
                     tb["steps"] = wrap_block_with_sku_guard(
                         tb["steps"], sku_var=sku_var_name,
-                        allowed_skus=gd["allowed_skus"], section_title=tb["title_label"]
+                        allowed_skus=gd["allowed_skus"], section_title=tb["title_label"],
+                        global_scripts_out=guard_scripts_target
                     )
                     summary["guarded_sections"].append(f"{tb['title_label']} -> {','.join(gd['allowed_skus'])}")
                     break
@@ -1390,7 +1441,8 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
                 if s_title and s_title in eb["title"].lower() and not eb["title"].lower().startswith("0,sfis sku"):
                     eb_steps = wrap_block_with_sku_guard(
                         eb_steps, sku_var=sku_var_name,
-                        allowed_skus=gd["allowed_skus"], section_title=eb["title_label"]
+                        allowed_skus=gd["allowed_skus"], section_title=eb["title_label"],
+                        global_scripts_out=guard_scripts_target
                     )
                     lbl = f"{eb['title_label']} -> {','.join(gd['allowed_skus'])}"
                     if lbl not in summary["guarded_sections"]:
@@ -1410,7 +1462,8 @@ def apply_bundle_and_sku_to_workspace(target_ws, target_station, bundle_spec=Non
                 ]
                 guarded = wrap_block_with_sku_guard(
                     shell_steps, sku_var=sku_var_name,
-                    allowed_skus=gd["allowed_skus"], section_title=s_title
+                    allowed_skus=gd["allowed_skus"], section_title=s_title,
+                    global_scripts_out=guard_scripts_target
                 )
                 transplanted_list.append({
                     "block_key": f"GUARD::{s_title}",

@@ -29,13 +29,221 @@ FONT_HEADER = Font(name="Calibri", size=11, bold=True, color="000000")
 FONT_SKIP = Font(name="Calibri", size=11, italic=True, color="7F7F7F")
 FONT_FIXED = Font(name="Calibri", size=11, bold=True, color="7F1D1D")
 FONT_REORDERED = Font(name="Calibri", size=11, bold=False, color="0F172A")
+FONT_SFIS_PINK = Font(name="Calibri", size=11, bold=True, color="BE185D")
+FONT_PHASE98 = Font(name="Calibri", size=11, bold=True, color="15803D")
+FONT_PHASE99 = Font(name="Calibri", size=11, bold=True, color="9F1239")
 
 FILL_HEADER = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
 FILL_PHASE0 = PatternFill(start_color="F2F8FD", end_color="F2F8FD", fill_type="solid")
 FILL_PHASE97 = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+FILL_PHASE98 = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+FILL_PHASE99 = PatternFill(start_color="FFE4E6", end_color="FFE4E6", fill_type="solid")
 FILL_SKIP = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
 FILL_FIXED_CELL = PatternFill(start_color="FEF08A", end_color="FEF08A", fill_type="solid")
 FILL_REORDERED_CELL = PatternFill(start_color="E8F4FD", end_color="E8F4FD", fill_type="solid")
+
+BRANCH_PASTEL_HEXES = [
+    "F3E8FF",  # 淡薰衣草紫
+    "DCFCE7",  # 淡薄荷綠
+    "FFEDD5",  # 淡蜜桃橘
+    "FCE7F3",  # 淡櫻粉
+    "FEF9C3",  # 淡鵝黃
+    "E0E7FF",  # 淡靛藍
+    "F5D0FE",  # 柔丁香粉
+    "ECFCCB",  # 淡芽綠
+]
+GUARD_PASTEL_HEXES = ["E0F7FA", "CCFBF1"]  # 條件略過區交替柔青水藍
+
+
+def _parse_cond4_pair(exec_mode):
+    s = str(exec_mode or "").strip()
+    if s.startswith("4:") and "," in s:
+        parts = s[2:].split(",", 1)
+        try:
+            return int(parts[0].strip()), int(parts[1].strip())
+        except ValueError:
+            return None
+    return None
+
+
+def compute_station_row_visuals(steps):
+    """
+    Computes unified visual styling (Title-local step index, pastel branch/guard fill,
+    SFIS pink text, Phase 97/98/99 end-section colors) shared by Excel export AND UI preview.
+    """
+    n = len(steps or [])
+    if n == 0:
+        return []
+
+    visuals = []
+    # Partition into Title blocks matching Centimani 0-based Title jump scope
+    blocks = []
+    curr_blk = None
+    curr_phase = ""
+    local_offset = 0
+    for idx, step in enumerate(steps):
+        p_str = str(step.get("Phase") or "").strip()
+        t_str = str(step.get("Title") or "").strip()
+        if p_str:
+            curr_phase = p_str
+        if idx > 0 and t_str:
+            local_offset = 0
+        if idx == 0 or t_str:
+            curr_blk = {"start": idx, "end": idx, "phase": curr_phase, "rows": []}
+            blocks.append(curr_blk)
+        curr_blk["end"] = idx
+        curr_blk["rows"].append((idx, local_offset, step))
+
+        v = {
+            "local_idx": local_offset,
+            "phase": curr_phase,
+            "fill_hex": None,
+            "font_hex": None,
+            "font_bold": False,
+            "role_label": "",
+        }
+        if curr_phase.startswith("-"):
+            v["fill_hex"] = "F2F2F2"
+            v["font_hex"] = "7F7F7F"
+            v["role_label"] = "暫停 (Phase -1)"
+        elif curr_phase == "97":
+            v["fill_hex"] = "FFF2CC"
+            v["role_label"] = "Phase 97 必跑收尾"
+        elif curr_phase == "98":
+            v["fill_hex"] = "DCFCE7"
+            v["font_hex"] = "15803D"
+            v["font_bold"] = True
+            v["role_label"] = "Phase 98 PASS"
+        elif curr_phase == "99":
+            v["fill_hex"] = "FFE4E6"
+            v["font_hex"] = "9F1239"
+            v["font_bold"] = True
+            v["role_label"] = "Phase 99 FAIL"
+        elif curr_phase == "0":
+            v["fill_hex"] = "F2F8FD"
+            v["role_label"] = "Phase 0 前置"
+        visuals.append(v)
+        local_offset += 1
+
+    # Classify ExecMode = 4:P,F blocks (supports arbitrary 2..N branches + Guard 4:1,end sections)
+    guard_toggle = 0
+    for blk in blocks:
+        ph = blk["phase"]
+        if ph.startswith("-") or ph in ("97", "98", "99"):
+            continue
+        b_rows = blk["rows"]
+        b_len = len(b_rows)
+        conds = []
+        for g_idx, loc_i, st in b_rows:
+            pair = _parse_cond4_pair(st.get("ExecMode"))
+            if pair is not None:
+                conds.append((g_idx, loc_i, pair[0], pair[1], st))
+        if not conds:
+            continue
+
+        # Detect Guard pattern: step 0 uses 4:1,end (or 4:1,last) skipping the section when unmatched
+        if len(conds) == 1 and conds[0][1] == 0 and conds[0][2] == 1 and conds[0][3] >= b_len - 1:
+            g_hex = GUARD_PASTEL_HEXES[guard_toggle % len(GUARD_PASTEL_HEXES)]
+            guard_toggle += 1
+            for g_idx, _loc, _st in b_rows:
+                visuals[g_idx]["fill_hex"] = g_hex
+                visuals[g_idx]["role_label"] = "條件略過區 (4:1,end)"
+            continue
+
+        # Multi-branch / complex 4:P,F block
+        loc_to_g = {loc_i: g_idx for g_idx, loc_i, _ in b_rows}
+        assigned = set()
+
+        # 1) Identify :SfEnabled offline-bypass header if present
+        for g_idx, loc_i, p_st, f_st, st in conds:
+            if str(st.get("Send") or "").strip().lower().startswith(":sfenabled"):
+                end_pre = min(b_len - 1, max(loc_i, f_st))
+                for k in range(loc_i, end_pre + 1):
+                    gi = loc_to_g.get(k)
+                    if gi is not None and k not in assigned:
+                        visuals[gi]["fill_hex"] = "EFF6FF"
+                        visuals[gi]["role_label"] = "SFIS/離線判定"
+                        assigned.add(k)
+
+        # 2) Identify Fail-Stop rows (:Delay,"000" + Reply="1" or failure-only targets)
+        fail_only_locs = set()
+        pass_targets = {p for _, _, p, _, _ in conds}
+        fail_targets = {f for _, _, _, f, _ in conds}
+        for g_idx, loc_i, st in b_rows:
+            snd = str(st.get("Send") or "").strip().lower()
+            rep = str(st.get("Reply") or "").strip()
+            if snd.startswith(':delay,"000"') and rep == "1":
+                fail_only_locs.add(loc_i)
+            elif loc_i in fail_targets and loc_i not in pass_targets and loc_i >= b_len - 3 and loc_i != b_len - 1:
+                if "fail" in str(st.get("Description") or "").lower() or rep == "1":
+                    fail_only_locs.add(loc_i)
+        for fl in fail_only_locs:
+            gi = loc_to_g.get(fl)
+            if gi is not None:
+                visuals[gi]["fill_hex"] = "FFE4E6"
+                visuals[gi]["role_label"] = "FAIL 停損"
+                assigned.add(fl)
+
+        # 3) Identify convergence exit & post-merge shared steps (tail node jumped to by >=2 distinct branch rows)
+        target_sources = {}
+        for _, loc_i, p_st, f_st, _ in conds:
+            if p_st > loc_i and p_st != f_st:
+                target_sources.setdefault(p_st, set()).add(loc_i)
+            if f_st > loc_i and f_st != p_st and f_st not in fail_only_locs:
+                target_sources.setdefault(f_st, set()).add(loc_i)
+        conv_locs = [k for k, srcs in target_sources.items() if len(srcs) >= 2 and k < b_len]
+        conv_start = max(conv_locs) if conv_locs else None
+        if conv_start is not None:
+            for k in range(conv_start, b_len):
+                if k not in fail_only_locs:
+                    gi = loc_to_g.get(k)
+                    if gi is not None:
+                        visuals[gi]["fill_hex"] = "F1F5F9"
+                        visuals[gi]["role_label"] = "匯合/共用指令" if k > conv_start else "匯合點"
+                        assigned.add(k)
+
+        # 4) Assign cycling pastel colors to each branch check + arm (supports 2..N branches!)
+        branch_idx = 0
+        for g_idx, loc_i, p_st, f_st, st in conds:
+            if loc_i in assigned:
+                continue
+            b_hex = BRANCH_PASTEL_HEXES[branch_idx % len(BRANCH_PASTEL_HEXES)]
+            if p_st == f_st:
+                # Unconditional jump 4:N,N
+                visuals[g_idx]["fill_hex"] = b_hex
+                visuals[g_idx]["role_label"] = f"跳轉 -> 步 {p_st}"
+                assigned.add(loc_i)
+                branch_idx += 1
+                continue
+
+            b_label = f"分支 #{branch_idx + 1}"
+            # Include check row itself + its PASS arm up to (f_st - 1) before next check / fail / convergence
+            visuals[g_idx]["fill_hex"] = b_hex
+            visuals[g_idx]["role_label"] = b_label
+            assigned.add(loc_i)
+            arm_limit = min(b_len, f_st if f_st > p_st else b_len)
+            for k in range(p_st, arm_limit):
+                if k in assigned:
+                    break
+                gk = loc_to_g.get(k)
+                if gk is not None:
+                    visuals[gk]["fill_hex"] = b_hex
+                    visuals[gk]["role_label"] = b_label
+                    assigned.add(k)
+            branch_idx += 1
+
+    # Finally apply SFIS pink-magenta text across ALL :Sf* steps (preserved unless paused Phase -1)
+    for idx, step in enumerate(steps):
+        if str(step.get("Send") or "").strip().lower().startswith(":sf"):
+            v = visuals[idx]
+            if not v["phase"].startswith("-"):
+                v["font_hex"] = "BE185D"
+                v["font_bold"] = True
+                if v["role_label"] and "SFIS" not in v["role_label"]:
+                    v["role_label"] = f"SFIS · {v['role_label']}"
+                elif not v["role_label"]:
+                    v["role_label"] = "SFIS"
+    return visuals
 
 BORDER_THIN = Border(
     left=Side(style="thin", color="64748B"),
@@ -97,7 +305,8 @@ def _write_station_sheet_contents(ws_st, steps, fixed_cell_map, preserved_dvs=No
         local_offset += 1
         if step.get("_hidden"):
             ws_st.row_dimensions[idx + 2].hidden = True
-    apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=fixed_cell_map)
+    row_visuals = compute_station_row_visuals(steps)
+    apply_sheet_formatting(ws_st, is_station=True, fixed_cell_map=fixed_cell_map, row_visuals=row_visuals)
     _apply_station_header_tooltips(ws_st, preserved_dvs=preserved_dvs)
 
 
@@ -141,9 +350,12 @@ def _read_bounded_rows(ws_sheet, max_col=17, max_empty_streak=50, hard_limit=500
     return (rows, hidden_flags) if include_hidden else rows
 
 
-def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
-    """Applies Calibri 11, wrap_text=True, borders, auto-fit column widths, and yellow highlights for fixed cells."""
+def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None, row_visuals=None):
+    """Applies Calibri 11, wrap_text=True, borders, auto-fit column widths, ExecMode 4:P,F pastel coding, SFIS pink font, and highlights."""
     fixed_cell_map = fixed_cell_map or {}
+    row_visuals = row_visuals or []
+    fill_cache = {}
+    font_cache = {}
     ws.row_dimensions[1].height = 28
     center_cols = {1, 2, 8, 9, 13, 14, 16} if is_station else {1}
 
@@ -189,15 +401,42 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None):
                 cell.fill = FILL_HEADER
                 cell.alignment = ALIGN_CENTER
             else:
-                cell.font = FONT_SKIP if curr_phase_str.startswith("-") else FONT_BODY
+                step_idx = r_idx - 2
+                rv = row_visuals[step_idx] if (is_station and 0 <= step_idx < len(row_visuals)) else None
+                send_val = str(row[6].value or "").strip() if (is_station and len(row) >= 7) else ""
+
                 cell.alignment = ALIGN_CENTER if c_idx in center_cols else ALIGN_LEFT
-                if is_station:
-                    if curr_phase_str.startswith("-"):
-                        cell.fill = FILL_SKIP
-                    elif curr_phase_str == "0":
-                        cell.fill = FILL_PHASE0
-                    elif curr_phase_str == "97":
-                        cell.fill = FILL_PHASE97
+                if rv:
+                    f_hex = rv.get("fill_hex")
+                    if f_hex:
+                        if f_hex not in fill_cache:
+                            fill_cache[f_hex] = PatternFill(start_color=f_hex, end_color=f_hex, fill_type="solid")
+                        cell.fill = fill_cache[f_hex]
+                    t_hex = rv.get("font_hex")
+                    if t_hex:
+                        f_key = (t_hex, bool(rv.get("font_bold")))
+                        if f_key not in font_cache:
+                            font_cache[f_key] = Font(name="Calibri", size=11, bold=f_key[1], color=t_hex)
+                        cell.font = font_cache[f_key]
+                    else:
+                        cell.font = FONT_BODY
+                else:
+                    cell.font = FONT_SKIP if curr_phase_str.startswith("-") else FONT_BODY
+                    if is_station:
+                        if curr_phase_str.startswith("-"):
+                            cell.fill = FILL_SKIP
+                        elif curr_phase_str == "0":
+                            cell.fill = FILL_PHASE0
+                        elif curr_phase_str == "97":
+                            cell.fill = FILL_PHASE97
+                        elif curr_phase_str == "98":
+                            cell.fill = FILL_PHASE98
+                            cell.font = FONT_PHASE98
+                        elif curr_phase_str == "99":
+                            cell.fill = FILL_PHASE99
+                            cell.font = FONT_PHASE99
+                        if send_val.lower().startswith(":sf") and not curr_phase_str.startswith("-"):
+                            cell.font = FONT_SFIS_PINK
 
                 # Highlight modified cells: Light Blue (#BAE6FD) for reordered Phase blocks, Bright Yellow (#FEF08A) for auto-fixed/inserted cells
                 if (r_idx, c_idx) in fixed_cell_map:

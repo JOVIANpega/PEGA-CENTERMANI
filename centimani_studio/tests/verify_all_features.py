@@ -2016,6 +2016,7 @@ def run_all_verifications():
                     "offline_wrap": True,
                     "offline_default_sku": "FULL",
                     "no_match_policy": "FAIL",
+                    "param_to_ini": False,
                     "sku_branches": [
                         {"code": "FULL", "label": "整機全配", "iplas_model": "OLYMPUS_FULL", "expected_hw": "11"},
                         {"code": "NO_BAT", "label": "整機無電池", "iplas_model": "OLYMPUS_NBAT", "expected_hw": "11"},
@@ -2078,16 +2079,17 @@ def run_all_verifications():
             tsw_js_path = os.path.join(STUDIO_DIR, "web", "js", "template_sku_wizard.js")
             tsw_js_txt = open(tsw_js_path, encoding="utf-8").read() if os.path.exists(tsw_js_path) else ""
             check(os.path.exists(tsw_js_path)
-                  and '/js/template_sku_wizard.js?v=0.8.055' in index_html
+                  and '/js/template_sku_wizard.js?v=0.8.056' in index_html
                   and "openTemplateSkuWizard('create')" in index_html
                   and "openTemplateSkuWizard('edit')" in index_html
                   and 'id="btnEmptyEditorSkuWizard"' in index_html
                   and 'id="btnEditorTplSkuWizard"' in index_html
                   and "tswSelectReason" in tsw_js_txt
-                  and "tswToggleRowLimit" in tsw_js_txt,
-                  "v0.8.055 一頁式多 SKU 精靈 UI、雙模式三大入口與 Build v0.8.055 掛載檢查通過")
+                  and "tswToggleRowLimit" in tsw_js_txt
+                  and "param_to_ini" in tsw_js_txt,
+                  "v0.8.056 一頁式多 SKU 精靈 UI（含 INI 參數化預設勾選）、雙模式三大入口與 Build v0.8.056 掛載檢查通過")
 
-            # [v0.8.055] 驗證各 SKU 專屬 DL/UL 上下限 ＋ 匯合後共用指令 (post_merge_cmds 不破前方 4:P,F)
+            # [v0.8.055] 驗證各 SKU 專屬 DL/UL 上下限 ＋ 匯合後共用指令 (直寫模式 param_to_ini=False)
             v55_lim = post_json("/api/template_bundle/apply", {
                 "target_mode": "edit",
                 "station_name": "MB",
@@ -2100,6 +2102,7 @@ def run_all_verifications():
                     "offline_wrap": True,
                     "offline_default_sku": "FULL",
                     "no_match_policy": "FAIL",
+                    "param_to_ini": False,
                     "post_merge_cmds": 'mfg sync-status\n:Delay,"300"',
                     "sku_branches": [
                         {"code": "FULL", "label": "整機全配", "iplas_model": "MOD_FULL", "limit_var": "gCurr", "limit_type": "%f", "dl": "100", "ul": "300", "limit_cmd": "mfg get-curr"},
@@ -2120,6 +2123,93 @@ def run_all_verifications():
                   and any("(gCurr,%f,400,600);" in v for v in v55_vals)
                   and any("mfg sync-status" in sd for sd in v55_sends),
                   "v0.8.055 支援各 SKU 獨立 DL/UL 上下限與匯合後共用指令且 Script Doctor 0 Error/0 Warning")
+
+            # [v0.8.056] 驗證 4+ 分支上色、SFIS 粉紅字、Phase 97/98/99 收尾分色、預覽 row_visuals 與 INI 參數化抽出 (param_to_ini=True)
+            v56_gen = post_json("/api/generate_new_standalone", {
+                "project_name": "V56_COLOR",
+                "station_name": "MB",
+                "dut_count": 1,
+                "block_ids": ["BLK_PRETEST_ROUTE", "BLK_PHASE97_TEARDOWN", "BLK_PHASE98_99_BRANCH_TEARDOWN"],
+                "open_excel": False,
+                "sku_wizard": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "offline_wrap": True,
+                    "offline_default_sku": "SKU1",
+                    "no_match_policy": "FAIL",
+                    "param_to_ini": True,
+                    "sku_branches": [
+                        {"code": "SKU1", "label": "分支1", "iplas_model": "M1", "limit_var": "gCurr", "limit_type": "%f", "dl": "10", "ul": "20", "limit_cmd": "mfg curr"},
+                        {"code": "SKU2", "label": "分支2", "iplas_model": "M2", "limit_var": "gCurr", "limit_type": "%f", "dl": "30", "ul": "40", "limit_cmd": "mfg curr"},
+                        {"code": "SKU3", "label": "分支3", "iplas_model": "M3", "limit_var": "gCurr", "limit_type": "%f", "dl": "50", "ul": "60", "limit_cmd": "mfg curr"},
+                        {"code": "SKU4", "label": "分支4", "iplas_model": "M4", "limit_var": "gCurr", "limit_type": "%f", "dl": "70", "ul": "80", "limit_cmd": "mfg curr"},
+                    ],
+                    "section_guards": [
+                        {"section_title": "CHECK BATTERY", "allowed_skus": ["SKU1", "SKU3"]},
+                    ],
+                },
+            })
+            v56_glb = open(v56_gen.get("global_ini", ""), encoding="utf-8", errors="ignore").read()
+            v56_wb = openpyxl.load_workbook(v56_gen["excel_path"], data_only=True)
+            v56_ws = v56_wb["MB"]
+            v56_fills = []
+            v56_sfis_fonts = []
+            v56_p98_colors = []
+            v56_p99_colors = []
+            v56_vals = []
+            cur_ph = ""
+            for r_i in range(2, v56_ws.max_row + 1):
+                ph_v = str(v56_ws.cell(r_i, 2).value or "").strip()
+                if ph_v:
+                    cur_ph = ph_v
+                send_c = v56_ws.cell(r_i, 7)
+                fill_rgb = str(send_c.fill.start_color.rgb or "")[-6:].upper() if send_c.fill else ""
+                font_rgb = str(send_c.font.color.rgb or "")[-6:].upper() if (send_c.font and send_c.font.color) else ""
+                if fill_rgb:
+                    v56_fills.append(fill_rgb)
+                if str(send_c.value or "").strip().lower().startswith(":sf"):
+                    v56_sfis_fonts.append(font_rgb)
+                if cur_ph == "98":
+                    v56_p98_colors.append((fill_rgb, font_rgb))
+                if cur_ph == "99":
+                    v56_p99_colors.append((fill_rgb, font_rgb))
+                if v56_ws.cell(r_i, 11).value:
+                    v56_vals.append(str(v56_ws.cell(r_i, 11).value))
+            v56_wb.close()
+
+            v56_prev = post_json("/api/template_bundle/apply", {
+                "target_mode": "create",
+                "project_name": "V56_PREV",
+                "station_name": "MB",
+                "bundle_spec": {},
+                "sku_spec": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "param_to_ini": True,
+                    "sku_branches": [
+                        {"code": "A", "label": "A", "dl": "10", "ul": "20", "limit_var": "gV", "limit_cmd": "mfg v"},
+                        {"code": "B", "label": "B", "dl": "30", "ul": "40", "limit_var": "gV", "limit_cmd": "mfg v"},
+                    ],
+                    "section_guards": [{"section_title": "GuardDemo", "allowed_skus": ["A"]}],
+                },
+                "preview": True,
+            })
+            pv_vis = v56_prev.get("row_visuals") or []
+            check("SKU_SKU1_DL=10" in v56_glb
+                  and "SKU_SKU4_UL=80" in v56_glb
+                  and "SKU_ALLOW_CHECK_BATTERY=@SKU1||@SKU3" in v56_glb
+                  and any("*$(SKU_SKU1_DL)" in v for v in v56_vals)
+                  and {"F3E8FF", "DCFCE7", "FFEDD5", "FCE7F3"}.issubset(set(v56_fills))
+                  and "E0F7FA" in v56_fills
+                  and bool(v56_sfis_fonts) and all(fc == "BE185D" for fc in v56_sfis_fonts)
+                  and ("DCFCE7", "15803D") in v56_p98_colors
+                  and ("FFE4E6", "9F1239") in v56_p99_colors
+                  and len(pv_vis) >= 10
+                  and any(pv.get("fill_hex") == "E0F7FA" for pv in pv_vis),
+                  "v0.8.056 全流程 ExecMode=4 4+分支分色、條件略過柔青、SFIS粉紅字、Phase97/98/99配色、預覽row_visuals與INI參數化完整通過",
+                  f"fills={sorted(set(v56_fills))}, sfis={set(v56_sfis_fonts)}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
