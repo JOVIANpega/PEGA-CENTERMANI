@@ -2076,11 +2076,50 @@ def run_all_verifications():
                   "v0.8.054 /api/generate_new_standalone 正確生成 0->1 SKU Excel + Global.ini + 附屬 69MO.txt")
 
             tsw_js_path = os.path.join(STUDIO_DIR, "web", "js", "template_sku_wizard.js")
+            tsw_js_txt = open(tsw_js_path, encoding="utf-8").read() if os.path.exists(tsw_js_path) else ""
             check(os.path.exists(tsw_js_path)
-                  and '/js/template_sku_wizard.js?v=0.8.054' in index_html
+                  and '/js/template_sku_wizard.js?v=0.8.055' in index_html
                   and "openTemplateSkuWizard('create')" in index_html
-                  and "openTemplateSkuWizard('edit')" in index_html,
-                  "v0.8.054 前端雙模式共用精靈元件 template_sku_wizard.js 與 Build v0.8.054 掛載檢查通過")
+                  and "openTemplateSkuWizard('edit')" in index_html
+                  and 'id="btnEmptyEditorSkuWizard"' in index_html
+                  and 'id="btnEditorTplSkuWizard"' in index_html
+                  and "tswSelectReason" in tsw_js_txt
+                  and "tswToggleRowLimit" in tsw_js_txt,
+                  "v0.8.055 一頁式多 SKU 精靈 UI、雙模式三大入口與 Build v0.8.055 掛載檢查通過")
+
+            # [v0.8.055] 驗證各 SKU 專屬 DL/UL 上下限 ＋ 匯合後共用指令 (post_merge_cmds 不破前方 4:P,F)
+            v55_lim = post_json("/api/template_bundle/apply", {
+                "target_mode": "edit",
+                "station_name": "MB",
+                "workspace": ws_v53,
+                "bundle_spec": {},
+                "sku_spec": {
+                    "enabled": True,
+                    "source_mode": "CUSTITEM",
+                    "compare_mode": "BRANCH_RULES",
+                    "offline_wrap": True,
+                    "offline_default_sku": "FULL",
+                    "no_match_policy": "FAIL",
+                    "post_merge_cmds": 'mfg sync-status\n:Delay,"300"',
+                    "sku_branches": [
+                        {"code": "FULL", "label": "整機全配", "iplas_model": "MOD_FULL", "limit_var": "gCurr", "limit_type": "%f", "dl": "100", "ul": "300", "limit_cmd": "mfg get-curr"},
+                        {"code": "NO_BAT", "label": "整機無電池", "iplas_model": "MOD_NBAT", "limit_var": "gCurr", "limit_type": "%f", "dl": "400", "ul": "600", "limit_cmd": "mfg get-curr"},
+                    ],
+                    "section_guards": [],
+                },
+                "preview": False,
+            })
+            v55_rep = v55_lim.get("report") or {}
+            v55_steps = (v55_lim.get("workspace") or {}).get("stations", {}).get("MB", [])
+            v55_vals = [str(s.get("Validation") or "") for s in v55_steps]
+            v55_sends = [str(s.get("Send") or "") for s in v55_steps]
+            check(v55_lim.get("status") == "ok"
+                  and len(v55_rep.get("errors") or []) == 0
+                  and len(v55_rep.get("manual_warnings") if "manual_warnings" in v55_rep else (v55_rep.get("warnings") or [])) == 0
+                  and any("(gCurr,%f,100,300);" in v for v in v55_vals)
+                  and any("(gCurr,%f,400,600);" in v for v in v55_vals)
+                  and any("mfg sync-status" in sd for sd in v55_sends),
+                  "v0.8.055 支援各 SKU 獨立 DL/UL 上下限與匯合後共用指令且 Script Doctor 0 Error/0 Warning")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

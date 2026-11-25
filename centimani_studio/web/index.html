@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.054</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.055</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1082,7 +1082,7 @@
           <span id="genCustomTicBadge" class="badge badge-pass" style="display:none; cursor:pointer;" onclick="switchTab('tic')"></span>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn" style="padding:4px 12px; font-size:0.84rem; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('create')">🧩 挑範本測項＋SKU 精靈</button>
+          <button class="btn" style="padding:4px 12px; font-size:0.84rem; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('create')">🎯 多 SKU 分流設定</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('minimal')">🧩 最小骨架</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('basic')">⚡ 基礎上電量測</button>
           <button class="btn" style="padding:4px 10px; font-size:0.83rem;" onclick="applyBlockPreset('none')">☐ 全部取消</button>
@@ -1182,7 +1182,7 @@
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <button id="btnEditorTplSkuWizard" class="btn" style="background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('edit')">
-              🧩 挑範本測項＋SKU 精靈
+              🎯 多 SKU 分流設定
             </button>
             <button class="btn" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
               📋 跨檔案複製整張 Sheet
@@ -1215,6 +1215,9 @@
         <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
           <button class="btn btn-primary-blue" style="padding:10px 24px; font-size:calc(var(--app-font-size, 15px) * 1.05); font-weight:800; box-shadow:0 4px 10px rgba(37,99,235,0.25);" onclick="document.getElementById('localExcelPickerInput').click()">
             📂 選擇要編修的 TestFlow.xlsx
+          </button>
+          <button id="btnEmptyEditorSkuWizard" class="btn" style="padding:10px 18px; font-size:calc(var(--app-font-size, 15px) * 1.0); font-weight:800; background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8;" onclick="openTemplateSkuWizard('edit')">
+            🎯 多 SKU 分流設定
           </button>
           <button class="btn" style="padding:10px 18px; font-size:calc(var(--app-font-size, 15px) * 1.0); font-weight:800; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B;" onclick="openCopySheetModal()">
             📋 跨檔案複製整張 Sheet（格式不跑掉）
@@ -1878,13 +1881,13 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.054"></script>
-<script src="/js/audit_editors.js?v=0.8.054"></script>
-<script src="/js/flow_guide.js?v=0.8.054"></script>
-<script src="/js/block_sorter.js?v=0.8.054"></script>
-<script src="/js/script_qa.js?v=0.8.054"></script>
-<script src="/js/sfis_hmi.js?v=0.8.054"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.054"></script>
+<script src="/js/inst_hmi.js?v=0.8.055"></script>
+<script src="/js/audit_editors.js?v=0.8.055"></script>
+<script src="/js/flow_guide.js?v=0.8.055"></script>
+<script src="/js/block_sorter.js?v=0.8.055"></script>
+<script src="/js/script_qa.js?v=0.8.055"></script>
+<script src="/js/sfis_hmi.js?v=0.8.055"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.055"></script>
 <script>
 let CURRENT_TAB = 'audit';
 let STATE = {

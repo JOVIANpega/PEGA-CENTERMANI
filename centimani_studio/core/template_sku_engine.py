@@ -773,6 +773,39 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
                     test_id="OVTA033",
                 ))
                 can_any_action_fail = True
+            dl_val = str(br.get("dl") if br.get("dl") is not None else "").strip()
+            ul_val = str(br.get("ul") if br.get("ul") is not None else "").strip()
+            if dl_val != "" or ul_val != "":
+                l_var = _sanitize_var_name(br.get("limit_var") or "gSKULimitVal", "gSKULimitVal")
+                l_type = str(br.get("limit_type") or "%f").strip()
+                if l_type not in ("%f", "%d", "%s", "%x"):
+                    l_type = "%f"
+                l_cmd = str(br.get("limit_cmd") or "").strip()
+                l_pfx = str(br.get("limit_prefix") or "").strip()
+                val_expr = f"({l_var},{l_type},{dl_val},{ul_val});"
+                if l_cmd:
+                    cmd_send = l_cmd if "@" in l_cmd else f"{dut_conn}@{l_cmd}\\r\\n"
+                    act_rows.append(_make_step(
+                        send=cmd_send,
+                        reply="@",
+                        end_prompt=end_prompt,
+                        ref=_safe_within_string_ref(l_var, l_pfx),
+                        validation=val_expr,
+                        waiting="3000",
+                        exec_mode="1",
+                        description=f"DUT#-#Measure & Check ({code}: {dl_val}~{ul_val})",
+                        test_id="OTFX054",
+                    ))
+                else:
+                    act_rows.append(_make_step(
+                        send=f':GetVal,"${l_var}"',
+                        reply="",
+                        validation=val_expr,
+                        exec_mode="1",
+                        description=f"PC#-#Check Limit ({code}: {dl_val}~{ul_val})",
+                        test_id="CACK182",
+                    ))
+                can_any_action_fail = True
             if not act_rows:
                 # Emit clean marker step so every branch has a valid action slot for 4:P,F
                 act_rows.append(_make_step(
@@ -834,6 +867,39 @@ def build_sku_wizard_steps(sku_spec, start_phase=1):
             + ("，未匹配強制 FAIL" if no_match_policy == "FAIL" else "，未匹配走預設繼續")
             + "）"
         )
+
+    # Append optional post-merge shared commands AFTER done_idx so earlier 4:P,F jump indices never shift!
+    raw_post = cfg.get("post_merge_cmds") or []
+    if isinstance(raw_post, str):
+        post_lines = [ln.strip() for ln in raw_post.splitlines() if ln.strip()]
+    elif isinstance(raw_post, list):
+        post_lines = [str(ln).strip() for ln in raw_post if str(ln).strip()]
+    else:
+        post_lines = []
+    for p_cmd in post_lines:
+        if p_cmd.startswith(":"):
+            steps.append(_make_step(
+                send=p_cmd,
+                reply="0",
+                exec_mode="0",
+                description=f"PC#-#Post-SKU Cmd ({p_cmd[:24]})",
+                test_id="B7PL025",
+            ))
+        else:
+            cmd_txt = p_cmd if "@" in p_cmd else f"{dut_conn}@{p_cmd}"
+            if not (cmd_txt.endswith("\\n") or cmd_txt.endswith("\\r\\n")):
+                cmd_txt += "\\r\\n"
+            steps.append(_make_step(
+                send=cmd_txt,
+                reply="@",
+                end_prompt=end_prompt,
+                waiting="3000",
+                exec_mode="1",
+                description=f"DUT#-#Post-SKU Cmd ({p_cmd[:24]})",
+                test_id="OTFX054",
+            ))
+    if post_lines:
+        summary.append(f"匯合後固定執行 {len(post_lines)} 條共用指令（不影響前方 4:P,F 位移）")
 
     if steps:
         steps[0]["Phase"] = str(start_phase)
