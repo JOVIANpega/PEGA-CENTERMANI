@@ -3183,6 +3183,73 @@ def run_all_verifications():
                       "v0.8.078 In-Place Patch 正確持久化 DeviceSemaphore / RobotMode 與 Instrument Sub / Switch",
                       f"sys={s78_out_txt!r}, inst0={inst0_rep}")
 
+            # [v0.8.079] 單顆積木進階直接支援 Phase 0 / -1（不用硬包群組）+ 撲克牌 P0/-1 徽章 + 1 -> N 版面清潔大掃除
+            with open(os.path.join(STUDIO_DIR, "web", "js", "create_block_builder.js"), "r", encoding="utf-8") as f_bb79:
+                bb79_src = f_bb79.read()
+            with open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8") as f_ae79:
+                ae79_src = f_ae79.read()
+            with open(os.path.join(STUDIO_DIR, "web", "index.html"), "r", encoding="utf-8") as f_idx79:
+                idx79_src = f_idx79.read()
+
+            check("階段位置 (Phase)" in bb79_src
+                  and "allowPhaseRole" in bb79_src
+                  and ">P0<" in bb79_src
+                  and ">-1<" in bb79_src
+                  and ">同P<" in bb79_src,
+                  "v0.8.079 create_block_builder.js 支援單顆積木直接選 Phase 0 / -1 / 沿用，且撲克牌顯示狀態徽章",
+                  "missing Phase role picker or card badges in create_block_builder.js")
+
+            exp_bar_pos = idx79_src.find('id="editorExportBar"')
+            sheet_sel_pos = idx79_src.find('id="editorSheetSel"')
+            diff_btn_pos = idx79_src.find('openStationDiffModal()')
+            check('id="editorDropZoneStrip"' in idx79_src
+                  and "handleEditorFileDrop" in idx79_src
+                  and 'id="btnTab1LaunchSfis"' not in idx79_src
+                  and 'id="btnTab1LaunchDll"' not in idx79_src
+                  and 0 < sheet_sel_pos < diff_btn_pos < exp_bar_pos
+                  and "▼ 展開修改 System.ini" in ae79_src
+                  and "↗ 彈窗排序測試流程" in ae79_src
+                  and "↗ 彈窗編輯跳轉規則" in ae79_src
+                  and "Marco 子流程表" in idx79_src,
+                  "v0.8.079 1->N 介面大掃除：拖曳載入、去重頂部按鈕、比對按鈕上移至測站列、手風琴預期標示與 Marco 子流程說明",
+                  f"sheet={sheet_sel_pos}, diff={diff_btn_pos}, exp={exp_bar_pos}")
+
+            v79_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V79_SINGLE_P0_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 10, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "s0", "kind": "start", "config": {"project": "V79_SINGLE_P0_PROJ", "station": "MB", "dut_count": 1}},
+                    {"uid": "s1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 10, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "s2", "kind": "dll_call", "config": {
+                        "dll_mode": "utility", "util_action": "gen_dt",
+                        "title": "Pretest Timestamp", "dt_fmt": "yyyyMMddhhmmss", "var_name": "sDATE1",
+                        "phase_role": "0",
+                    }},
+                    {"uid": "s3", "kind": "comm_cmd", "config": {
+                        "protocol": "uart", "port": "COM4", "alias": "UART",
+                        "title": "Paused Debug Step", "command": "dbg_skip",
+                        "phase_role": "-1",
+                    }},
+                    {"uid": "s4", "kind": "comm_cmd", "config": {
+                        "protocol": "uart", "port": "COM4", "alias": "UART",
+                        "title": "First Real Test", "command": "ver",
+                        "phase_role": "normal",
+                    }},
+                    {"uid": "s5", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "s6", "kind": "end", "config": {"confirmed": True}},
+                ]
+            })
+            ws_v79 = _parse_v50(v79_res["excel_path"])
+            v79_phases = [str(r.get("Phase") or "").strip() for r in ws_v79["stations"]["MB"] if str(r.get("Phase") or "").strip()]
+            check(v79_res.get("status") == "ok"
+                  and v79_phases == ["0", "-1", "1", "97"],
+                  "v0.8.079 單顆積木直接設定 Phase 0 / -1 不浪費耗號，下一顆一般測項準確從 Phase 1 起編",
+                  f"phases={v79_phases}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

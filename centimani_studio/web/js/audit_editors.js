@@ -489,7 +489,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>過站上傳：<b>SFIS ${String(sys.SFIS_Enable)==='1'?'🟢 開':'⚪ 關'}</b> ｜ <b>iPLAS ${String(sys.iPLAS_Enable)==='1'?'🟢 開':'⚪ 關'}</b></li>
             <li>出廠廠區：<b class="mono">${_escAttr(factoryShort)}</b> ｜ 路由：<b class="mono">${_escAttr(sys.SFIS_TSP || '-')}</b></li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">🏭 進入修改 System.ini ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">▼ 展開修改 System.ini</button>
         </div>
       </div>
 
@@ -508,7 +508,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>連線位址：DUT <b class="mono">${_escAttr(gSet.DUTIP_1 || '-')}</b> ｜ PC <b class="mono">${_escAttr(gSet.PCIP_1 || '-')}</b></li>
             ${gScr.FW_VERSION ? `<li>韌體版號：<b class="mono">${_escAttr(gScr.FW_VERSION)}</b></li>` : ''}
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🔌 進入修改 Global.ini ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">▼ 展開修改 Global.ini</button>
         </div>
       </div>
 
@@ -526,7 +526,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>包含步驟：共 <b>${curSteps.length} 步</b>（分成 <b>${curPhases} 個 Phase</b> 積木）</li>
             <li>支援拖拉重新排序、整段複製或插入新測項</li>
           </ul>
-          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">🧩 進入積木排序 ▶</button>
+          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">↗ 彈窗排序測試流程</button>
         </div>
       </div>
 
@@ -544,7 +544,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>可視覺化設定每一步的 <b>PASS / FAIL</b> 跳轉規則</li>
             <li>避免手寫 Index 錯亂導致跳錯階段或無窮迴圈</li>
           </ul>
-          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🔀 進入跳轉編輯 ▶</button>
+          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">↗ 彈窗編輯跳轉規則</button>
         </div>
       </div>
 
@@ -562,7 +562,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>目前條碼規則：<b class="mono">${_escAttr(curIsnBadge)}</b>（支援一鍵修改或設為免掃）</li>
             <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（可勾選掛載測試站與連線位址）</li>
           </ul>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
+          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">▼ 展開設定站別與儀器</button>
         </div>
       </div>
 
@@ -580,7 +580,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>直接點選「寫入現有 Excel」補齊缺漏或修正之 TestID</li>
             <li>同步支援「雙欄複製」快速貼回測試腳本</li>
           </ul>
-          <button onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">🏷️ 開啟 Error Code / TestID 速查 ▶</button>
+          <button onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">↗ 進入 TestID 查詢與回填</button>
         </div>
       </div>
     </div>

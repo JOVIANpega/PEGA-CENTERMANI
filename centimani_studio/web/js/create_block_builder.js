@@ -1797,6 +1797,8 @@
     const curEm = String(c.exec_mode || '');
     const curTm = c.title_run_mode == null ? '' : String(c.title_run_mode);
     const curRetry = c.title_retry == null ? '' : String(c.title_retry);
+    const curPhaseRole = String(c.phase_role || 'normal');
+    const allowPhaseRole = (item.kind !== 'sfis_route');
     const presets = [
       ['', '預設自動'],
       ['0', '0 失敗即停'],
@@ -1808,7 +1810,20 @@
     ];
     return `
       <div class="bb-adv-box">
-        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🧭 ExecMode 執行模式 &amp; Title 前綴/重試（*$(VAR) 自動寫入 [Scripts]）：</span></div>
+        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🧭 Phase 角色 / ExecMode 執行模式 / Title 前綴：</span></div>
+        ${allowPhaseRole ? `
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:7px; padding-bottom:6px; border-bottom:1px dashed #A5B4FC;">
+            <label style="font-size:0.78rem; font-weight:800; color:#312E81;">階段位置 (Phase)：
+              <select onchange="bbUpdateField(${idx},'phase_role',this.value,true)" style="margin-left:4px; padding:3px 7px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; background:#FFFFFF; color:#312E81;">
+                <option value="normal" ${curPhaseRole === 'normal' || !curPhaseRole ? 'selected' : ''}>一般測項 (自動順編 Phase 1+)</option>
+                <option value="0" ${curPhaseRole === '0' ? 'selected' : ''}>Phase 0 (開頭 Pretest：不計CT / 失敗退重掃)</option>
+                <option value="-1" ${curPhaseRole === '-1' ? 'selected' : ''}>Phase -1 (暫停略過不執行)</option>
+                <option value="same" ${curPhaseRole === 'same' ? 'selected' : ''}>沿用前一塊 Phase (留空不換號)</option>
+              </select>
+            </label>
+            ${curPhaseRole === '0' ? '<span style="font-size:0.74rem; color:#4338CA; font-weight:700;">💡 Phase 0 會集中於最前面 PrepareTest 先跑，建議擺在序列開頭</span>' : ''}
+          </div>
+        ` : ''}
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:7px;">
           <input value="${_esc(curEm)}" placeholder="預設自動（可填 6 / 2:0 / 4:P,F / *$(VAR)）" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="width:190px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; color:#312E81; background:#FFFFFF;">
           ${presets.map(([v, lbl]) => `
@@ -1876,9 +1891,20 @@
       const isFixed = !!meta.fixed;
       const isRed = !!meta.exclusivePage;
       const isGrp = item.kind === 'group';
-      const chs = isGrp && item.config && Array.isArray(item.config.children) ? item.config.children : [];
+      const ic = item.config || {};
+      const chs = isGrp && Array.isArray(ic.children) ? ic.children : [];
       const sn = isGrp ? `群組 (${chs.length}塊)` : String(meta.shortName || item.kind);
       const fSize = sn.length >= 5 ? '0.73rem' : '0.86rem';
+      const isP0 = (item.kind === 'sfis_route' && ic.use_phase0 !== false) || ic.phase_role === '0';
+      const isPm1 = ic.phase_role === '-1';
+      const isSameP = !isGrp && ic.phase_role === 'same';
+      const badgeTag = isP0
+        ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD;" title="Phase 0 開頭 Pretest">P0</span>'
+        : (isPm1
+            ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#E2E8F0; color:#475569;" title="Phase -1 暫停略過">-1</span>'
+            : (isSameP
+                ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#FEF3C7; color:#92400E;" title="沿用前一塊 Phase">同P</span>'
+                : (ic.exec_mode ? `<span class="mono" style="font-size:0.6rem; font-weight:900; padding:0 3px; border-radius:4px; background:#E0E7FF; color:#3730A3;" title="自訂 ExecMode=${_esc(ic.exec_mode)}">EM</span>` : '')));
       const dragAttrs = readonly ? '' : `
         draggable="${isFixed ? 'false' : 'true'}"
         ondragstart="bbDragStartStack(event, ${idx})"
@@ -1909,7 +1935,7 @@
           onclick="bbJumpQa(${idx})"
           title="${readonly ? _esc(_summarizeBlock(item) + '（點擊修改）') : ''}">
           <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
-            <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>
+            <span style="display:inline-flex; align-items:center; gap:2px;"><span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>${badgeTag}</span>
             ${!readonly && !isFixed
               ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
               : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">${isFixed ? '固定' : (item.configured ? '✓' : '待')}</span>`}
@@ -1991,6 +2017,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;" onclick="event.stopPropagation();">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <span class="mono" style="background:#D97706; color:#FFFFFF; font-weight:900; font-size:0.75rem; padding:2px 7px; border-radius:999px;">#${gIdx + 1} 📦 群組 (${chs.length}塊共用 1 Phase)</span>
+              ${gc.phase_role === '0' ? '<span class="mono" style="background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase 0</span>' : (gc.phase_role === '-1' ? '<span class="mono" style="background:#E2E8F0; color:#475569; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase -1 略過</span>' : (['97','97:PWROFF','98','99'].includes(gc.phase_role) ? `<span class="mono" style="background:#FFE4E6; color:#9F1239; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase ${_esc(gc.phase_role)}</span>` : ''))}
               ${readonly
                 ? `<span style="font-size:0.82rem; font-weight:800; color:#78350F;">${_esc(gc.title || '自訂機能群組')}</span>`
                 : `<input value="${_esc(gc.title || '自訂機能群組')}" placeholder="群組共同 Title" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="padding:3px 8px; border:1px solid #F59E0B; border-radius:6px; font-size:0.8rem; font-weight:800; color:#78350F; background:#FFFFFF; width:170px;">`}

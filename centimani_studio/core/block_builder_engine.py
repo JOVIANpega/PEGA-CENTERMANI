@@ -259,14 +259,19 @@ def build_workspace_from_sequence(
     steps = []
     deferred_inst_blocks = []
     extracted_sku_cfg = None
-    next_phase = [1]  # phase 0 reserved for sfis_route + optional phase0 fixture
+    next_phase = [1]  # phase 0 reserved for sfis_route + optional phase0 blocks
     has_phase0 = False
+    active_phase_role = [""]
     g_set = ws.setdefault("global_ini", {}).setdefault("Settings", {})
     g_scr = ws.setdefault("global_ini", {}).setdefault("Scripts", {})
 
     def _alloc_phase(force_zero=False):
         if force_zero:
             return "0"
+        ov = active_phase_role[0]
+        if ov in ("0", "-1", "same"):
+            active_phase_role[0] = ""
+            return "" if ov == "same" else ov
         p = str(next_phase[0])
         next_phase[0] += 1
         return p
@@ -323,6 +328,8 @@ def build_workspace_from_sequence(
         kind = str(item.get("kind") or "").strip()
         cfg = item.get("config") or {}
         step_start_idx = len(steps)
+        req_role = str(cfg.get("phase_role") or "").strip()
+        active_phase_role[0] = req_role if (kind not in ("start", "isn", "group", "teardown", "end", "sfis_route", "multi_sku", "inst") and req_role in ("0", "-1", "same")) else ""
 
         if kind == "start":
             sys_ini = ws.setdefault("system_ini", {})
@@ -1347,11 +1354,17 @@ def build_workspace_from_sequence(
                         gr["Title"] = g_title_str if g_i == 0 else ""
                     steps.extend(raw_grp_steps)
 
+        active_phase_role[0] = ""
         # Every action block (except start / end / isn / delay / inst / multi_sku / disabled fixture) supports optional post-block Delay row
         skip_post_delay = (
             kind in ("start", "end", "isn", "delay", "inst", "multi_sku")
             or (kind == "fixture" and str(cfg.get("fixture_type") or "none").strip().lower() == "none")
         )
+        if kind not in ("start", "isn", "group", "teardown", "end", "sfis_route", "multi_sku", "inst") and len(steps) > step_start_idx:
+            if req_role in ("0", "-1", "same"):
+                steps[step_start_idx]["Phase"] = "" if req_role == "same" else req_role
+                if req_role == "0":
+                    has_phase0 = True
         if kind != "inst" and cfg.get("test_id"):
             _apply_custom_test_id(steps[step_start_idx:], cfg.get("test_id"))
         if kind != "inst" and cfg.get("exec_mode"):
@@ -1617,6 +1630,13 @@ def build_workspace_from_sequence(
                 globals_patch=g_patch,
             )
 
+        inst_role = str(icfg.get("phase_role") or "").strip()
+        if inst_role in ("0", "-1", "same"):
+            after_steps = ws["stations"][station_name]
+            added_n = len(after_steps) - before_inst_len
+            base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
+            if added_n > 0:
+                after_steps[base_pos]["Phase"] = "" if inst_role == "same" else inst_role
         if icfg.get("test_id"):
             after_steps = ws["stations"][station_name]
             added_n = len(after_steps) - before_inst_len
