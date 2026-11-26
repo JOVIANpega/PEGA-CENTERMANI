@@ -76,7 +76,7 @@ const FLOW_GUIDE_DATA = {
     steps: [
       { num: '①', title: '選擇 5 大作業模式', jumpIdx: 0, items: ['既有編修 / 新母體 / 儀器範本', '問編寫問題 / 實機驗證'] },
       { num: '②', title: '既有腳本：手風琴編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
-      { num: '③', title: '空範本：4 步建新母體', jumpIdx: 6, items: ['專案 / ISN / 廠區設定', '從 0 → 1 勾選骨架與參數'] },
+      { num: '③', title: '首次範本：積木拖曳建母體', jumpIdx: 6, items: ['撲克牌拖曳 & 📦群組方框', '逐頁設定 + TestID + 語法體檢'] },
       { num: '④', title: '儀器撲克牌庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
       { num: '⑤', title: '匯出與實機 DLL 檢查', jumpIdx: 12, items: ['必開目錄＋缺 DLL/驅動提醒', '對齊 DLL 版號與詢問開 Excel'] }
     ],
@@ -119,26 +119,26 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 2,
-        step: 'Step 7｜產生空範本 Step 1：填寫專案名稱、站別、槽位數與 ISN 規則',
-        desc: '切換至「產生首次使用空範本」後，輸入專案代號、站別名稱（如 MB / RF）、多工槽位數（1/2/4）與 ISN 位數/格式，並可由下方開啟 SFIS / iPLAS 廠區連線設定。',
+        step: 'Step 7｜產生首次範本：左右分欄直立撲克牌庫拖曳排順序（支援 📦 群組方框）',
+        desc: '進入「產生首次範本 🃏 積木拖曳編排」後，預設帶入 開始/條碼/chkRoute/指令/清理/結束 6 塊骨架。從左欄將 指令/等待/儀器/SKU/SFIS 拖進右欄貪食蛇序列；需要同一 Phase 混排多塊時可拖入 📦 群組方框並展開置入子積木，亦可點擊「🪄 一鍵自動排最佳順序」或「🔄 恢復預設 6 塊」。',
         img: '/images/guide_gen_1a.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 8｜產生空範本 Step 2：勾選標準流程骨架與儀器測項',
-        desc: '可點右上角「🧩 最小骨架」或「⚡ 基礎上電量測」快速帶入 CheckRoute、治具、UART 與 Phase 97 收尾，並於下方挑選儀器加入清單或開啟互動人機。',
+        step: 'Step 8｜逐頁設定（一頁一塊）：基礎參數 ＋ 進階 TestID 即時關鍵字搜尋',
+        desc: '點擊「開始逐塊設定」依底部彩灰進度條逐頁設定（群組子積木自動編為 #3.1、#3.2），支援貼上 Log 反白自動推導擷取公式、勾選動作後自動加 :Delay，以及在右上「⚙️ 顯示進階細項設定」中即時搜尋 7 碼 TestID（如打「電流」選 BRME027）與檢視連動 INI 預覽。',
         img: '/images/guide_gen_2a.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 9｜產生空範本 Step 3：依勾選項目填寫細部測試參數',
-        desc: '依前一步勾選的積木與儀器動態產生設定卡：可微調韌體比對連線方式（UART / ADB / SSH）、COM Port、目標版本與治具等待時間。',
+        step: 'Step 9｜專屬互動積木（外接儀器 / 多 SKU 分流 / SFIS 讀寫）',
+        desc: '紅標「🧪 儀器」與「🎯 SKU」可直接嵌入同頁切換實機儀器卡牌（NI-6008 / FeasaLED / PPH1503 / IQxel RF）與多品種 4:P,F 分流設定；SFIS 積木可雙向呼叫「SFIS 撲克牌牌桌」實測後帶回。',
         img: '/images/guide_gen_3.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 10｜產生空範本 Step 4：產出新母體（無硬體試跑版 / 產線實機包）',
-        desc: '於總覽確認頁點擊「🧪 無硬體試跑版」或「🚀 產線實機測試包」，自動產生 16 欄 TestFlow、System.ini、Global.ini 與 64 碼 Checksum。',
+        step: 'Step 10｜總覽確認（撲克牌流）與自動語法體檢產出',
+        desc: '總覽頁採用與拖曳畫面相同的撲克牌流程檢視（點擊任張卡片立即修改，群組點 ▼ 展開），匯出前預設自動執行 16 欄語法與結構體檢，完成後立即開啟 Excel 並條列實際寫入之 INI 設定摘要。',
         img: '/images/guide_gen_4b.png'
       },
       {

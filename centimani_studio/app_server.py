@@ -1011,7 +1011,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.069",
+                "server_build": "Build v0.8.070",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1715,7 +1715,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.069")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.070")
 
                 self._send_json({
                     "status": "ok",
@@ -2036,6 +2036,36 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             keep_scr.extend((br.get("globals_override") or {}).keys())
                 prune_unused_global_ini(ws, keep_settings=keep_set, keep_scripts=keep_scr)
 
+                run_syntax_check = bool(payload.get("run_syntax_check", True))
+                audit_summary = {"enabled": False, "error_count": 0, "warning_count": 0, "errors": [], "warnings": []}
+                if run_syntax_check:
+                    aud_rep = audit_workspace(ws)
+                    aud_errs = list(aud_rep.get("errors") or [])
+                    aud_warns = list(aud_rep.get("warnings") or [])
+                    audit_summary = {
+                        "enabled": True,
+                        "error_count": len(aud_errs),
+                        "warning_count": len(aud_warns),
+                        "errors": aud_errs[:12],
+                        "warnings": aud_warns[:12],
+                    }
+
+                sys_raw = ws.get("system_ini") or {}
+                sys_summary = {
+                    "StationName": sys_raw.get("StationName") or "(留空：執行時彈窗選擇)",
+                    "DebugMode": sys_raw.get("DebugMode", "1"),
+                    "SFIS_Enable": sys_raw.get("SFIS_Enable", "0"),
+                }
+                for sf_k in ("SFIS_TSP", "SFIS_WebLink", "SFIS_LoginID", "SFIS_SkipSaveResultOnFail"):
+                    if str(sys_raw.get(sf_k) or "").strip():
+                        sys_summary[sf_k] = str(sys_raw.get(sf_k)).strip()
+                glb_raw = ws.get("global_ini") or {}
+                ini_summary = {
+                    "system": sys_summary,
+                    "settings": dict(glb_raw.get("Settings") or {}),
+                    "scripts": dict(glb_raw.get("Scripts") or {}),
+                }
+
                 target_dir = os.path.join(OUTPUT_ROOT, folder_label, "System")
                 os.makedirs(target_dir, exist_ok=True)
                 for old_f in os.listdir(target_dir):
@@ -2065,7 +2095,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.069")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.070")
 
                 self._send_json({
                     "status": "ok",
@@ -2078,6 +2108,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     "switch_bats": switch_bats,
                     "system_ini": sys_ini,
                     "global_ini": glb_ini,
+                    "ini_summary": ini_summary,
+                    "audit_report": audit_summary,
                     "checksum": chk or "已自動寫入 [Checksum]",
                     "isn_info": extract_isn_info(ws),
                     **dll_chk
@@ -2317,7 +2349,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.069")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.070")
 
                 self._send_json({
                     "status": "ok",
@@ -2687,7 +2719,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.069")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.070")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2853,7 +2885,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.069) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.070) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

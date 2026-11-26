@@ -2692,6 +2692,45 @@ def run_all_verifications():
                   and "點擊下方 6 格水平手風琴卡牌" in index_html,
                   "v0.8.069 群組收合卡純向下箭頭(▼)、群組拖出至右側空白區與qaIdx/舊橫幅清理檢查通過")
 
+            # [v0.8.070] 方案1撲克牌總覽匯出頁 + 恢復預設6塊 + 返回模式選擇入口 + 舊4步驟文案更新 + 匯出預設自動語法檢查與INI設定摘要通知
+            sfis_70 = open(os.path.join(os.path.dirname(cbb_js_path), "sfis_hmi.js"), "r", encoding="utf-8").read()
+            check("_renderSnakeCardsHtml(true)" in cbb_69
+                  and "bbResetDefaultStack" in cbb_69
+                  and "_renderAuditAndIniHtml" in cbb_69
+                  and "_collectAllLinkedIniPreviews" in cbb_69
+                  and "run_syntax_check: true" in cbb_69
+                  and "switchGenSubMode('hub')" in cbb_69
+                  and "產生首次範本 (積木拖曳)" in index_html
+                  and "sfisSyncToBuilderAutoAdd" in sfis_70,
+                  "v0.8.070 方案1撲克牌總覽匯出、恢復預設6塊、返回模式按鈕、舊文案清理與語法/INI通知UI檢查通過")
+
+            v70_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V70_AUDIT_INI_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 6, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "s0", "kind": "start", "config": {"project": "V70_AUDIT_INI_PROJ", "station": "MB", "dut_count": 1, "debug_mode": "1", "sfis_enable": "0"}},
+                    {"uid": "s1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 6, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "s2", "kind": "sfis_route", "config": {"sfis_mode": "offline"}},
+                    {"uid": "s3", "kind": "comm_cmd", "config": {"protocol": "uart", "port": "COM9", "title": "Check FW", "command": "cat /etc/version", "extract_mode": "within", "left_delim": "version=", "right_delim": "\\n", "var_name": "DUT_FW", "val_type": "%s", "expect_min": "1.2.3", "use_ini_var": True}},
+                    {"uid": "s4", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "s5", "kind": "end", "config": {"confirmed": True}},
+                ],
+            })
+            v70_ar = v70_res.get("audit_report") or {}
+            v70_ini = v70_res.get("ini_summary") or {}
+            check(v70_res.get("status") == "ok"
+                  and v70_ar.get("enabled") is True
+                  and int(v70_ar.get("error_count", -1)) == 0
+                  and (v70_ini.get("system") or {}).get("DebugMode") == "1"
+                  and (v70_ini.get("settings") or {}).get("DUT_UR1") == "COM9"
+                  and (v70_ini.get("scripts") or {}).get("DUT_FW_SPEC") == "1.2.3",
+                  "v0.8.070 匯出預設自動執行Excel語法檢查(0 Error) + 回傳實際寫入INI摘要(System/Settings/Scripts) 通過",
+                  f"ar={v70_ar}, ini={v70_ini}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

@@ -441,7 +441,8 @@
     ],
     exportOpts: {
       station_name_mode: 'fixed',
-      no_hw_phase_pause: false
+      no_hw_phase_pause: false,
+      run_syntax_check: true
     }
   };
   window.BB_STATE = BB_STATE;
@@ -1250,6 +1251,22 @@
     bbRender();
   };
 
+  window.bbResetDefaultStack = function () {
+    BB_STATE.stack = [
+      { uid: _newUid(), kind: 'start', configured: true, config: _defaultConfigForKind('start') },
+      { uid: _newUid(), kind: 'isn', configured: true, config: _defaultConfigForKind('isn') },
+      { uid: _newUid(), kind: 'sfis_route', configured: false, config: _defaultConfigForKind('sfis_route') },
+      { uid: _newUid(), kind: 'comm_cmd', configured: false, config: _defaultConfigForKind('comm_cmd') },
+      { uid: _newUid(), kind: 'teardown', configured: false, config: _defaultConfigForKind('teardown') },
+      { uid: _newUid(), kind: 'end', configured: true, config: _defaultConfigForKind('end') }
+    ];
+    BB_STATE.qaIdx = 0;
+    BB_STATE.autoSortMsg = '🔄 已恢復為預設 6 塊首次範本骨架（開始 ➔ 條碼 ➔ chkRoute ➔ 指令 ➔ 清理 ➔ 結束）。';
+    const alertBox = document.getElementById('genAlertBox');
+    if (alertBox) alertBox.style.display = 'none';
+    bbRender();
+  };
+
   function _collectPrecedingVars(beforeNavIdx) {
     const vars = [];
     const seen = new Set();
@@ -1722,30 +1739,7 @@
     `;
   }
 
-  function _renderStackView() {
-    const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
-    const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
-
-    // 直立撲克牌（82x96px），簡潔 Icon + 名稱 + 下方 [+]
-    const mkPaletteCard = (b) => {
-      const sn = String(b.shortName || '');
-      const fSize = sn.length >= 5 ? '0.76rem' : '0.88rem';
-      return `
-        <div class="bb-poker-card palette-card ${b.exclusivePage ? 'is-red' : ''}"
-          style="border-top-color:${b.border || '#3B82F6'};"
-          data-bb-pop="${b.kind}"
-          draggable="true"
-          ondragstart="bbDragStartPalette(event, '${b.kind}')"
-          ondragend="bbHidePop()"
-          onmousemove="bbShowPop(event, '${b.kind}')"
-          onmouseleave="bbHidePop()">
-          <div style="font-size:1.25rem; line-height:1.1; margin-top:2px;">${b.icon}</div>
-          <div style="font-weight:900; font-size:${fSize}; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; letter-spacing:${sn.length >= 5 ? '0' : '0.4px'}; white-space:nowrap;">${_esc(sn)}</div>
-          <button type="button" class="bb-poker-plus" title="加入 ${_esc(sn)}" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
-        </div>
-      `;
-    };
-
+  function _renderSnakeCardsHtml(readonly = false) {
     const mkStackCard = (item, idx) => {
       const meta = META_BY_KIND[item.kind] || {};
       const isFixed = !!meta.fixed;
@@ -1754,37 +1748,47 @@
       const chs = isGrp && item.config && Array.isArray(item.config.children) ? item.config.children : [];
       const sn = isGrp ? `群組 (${chs.length}塊)` : String(meta.shortName || item.kind);
       const fSize = sn.length >= 5 ? '0.73rem' : '0.86rem';
+      const dragAttrs = readonly ? '' : `
+        draggable="${isFixed ? 'false' : 'true'}"
+        ondragstart="bbDragStartStack(event, ${idx})"
+        ondragend="bbHidePop()"
+        ondragover="bbCardDragOver(event, ${idx})"
+        ondragleave="bbCardDragLeave(event)"
+        ondrop="bbDropOnCard(event, ${idx})"
+      `;
+      const bottomRow = readonly
+        ? (isGrp
+            ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 8px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組檢視子積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
+            : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${isFixed ? (item.configured ? '✓ 已設' : '點擊設') : (item.configured ? '✓ 已設' : '待設定')}</span>`)
+        : (!isFixed ? `
+            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
+            ${isGrp
+              ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 6px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
+              : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
+            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
+          ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`);
+
       return `
         <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''} ${isGrp ? 'bb-group-collapsed-card' : ''}"
           style="cursor:pointer; border-top-color:${meta.border || '#3B82F6'};"
           data-bb-pop="${item.kind}"
-          draggable="${isFixed ? 'false' : 'true'}"
-          ondragstart="bbDragStartStack(event, ${idx})"
-          ondragend="bbHidePop()"
-          ondragover="bbCardDragOver(event, ${idx})"
-          ondragleave="bbCardDragLeave(event)"
-          ondrop="bbDropOnCard(event, ${idx})"
+          ${dragAttrs}
           onmousemove="bbShowPop(event, '${item.kind}')"
           onmouseleave="bbHidePop()"
-          onclick="bbJumpQa(${idx})">
+          onclick="bbJumpQa(${idx})"
+          title="${readonly ? _esc(_summarizeBlock(item) + '（點擊修改）') : ''}">
           <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
             <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>
-            ${!isFixed
+            ${!readonly && !isFixed
               ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
-              : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">固定</span>`}
+              : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">${isFixed ? '固定' : (item.configured ? '✓' : '待')}</span>`}
           </div>
           <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
             <span style="font-size:1.15rem; line-height:1;">${meta.icon || '🧩'}</span>
             <span style="font-weight:900; font-size:${fSize}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#0F172A')}; white-space:nowrap;">${_esc(sn)}</span>
           </div>
           <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
-            ${!isFixed ? `
-              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
-              ${isGrp
-                ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 6px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
-                : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
-              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
-            ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
+            ${bottomRow}
           </div>
         </div>
       `;
@@ -1799,80 +1803,106 @@
         const cRed = !!cm.exclusivePage;
         const cSn = String(cm.shortName || ch.kind);
         const cfSize = cSn.length >= 5 ? '0.74rem' : '0.84rem';
+        const cDrag = readonly ? '' : `
+          draggable="true"
+          ondragstart="bbDragStartGroupChild(event, ${gIdx}, ${cIdx})"
+          ondragend="bbHidePop()"
+          ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
+          ondragleave="this.classList.remove('drag-over-card');"
+          ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})"
+        `;
         return `
-          <div class="bb-drop-slot-v"
-            ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
-            ondragleave="this.classList.remove('drag-over');"
-            ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})">${cIdx === 0 ? '▸' : '➔'}</div>
+          ${readonly
+            ? (cIdx > 0 ? '<div class="bb-drop-slot-v" style="pointer-events:none;">➔</div>' : '')
+            : `<div class="bb-drop-slot-v"
+                ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
+                ondragleave="this.classList.remove('drag-over');"
+                ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})">${cIdx === 0 ? '▸' : '➔'}</div>`}
           <div class="bb-poker-card ${cRed ? 'is-red' : ''}"
             style="cursor:pointer; border-top-color:${cm.border || '#D97706'};"
             data-bb-pop="${ch.kind}"
-            draggable="true"
-            ondragstart="bbDragStartGroupChild(event, ${gIdx}, ${cIdx})"
-            ondragend="bbHidePop()"
-            ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
-            ondragleave="this.classList.remove('drag-over-card');"
-            ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})"
+            ${cDrag}
             onmousemove="bbShowPop(event, '${ch.kind}')"
             onmouseleave="bbHidePop()"
-            onclick="bbJumpQa(${gIdx}, ${cIdx})">
+            onclick="bbJumpQa(${gIdx}, ${cIdx})"
+            title="${readonly ? _esc(_summarizeBlock(ch) + '（點擊修改）') : ''}">
             <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
               <span class="mono" style="font-weight:900; font-size:0.65rem; padding:1px 4px; border-radius:4px; background:#FEF3C7; color:#92400E;">#${gIdx + 1}.${cIdx + 1}</span>
-              <button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="從群組移除" onclick="bbGroupRemoveChild(${gIdx}, ${cIdx})">✕</button>
+              ${!readonly
+                ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="從群組移除" onclick="bbGroupRemoveChild(${gIdx}, ${cIdx})">✕</button>`
+                : `<span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>`}
             </div>
             <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
               <span style="font-size:1.1rem; line-height:1;">${cm.icon || '🧩'}</span>
               <span style="font-weight:900; font-size:${cfSize}; color:${cRed ? '#991B1B' : '#0F172A'}; white-space:nowrap;">${_esc(cSn)}</span>
             </div>
             <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
-              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往前" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, -1)">◀</button>
-              <span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>
-              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往後" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, 1)">▶</button>
+              ${!readonly ? `
+                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往前" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, -1)">◀</button>
+                <span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>
+                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往後" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, 1)">▶</button>
+              ` : `<span style="font-size:0.67rem; font-weight:800; color:#475569;">${ch.configured ? '✓ 已設' : '點擊設'}</span>`}
             </div>
           </div>
         `;
       }).join('');
 
+      const grpBoxDrag = readonly ? '' : `
+        draggable="true"
+        ondragstart="bbDragStartStack(event, ${gIdx})"
+        ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
+        ondragleave="this.classList.remove('drag-over-card');"
+        ondrop="bbDropInGroup(event, ${gIdx}, -1)"
+      `;
+
       return `
-        <div class="bb-group-box"
-          draggable="true"
-          ondragstart="bbDragStartStack(event, ${gIdx})"
-          ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
-          ondragleave="this.classList.remove('drag-over-card');"
-          ondrop="bbDropInGroup(event, ${gIdx}, -1)">
+        <div class="bb-group-box" ${grpBoxDrag}>
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;" onclick="event.stopPropagation();">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <span class="mono" style="background:#D97706; color:#FFFFFF; font-weight:900; font-size:0.75rem; padding:2px 7px; border-radius:999px;">#${gIdx + 1} 📦 群組 (${chs.length}塊共用 1 Phase)</span>
-              <input value="${_esc(gc.title || '自訂機能群組')}" placeholder="群組共同 Title" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="padding:3px 8px; border:1px solid #F59E0B; border-radius:6px; font-size:0.8rem; font-weight:800; color:#78350F; background:#FFFFFF; width:170px;">
+              ${readonly
+                ? `<span style="font-size:0.82rem; font-weight:800; color:#78350F;">${_esc(gc.title || '自訂機能群組')}</span>`
+                : `<input value="${_esc(gc.title || '自訂機能群組')}" placeholder="群組共同 Title" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="padding:3px 8px; border:1px solid #F59E0B; border-radius:6px; font-size:0.8rem; font-weight:800; color:#78350F; background:#FFFFFF; width:170px;">`}
             </div>
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
-              <select onchange="if(this.value){ bbGroupAddChild(${gIdx}, this.value); this.value=''; }" style="padding:3px 7px; border:1px solid #D97706; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF; color:#92400E; cursor:pointer;">
-                <option value="">＋ 加入子積木</option>
-                ${childOptions.map(b => `<option value="${b.kind}">${b.icon} ${_esc(b.shortName)}</option>`).join('')}
-              </select>
-              <button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:5px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer;" onclick="bbToggleGroupCollapse(${gIdx})">▾ 收合</button>
-              <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往前" onclick="bbMoveStackIdx(${gIdx}, -1)">◀</button>
-              <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往後" onclick="bbMoveStackIdx(${gIdx}, 1)">▶</button>
-              <button type="button" style="border:1px solid #FCA5A5; background:#FFFFFF; color:#DC2626; border-radius:4px; padding:2px 7px; font-size:0.74rem; font-weight:900; cursor:pointer;" title="移除群組" onclick="bbRemoveStackIdx(${gIdx})">✕</button>
+              ${!readonly ? `
+                <select onchange="if(this.value){ bbGroupAddChild(${gIdx}, this.value); this.value=''; }" style="padding:3px 7px; border:1px solid #D97706; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF; color:#92400E; cursor:pointer;">
+                  <option value="">＋ 加入子積木</option>
+                  ${childOptions.map(b => `<option value="${b.kind}">${b.icon} ${_esc(b.shortName)}</option>`).join('')}
+                </select>
+              ` : ''}
+              <button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:5px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer;" onclick="bbToggleGroupCollapse(${gIdx})" title="收合群組">${readonly ? '▲' : '▲ 收合'}</button>
+              ${!readonly ? `
+                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往前" onclick="bbMoveStackIdx(${gIdx}, -1)">◀</button>
+                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往後" onclick="bbMoveStackIdx(${gIdx}, 1)">▶</button>
+                <button type="button" style="border:1px solid #FCA5A5; background:#FFFFFF; color:#DC2626; border-radius:4px; padding:2px 7px; font-size:0.74rem; font-weight:900; cursor:pointer;" title="移除群組" onclick="bbRemoveStackIdx(${gIdx})">✕</button>
+              ` : ''}
             </div>
           </div>
           <div class="bb-group-inner-track">
-            ${chs.length ? innerHtml : `<span style="font-size:0.8rem; font-weight:700; color:#92400E; padding:8px;">將左側「指令 / 等待 / 儀器 / 治具 / 比對」拖進此黃框，或點右上角「＋ 加入子積木」</span>`}
-            <div class="bb-drop-slot-v" style="width:auto; min-width:58px; padding:0 8px; font-size:0.76rem; border-color:#F59E0B; background:rgba(255,255,255,0.6);"
-              ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
-              ondragleave="this.classList.remove('drag-over');"
-              ondrop="bbDropInGroup(event, ${gIdx}, ${chs.length})">➔ +拖入</div>
+            ${chs.length ? innerHtml : `<span style="font-size:0.8rem; font-weight:700; color:#92400E; padding:8px;">${readonly ? '此群組尚無子積木' : '將左側「指令 / 等待 / 儀器 / 治具 / 比對」拖進此黃框，或點右上角「＋ 加入子積木」'}</span>`}
+            ${!readonly ? `
+              <div class="bb-drop-slot-v" style="width:auto; min-width:58px; padding:0 8px; font-size:0.76rem; border-color:#F59E0B; background:rgba(255,255,255,0.6);"
+                ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
+                ondragleave="this.classList.remove('drag-over');"
+                ondrop="bbDropInGroup(event, ${gIdx}, ${chs.length})">➔ +拖入</div>
+            ` : ''}
           </div>
         </div>
       `;
     };
 
-    // 貪食蛇 (S-curve Snake) 跨行箭頭排版：偶數列 左➔右，行尾 ⬇ 轉下一列，奇數列 右⬅左 整齊對齊；展開群組獨立成全寬方框
     const paneEl = document.getElementById('bbRightPane');
-    const availW = BB_STATE.fullscreen
-      ? Math.max(420, (window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 95)
-      : Math.max(420, (paneEl ? paneEl.clientWidth : ((window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 130)));
-    const cols = Math.max(3, Math.min(7, Math.floor((availW - 18) / 106)));
+    const hostEl = document.getElementById('createBlockBuilderRoot');
+    let availW = 680;
+    if (readonly) {
+      availW = Math.max(460, (hostEl ? hostEl.clientWidth : (window.innerWidth || 1200) - 80) - 60);
+    } else {
+      availW = BB_STATE.fullscreen
+        ? Math.max(420, (window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 95)
+        : Math.max(420, (paneEl ? paneEl.clientWidth : ((window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 130)));
+    }
+    const cols = Math.max(3, Math.min(readonly ? 9 : 7, Math.floor((availW - 18) / 106)));
     const gridTemplate = Array.from({ length: cols * 2 - 1 }, (_, k) => (k % 2 === 0 ? '82px' : '20px')).join(' ');
 
     const segments = [];
@@ -1904,33 +1934,35 @@
           if (k < rowObj.items.length - 1) {
             const arrowCol = isRtl ? ((cols - 1 - k) * 2) : (k * 2 + 2);
             const nextIdx = ent.absIdx + 1;
-            cells.push(`
-              <div class="bb-drop-slot-v" style="grid-column:${arrowCol}; grid-row:1;"
-                ondragover="event.preventDefault(); this.classList.add('drag-over');"
-                ondragleave="this.classList.remove('drag-over');"
-                ondrop="bbDropAtSlot(event, ${nextIdx})">${isRtl ? '⬅' : '➔'}</div>
-            `);
+            const slotDrop = readonly ? '' : `
+              ondragover="event.preventDefault(); this.classList.add('drag-over');"
+              ondragleave="this.classList.remove('drag-over');"
+              ondrop="bbDropAtSlot(event, ${nextIdx})"
+            `;
+            cells.push(`<div class="bb-drop-slot-v" style="grid-column:${arrowCol}; grid-row:1;" ${slotDrop}>${isRtl ? '⬅' : '➔'}</div>`);
           }
         });
         const hasNextRow = (rIdx < rows.length - 1) || hasNextSeg;
         const turnCol = isRtl ? 1 : (cols * 2 - 1);
         const lastEnt = rowObj.items[rowObj.items.length - 1];
         const turnSlotIdx = (rIdx < rows.length - 1) ? (lastEnt.absIdx + 1) : nextSegStartIdx;
+        const turnDrop = readonly ? '' : `
+          ondragover="event.preventDefault(); this.classList.add('drag-over');"
+          ondragleave="this.classList.remove('drag-over');"
+          ondrop="bbDropAtSlot(event, ${turnSlotIdx})"
+        `;
         return `
           <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">${cells.join('')}</div>
           ${hasNextRow ? `
             <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">
-              <div class="bb-drop-slot-turn" style="grid-column:${turnCol};"
-                ondragover="event.preventDefault(); this.classList.add('drag-over');"
-                ondragleave="this.classList.remove('drag-over');"
-                ondrop="bbDropAtSlot(event, ${turnSlotIdx})">⬇</div>
+              <div class="bb-drop-slot-turn" style="grid-column:${turnCol};" ${turnDrop}>⬇</div>
             </div>
           ` : ''}
         `;
       }).join('');
     };
 
-    const stackHtml = `
+    return `
       <div class="bb-snake-wrap" style="width:100%;">
         ${segments.map((seg, sIdx) => {
           const hasNextSeg = (sIdx < segments.length - 1);
@@ -1940,18 +1972,72 @@
           if (seg.type === 'snake') {
             return renderSnakeSegment(seg.entries, hasNextSeg, nextSegStartIdx);
           }
+          const grpTurnDrop = readonly ? '' : `
+            ondragover="event.preventDefault(); this.classList.add('drag-over');"
+            ondragleave="this.classList.remove('drag-over');"
+            ondrop="bbDropAtSlot(event, ${nextSegStartIdx})"
+          `;
           return `
             ${mkExpandedGroupBox(seg.item, seg.absIdx)}
-            ${hasNextSeg ? `
-              <div class="bb-drop-slot-turn" style="margin:0 auto;"
-                ondragover="event.preventDefault(); this.classList.add('drag-over');"
-                ondragleave="this.classList.remove('drag-over');"
-                ondrop="bbDropAtSlot(event, ${nextSegStartIdx})">⬇</div>
-            ` : ''}
+            ${hasNextSeg ? `<div class="bb-drop-slot-turn" style="margin:0 auto;" ${grpTurnDrop}>⬇</div>` : ''}
           `;
         }).join('')}
       </div>
     `;
+  }
+
+  function _collectAllLinkedIniPreviews() {
+    const seen = new Set();
+    const rows = [];
+    const pushItem = (lbl, lines) => {
+      (lines || []).forEach(ln => {
+        if (!ln || ln.includes('無須') || ln.includes('未抽出') || ln.includes('此群組內')) return;
+        const key = `${lbl}::${ln}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          rows.push({ label: lbl, line: ln });
+        }
+      });
+    };
+    BB_STATE.stack.forEach((it, idx) => {
+      const sn = (META_BY_KIND[it.kind] && META_BY_KIND[it.kind].shortName) || it.kind;
+      if (it.kind === 'group') {
+        ((it.config && it.config.children) || []).forEach((ch, ci) => {
+          const csn = (META_BY_KIND[ch.kind] && META_BY_KIND[ch.kind].shortName) || ch.kind;
+          pushItem(`#${idx + 1}.${ci + 1} ${csn}`, _computeLinkedIniItems(ch));
+        });
+      } else {
+        pushItem(`#${idx + 1} ${sn}`, _computeLinkedIniItems(it));
+      }
+    });
+    return rows;
+  }
+
+  function _renderStackView() {
+    const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
+    const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
+
+    // 直立撲克牌（82x96px），簡潔 Icon + 名稱 + 下方 [+]
+    const mkPaletteCard = (b) => {
+      const sn = String(b.shortName || '');
+      const fSize = sn.length >= 5 ? '0.76rem' : '0.88rem';
+      return `
+        <div class="bb-poker-card palette-card ${b.exclusivePage ? 'is-red' : ''}"
+          style="border-top-color:${b.border || '#3B82F6'};"
+          data-bb-pop="${b.kind}"
+          draggable="true"
+          ondragstart="bbDragStartPalette(event, '${b.kind}')"
+          ondragend="bbHidePop()"
+          onmousemove="bbShowPop(event, '${b.kind}')"
+          onmouseleave="bbHidePop()">
+          <div style="font-size:1.25rem; line-height:1.1; margin-top:2px;">${b.icon}</div>
+          <div style="font-weight:900; font-size:${fSize}; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; letter-spacing:${sn.length >= 5 ? '0' : '0.4px'}; white-space:nowrap;">${_esc(sn)}</div>
+          <button type="button" class="bb-poker-plus" title="加入 ${_esc(sn)}" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
+        </div>
+      `;
+    };
+
+    const stackHtml = _renderSnakeCardsHtml(false);
 
     return `
       ${BB_STATE.fullscreen ? `
@@ -1998,6 +2084,7 @@
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
                 <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#EEF2FF; border:1.5px solid #818CF8; color:#312E81;" onclick="bbAutoSortStack()" title="由程式依 ATE 實戰前後依賴關係自動排最佳順序">🪄 一鍵自動排最佳順序</button>
+                <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#475569;" onclick="bbResetDefaultStack()" title="清空自訂排列，恢復預設 6 塊首次範本骨架">🔄 恢復預設 6 塊</button>
               </div>
               <span style="font-size:0.76rem; color:#64748B;">直接拖卡片到任意積木上方或箭頭處即可調換順序</span>
             </div>
@@ -3097,78 +3184,102 @@
     const projName = startCfg.project || isnCfg.project || 'PEGA_NEW';
     const stName = startCfg.station || isnCfg.station || 'MB';
     const totalPages = _getQaNavList().length;
+    const iniPreviews = _collectAllLinkedIniPreviews();
+    const checkSyntax = (BB_STATE.exportOpts.run_syntax_check !== false);
+
     return `
       <div style="background:#FFFFFF; border:2px solid #16A34A; border-radius:11px; padding:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
           <div>
             <div style="font-weight:900; font-size:1.08rem; color:#14532D;">🎉 總覽確認與產出 Excel 測試包</div>
-            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(projName)}</code> ｜ 站別 <code>${_esc(stName)}</code> ｜ 共 ${BB_STATE.stack.length} 塊主積木 (${totalPages} 設定頁)</div>
+            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(projName)}</code> ｜ 站別 <code>${_esc(stName)}</code> ｜ 共 ${BB_STATE.stack.length} 塊主積木 (${totalPages} 設定頁) · 點擊任一張卡片可直接跳回修改</div>
           </div>
+          <button type="button" class="btn" style="padding:5px 12px; font-size:0.82rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木拖曳編排</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px;">
-          ${BB_STATE.stack.map((it, i) => {
-            const meta = META_BY_KIND[it.kind] || {};
-            if (it.kind === 'group') {
-              const chs = (it.config && Array.isArray(it.config.children)) ? it.config.children : [];
-              return `
-                <div style="display:flex; flex-direction:column; gap:4px; padding:6px 8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                    <div style="font-size:0.84rem; color:#92400E;">
-                      <b class="mono">#${i + 1}</b> <b>📦 群組方框</b>
-                      <span style="margin-left:6px;">${_esc(_summarizeBlock(it))}</span>
-                    </div>
-                    <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem;" onclick="bbJumpQa(${i}, 0)">設定</button>
-                  </div>
-                  ${chs.map((ch, j) => {
-                    const cm = META_BY_KIND[ch.kind] || {};
-                    return `
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:3px 8px; margin-left:18px; background:#FFFFFF; border:1px solid #FDE68A; border-radius:5px;">
-                        <div style="font-size:0.8rem;">
-                          <b class="mono" style="color:#B45309;">#${i + 1}.${j + 1}</b> <b>${cm.icon || ''} ${_esc(cm.shortName || ch.kind)}</b>
-                          <span style="color:#475569; margin-left:6px;">${_esc(_summarizeBlock(ch))}</span>
-                        </div>
-                        <button type="button" class="btn" style="padding:1px 7px; font-size:0.73rem;" onclick="bbJumpQa(${i}, ${j})">修改</button>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              `;
-            }
-            return `
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 8px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px;">
-                <div style="font-size:0.84rem;">
-                  <b class="mono" style="color:#1E40AF;">#${i + 1}</b> <b>${meta.icon || ''} ${_esc(meta.shortName || it.kind)}</b>
-                  <span style="color:#475569; margin-left:6px;">${_esc(_summarizeBlock(it))}</span>
-                </div>
-                <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem;" onclick="bbJumpQa(${i})">修改</button>
-              </div>
-            `;
-          }).join('')}
+        <!-- 方案 1：與空範本拖曳相同的直立撲克牌貪食蛇流程總覽 -->
+        <div style="background:#FAF5FF; border:1.5px dashed #C084FC; border-radius:10px; padding:12px; margin-bottom:12px;">
+          ${_renderSnakeCardsHtml(true)}
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:8px; margin-bottom:14px;">
+        ${iniPreviews.length ? `
+          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:9px; padding:8px 12px; margin-bottom:12px;">
+            <div style="font-weight:900; font-size:0.82rem; color:#92400E; margin-bottom:4px;">🔗 本次有連動寫入 INI / 環境表之設定預覽（產出時會自動寫入並再次條列實際值）：</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${iniPreviews.map(p => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:5px; padding:2px 7px; font-size:0.75rem; color:#78350F;"><b>${_esc(p.label)}</b> · ${_esc(p.line)}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; margin-bottom:12px;">
           <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#1E3A8A; font-weight:700;">
-            <span>🎯 啟動站別 (StationName)：</span>
+            <span>🎯 啟動站別：</span>
             <select onchange="BB_STATE.exportOpts.station_name_mode=this.value" style="flex:1; padding:4px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700;">
               <option value="fixed" ${BB_STATE.exportOpts.station_name_mode !== 'ask' ? 'selected' : ''}>指定站別直接啟動 (寫入站名)</option>
               <option value="ask" ${BB_STATE.exportOpts.station_name_mode === 'ask' ? 'selected' : ''}>留空 (執行時彈窗選擇站別)</option>
             </select>
           </div>
-          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:8px 12px; font-size:0.84rem; color:#92400E; font-weight:800; cursor:pointer;" title="勾選後匯出即為「無儀器試跑版」：自動把儀器測項改寫為 Phase = -1 並卸載 Mount，Office PC 直接試跑；回產線改回 1,2... 與 Mount 即可。">
+          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:8px 12px; font-size:0.83rem; color:#92400E; font-weight:800; cursor:pointer;" title="勾選後匯出即為「無儀器試跑版」：自動把儀器測項改寫為 Phase = -1 並卸載 Mount，Office PC 直接試跑；回產線改回 1,2... 與 Mount 即可。">
             <input type="checkbox" ${BB_STATE.exportOpts.no_hw_phase_pause ? 'checked' : ''} onchange="BB_STATE.exportOpts.no_hw_phase_pause=this.checked" style="width:16px; height:16px; cursor:pointer;">
-            <span>⏸️ 無硬體試跑模式（將儀器測項寫為 <code>Phase = -1</code>，回產線改回編號即可）</span>
+            <span>⏸️ 無硬體試跑（儀器寫 <code>Phase = -1</code>）</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; background:#F0FDF4; border:1.5px solid #4ADE80; border-radius:8px; padding:8px 12px; font-size:0.83rem; color:#166534; font-weight:800; cursor:pointer;" title="預設開啟：產出 Excel 時同步執行 16 欄結構與語法檢查，於下方顯示 Error / Warning 與 INI 寫入明細。">
+            <input type="checkbox" ${checkSyntax ? 'checked' : ''} onchange="BB_STATE.exportOpts.run_syntax_check=this.checked" style="width:16px; height:16px; cursor:pointer;">
+            <span>🔍 匯出同步執行語法檢查 (預設開啟)</span>
           </label>
         </div>
 
         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-          <button type="button" class="btn btn-primary-green" style="padding:10px 24px; font-size:0.97rem; font-weight:900;" onclick="bbExportExcel(false)">💾 匯出 16 欄測試包 + INI + Checksum（自動開啟 Excel 與所在目錄）</button>
+          <button type="button" class="btn btn-primary-green" style="padding:10px 24px; font-size:0.97rem; font-weight:900;" onclick="bbExportExcel(false)">💾 匯出 16 欄測試包 + INI + Checksum（自動語法檢查並開啟 Excel 與目錄）</button>
         </div>
         <div class="bb-bottom-dock">
           ${_renderProgressStrip(-1)}
         </div>
       </div>
     `;
+  }
+
+  function _renderAuditAndIniHtml(data) {
+    const ar = data && data.audit_report;
+    const isum = data && data.ini_summary;
+    let html = '';
+    if (ar && ar.enabled) {
+      const eCnt = Number(ar.error_count || 0);
+      const wCnt = Number(ar.warning_count || 0);
+      const ok = eCnt === 0;
+      const errList = Array.isArray(ar.errors) ? ar.errors : [];
+      const warnList = Array.isArray(ar.warnings) ? ar.warnings : [];
+      html += `
+        <div style="margin-top:8px; padding:7px 10px; border-radius:7px; border:1px solid ${ok ? '#86EFAC' : '#FCA5A5'}; background:${ok ? '#F0FDF4' : '#FEF2F2'}; font-size:0.82rem; color:${ok ? '#14532D' : '#991B1B'};">
+          <b>🔍 Excel 語法與結構體檢結果：</b>
+          ${ok ? `✅ 通過（<code>0 Error</code> · <code>${wCnt} Warning</code>）` : `⚠️ 發現 <code>${eCnt} Error</code> · <code>${wCnt} Warning</code>`}
+          ${(errList.length || warnList.length) ? `
+            <details style="margin-top:4px;">
+              <summary style="cursor:pointer; font-weight:700;">展開檢查明細 (${errList.length + warnList.length} 筆)</summary>
+              <ul style="margin:4px 0 0 18px; padding:0;">
+                ${errList.map(e => `<li>❌ ${_esc(e.message || e.code || JSON.stringify(e))}</li>`).join('')}
+                ${warnList.map(w => `<li>⚠️ ${_esc(w.message || w.code || JSON.stringify(w))}</li>`).join('')}
+              </ul>
+            </details>
+          ` : ''}
+        </div>
+      `;
+    }
+    if (isum && (isum.system || isum.settings || isum.scripts)) {
+      const mkChips = (obj) => Object.entries(obj || {}).filter(([_k, v]) => String(v || '').trim() !== '').map(([k, v]) => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:4px; padding:1px 6px; font-size:0.75rem;">${_esc(k)}=${_esc(v)}</span>`).join(' ');
+      const sysChips = mkChips(isum.system);
+      const setChips = mkChips(isum.settings);
+      const scrChips = mkChips(isum.scripts);
+      html += `
+        <div style="margin-top:8px; padding:7px 10px; border-radius:7px; border:1px solid #FDE68A; background:#FFFBEB; font-size:0.81rem; color:#78350F;">
+          <b>🔗 本次實際寫入之 INI 設定（有設定者一併通知）：</b>
+          ${sysChips ? `<div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; align-items:center;"><b>System.ini：</b>${sysChips}</div>` : ''}
+          ${setChips ? `<div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; align-items:center;"><b>Global.ini [Settings]：</b>${setChips}</div>` : ''}
+          ${scrChips ? `<div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; align-items:center;"><b>Global.ini [Scripts]：</b>${scrChips}</div>` : ''}
+        </div>
+      `;
+    }
+    return html;
   }
 
   window.bbExportExcel = async function (dryRun) {
@@ -3187,6 +3298,7 @@
       dut_count: dutCnt,
       dry_run: false,
       no_hw_phase_pause: isPhasePause || !!dryRun,
+      run_syntax_check: (BB_STATE.exportOpts.run_syntax_check !== false),
       station_name_mode: BB_STATE.exportOpts.station_name_mode || 'fixed',
       open_folder: true,
       open_excel: true,
@@ -3199,7 +3311,7 @@
     if (skuCfg && skuCfg.enabled) body.sku_wizard = skuCfg;
 
     const data = await window.withLoadingTimer(
-      (isPhasePause || !!dryRun) ? '正在依積木順序產出「Phase = -1 無硬體試跑版」並開啟 Excel 與目錄' : '正在依積木順序產出 16 欄正式測試包與 INI 並直接開啟 Excel 與目錄',
+      (isPhasePause || !!dryRun) ? '正在依積木順序產出「Phase = -1 無硬體試跑版」、執行語法體檢並開啟 Excel' : '正在依積木順序產出 16 欄正式測試包與 INI、執行語法體檢並直接開啟 Excel',
       async () => {
         const res = await fetch('/api/generate_new_standalone', {
           method: 'POST',
@@ -3224,6 +3336,7 @@
         📄 <span class="mono">${_esc(data.excel_path)}</span>
         ${data.guide_txt_path ? `<button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem; margin-left:6px;" onclick="if(typeof openGuideTxtFile==='function') openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})">📄 開啟說明 .txt</button>` : ''}<br>
         ${typeof window.formatIsnHtml === 'function' ? window.formatIsnHtml(data.isn_info) : ''}
+        ${_renderAuditAndIniHtml(data)}
       `;
     }
   };
@@ -3239,7 +3352,9 @@
         topBackBtn.textContent = '◀ 回到積木調整';
         topBackBtn.onclick = () => bbGoView('stack');
       } else {
-        topBackBtn.style.display = 'none';
+        topBackBtn.style.display = 'inline-flex';
+        topBackBtn.textContent = '⬅ 返回模式選擇';
+        topBackBtn.onclick = () => { if (typeof switchGenSubMode === 'function') switchGenSubMode('hub'); };
       }
     }
     if (bbTopHost && (typeof GEN_SUB_MODE === 'undefined' || GEN_SUB_MODE === 'create')) {

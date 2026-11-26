@@ -1619,7 +1619,7 @@ async function sfisHmiExport(mode) {
     return;
   }
   if (mode === 'insert_current' && (typeof STATE === 'undefined' || !STATE.workspace)) {
-    alert('目前尚未開啟任何測試腳本，請改點「📥 獨立產出純 SFIS 驗證 Excel」或「🌱 套用至 0 → 1 空範本」。');
+    alert('目前尚未開啟任何測試腳本，請改點「📥 獨立產出純 SFIS 驗證 Excel」或「🃏 套用至 0 → 1 積木流程」。');
     return;
   }
   try {
@@ -1665,6 +1665,27 @@ function sfisGetHmiPayloadForWizard() {
     items,
     config: Object.assign({}, SFIS_HMI_STATE.config || {})
   };
+}
+
+function sfisSyncToBuilderAutoAdd() {
+  const bundle = sfisGetHmiPayloadForWizard();
+  if (!bundle.items.length) {
+    alert('牌桌上尚無可匯出之 SFIS 步驟，請至少保留 CheckRoute / GET / WRITE。');
+    return;
+  }
+  if (window.BB_STATE && Array.isArray(window.BB_STATE.stack)) {
+    const hasRoute = bundle.items.some(x => x.kind === 'check_route');
+    let tgtIdx = window.BB_STATE.stack.findIndex(b => b.kind === (hasRoute ? 'sfis_route' : 'sfis_rw'));
+    if (tgtIdx < 0) {
+      if (typeof window.bbAddBlock === 'function') window.bbAddBlock(hasRoute ? 'sfis_route' : 'sfis_rw');
+      tgtIdx = window.BB_STATE.stack.findIndex(b => b.kind === (hasRoute ? 'sfis_route' : 'sfis_rw'));
+    }
+    if (tgtIdx >= 0) {
+      SFIS_HMI_STATE.openedFromBuilderIdx = tgtIdx;
+      return sfisSyncToBuilderAndReturn();
+    }
+  }
+  return sfisSyncToWizardAndReturn();
 }
 
 function sfisSyncToBuilderAndReturn() {
@@ -2325,7 +2346,7 @@ function renderSfisHmiWorkspace() {
             <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開腳本開頭</button>
             ${s.openedFromBuilderIdx >= 0
               ? `<button type="button" onclick="sfisSyncToBuilderAndReturn()" class="btn btn-primary-green" style="padding:5px 14px; font-size:0.84rem; font-weight:900;">✅ 帶回「0 → 1 積木流程」 ▶</button>`
-              : `<button type="button" onclick="sfisSyncToWizardAndReturn()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:${s.openedFromWizard ? '#1D4ED8' : '#EFF6FF'}; color:${s.openedFromWizard ? '#FFFFFF' : '#1E40AF'}; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 空範本精靈』">🌱 套用至「0 → 1 空範本」</button>`}
+              : `<button type="button" onclick="sfisSyncToBuilderAutoAdd()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#EFF6FF; color:#1E40AF; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 積木流程』">🃏 套用至「0 → 1 積木流程」</button>`}
           </div>
         </div>
         <details>

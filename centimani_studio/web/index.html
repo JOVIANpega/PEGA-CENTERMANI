@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.069</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.070</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -99,7 +99,7 @@
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
             <li><b>既有腳本編修</b>：水平手風琴快捷編修與跨檔複製整張 Sheet</li>
-            <li><b>產生首次使用空範本</b>：4 步驟建立新母體基礎骨架</li>
+            <li><b>產生首次範本 (0→1)</b>：直立撲克牌積木拖曳編排、群組方框與逐頁設定</li>
             <li><b>插入儀器範本</b>：撲克牌雙欄快速挑選／互動人機</li>
             <li><b>問編寫問題 &amp; 實機驗證</b>：寫法百科、SFIS 與 DLLtest</li>
           </ul>
@@ -923,14 +923,14 @@
           <div>
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
-            <div class="acc-title">產生首次使用空範本</div>
-            <div class="acc-sub">全新案子從零建立基礎乾淨範本 (0 → 1)</div>
+            <div class="acc-title">產生首次範本 (積木拖曳)</div>
+            <div class="acc-sub">從零以撲克牌積木與群組方框建置新母體 (0 → 1)</div>
           </div>
           <div class="acc-body">
             <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
-              <li>引導式 <b>4 步驟</b>：基本/ISN → 勾選測項 → 填參數 → 總覽產出</li>
-              <li>自動建立 Properties、DUTs、Switch、Instrument 與標準測試站</li>
-              <li>同時生成配套 <code>Global.ini</code> 與 <code>System.ini</code></li>
+              <li><b>撲克牌拖曳編排</b>：支援群組方框共用 Phase、固定開始/結束護欄與一鍵排序</li>
+              <li><b>逐頁設定 ＋ 進階 TestID</b>：每頁一塊問答、反白擷取變數與 7 碼錯誤碼即時搜尋</li>
+              <li>匯出同步執行 16 欄語法體檢並回報連動寫入之 <code>Global.ini</code> / <code>System.ini</code></li>
             </ul>
             <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
           </div>
@@ -1916,14 +1916,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.069"></script>
-<script src="/js/audit_editors.js?v=0.8.069"></script>
-<script src="/js/flow_guide.js?v=0.8.069"></script>
-<script src="/js/block_sorter.js?v=0.8.069"></script>
-<script src="/js/script_qa.js?v=0.8.069"></script>
-<script src="/js/sfis_hmi.js?v=0.8.069"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.069"></script>
-<script src="/js/create_block_builder.js?v=0.8.069"></script>
+<script src="/js/inst_hmi.js?v=0.8.070"></script>
+<script src="/js/audit_editors.js?v=0.8.070"></script>
+<script src="/js/flow_guide.js?v=0.8.070"></script>
+<script src="/js/block_sorter.js?v=0.8.070"></script>
+<script src="/js/script_qa.js?v=0.8.070"></script>
+<script src="/js/sfis_hmi.js?v=0.8.070"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.070"></script>
+<script src="/js/create_block_builder.js?v=0.8.070"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
