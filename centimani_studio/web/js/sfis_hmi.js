@@ -2087,7 +2087,7 @@ function renderSfisHmiWorkspace() {
   const stageWrapBorder = isMock ? '#D97706' : '#BFDBFE';
   const trackBg = isMock ? '#FFFDF5' : '#F8FAFC';
   const trackBorder = isMock ? '#F59E0B' : '#93C5FD';
-  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.064');
+  const serverStale = (window.__SERVER_BUILD__ && window.__SERVER_BUILD__ !== 'Build v0.8.065');
   const builderBannerHtml = (s.openedFromBuilderIdx >= 0) ? `
     <div id="sfisBuilderReturnBar" style="margin-bottom:10px; background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:2px solid #2563EB; border-radius:10px; padding:9px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div style="font-size:0.88rem; font-weight:800; color:#1E3A8A;">

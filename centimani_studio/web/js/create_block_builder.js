@@ -104,8 +104,8 @@
       exclusivePage: false,
       theme: '#FDF2F8',
       border: '#EC4899',
-      popTitle: 'SFIS 讀寫屬性 / 刷副條碼',
-      popDesc: '從 SFIS 讀取 MAC1 / 69PN / SNA (:SfGetVersion / :SfGetiMAC)、寫回 :SfSaveLinkData，或讓作業員額外掃描副條碼。',
+      popTitle: 'SFIS 過站讀寫與即時連通實測',
+      popDesc: '指 SFIS 系統過站讀寫：支援 6 廠區環境快選與即時連通實測，讀取 MAC1 / 69PN / SNA、寫回 SaveLinkData 或 Ref 字串分段擷取。',
       popExample: '例：:SfGetVersion,"*(ISN)","ISN_BASEINFO","2","MAC1",""'
     },
     {
@@ -808,20 +808,124 @@
       it.config.title_name = `${nm} Test`;
       if (/feasa/i.test(base)) {
         it.config.title_name = 'Feasa LED Color Check';
+        it.config.led_ch = it.config.led_ch || '01';
         it.config.dl_val = '515';
         it.config.ul_val = '535';
-      } else if (/pph1503|ps2005|keithley2302/i.test(base)) {
-        it.config.title_name = `${nm} Current Check`;
+        it.config.led_int_min = it.config.led_int_min || '1000';
+        it.config.led_int_max = it.config.led_int_max || '99999';
+      } else if (/pph1503|ps2005|ipower|ipro|keithley2302|chroma615/i.test(base)) {
+        it.config.title_name = `${nm} Power Control`;
+        it.config.pwr_action = it.config.pwr_action || 'mcurr';
+        it.config.pwr_ch = it.config.pwr_ch || '1';
+        it.config.pwr_volt = it.config.pwr_volt || '12';
+        it.config.pwr_wait_ms = it.config.pwr_wait_ms || '500';
         it.config.dl_val = '50';
         it.config.ul_val = '800';
-      } else if (/agilent34401|keithley2700|mda2700|gdm/i.test(base)) {
+      } else if (/agilent34401|keithley2700|mda2700|gdm|u2004a/i.test(base)) {
         it.config.title_name = `${nm} Voltage Check`;
+        it.config.dmm_ch = it.config.dmm_ch || (/2700/i.test(base) ? '101' : '1');
         it.config.dl_val = '3.15';
         it.config.ul_val = '3.45';
+      } else if (/devuart|scpicontroller|transmitter/i.test(base)) {
+        it.config.title_name = `${nm} SubDevice Control`;
+        it.config.subdev_cmd = /devuart/i.test(base)
+          ? ':sDev.Announce,"SAT{1},start"'
+          : (/transmitter/i.test(base) ? ':sDev.TCP_Transfer,"PING"' : ':sDev.OnOff,"ON"');
       }
     }
     it.configured = true;
     bbRender();
+  };
+
+  window.bbSetLedPreset = function (idx, preset) {
+    const it = BB_STATE.stack[idx];
+    if (!it) return;
+    const map = {
+      green: { dl: '515', ul: '535', title: 'Feasa Green LED Check' },
+      red: { dl: '620', ul: '645', title: 'Feasa Red LED Check' },
+      blue: { dl: '455', ul: '480', title: 'Feasa Blue LED Check' },
+      amber: { dl: '580', ul: '600', title: 'Feasa Amber LED Check' },
+    };
+    const p = map[preset] || map.green;
+    it.config.dl_val = p.dl;
+    it.config.ul_val = p.ul;
+    it.config.title_name = p.title;
+    it.configured = true;
+    bbRender();
+  };
+
+  function _getBlockSortRank(item) {
+    const k = item.kind;
+    const c = item.config || {};
+    if (k === 'isn') return 0;
+    if (k === 'sfis_route') return 10;
+    if (k === 'sfis_rw') {
+      return (c.rw_mode === 'save_link') ? 90 : 20;
+    }
+    if (k === 'multi_sku') return 30;
+    if (k === 'fixture') return 40;
+    if (['ext_file', 'set_val', 'add_attr', 'sfis_bypass', 'subdev_finalgo', 'usb_fw', 'stream_flash'].includes(k)) return 45;
+    if (k === 'inst') {
+      const nm = String(c.inst_name || '').toLowerCase();
+      // 電源與量測電壓/電錶先於開機與通訊 (確認供電無異常)；RF/FeasaLED 放開機指令之後
+      if (/rf|iq|xelm8|mt8870|feasa|led|ni4461|audio/i.test(nm) || c.inst_mode === 'rf') return 85;
+      return 50;
+    }
+    if (k === 'delay') return 55;
+    if (k === 'ping') return 60;
+    if (k === 'comm_cmd') return 70;
+    if (k === 'var_check') return 75;
+    if (k === 'python') return 80;
+    if (k === 'prompt_box') return 88;
+    if (k === 'teardown') return 999;
+    return 65;
+  }
+
+  window.bbAutoSortStack = function () {
+    const decorated = BB_STATE.stack.map((it, origIdx) => ({ it, origIdx, rank: _getBlockSortRank(it) }));
+    decorated.sort((a, b) => (a.rank - b.rank) || (a.origIdx - b.origIdx));
+    BB_STATE.stack = decorated.map(x => x.it);
+    BB_STATE.autoSortMsg = '✅ 已依標準 ATE 開機測試順序重排：條碼 ➔ 路由 ➔ SFIS讀值 ➔ SKU分流 ➔ 治具/供電量測(儀器) ➔ PING測網路 ➔ 通訊指令/腳本 ➔ 後段RF/提示/寫站 ➔ 安全收尾(Phase 97)。';
+    bbRender();
+  };
+
+  window.bbApplySfisPlantPreset = function (idx, plantId) {
+    const it = BB_STATE.stack[idx];
+    if (!it || typeof SFIS_PLANT_PRESETS === 'undefined') return;
+    const found = SFIS_PLANT_PRESETS.find(p => p.id === plantId);
+    if (!found) return;
+    it.config.plant_id = found.id;
+    it.config.weblink = found.url;
+    it.config.tsp = found.defaultTsp || 'ATLAS,2';
+    it.config.sfis_mode = 'online';
+    bbRender();
+  };
+
+  window.bbTestSfisLink = async function (idx) {
+    const it = BB_STATE.stack[idx];
+    if (!it) return;
+    const box = document.getElementById(`bbSfisLinkResult_${idx}`);
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = '⏳ 正在連線檢測 SFIS WebLink...';
+    }
+    try {
+      const url = (it.config && it.config.weblink) || '';
+      const res = await fetch('/api/check_sfis_weblink', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const d = await res.json();
+      if (box) {
+        box.style.background = d.reachable ? '#DCFCE7' : '#FEF3C7';
+        box.style.borderColor = d.reachable ? '#4ADE80' : '#F59E0B';
+        box.style.color = d.reachable ? '#14532D' : '#92400E';
+        box.innerHTML = `${d.reachable ? '🟢 連線正常：' : '⚠️ 未連通（非廠內網或網址有誤，可設離線或開模擬實測）：'}${_esc(d.message || '')}`;
+      }
+    } catch (err) {
+      if (box) box.innerHTML = '⚠️ 檢測失敗：' + _esc(err);
+    }
   };
 
   window.bbSetInstNiPreset = function (idx, count) {
@@ -851,13 +955,6 @@
       window.openNi6009Hmi('builder', idx, instNm);
     } else if (typeof window.openInstIntroPage === 'function') {
       window.openInstIntroPage('gen', instNm, idx);
-    }
-  };
-
-  window.bbOpenFullInstWorkspace = function (idx) {
-    const it = BB_STATE.stack[idx];
-    if (typeof window.openInstDualPaneForBuilder === 'function') {
-      window.openInstDualPaneForBuilder(idx, it ? it.config : {});
     }
   };
 
@@ -987,9 +1084,13 @@
           ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
-              <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
+                <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#EEF2FF; border:1.5px solid #818CF8; color:#312E81;" onclick="bbAutoSortStack()" title="由程式依 ATE 實戰前後依賴關係自動排最佳順序">🪄 一鍵自動排最佳順序</button>
+              </div>
               <span style="font-size:0.76rem; color:#64748B;">拖曳插入或點卡片直接設定</span>
             </div>
+            ${BB_STATE.autoSortMsg ? `<div style="background:#EEF2FF; border:1px solid #A5B4FC; color:#1E1B4B; font-size:0.78rem; font-weight:700; padding:6px 10px; border-radius:7px; margin-bottom:8px;">${_esc(BB_STATE.autoSortMsg)}</div>` : ''}
             <div class="bb-poker-track">
               ${stackHtml}
             </div>
@@ -1067,12 +1168,15 @@
       case 'sfis_route': {
         const hb = c.sfis_hmi_bundle;
         const hasBundle = !!(hb && Array.isArray(hb.items) && hb.items.length);
+        const plantOpts = (typeof SFIS_PLANT_PRESETS !== 'undefined' ? SFIS_PLANT_PRESETS : []).map(p =>
+          `<option value="${_esc(p.id)}" ${c.plant_id === p.id ? 'selected' : ''}>${_esc(p.label)}</option>`
+        ).join('');
         return `
           <div style="display:flex; flex-direction:column; gap:12px;">
             <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div>
-                <div style="font-weight:900; color:#1E3A8A; font-size:0.9rem;">🛡️ 想要堆疊 CheckRoute / GET / WRITE 或連線工廠 SFIS 實測？</div>
-                <div style="font-size:0.78rem; color:#475569;">呼叫原本的「SFIS 撲克牌雙欄積木堆疊頁」，設定或實測完可直接帶回這顆積木！</div>
+                <div style="font-weight:900; color:#1E3A8A; font-size:0.9rem;">🛡️ SFIS 開局過站 / 實機模擬與完整動畫測試頁</div>
+                <div style="font-size:0.78rem; color:#475569;">可在此直接快選廠區並實測連通性，或呼叫完整「SFIS 撲克牌積木堆疊頁」多步驟動畫驗證！</div>
               </div>
               <button type="button" class="btn btn-primary-blue" style="padding:7px 14px; font-weight:900; font-size:0.85rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
                 🃏 呼叫 SFIS 撲克牌積木堆疊頁 ▶
@@ -1100,14 +1204,29 @@
                   <input type="radio" name="bbSfisMode_${idx}" ${c.sfis_mode === 'online' ? 'checked' : ''} onchange="bbUpdateField(${idx},'sfis_mode','online',true)"> 🌐 產線正式過站模式 (SFIS_Enable=1)
                 </label>
               </div>
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; align-items:end;">
+                ${plantOpts ? `
+                  <label style="font-weight:700; font-size:0.84rem;">🏭 廠區環境快選 (自動帶入網址)
+                    <select onchange="bbApplySfisPlantPreset(${idx}, this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px;">
+                      <option value="">-- 選擇廠區快速帶入 --</option>
+                      ${plantOpts}
+                    </select>
+                  </label>
+                ` : ''}
                 <label style="font-weight:700; font-size:0.84rem;">SFIS_TSP 路由代碼
                   <input value="${_esc(c.tsp || 'PEGA,2')}" oninput="bbUpdateField(${idx},'tsp',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                 </label>
-                <label style="font-weight:700; font-size:0.84rem;">SFIS_WebLink 網址
-                  <input value="${_esc(c.weblink || '')}" oninput="bbUpdateField(${idx},'weblink',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                <label style="font-weight:700; font-size:0.84rem;">作業員 / 預設工號 (LoginID)
+                  <input value="${_esc(c.login_id || '')}" placeholder="例 S09166390 (選填)" oninput="bbUpdateField(${idx},'login_id',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                 </label>
               </div>
+              <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                <label style="flex:1; min-width:240px; font-weight:700; font-size:0.84rem;">SFIS_WebLink 網址 (.asmx)
+                  <input value="${_esc(c.weblink || '')}" oninput="bbUpdateField(${idx},'weblink',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <button type="button" class="btn" style="padding:6px 12px; font-weight:800; background:#E0F2FE; border:1px solid #38BDF8; color:#0369A1;" onclick="bbTestSfisLink(${idx})">🔍 即時測 SFIS 連通性</button>
+              </div>
+              <div id="bbSfisLinkResult_${idx}" style="display:none; padding:6px 10px; border-radius:7px; border:1px solid #CBD5E1; font-size:0.81rem; font-weight:800;"></div>
             `}
           </div>
         `;
@@ -1395,36 +1514,8 @@
 
         return `
           <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:12px;">
-            <div style="background:linear-gradient(90deg,#F5F3FF 0%,#FDF2F8 100%); border:1.5px solid #C084FC; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-              <div>
-                <div style="font-weight:900; color:#4C1D95; font-size:0.9rem;">🃏 要從左牌庫連續加入多台儀器並排順序，或調完整人機？</div>
-                <div style="font-size:0.77rem; color:#64748B;">可呼叫原本設計的「儀器撲克牌雙欄堆疊工作區」，疊完 #01→#02→#03 後自動帶回這顆積木！</div>
-              </div>
-              <button type="button" class="btn" style="padding:7px 14px; font-weight:900; font-size:0.85rem; background:#7C3AED; color:#FFFFFF; border:none;" onclick="bbOpenFullInstWorkspace(${idx})">
-                🃏 呼叫「儀器撲克牌雙欄堆疊頁」 ▶
-              </button>
-            </div>
-
-            ${c.inst_mode === 'multi_queue' && Array.isArray(c.inst_queue) && c.inst_queue.length ? `
-              <div style="background:#FFFFFF; border:1.5px solid #A78BFA; border-radius:9px; padding:11px 13px; margin-bottom:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                  <span style="font-weight:900; color:#4C1D95;">✅ 已堆疊 ${c.inst_queue.length} 台儀器序列（依序寫入 Excel）：</span>
-                  <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#F5F3FF; border:1px solid #C084FC; color:#5B21B6;" onclick="bbOpenFullInstWorkspace(${idx})">✏️ 回雙欄堆疊頁調整順序／人機</button>
-                </div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  ${c.inst_queue.map((qi, qidx) => `
-                    ${qidx > 0 ? '<span style="font-weight:900; color:#7C3AED;">➔</span>' : ''}
-                    <div style="background:#FAF5FF; border:1.5px solid #C4B5FD; border-radius:8px; padding:6px 10px; font-size:0.8rem;">
-                      <b class="mono" style="color:#5B21B6;">#${qidx + 1} ${_esc(qi.inst_name)}</b>
-                      <div style="font-size:0.73rem; color:#475569;">${_esc(qi.title_name || '')}</div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
-
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-              <span style="font-weight:900; color:#991B1B;">🔴 快速單選儀器卡牌（點卡牌切換參數）：</span>
+              <span style="font-weight:900; color:#991B1B;">🔴 專屬設定頁｜點選儀器撲克牌卡牌（自動套用該機種專屬實戰命令）：</span>
               <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #FCA5A5; color:#7F1D1D;"
                 onclick="if(typeof openInstIntroPage==='function') openInstIntroPage('gen','${_esc(selectedName)}',${idx});">📖 查看 ${_esc(selectedName)} 簡介</button>
             </div>
@@ -1517,6 +1608,85 @@
                 </label>
               </div>
               <div style="font-size:0.81rem; color:#4C1D95; margin-top:6px;">預設附帶標準 CH6 MCS7 Tx Power (13~17dBm) &amp; EVM + Rx 驗測與 Marco 子工作表。</div>
+            ` : /feasa/i.test(selectedName) ? `
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <span style="font-weight:900; color:#065F46;">💡 FeasaLED 色彩波長與亮度檢測（實戰 :Dev.CaptureAndRead）</span>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#DCFCE7; border:1px solid #4ADE80; color:#14532D; font-weight:800;" onclick="bbSetLedPreset(${idx},'green')">💚 綠燈 515~535</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#FFE4E6; border:1px solid #FB7185; color:#9F1239; font-weight:800;" onclick="bbSetLedPreset(${idx},'red')">❤️ 紅燈 620~645</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#DBEAFE; border:1px solid #60A5FA; color:#1E40AF; font-weight:800;" onclick="bbSetLedPreset(${idx},'blue')">💙 藍燈 455~480</button>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                <label style="font-size:0.81rem; font-weight:700;">測項標題
+                  <input value="${_esc(c.title_name || 'Feasa LED Color Check')}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">Fiber 通道 (01~20)
+                  <input value="${_esc(c.led_ch || '01')}" oninput="bbUpdateField(${idx},'led_ch',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">波長下限 (nm)
+                  <input value="${_esc(c.dl_val || '515')}" oninput="bbUpdateField(${idx},'dl_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">波長上限 (nm)
+                  <input value="${_esc(c.ul_val || '535')}" oninput="bbUpdateField(${idx},'ul_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">亮度下限 (Int)
+                  <input value="${_esc(c.led_int_min || '1000')}" oninput="bbUpdateField(${idx},'led_int_min',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+              </div>
+            ` : /pph1503|ps2005|ipower|ipro|keithley2302|chroma615/i.test(selectedName) ? `
+              <div style="font-weight:900; color:#92400E; margin-bottom:8px;">🔋 電源供應器 / 電源開關 <span class="mono">${_esc(selectedName)}</span>（Olympus / GWTalk 實戰語法）</div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+                <label style="font-size:0.81rem; font-weight:700;">電源動作
+                  <select onchange="bbUpdateField(${idx},'pwr_action',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
+                    <option value="mcurr" ${c.pwr_action === 'mcurr' ? 'selected' : ''}>⚡ 送電並量測電流 (MCurr + DL/UL)</option>
+                    <option value="on" ${c.pwr_action === 'on' ? 'selected' : ''}>🟢 僅開啟供電 (:Dev.SetON / SwitchON)</option>
+                    <option value="cycle" ${c.pwr_action === 'cycle' ? 'selected' : ''}>🔄 冷重開 (OFF ➔ Wait ➔ ON)</option>
+                  </select>
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">輸出電壓 (V) / 埠號
+                  <input value="${_esc(/pph1503/i.test(selectedName) ? (c.pwr_volt || '12') : (c.pwr_ch || '1'))}" oninput="bbUpdateField(${idx},'${/pph1503/i.test(selectedName) ? 'pwr_volt' : 'pwr_ch'}',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                ${c.pwr_action !== 'on' ? `
+                  <label style="font-size:0.81rem; font-weight:700;">緩衝穩定時間 (ms)
+                    <input type="number" value="${_esc(c.pwr_wait_ms || '500')}" oninput="bbUpdateField(${idx},'pwr_wait_ms',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  </label>
+                ` : ''}
+                ${c.pwr_action === 'mcurr' ? `
+                  <label style="font-size:0.81rem; font-weight:700;">電流下限 DL
+                    <input value="${_esc(c.dl_val || '50')}" oninput="bbUpdateField(${idx},'dl_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  </label>
+                  <label style="font-size:0.81rem; font-weight:700;">電流上限 UL
+                    <input value="${_esc(c.ul_val || '800')}" oninput="bbUpdateField(${idx},'ul_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  </label>
+                ` : ''}
+              </div>
+            ` : /agilent34401|keithley2700|mda2700|gdm|u2004a/i.test(selectedName) ? `
+              <div style="font-weight:900; color:#1E40AF; margin-bottom:8px;">📏 精密電錶 / DAQ 量測：<span class="mono">${_esc(selectedName)}</span></div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+                <label style="font-size:0.81rem; font-weight:700;">測項標題 (Title)
+                  <input value="${_esc(c.title_name || `${selectedName} Voltage Check`)}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">掃描通道 (如 1 或 101)
+                  <input value="${_esc(c.dmm_ch || (/2700/i.test(selectedName) ? '101' : '1'))}" oninput="bbUpdateField(${idx},'dmm_ch',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">量測下限 DL
+                  <input value="${_esc(c.dl_val || '3.15')}" oninput="bbUpdateField(${idx},'dl_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">量測上限 UL
+                  <input value="${_esc(c.ul_val || '3.45')}" oninput="bbUpdateField(${idx},'ul_val',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+              </div>
+            ` : /devuart|scpicontroller|transmitter/i.test(selectedName) ? `
+              <div style="font-weight:900; color:#334155; margin-bottom:8px;">🔌 共用子設備 (Sub=1) <span class="mono">${_esc(selectedName)}</span> (:ObtainSubDevice / :sDev.*)</div>
+              <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:10px;">
+                <label style="font-size:0.81rem; font-weight:700;">測項標題
+                  <input value="${_esc(c.title_name || `${selectedName} SubDevice Control`)}" oninput="bbUpdateField(${idx},'title_name',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.81rem; font-weight:700;">執行指令 (:sDev.*)
+                  <input value="${_esc(c.subdev_cmd || (/devuart/i.test(selectedName) ? ':sDev.Announce,"SAT{1},start"' : ':sDev.OnOff,"ON"'))}" oninput="bbUpdateField(${idx},'subdev_cmd',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+              </div>
             ` : `
               <div style="font-weight:900; color:#0F172A; margin-bottom:8px;">🧪 已選儀器：<span class="mono" style="color:#DC2626;">${_esc(selectedName)}</span></div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
@@ -1602,8 +1772,8 @@
                 </div>
               </div>
             ` : `
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-                <label style="font-weight:700; font-size:0.84rem;">動作類型
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+                <label style="font-weight:700; font-size:0.84rem;">SFIS 過站動作類型
                   <select onchange="bbUpdateField(${idx},'rw_mode',this.value,true)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
                     <option value="get_version" ${c.rw_mode === 'get_version' ? 'selected' : ''}>讀取 SFIS 欄位 (:SfGetVersion)</option>
                     <option value="get_imac" ${c.rw_mode === 'get_imac' ? 'selected' : ''}>讀取 SFIS MAC (:SfGetiMAC)</option>
@@ -1611,6 +1781,16 @@
                     <option value="scan_label" ${c.rw_mode === 'scan_label' ? 'selected' : ''}>作業員額外掃描副條碼 (ScanLabel)</option>
                   </select>
                 </label>
+                ${(c.rw_mode !== 'save_link' && c.rw_mode !== 'scan_label' && c.rw_mode !== 'get_imac') ? `
+                  <label style="font-weight:700; font-size:0.84rem;">查詢表別 (Table Type)
+                    <select onchange="bbUpdateField(${idx},'table_name',this.value)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
+                      <option value="ISN_BASEINFO" ${c.table_name === 'ISN_BASEINFO' ? 'selected' : ''}>ISN_BASEINFO (MAC1 / SNA~SNG / SSN)</option>
+                      <option value="ITEMINFO" ${c.table_name === 'ITEMINFO' ? 'selected' : ''}>ITEMINFO (60/80 階關聯序號)</option>
+                      <option value="MOKP_SN" ${c.table_name === 'MOKP_SN' ? 'selected' : ''}>MOKP_SN (關鍵組件明細)</option>
+                      <option value="GET_IVMAC_NEW" ${c.table_name === 'GET_IVMAC_NEW' ? 'selected' : ''}>GET_IVMAC_NEW (GUID/MAC1)</option>
+                    </select>
+                  </label>
+                ` : ''}
                 <label style="font-weight:700; font-size:0.84rem;">欄位 / 標籤名稱
                   <input value="${_esc(c.field_name || 'MAC1')}" oninput="bbUpdateField(${idx},'field_name',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                 </label>
@@ -1618,6 +1798,28 @@
                   <input value="${_esc(c.rw_mode === 'save_link' ? (c.save_value || '*(sfMAC)') : (c.var_name || 'sfMAC'))}" oninput="bbUpdateField(${idx},'${c.rw_mode === 'save_link' ? 'save_value' : 'var_name'}',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                 </label>
               </div>
+              ${c.rw_mode !== 'save_link' ? `
+                <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:8px; padding:8px 10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <label style="font-size:0.8rem; font-weight:800; color:#334155;">✂️ Ref 字串拆解：
+                    <select onchange="bbUpdateField(${idx},'ref_slice_mode',this.value,true)" style="padding:4px 7px; border:1px solid #94A3B8; border-radius:5px;">
+                      <option value="raw" ${!c.ref_slice_mode || c.ref_slice_mode === 'raw' ? 'selected' : ''}>整段直接存取 ($變數;)</option>
+                      <option value="split" ${c.ref_slice_mode === 'split' ? 'selected' : ''}>依分隔符切割 (:SplitString)</option>
+                      <option value="sub" ${c.ref_slice_mode === 'sub' ? 'selected' : ''}>固定起始長度擷取 (:SubString)</option>
+                      <option value="within" ${c.ref_slice_mode === 'within' ? 'selected' : ''}>前後關鍵字夾取 (:WithinString)</option>
+                    </select>
+                  </label>
+                  ${c.ref_slice_mode === 'split' ? `
+                    <input value="${_esc(c.ref_split_sep || ',')}" placeholder="分隔符如 ," oninput="bbUpdateField(${idx},'ref_split_sep',this.value)" class="mono" style="width:80px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                    <input type="number" value="${_esc(c.ref_split_idx || '0')}" placeholder="第幾段" oninput="bbUpdateField(${idx},'ref_split_idx',this.value)" class="mono" style="width:64px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  ` : c.ref_slice_mode === 'sub' ? `
+                    <input type="number" value="${_esc(c.ref_sub_start || '0')}" placeholder="起始" oninput="bbUpdateField(${idx},'ref_sub_start',this.value)" class="mono" style="width:70px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                    <input type="number" value="${_esc(c.ref_sub_len || '12')}" placeholder="長度" oninput="bbUpdateField(${idx},'ref_sub_len',this.value)" class="mono" style="width:70px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  ` : c.ref_slice_mode === 'within' ? `
+                    <input value="${_esc(c.ref_left || '')}" placeholder="左界" oninput="bbUpdateField(${idx},'ref_left',this.value)" class="mono" style="width:90px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                    <input value="${_esc(c.ref_right || ';')}" placeholder="右界" oninput="bbUpdateField(${idx},'ref_right',this.value)" class="mono" style="width:90px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
+                  ` : ''}
+                </div>
+              ` : ''}
             `}
           </div>
         `;
@@ -1774,7 +1976,6 @@
       <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : '#3B82F6'}; border-radius:11px; padding:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
-          <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#334155;" onclick="bbGoView('stack')">◀ 回到積木調整</button>
         </div>
         <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
@@ -1810,7 +2011,6 @@
             <div style="font-weight:900; font-size:1.08rem; color:#14532D;">🎉 總覽確認與產出 Excel 測試包</div>
             <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(isnCfg.project || 'PEGA_NEW')}</code> ｜ 站別 <code>${_esc(isnCfg.station || 'MB')}</code> ｜ 共 ${BB_STATE.stack.length} 塊流程</div>
           </div>
-          <button type="button" class="btn" style="padding:6px 12px; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木堆疊微調</button>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px;">
@@ -1836,15 +2036,14 @@
               <option value="ask" ${BB_STATE.exportOpts.station_name_mode === 'ask' ? 'selected' : ''}>留空 (執行時彈窗選擇站別)</option>
             </select>
           </div>
-          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#92400E; font-weight:700; cursor:pointer;">
-            <input type="checkbox" ${BB_STATE.exportOpts.no_hw_phase_pause ? 'checked' : ''} onchange="BB_STATE.exportOpts.no_hw_phase_pause=this.checked" style="width:16px; height:16px;">
-            <span>⏸️ 無儀器時將儀器測項先寫為 <code>Phase = -1</code></span>
+          <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:8px 12px; font-size:0.84rem; color:#92400E; font-weight:800; cursor:pointer;" title="勾選後匯出即為「無儀器試跑版」：自動把儀器測項改寫為 Phase = -1 並卸載 Mount，Office PC 直接試跑；回產線改回 1,2... 與 Mount 即可。">
+            <input type="checkbox" ${BB_STATE.exportOpts.no_hw_phase_pause ? 'checked' : ''} onchange="BB_STATE.exportOpts.no_hw_phase_pause=this.checked" style="width:16px; height:16px; cursor:pointer;">
+            <span>⏸️ 無硬體試跑模式（將儀器測項寫為 <code>Phase = -1</code>，回產線改回編號即可）</span>
           </label>
         </div>
 
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-dry" style="padding:10px 18px; font-size:0.95rem; font-weight:900;" onclick="bbExportExcel(true)">🧪 產生「無硬體試跑版」</button>
-          <button type="button" class="btn btn-primary-green" style="padding:10px 20px; font-size:0.95rem; font-weight:900;" onclick="bbExportExcel(false)">💾 匯出 16 欄正式測試包 + Checksum</button>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn btn-primary-green" style="padding:10px 24px; font-size:0.97rem; font-weight:900;" onclick="bbExportExcel(false)">💾 匯出 16 欄測試包 + INI + Checksum（自動開啟 Excel 與所在目錄）</button>
         </div>
         <div class="bb-bottom-dock">
           ${_renderProgressStrip(-1)}
@@ -1858,14 +2057,15 @@
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
     const skuBlk = BB_STATE.stack.find(b => b.kind === 'multi_sku');
     const skuCfg = (skuBlk && skuBlk.config && skuBlk.config.sku_wizard) || (window.STATE && window.STATE.createSkuConfig) || null;
+    const isPhasePause = !!BB_STATE.exportOpts.no_hw_phase_pause;
     const body = {
       project_name: (isnCfg.project || 'PEGA_NEW').trim() || 'PEGA_NEW',
       station_name: (isnCfg.station || 'MB').trim() || 'MB',
       dut_count: Number(isnCfg.dut_count || 1),
-      dry_run: !!dryRun,
-      no_hw_phase_pause: !!BB_STATE.exportOpts.no_hw_phase_pause,
+      dry_run: false,
+      no_hw_phase_pause: isPhasePause || !!dryRun,
       station_name_mode: BB_STATE.exportOpts.station_name_mode || 'fixed',
-      open_folder: false,
+      open_folder: true,
       open_excel: true,
       wizard_config: {
         isn_length: Number(isnCfg.isn_len || 3),
@@ -1876,7 +2076,7 @@
     if (skuCfg && skuCfg.enabled) body.sku_wizard = skuCfg;
 
     const data = await window.withLoadingTimer(
-      dryRun ? '正在依積木順序產生「無硬體試跑版」並開啟 Excel' : '正在依積木順序產出 16 欄正式測試包與 INI 並直接開啟 Excel',
+      (isPhasePause || !!dryRun) ? '正在依積木順序產出「Phase = -1 無硬體試跑版」並開啟 Excel 與目錄' : '正在依積木順序產出 16 欄正式測試包與 INI 並直接開啟 Excel 與目錄',
       async () => {
         const res = await fetch('/api/generate_new_standalone', {
           method: 'POST',
@@ -1908,6 +2108,16 @@
   window.bbRender = function () {
     bbHidePop();
     _ensureStylesAndPop();
+    const topBackBtn = document.getElementById('btnGenModeHubBack');
+    if (topBackBtn && (typeof GEN_SUB_MODE === 'undefined' || GEN_SUB_MODE === 'create')) {
+      if (BB_STATE.view === 'qa' || BB_STATE.view === 'export') {
+        topBackBtn.style.display = 'inline-flex';
+        topBackBtn.textContent = '◀ 回到積木調整';
+        topBackBtn.onclick = () => bbGoView('stack');
+      } else {
+        topBackBtn.style.display = 'none';
+      }
+    }
     const host = document.getElementById('createBlockBuilderRoot');
     if (!host) return;
     host.classList.toggle('bb-fullscreen-shell', !!BB_STATE.fullscreen);

@@ -533,6 +533,22 @@ def build_workspace_from_sequence(
                 out_var = _safe_var(cfg.get("var_name") or f"sf_{field_nm}", "sfField")
                 title_lbl = str(cfg.get("title") or f"SFIS {field_nm}").strip()
                 ph = _alloc_phase()
+                ref_mode = str(cfg.get("ref_slice_mode") or "raw").strip().lower()
+                if ref_mode == "split":
+                    s_sep = str(cfg.get("ref_split_sep") or ",").strip()
+                    s_idx = str(cfg.get("ref_split_idx") or "0").strip() or "0"
+                    sf_ref = f'${out_var}:SplitString,"{s_sep}","{s_idx}";'
+                elif ref_mode == "sub":
+                    sb_s = str(cfg.get("ref_sub_start") or "0").strip() or "0"
+                    sb_l = str(cfg.get("ref_sub_len") or "12").strip() or "12"
+                    sf_ref = f'${out_var}:SubString,"{sb_s}","{sb_l}";'
+                elif ref_mode == "within":
+                    w_l = str(cfg.get("ref_left") or "")
+                    w_r = str(cfg.get("ref_right") or ";")
+                    sf_ref = f'${out_var}:WithinString,"{w_l}","{w_r}","";'
+                else:
+                    sf_ref = f"${out_var};"
+
                 if rw_mode == "save_link":
                     val_expr = str(cfg.get("save_value") or f"*({out_var})").strip()
                     steps.append(_step(
@@ -552,7 +568,7 @@ def build_workspace_from_sequence(
                         title=f"0,{title_lbl},3",
                         send=':Delay,"10"',
                         reply="0",
-                        ref=f"${out_var};",
+                        ref=sf_ref,
                         validation=f"({out_var},%len,{lbl_len},{lbl_len});",
                         prompt=f"請掃描 {field_nm} ({lbl_len} 碼)",
                         exec_mode="1",
@@ -565,7 +581,7 @@ def build_workspace_from_sequence(
                         title=f"0,{title_lbl}",
                         send=':SfGetiMAC,"*(ISN)","1","1","2"',
                         reply="",
-                        ref=f"${out_var};",
+                        ref=sf_ref,
                         validation=f"({out_var},%len,12,12);",
                         waiting="2000",
                         exec_mode="8",
@@ -579,7 +595,7 @@ def build_workspace_from_sequence(
                         title=f"0,{title_lbl}",
                         send=f':SfGetVersion,"*(ISN)","{table_nm}","2","{field_nm}",""',
                         reply="",
-                        ref=f"${out_var};",
+                        ref=sf_ref,
                         validation=f"({out_var},%len,1,64);",
                         waiting="2000",
                         exec_mode="8",
@@ -813,14 +829,90 @@ def build_workspace_from_sequence(
             )
         else:
             inst_nm = str(icfg.get("inst_name") or "PPH1503").strip() or "PPH1503"
+            c_steps = icfg.get("custom_steps")
+            g_patch = icfg.get("globals_patch")
+            if not c_steps:
+                low_nm = inst_nm.lower()
+                dl_s = str(icfg.get("dl_val") or "").strip()
+                ul_s = str(icfg.get("ul_val") or "").strip()
+                if "feasa" in low_nm:
+                    l_ch = str(icfg.get("led_ch") or "01").strip() or "01"
+                    w_dl = dl_s or "515"
+                    w_ul = ul_s or "535"
+                    i_dl = str(icfg.get("led_int_min") or "1000").strip() or "1000"
+                    i_ul = str(icfg.get("led_int_max") or "99999").strip() or "99999"
+                    c_steps = [
+                        {"Send": ":ObtainDevice", "ExecMode": "0", "Description": f"PC#-#Obtain {inst_nm}", "TestID": "BRME027"},
+                        {
+                            "Send": f':Dev.CaptureAndRead,"{l_ch}"',
+                            "Ref": "$LED_Wave;\n$LED_Int",
+                            "Validation": f"(LED_Wave,%f,{w_dl},{w_ul});\n(LED_Int,%f,{i_dl},{i_ul})",
+                            "ExecMode": "2:0",
+                            "Description": f"LED#-#Ch{l_ch} ({w_dl}~{w_ul}nm)",
+                            "TestID": "IOLE015",
+                        },
+                        {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}", "TestID": "BRME027"},
+                    ]
+                elif any(k in low_nm for k in ("pph1503", "ps2005", "ipower", "ipro", "keithley2302", "chroma615")):
+                    p_act = str(icfg.get("pwr_action") or "on").strip().lower()
+                    p_ch = str(icfg.get("pwr_ch") or "1").strip() or "1"
+                    p_volt = str(icfg.get("pwr_volt") or "12").strip() or "12"
+                    p_wait = str(icfg.get("pwr_wait_ms") or "500").strip() or "500"
+                    is_pph = "pph1503" in low_nm
+                    is_ps2005 = "ps2005" in low_nm
+                    c_steps = [{"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"}]
+                    if p_act == "cycle":
+                        off_cmd = ':Dev.OUTONOFF,"OFF"' if is_pph else (':Dev.OutOnOff,"OFF"' if is_ps2005 else f':Dev.SwitchOFF,"{p_ch}"')
+                        on_cmd = ':Dev.OUTONOFF,"ON"' if is_pph else (':Dev.OutOnOff,"ON"' if is_ps2005 else f':Dev.SwitchON,"{p_ch}"')
+                        c_steps.extend([
+                            {"Send": off_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} OFF"},
+                            {"Send": f':Delay,"{p_wait}"', "ExecMode": "0", "Description": "PC#-#Wait Power Discharge"},
+                            {"Send": on_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} ON"},
+                        ])
+                    elif p_act == "mcurr":
+                        m_dl = dl_s or "50"
+                        m_ul = ul_s or "800"
+                        c_steps.extend([
+                            {"Send": f':Dev.SetON,"{p_volt}","2"' if is_pph else f':Dev.SwitchON,"{p_ch}"', "ExecMode": "1", "Description": f"Power#-#Set {p_volt}V ON"},
+                            {"Send": f':Delay,"{p_wait}"', "ExecMode": "0", "Description": "PC#-#Stabilize Current"},
+                            {"Send": ':Dev.MCurr' if is_pph else f':Dev.Measure,"{p_ch}"', "Ref": "$gCurr", "Validation": f"(gCurr,%f,{m_dl},{m_ul})", "ExecMode": "2:0", "Description": f"Power#-#Check Current ({m_dl}~{m_ul})"},
+                        ])
+                    else:
+                        on_cmd = f':Dev.SetON,"{p_volt}","2"' if is_pph else (':Dev.OutOnOff,"ON"' if is_ps2005 else f':Dev.SwitchON,"{p_ch}"')
+                        c_steps.append({"Send": on_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} Power ON"})
+                    c_steps.append({"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"})
+                elif any(k in low_nm for k in ("agilent34401", "keithley2700", "mda2700", "gdm", "u2004a")):
+                    d_ch = str(icfg.get("dmm_ch") or "1").strip() or "1"
+                    d_dl = dl_s or "3.15"
+                    d_ul = ul_s or "3.45"
+                    is_sub_dmm = "keithley2700" in low_nm
+                    if is_sub_dmm:
+                        c_steps = [
+                            {"Send": f':ObtainSubDevice,"{inst_nm}"', "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
+                            {"Send": f':sDev.Voltage,"{d_ch}"', "Ref": "$gDmmVal", "Validation": f"(gDmmVal,%f,{d_dl},{d_ul})", "ExecMode": "2:0", "Description": f"DMM#-#Ch{d_ch} ({d_dl}~{d_ul})"},
+                            {"Send": ":ReleaseSubDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
+                        ]
+                    else:
+                        c_steps = [
+                            {"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
+                            {"Send": f':Dev.Measure,"{d_ch}"', "Ref": "$gDmmVal", "Validation": f"(gDmmVal,%f,{d_dl},{d_ul})", "ExecMode": "2:0", "Description": f"DMM#-#Ch{d_ch} ({d_dl}~{d_ul})"},
+                            {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
+                        ]
+                elif any(k in low_nm for k in ("devuart", "scpicontroller", "transmitter")):
+                    s_cmd = str(icfg.get("subdev_cmd") or (':sDev.Announce,"SAT{1},start"' if "devuart" in low_nm else ':sDev.OnOff,"ON"')).strip()
+                    c_steps = [
+                        {"Send": f':ObtainSubDevice,"{inst_nm}"', "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
+                        {"Send": s_cmd, "ExecMode": "1", "Description": f"SubDev#-#{inst_nm} Command"},
+                        {"Send": ":ReleaseSubDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
+                    ]
             insert_instrument_title_block(
                 ws, station_name, inst_nm,
                 str(icfg.get("title_name") or f"{inst_nm} Test").strip(),
                 after_block_idx=after_blk,
                 dl_val=str(icfg.get("dl_val") or "").strip(),
                 ul_val=str(icfg.get("ul_val") or "").strip(),
-                custom_steps=icfg.get("custom_steps"),
-                globals_patch=icfg.get("globals_patch"),
+                custom_steps=c_steps,
+                globals_patch=g_patch,
             )
 
         if icfg.get("post_delay_enabled"):

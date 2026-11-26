@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.064</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.065</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -992,7 +992,7 @@
     <!-- 進入子模式後的頂部返回與切換列 -->
     <div id="genBackToModeHubBar" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:8px 12px;">
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <button onclick="switchGenSubMode('hub')" class="btn" style="padding:6px 14px; font-size:0.87rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 5px rgba(15,23,42,0.18);">
+        <button id="btnGenModeHubBack" onclick="switchGenSubMode('hub')" class="btn" style="padding:6px 14px; font-size:0.87rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900; box-shadow:0 2px 5px rgba(15,23,42,0.18);">
           ⬅ 返回模式選擇
         </button>
         <button id="btnToolsBackToAcc" onclick="switchToolsVerifyTab('hub')" class="btn" style="display:none; padding:6px 13px; font-size:0.85rem; background:#0F766E; color:#FFFFFF; border:none; border-radius:7px; font-weight:800; box-shadow:0 2px 5px rgba(15,118,110,0.18);">
@@ -1901,14 +1901,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.064"></script>
-<script src="/js/audit_editors.js?v=0.8.064"></script>
-<script src="/js/flow_guide.js?v=0.8.064"></script>
-<script src="/js/block_sorter.js?v=0.8.064"></script>
-<script src="/js/script_qa.js?v=0.8.064"></script>
-<script src="/js/sfis_hmi.js?v=0.8.064"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.064"></script>
-<script src="/js/create_block_builder.js?v=0.8.064"></script>
+<script src="/js/inst_hmi.js?v=0.8.065"></script>
+<script src="/js/audit_editors.js?v=0.8.065"></script>
+<script src="/js/flow_guide.js?v=0.8.065"></script>
+<script src="/js/block_sorter.js?v=0.8.065"></script>
+<script src="/js/script_qa.js?v=0.8.065"></script>
+<script src="/js/sfis_hmi.js?v=0.8.065"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.065"></script>
+<script src="/js/create_block_builder.js?v=0.8.065"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -2990,6 +2990,12 @@ function switchGenSubMode(mode) {
 
   if (hubBox) hubBox.style.display = (GEN_SUB_MODE === 'hub') ? 'block' : 'none';
   if (backBar) backBar.style.display = (GEN_SUB_MODE === 'hub') ? 'none' : 'flex';
+  const topBackBtn = document.getElementById('btnGenModeHubBack');
+  if (topBackBtn && GEN_SUB_MODE !== 'create') {
+    topBackBtn.style.display = 'inline-flex';
+    topBackBtn.textContent = '⬅ 返回模式選擇';
+    topBackBtn.onclick = () => switchGenSubMode('hub');
+  }
   if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
   if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
@@ -3551,7 +3557,7 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
             no_hw_phase_pause: noHwPhasePause,
             station_name_mode: stationNameMode,
             taipei_dual_mode: false,
-            open_folder: false,
+            open_folder: true,
             open_excel: true
           })
         });

@@ -2202,14 +2202,15 @@ def run_all_verifications():
                   and "SKU_SKU4_UL=80" in v56_glb
                   and "SKU_ALLOW_CHECK_BATTERY=@SKU1||@SKU3" in v56_glb
                   and any("*$(SKU_SKU1_DL)" in v for v in v56_vals)
-                  and {"F3E8FF", "DCFCE7", "FFEDD5", "FCE7F3"}.issubset(set(v56_fills))
+                  and {"1E3A8A", "14532D", "7F1D1D", "4C1D95"}.issubset(set(v56_fills))
                   and "E0F7FA" in v56_fills
-                  and bool(v56_sfis_fonts) and all(fc == "BE185D" for fc in v56_sfis_fonts)
+                  and bool(v56_sfis_fonts) and all(fc in ("BE185D", "FFFFFF") for fc in v56_sfis_fonts)
                   and ("DCFCE7", "15803D") in v56_p98_colors
                   and ("FFE4E6", "9F1239") in v56_p99_colors
                   and len(pv_vis) >= 10
-                  and any(pv.get("fill_hex") == "E0F7FA" for pv in pv_vis),
-                  "v0.8.056 全流程 ExecMode=4 4+分支分色、條件略過柔青、SFIS粉紅字、Phase97/98/99配色、預覽row_visuals與INI參數化完整通過",
+                  and any(pv.get("fill_hex") == "E0F7FA" for pv in pv_vis)
+                  and any(pv.get("font_hex") == "FFFFFF" for pv in pv_vis),
+                  "v0.8.056 全流程 ExecMode=4 4+分支5深色配白字、條件略過柔青、SFIS粉紅字、Phase97/98/99配色、預覽row_visuals與INI參數化完整通過",
                   f"fills={sorted(set(v56_fills))}, sfis={set(v56_sfis_fonts)}")
 
             # [v0.8.057] 驗證 window.STATE 互通、既有範本 DS_C3PO 載入與多 SKU 套用、Global.ini 精簡去冗
@@ -2462,18 +2463,16 @@ def run_all_verifications():
                   "v0.8.063 新增積木 (設值 :SetVal / 屬性 :AddAttribute / 儀器 NI6008) 產出 16 欄 Excel 且 0 Error",
                   f"sends={v63_sends}, errs={v63_errs}")
 
-            # [v0.8.064] 驗證直接開啟 Excel、免彈完成視窗／免連開雙目錄視窗，以及呼叫「儀器雙欄堆疊頁」與「SFIS 撲克牌積木堆疊頁」雙向帶回 0->1
+            # [v0.8.064] 驗證直接開啟 Excel、免彈完成視窗，以及呼叫 SFIS 撲克牌積木堆疊頁雙向帶回 0->1
             sfis_js_v64 = open(os.path.join(os.path.dirname(cbb_js_path), "sfis_hmi.js"), "r", encoding="utf-8").read()
-            check("open_folder: false" in cbb_62
+            check("open_folder: true" in cbb_62
                   and "open_excel: true" in cbb_62
                   and "showExportCompleteModal" not in cbb_62
-                  and "bbOpenFullInstWorkspace" in cbb_62
+                  and "bbOpenFullInstWorkspace" not in cbb_62
                   and "bbOpenFullSfisWorkspace" in cbb_62
-                  and "tab3FinishToBuilder" in index_html
-                  and "openInstDualPaneForBuilder" in index_html
                   and "openSfisWorkspaceForBuilder" in sfis_js_v64
                   and "sfisSyncToBuilderAndReturn" in sfis_js_v64,
-                  "v0.8.064 匯出直接開啟 Excel 免確認視窗、與呼叫儀器雙欄/SFIS撲克牌積木堆疊頁雙向帶回 UI 檢查通過")
+                  "v0.8.064 匯出直接開目錄+開Excel免確認視窗、取消儀器雙欄按鈕並保留SFIS撲克牌積木堆疊頁雙向帶回通過")
 
             opened_folders.clear()
             launched_excels.clear()
@@ -2520,6 +2519,53 @@ def run_all_verifications():
                   and len(v64_errs) == 0,
                   "v0.8.064 SFIS堆疊+多儀器堆疊(NI6008+Agilent34401A)產出0 Error且open_folder=False不開目錄只直接開Excel通過",
                   f"folders={len(opened_folders)}, excels={len(launched_excels)}, sends={v64_sends}, switches={v64_switches}, errs={v64_errs}")
+
+            # [v0.8.065] 一鍵自動排序、頂部整合按鈕、非NI儀器實戰語法(PPH1503/FeasaLED/DevUart)、SFIS內建環境檢測、Phase=-1無硬體整合與SKU5深色系白字
+            check("bbAutoSortStack" in cbb_62
+                  and 'id="btnGenModeHubBack"' in index_html
+                  and "bbTestSfisLink" in cbb_62
+                  and "bbSetLedPreset" in cbb_62
+                  and "產生「無硬體試跑版」" not in cbb_62
+                  and "1E3A8A" in tsw_js,
+                  "v0.8.065 一鍵自動排順序、回到積木調整頂部整合、SFIS環境實測、儀器分類預設、Phase=-1試跑整合與5深色SKU UI檢查通過")
+
+            opened_folders.clear()
+            launched_excels.clear()
+            v65_inst_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V65_ALL_INST",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": True,
+                "open_excel": True,
+                "no_hw_phase_pause": True,
+                "wizard_config": {"isn_length": 3, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "k1", "kind": "isn", "config": {"project": "V65_ALL_INST", "station": "MB", "dut_count": 1, "isn_len": 3, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "k2", "kind": "sfis_route", "config": {"sfis_mode": "online", "tsp": "ATLAS,2", "weblink": "http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx"}},
+                    {"uid": "k3", "kind": "sfis_rw", "config": {"rw_mode": "get_version", "table_name": "ISN_BASEINFO", "field_name": "MAC1", "var_name": "sfMAC", "ref_slice_mode": "split", "ref_split_sep": ",", "ref_split_idx": "0"}},
+                    {"uid": "k4", "kind": "inst", "config": {"inst_mode": "catalog", "inst_name": "PPH1503", "title_name": "PPH1503 Current", "pwr_action": "mcurr", "pwr_volt": "12", "dl_val": "50", "ul_val": "800"}},
+                    {"uid": "k5", "kind": "inst", "config": {"inst_mode": "catalog", "inst_name": "FeasaLED", "title_name": "Feasa Green LED", "led_ch": "01", "dl_val": "515", "ul_val": "535", "led_int_min": "1000"}},
+                    {"uid": "k6", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                ],
+            })
+            ws_v65 = _parse_v50(v65_inst_res["excel_path"])
+            v65_rows = ws_v65["stations"]["MB"]
+            v65_sends = [str(r.get("Send") or "") for r in v65_rows]
+            v65_refs = [str(r.get("Ref") or "") for r in v65_rows]
+            v65_phases = [str(r.get("Phase") or "").strip() for r in v65_rows if str(r.get("Phase") or "").strip()]
+            v65_audit = post_json("/api/re_audit", {"workspace": ws_v65})
+            v65_errs = (v65_audit.get("report") or {}).get("errors") or []
+            check(v65_inst_res.get("status") == "ok"
+                  and len(opened_folders) == 1
+                  and len(launched_excels) == 1
+                  and '-1' in v65_phases
+                  and any(':Dev.SetON,"12","2"' in s for s in v65_sends)
+                  and any(':Dev.MCurr' in s for s in v65_sends)
+                  and any(':Dev.CaptureAndRead,"01"' in s for s in v65_sends)
+                  and any(':SplitString,",","0"' in rf for rf in v65_refs)
+                  and len(v65_errs) == 0,
+                  "v0.8.065 PPH1503/FeasaLED實戰指令 + SFIS SplitString + Phase=-1整合無硬體試跑 + 1目錄1Excel 0 Error 通過",
+                  f"folders={len(opened_folders)}, excels={len(launched_excels)}, phases={v65_phases}, sends={v65_sends}, refs={v65_refs}, errs={v65_errs}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

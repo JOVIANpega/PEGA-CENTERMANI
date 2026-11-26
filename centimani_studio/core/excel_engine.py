@@ -42,16 +42,14 @@ FILL_SKIP = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="sol
 FILL_FIXED_CELL = PatternFill(start_color="FEF08A", end_color="FEF08A", fill_type="solid")
 FILL_REORDERED_CELL = PatternFill(start_color="E8F4FD", end_color="E8F4FD", fill_type="solid")
 
-BRANCH_PASTEL_HEXES = [
-    "F3E8FF",  # 淡薰衣草紫
-    "DCFCE7",  # 淡薄荷綠
-    "FFEDD5",  # 淡蜜桃橘
-    "FCE7F3",  # 淡櫻粉
-    "FEF9C3",  # 淡鵝黃
-    "E0E7FF",  # 淡靛藍
-    "F5D0FE",  # 柔丁香粉
-    "ECFCCB",  # 淡芽綠
+BRANCH_DARK_HEXES = [
+    "1E3A8A",  # 深寶藍 Navy Blue (配純白字)
+    "14532D",  # 深森綠 Deep Emerald (配純白字)
+    "7F1D1D",  # 深酒紅 Deep Burgundy (配純白字)
+    "4C1D95",  # 深靛紫 Deep Royal Purple (配純白字)
+    "134E4A",  # 深青墨 Deep Dark Teal (配純白字)
 ]
+BRANCH_PASTEL_HEXES = BRANCH_DARK_HEXES  # 相容別名
 GUARD_PASTEL_HEXES = ["E0F7FA", "CCFBF1"]  # 條件略過區交替柔青水藍
 
 
@@ -202,15 +200,17 @@ def compute_station_row_visuals(steps):
                         visuals[gi]["role_label"] = "匯合/共用指令" if k > conv_start else "匯合點"
                         assigned.add(k)
 
-        # 4) Assign cycling pastel colors to each branch check + arm (supports 2..N branches!)
+        # 4) Assign cycling dark-theme colors + crisp white bold text to each branch check + arm (supports 2..N branches!)
         branch_idx = 0
         for g_idx, loc_i, p_st, f_st, st in conds:
             if loc_i in assigned:
                 continue
-            b_hex = BRANCH_PASTEL_HEXES[branch_idx % len(BRANCH_PASTEL_HEXES)]
+            b_hex = BRANCH_DARK_HEXES[branch_idx % len(BRANCH_DARK_HEXES)]
             if p_st == f_st:
                 # Unconditional jump 4:N,N
                 visuals[g_idx]["fill_hex"] = b_hex
+                visuals[g_idx]["font_hex"] = "FFFFFF"
+                visuals[g_idx]["font_bold"] = True
                 visuals[g_idx]["role_label"] = f"跳轉 -> 步 {p_st}"
                 assigned.add(loc_i)
                 branch_idx += 1
@@ -219,6 +219,8 @@ def compute_station_row_visuals(steps):
             b_label = f"分支 #{branch_idx + 1}"
             # Include check row itself + its PASS arm up to (f_st - 1) before next check / fail / convergence
             visuals[g_idx]["fill_hex"] = b_hex
+            visuals[g_idx]["font_hex"] = "FFFFFF"
+            visuals[g_idx]["font_bold"] = True
             visuals[g_idx]["role_label"] = b_label
             assigned.add(loc_i)
             arm_limit = min(b_len, f_st if f_st > p_st else b_len)
@@ -228,16 +230,19 @@ def compute_station_row_visuals(steps):
                 gk = loc_to_g.get(k)
                 if gk is not None:
                     visuals[gk]["fill_hex"] = b_hex
+                    visuals[gk]["font_hex"] = "FFFFFF"
+                    visuals[gk]["font_bold"] = True
                     visuals[gk]["role_label"] = b_label
                     assigned.add(k)
             branch_idx += 1
 
-    # Finally apply SFIS pink-magenta text across ALL :Sf* steps (preserved unless paused Phase -1)
+    # Finally apply SFIS pink-magenta text across ALL :Sf* steps (keep crisp white if sitting on dark branch fill)
     for idx, step in enumerate(steps):
         if str(step.get("Send") or "").strip().lower().startswith(":sf"):
             v = visuals[idx]
             if not v["phase"].startswith("-"):
-                v["font_hex"] = "BE185D"
+                if v.get("fill_hex") not in BRANCH_DARK_HEXES:
+                    v["font_hex"] = "BE185D"
                 v["font_bold"] = True
                 if v["role_label"] and "SFIS" not in v["role_label"]:
                     v["role_label"] = f"SFIS · {v['role_label']}"

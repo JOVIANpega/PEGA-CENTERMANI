@@ -623,7 +623,7 @@
             ${errs.length === 0 && warns.length === 0 ? '🟢 Script Doctor 預檢通過：0 Error / 0 Warning' : `⚠️ 檢出 ${errs.length} 錯誤 / ${warns.length} 警告`}
           </span>
           <span style="font-size:0.75rem; color:#475569; font-weight:700;">
-            🎨 與匯出 Excel 同步配色：多分支粉彩輪替 ｜ 條件略過柔青 ｜ <span style="color:#BE185D;">SFIS 粉紅字</span> ｜ <span style="background:#FFF2CC;padding:0 4px;">P97金</span>/<span style="background:#DCFCE7;color:#15803D;padding:0 4px;">P98綠</span>/<span style="background:#FFE4E6;color:#9F1239;padding:0 4px;">P99紅</span>
+            🎨 與匯出 Excel 同步配色：<span style="background:#1E3A8A;color:#FFF;padding:0 5px;border-radius:3px;">深藍</span>/<span style="background:#14532D;color:#FFF;padding:0 5px;border-radius:3px;">深綠</span>/<span style="background:#7F1D1D;color:#FFF;padding:0 5px;border-radius:3px;">深紅</span>/<span style="background:#4C1D95;color:#FFF;padding:0 5px;border-radius:3px;">深紫</span>/<span style="background:#134E4A;color:#FFF;padding:0 5px;border-radius:3px;">深青</span>配白字 ｜ 條件略過柔青 ｜ <span style="background:#FFF2CC;padding:0 4px;">P97金</span>/<span style="background:#DCFCE7;color:#15803D;padding:0 4px;">P98綠</span>/<span style="background:#FFE4E6;color:#9F1239;padding:0 4px;">P99紅</span>
           </span>
         </div>
         <div style="max-height:280px; overflow:auto; border:1px solid #CBD5E1; border-radius:6px; background:#FFFFFF;">
@@ -634,17 +634,18 @@
                 const v = visList[i] || {};
                 const bg = v.fill_hex ? ('#' + v.fill_hex) : '#FFFFFF';
                 const fg = v.font_hex ? ('#' + v.font_hex) : '#0F172A';
+                const isDark = (v.font_hex === 'FFFFFF');
                 const fw = v.font_bold ? '700' : '400';
                 return `
                   <tr style="border-bottom:1px solid #E2E8F0; background:${bg}; color:${fg}; font-weight:${fw};">
-                    <td class="mono" style="padding:2px 6px; color:#64748B;">${i}</td>
-                    <td class="mono" style="padding:2px 6px; font-weight:800; color:#1E40AF;">${v.local_idx !== undefined ? v.local_idx : i}</td>
+                    <td class="mono" style="padding:2px 6px; color:${isDark ? '#E2E8F0' : '#64748B'};">${i}</td>
+                    <td class="mono" style="padding:2px 6px; font-weight:800; color:${isDark ? '#FFFFFF' : '#1E40AF'};">${v.local_idx !== undefined ? v.local_idx : i}</td>
                     <td class="mono" style="padding:2px 6px; font-weight:700;">${_esc(r.Phase || '')}</td>
                     <td style="padding:2px 6px; font-weight:700;">${_esc(r.Title || '')}</td>
                     <td class="mono" style="padding:2px 6px;">${_esc(r.Send || '')}</td>
                     <td class="mono" style="padding:2px 6px;">${_esc(r.Reply || '')}</td>
                     <td class="mono" style="padding:2px 6px;">${_esc(r.Validation || '')}</td>
-                    <td class="mono" style="padding:2px 6px; color:#6D28D9; font-weight:800;">${_esc(r.ExecMode || '')}</td>
+                    <td class="mono" style="padding:2px 6px; color:${isDark ? '#FDE68A' : '#6D28D9'}; font-weight:800;">${_esc(r.ExecMode || '')}</td>
                     <td style="padding:2px 6px; font-size:0.73rem;">${_esc(v.role_label || '')}</td>
                   </tr>
                 `;
