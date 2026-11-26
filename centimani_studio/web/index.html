@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.082">
+<link rel="stylesheet" href="/css/app.css?v=0.8.083">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.082</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.083</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -353,30 +353,41 @@
           </div>
           <div id="jeTrackVisual" style="display:flex; align-items:center; gap:8px; overflow-x:auto; padding:6px 0;"></div>
         </div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 16px; background:#F8FAFC; border-bottom:1px solid #CBD5E1;">
-          <span style="font-weight:700; color:#334155; font-size:0.87rem;">⚡ 快速模板（針對目前起點）：</span>
-          <button onclick="jeApplyTemplateGuard()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;">🛡️ 條件略過 (FAIL 跳末行)</button>
-          <button onclick="jeApplyTemplateIfElse()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#DCFCE7; color:#15803D; border-color:#4ADE80;">🔀 雙分支分流 (自動補 PASS 末行跳出)</button>
-          <button onclick="jeApplyTemplateRetry()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;">↩ 區間重試 (2:XX + 補次數)</button>
-          <details style="margin-left:auto; font-size:0.83rem;">
-            <summary style="cursor:pointer; font-weight:800; color:#1E3A8A; background:#DBEAFE; border:1.5px solid #60A5FA; border-radius:6px; padding:4px 12px;">📖 ExecMode 選用速查表 (0~9)</summary>
-            <div style="margin-top:8px; padding:10px 12px; background:#FFFFFF; border:1.5px solid #93C5FD; border-radius:8px; box-shadow:0 6px 18px rgba(15,23,42,0.12); display:grid; grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); gap:7px; min-width:560px; max-width:740px;">
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px;"><span class="mono" style="background:#64748B;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">0</span><span><b>一般</b>：正常執行一次</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px;"><span class="mono" style="background:#0284C7;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">1</span><span><b>單步重試</b>：該步失敗直接原地重試</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px;"><span class="mono" style="background:#7C3AED;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">2:XX</span><span><b>重試回跳</b>：失敗跳回同 Title 步號 XX</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px;"><span class="mono" style="background:#D97706;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">3</span><span><b>忽略續跑</b>：失敗仍繼續（<code>:ReleaseDevice</code> 必用）</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;"><span class="mono" style="background:#16A34A;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">4:P,F</span><span><b>條件分支</b>：PASS 跳 P、FAIL 跳 F（如 SKU 分流）</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFF1F2; border:1px solid #FECDD3; border-radius:6px;"><span class="mono" style="background:#E11D48;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">5</span><span><b>失敗才跑</b>：前方失敗時才執行</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px;"><span class="mono" style="background:#475569;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">6</span><span><b>略過</b>：Skip 不執行</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:6px;"><span class="mono" style="background:#0D9488;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">7</span><span><b>校正</b>：<code>7:Step,timeout</code></span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4F46E5;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">8</span><span><b>SFIS 執行</b>：啟用 SFIS 時才執行</span></div>
-              <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4338CA;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">9</span><span><b>SFIS 重試</b>：啟用 SFIS 時失敗重試</span></div>
-            </div>
-          </details>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 16px; background:#F8FAFC; border-bottom:1px solid #CBD5E1; position:relative;">
+          <span style="font-weight:700; color:#334155; font-size:0.87rem;">⚡ 一鍵套用（先在下方選「起點」）：</span>
+          <button onclick="jeApplyTemplateGuard()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;"
+            data-pop-tip="適合選配功能檢查：起點這步若 PASS 就繼續下一步；若 FAIL 則直接跳到本 Phase 結尾（略過中間步驟，不判 FAIL）">
+            🛡️ 失敗跳到結尾 (略過中段)
+          </button>
+          <button onclick="jeApplyTemplateIfElse()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#DCFCE7; color:#15803D; border-color:#4ADE80;"
+            data-pop-tip="IF/ELSE 雙路線分流：1.先選好起點列 2.下方勾選 PASS 路線起點與 FAIL 路線起點 3.點此套用 4:P,F，並自動在 PASS 路線最後一步補上跳出結尾">
+            🔀 雙路線分流 (PASS走A / FAIL走B)
+          </button>
+          <button onclick="jeApplyTemplateRetry()" class="btn" style="padding:4px 10px; font-size:0.83rem; background:#EDE9FE; color:#5B21B6; border-color:#A78BFA;"
+            data-pop-tip="失敗重跑一段流程：選失敗那步當起點、在前面某步勾 FAIL「重回此步」，點此設為 2:步號 回頭重試">
+            ↩ 失敗回前步重試 (2:XX)
+          </button>
+          <button type="button" class="btn" onclick="var p=document.getElementById('jeExecModeCheatBox'); if(p) p.style.display=(p.style.display==='none'?'grid':'none');"
+            style="margin-left:auto; font-weight:800; color:#1E3A8A; background:#DBEAFE; border:1.5px solid #60A5FA; border-radius:6px; padding:4px 12px; font-size:0.83rem;">
+            📖 ExecMode 速查表 (0~9)
+          </button>
         </div>
-        <!-- 常見跳轉範例（SKU 分流示範） -->
-        <div style="padding:6px 16px; background:#FFFBEB; border-bottom:1px solid #FDE68A; font-size:0.8rem; color:#78350F; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-          <span>💡 <b>最常見跳轉範例（SKU 分流）：</b>步驟 <code class="mono" style="background:#FEF3C7;padding:1px 5px;border-radius:3px;">000</code> 讀取 SKU 設 <code class="mono" style="background:#DCFCE7;color:#166534;font-weight:800;padding:1px 5px;border-radius:3px;">4:1,3</code> → <b>PASS</b> 跳第 <b>1</b> 步執行 SKU-A（末行設 <code class="mono">4:End,End</code> 跳出），<b>FAIL</b> 跳第 <b>3</b> 步執行 SKU-B。</span>
+        <div id="jeExecModeCheatBox" style="display:none; padding:10px 16px; background:#FFFFFF; border-bottom:1.5px solid #93C5FD; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:7px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px;"><span class="mono" style="background:#64748B;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">0</span><span><b>一般</b>：正常執行一次</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px;"><span class="mono" style="background:#0284C7;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">1</span><span><b>單步重試</b>：該步失敗直接原地重試</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px;"><span class="mono" style="background:#7C3AED;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">2:XX</span><span><b>重試回跳</b>：失敗跳回同 Title 步號 XX</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px;"><span class="mono" style="background:#D97706;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">3</span><span><b>忽略續跑</b>：失敗仍繼續（<code>:ReleaseDevice</code> 必用）</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;"><span class="mono" style="background:#16A34A;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">4:P,F</span><span><b>條件分支</b>：PASS 跳 P、FAIL 跳 F（如 SKU 分流）</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFF1F2; border:1px solid #FECDD3; border-radius:6px;"><span class="mono" style="background:#E11D48;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">5</span><span><b>失敗才跑</b>：前方失敗時才執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px;"><span class="mono" style="background:#475569;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">6</span><span><b>略過</b>：Skip 不執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:6px;"><span class="mono" style="background:#0D9488;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">7</span><span><b>校正</b>：<code>7:Step,timeout</code></span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4F46E5;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">8</span><span><b>SFIS 執行</b>：啟用 SFIS 時才執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4338CA;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">9</span><span><b>SFIS 重試</b>：啟用 SFIS 時失敗重試</span></div>
+        </div>
+        <!-- 多重跳轉與範例說明（同一 Phase 內不同列皆可各自設跳轉） -->
+        <div style="padding:7px 16px; background:#FFFBEB; border-bottom:1px solid #FDE68A; font-size:0.8rem; color:#78350F; display:flex; flex-direction:column; gap:3px;">
+          <span>📌 <b>同一 Phase 可設多個跳轉點：</b>跳轉是寫在<b>每一列步驟各自的 ExecMode 欄</b>（並非一個 Phase 只能跳一次）。設好一列起點後按下方「✨ 套用此步跳轉」，再換選下一列繼續設定即可。</span>
+          <span>💡 <b>SKU 分流範例：</b>步號 <code class="mono" style="background:#FEF3C7;padding:1px 5px;border-radius:3px;">00</code> 設 <code class="mono" style="background:#DCFCE7;color:#166534;font-weight:800;padding:1px 5px;border-radius:3px;">4:01,06</code>（PASS 跳 01 跑 A、FAIL 跳 06 跑 B），且 A 線末行 <code class="mono">05</code> 再設 <code class="mono">4:09,09</code> 跳出收尾。</span>
         </div>
         <div style="flex:1; overflow:auto; padding:10px 16px;">
           <table style="width:100%; border-collapse:collapse; font-size:0.87rem;">
@@ -1835,9 +1846,12 @@
 
 <div id="stationDiffModal" class="modal-backdrop" onclick="if(event.target===this) this.classList.remove('open')">
   <div class="modal-panel" style="max-width:780px; width:95vw; background:#FFFFFF; border:2px solid #2563EB; padding:18px 22px; max-height:86vh; overflow-y:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:12px;">
-      <h3 style="margin:0; font-size:1.05rem; color:#0F172A;">🔍 同檔雙分頁差異比對（例如 MB 產線 vs MB_TAIPEI）</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:8px;">
+      <h3 style="margin:0; font-size:1.05rem; color:#0F172A;">🔍 比對同一份 Excel 的兩個測試站分頁差異</h3>
       <button type="button" onclick="document.getElementById('stationDiffModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.85rem;">✕ 關閉</button>
+    </div>
+    <div style="font-size:0.83rem; color:#475569; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:7px 10px; margin-bottom:12px;">
+      用途：把同一份工作簿內的兩個測試站（例如 <code>MB</code> 與 <code>MB_TAIPEI</code>，或 <code>L10A_FA5</code> 與 <code>L10A_FT</code>）並排比對，快速檢查步驟增減、Phase 排序或上下限差異。
     </div>
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
       <label style="font-size:0.86rem; font-weight:700;">分頁 A：<select id="diffSheetASel" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:5px;"></select></label>
@@ -1909,14 +1923,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.082"></script>
-<script src="/js/audit_editors.js?v=0.8.082"></script>
-<script src="/js/flow_guide.js?v=0.8.082"></script>
-<script src="/js/block_sorter.js?v=0.8.082"></script>
-<script src="/js/script_qa.js?v=0.8.082"></script>
-<script src="/js/sfis_hmi.js?v=0.8.082"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.082"></script>
-<script src="/js/create_block_builder.js?v=0.8.082"></script>
+<script src="/js/inst_hmi.js?v=0.8.083"></script>
+<script src="/js/audit_editors.js?v=0.8.083"></script>
+<script src="/js/flow_guide.js?v=0.8.083"></script>
+<script src="/js/block_sorter.js?v=0.8.083"></script>
+<script src="/js/script_qa.js?v=0.8.083"></script>
+<script src="/js/sfis_hmi.js?v=0.8.083"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.083"></script>
+<script src="/js/create_block_builder.js?v=0.8.083"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -5079,11 +5093,19 @@ function renderAuditResults() {
               ${pendings.map((p, i) => `<div>• [${i + 1}] <span class="mono" style="font-weight:700;">${p.sheet}</span> → <b>${p.inst}</b>：${p.summary}</div>`).join('')}
             </div>
           </div>
-          ${hasIniChange ? `
-            <button onclick="toggleGlobalEditorPanel('ini_diff', 'review')" class="btn" style="padding:6px 14px; font-size:0.87rem; background:#0284C7; color:#FFFFFF; border:none; font-weight:700;">
-              🤖 反白確認左右差異與 AI 報告並彈出 INI ▶
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            ${hasIniChange ? `
+              <button onclick="toggleGlobalEditorPanel('ini_diff', 'review')" class="btn" style="padding:6px 14px; font-size:0.87rem; background:#0284C7; color:#FFFFFF; border:none; font-weight:700;">
+                🤖 反白確認左右差異與 AI 報告並彈出 INI ▶
+              </button>
+            ` : ''}
+            <button onclick="applyFixAndExport(true)" class="btn btn-dry" style="padding:6px 12px; font-size:0.85rem; font-weight:800;">
+              🧪 無儀器試跑匯出
             </button>
-          ` : ''}
+            <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:6px 14px; font-size:0.87rem; font-weight:800;">
+              💾 寫入並匯出 Excel (*_FIXED.xlsx)
+            </button>
+          </div>
         </div>
       `;
     } else {

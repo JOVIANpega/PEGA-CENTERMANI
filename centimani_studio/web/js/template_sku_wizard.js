@@ -726,6 +726,7 @@
     closeTemplateSkuWizard();
     if (typeof window.renderAuditResults === 'function') window.renderAuditResults();
     if (typeof window.syncEditorView === 'function') window.syncEditorView();
+    if (typeof window.renderGlobalEditorPanel === 'function') window.renderGlobalEditorPanel();
     const bsModal = document.getElementById('modalBlockSorter');
     if (bsModal && bsModal.classList.contains('open') && typeof window.bsLoadSheetBlocks === 'function') {
       try { await window.bsLoadSheetBlocks(); } catch (_e) {}

@@ -3208,9 +3208,9 @@ def run_all_verifications():
                   and 0 < hub_host_pos < exp_bar_pos
                   and 'id="editorSheetSel"' in ae79_src
                   and 'openStationDiffModal()' in ae79_src
-                  and "▼ 展開修改 System.ini" in ae79_src
-                  and "↗ 彈窗排序測試流程" in ae79_src
-                  and "↗ 彈窗編輯跳轉規則" in ae79_src
+                  and "▼ 修改 System.ini" in ae79_src
+                  and "↗ 開啟順序編排" in ae79_src
+                  and "↗ 編輯跳轉規則" in ae79_src
                   and "Marco 子流程表" in idx79_src,
                   "v0.8.079/v0.8.081 1->N 介面大掃除：拖曳載入、去重頂部按鈕、測站與比對鈕整合於編修主入口、手風琴預期標示與 Marco 子流程說明",
                   f"hub={hub_host_pos}, exp={exp_bar_pos}")
@@ -3424,6 +3424,21 @@ def run_all_verifications():
                 if _orig_cfg_bak is not None:
                     with open(app_server.CONFIG_FILE, "w", encoding="utf-8") as _fcfg:
                         _fcfg.write(_orig_cfg_bak)
+
+            # [v0.8.083] 雙主卡初始底色＋懸浮拉伸、1->N 永遠顯示匯出列、精簡 6 卡文案、跳轉多點說明與直白按鈕
+            css83_src = open(os.path.join(STUDIO_DIR, "web", "css", "app.css"), "r", encoding="utf-8").read()
+            tsw83_src = open(os.path.join(STUDIO_DIR, "web", "js", "template_sku_wizard.js"), "r", encoding="utf-8").read()
+            check('.gen-big-card[data-theme="blue"]' in css83_src
+                  and '.gen-big-card[data-theme="green"]' in css83_src
+                  and 'flex: 1.55 1 0%' in css83_src
+                  and "expBar.style.display = 'flex';" in ae81_src
+                  and 'renderGlobalEditorPanel' in tsw83_src
+                  and '同一 Phase 可設多個跳轉點' in idx81_src
+                  and '失敗跳到結尾 (略過中段)' in idx81_src
+                  and '雙路線分流 (PASS走A / FAIL走B)' in idx81_src
+                  and '失敗回前步重試 (2:XX)' in idx81_src,
+                  "v0.8.083 雙主卡初始著色與懸浮拉伸、1->N恆常顯示匯出列、跳轉多重起點與白話模板全部檢查通過",
+                  "missing expected v0.8.083 markers")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

@@ -1123,11 +1123,16 @@ button:not(:disabled):hover {
 }
 
 .gen-dual-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: flex;
   gap: 18px;
+  align-items: stretch;
+}
+@media (max-width: 820px) {
+  .gen-dual-grid { flex-direction: column; }
 }
 .gen-big-card {
+  flex: 1 1 0%;
+  min-width: 0;
   border-radius: 14px;
   border: 2px solid #CBD5E1;
   background: #FFFFFF;
@@ -1136,8 +1141,17 @@ button:not(:disabled):hover {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 230px;
-  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  min-height: 240px;
+  overflow: hidden;
+  transition: flex 0.32s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+}
+.gen-big-card[data-theme="blue"] {
+  background: linear-gradient(145deg, #EFF6FF 0%, #F8FAFC 100%);
+  border-color: #93C5FD;
+}
+.gen-big-card[data-theme="green"] {
+  background: linear-gradient(145deg, #F0FDF4 0%, #F8FAFC 100%);
+  border-color: #86EFAC;
 }
 .gen-big-card .acc-icon {
   font-size: 2.3rem;
@@ -1170,6 +1184,7 @@ button:not(:disabled):hover {
   margin-top: 12px;
 }
 .gen-big-card:hover {
+  flex: 1.55 1 0%;
   transform: translateY(-5px);
   box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.18);
 }
@@ -1177,7 +1192,7 @@ button:not(:disabled):hover {
   transform: scale(1.08);
 }
 .gen-big-card[data-theme="blue"]:hover {
-  background: linear-gradient(145deg, #E0F2FE 0%, #F0F9FF 100%);
+  background: linear-gradient(145deg, #DBEAFE 0%, #EFF6FF 100%);
   border-color: #0284C7;
 }
 .gen-big-card[data-theme="green"]:hover {
