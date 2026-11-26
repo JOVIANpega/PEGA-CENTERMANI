@@ -3024,6 +3024,64 @@ def run_all_verifications():
                   "v0.8.076 VNXRFSW Sub=1 子設備積木 + 多槽自動設定 System.ini DeviceSemaphore=0 通過",
                   f"sends={v76_sub_sends}")
 
+            # [v0.8.077] Option A (進階設定統一明顯靛藍底色 .bb-adv-box) + Option B (:Utility.CMD + 自訂APP別名 + PPH1503 off)
+            cbb_77 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check(".bb-adv-box" in app_css
+                  and ".bb-adv-badge" in app_css
+                  and cbb_77.count("bb-adv-box") >= 5
+                  and "util_cmd" in cbb_77
+                  and "app_alias" in cbb_77
+                  and 'value="off"' in cbb_77,
+                  "v0.8.077 Option A 進階設定顯著色塊 (.bb-adv-box/.bb-adv-badge) 與 Option B 前端選項檢查通過")
+
+            v77_payload = {
+                "project_name": "LOCK_CMD_V77",
+                "station_name": "Lock",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "builder_sequence": [
+                    {"kind": "start", "config": {"project": "LOCK_CMD_V77", "station": "Lock", "dut_count": 1, "debug_mode": "1", "sfis_enable": "1"}},
+                    {"kind": "comm_cmd", "config": {
+                        "protocol": "util_cmd", "title": "SPT DataACK",
+                        "cmd_exe": "{0}\\SPT_repeater.exe", "cmd_args": "-AckSWDL *(sfUUID),olympus",
+                        "cmd_show": "ON", "waiting": "10000", "cmd_extra": "5", "exec_mode": "1",
+                    }},
+                    {"kind": "comm_cmd", "config": {
+                        "protocol": "cmd", "title": "Run MtCmd", "app_alias": "MtCmd",
+                        "app_conn": ".\\exe\\mtcmd.exe,0,5000,", "command": "flash_verify",
+                        "keep_open": True, "reply_mode": "contains", "reply_keyword": "OK",
+                    }},
+                    {"kind": "comm_cmd", "config": {
+                        "protocol": "cmd", "title": "Run Console2", "app_alias": "CmdConsole2",
+                        "app_conn": "cmd.exe,1,5000,", "command": "echo DONE",
+                        "keep_open": False,
+                    }},
+                    {"kind": "inst", "config": {
+                        "inst_mode": "catalog", "inst_name": "PPH1503",
+                        "title_name": "Power Off DUT", "pwr_action": "off",
+                    }},
+                    {"kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"kind": "end", "config": {"confirmed": True}},
+                ]
+            }
+            v77_res = post_json("/api/generate_new_standalone", v77_payload)
+            ws_v77 = _parse_v50(v77_res["excel_path"])
+            v77_rows = ws_v77["stations"]["Lock"]
+            v77_sends = [str(r.get("Send") or "").strip() for r in v77_rows]
+            v77_dut_str = " | ".join(str(v or "") for v in ws_v77["duts"][0].values())
+            check(v77_res.get("status") == "ok"
+                  and ':Utility.CMD,"{0}\\SPT_repeater.exe","-AckSWDL *(sfUUID),olympus","ON","10000","5"' in v77_sends
+                  and ':Connect,"MtCmd"' in v77_sends and "MtCmd@flash_verify\\r\\n" in v77_sends
+                  and ':Connect,"CmdConsole2"' in v77_sends and ':Disconnect,"CmdConsole2"' in v77_sends
+                  and ':Disconnect,"MtCmd"' not in v77_sends
+                  and ':Dev.OUTONOFF,"OFF"' in v77_sends
+                  and '"APP","MtCmd",".\\exe\\mtcmd.exe,0,5000,"' in v77_dut_str
+                  and '"APP","CmdConsole2","cmd.exe,1,5000,"' in v77_dut_str
+                  and int((v77_res.get("audit_report") or {}).get("error_count", -1)) == 0,
+                  "v0.8.077 Option B :Utility.CMD + 自訂APP別名(MtCmd/CmdConsole2) + keep_open + PPH1503 OUTONOFF OFF 通過",
+                  f"sends={v77_sends}, dut={v77_dut_str}, ar={v77_res.get('audit_report')}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

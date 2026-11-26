@@ -532,31 +532,52 @@ def build_workspace_from_sequence(
                 if not bool(cfg.get("keep_open", False)):
                     close_step = _step(send=':Disconnect,"TELNET1"', reply="0", exec_mode="3",
                                        description="PC#-#Disconnect Telnet Console", test_id="OTFX082")
+            elif proto in ("util_cmd", "utility_cmd"):
+                alias = "Utility.CMD"
+                exe_p = str(cfg.get("cmd_exe") or cmd or "{0}\\SPT_repeater.exe").strip()
+                exe_args = str(cfg.get("cmd_args") if cfg.get("cmd_args") is not None else "").strip()
+                show_f = str(cfg.get("cmd_show") if cfg.get("cmd_show") is not None else "ON").strip()
+                extra_f = str(cfg.get("cmd_extra") if cfg.get("cmd_extra") is not None else "").strip()
+                _register_ini_tokens(exe_p, g_scr, "")
+                _register_ini_tokens(exe_args, g_scr, "")
+                if show_f or extra_f:
+                    send_str = f':Utility.CMD,"{exe_p}","{exe_args}","{show_f or "ON"}","{wait_ms}","{extra_f or "0"}"'
+                else:
+                    send_str = f':Utility.CMD,"{exe_p}","{exe_args}"'
             else:
-                # adb or cmd (Windows CmdConsole)
-                alias = "CmdConsole"
+                # adb or cmd (Windows CmdConsole / MtCmd / STCmd / CmdConsole2)
+                raw_app_alias = str(cfg.get("app_alias") or cfg.get("alias") or "CmdConsole").strip()
+                alias = _safe_var(raw_app_alias, "CmdConsole") if raw_app_alias else "CmdConsole"
                 cmd_conn = str(cfg.get("app_conn") or "C:\\Windows\\System32\\cmd.exe,0,5000,").strip()
+                _register_ini_tokens(cmd_conn, g_set, "1")
                 _ensure_dut_connection(
-                    ws, "CmdConsole", lambda _sl, cc=cmd_conn: f'"APP","CmdConsole","{cc}"',
+                    ws, alias, lambda _sl, a=alias, cc=cmd_conn: f'"APP","{a}","{cc}"',
                     overwrite=bool(cfg.get("app_conn")),
                 )
                 full_cmd = cmd
                 if proto == "adb" and not cmd.lower().startswith("adb"):
                     full_cmd = f"adb {cmd}"
                 if not skip_connect:
-                    connect_step = _step(phase=ph, title=t_str, send=':Connect,"CmdConsole"', reply="0",
-                                         exec_mode="1", description=f"PC#-#Open Console ({proto.upper()})", test_id="B7PL025")
-                send_str = f"CmdConsole@{full_cmd}{nl_suffix}"
+                    connect_step = _step(phase=ph, title=t_str, send=f':Connect,"{alias}"', reply="0",
+                                         exec_mode="1", description=f"PC#-#Open Console ({alias})", test_id="B7PL025")
+                send_str = f"{alias}@{full_cmd}{nl_suffix}"
                 if not bool(cfg.get("keep_open", False)):
-                    close_step = _step(send=':Disconnect,"CmdConsole"', reply="0", exec_mode="3",
-                                       description="PC#-#Close Console", test_id="B7PL025")
+                    close_step = _step(send=f':Disconnect,"{alias}"', reply="0", exec_mode="3",
+                                       description=f"PC#-#Close Console ({alias})", test_id="B7PL025")
 
             _register_ini_tokens(cmd, g_scr, "1")
             _register_ini_tokens(reply_kw, g_scr, "1")
             ref_expr = ""
             val_expr = ""
             multi_refs = [mr for mr in (cfg.get("multi_refs") or []) if isinstance(mr, dict) and str(mr.get("var_name") or "").strip()]
-            if reply_mode in ("exact", "raw"):
+            if proto in ("util_cmd", "utility_cmd"):
+                if reply_mode in ("exact", "raw"):
+                    step_reply = str(cfg.get("raw_reply") if (reply_mode == "raw" and cfg.get("raw_reply") is not None) else reply_kw)
+                elif extract_mode == "reply_only" and cfg.get("reply_keyword") and cfg.get("reply_keyword") != "PASS":
+                    step_reply = f"@{reply_kw}"
+                else:
+                    step_reply = "0"
+            elif reply_mode in ("exact", "raw"):
                 step_reply = str(cfg.get("raw_reply") if (reply_mode == "raw" and cfg.get("raw_reply") is not None) else reply_kw)
             else:
                 step_reply = f"@{reply_kw}" if (extract_mode == "reply_only" and reply_kw) else "@"
@@ -1169,6 +1190,21 @@ def build_workspace_from_sequence(
                         reply="@", ref=out_v, exec_mode="0",
                         description="PC#-#Check SFIS Enabled Status", test_id="B7PL025",
                     ))
+                elif uact == "cmd":
+                    exe_p = str(cfg.get("cmd_exe") or "{0}\\SPT_repeater.exe").strip()
+                    exe_args = str(cfg.get("cmd_args") or "").strip()
+                    show_f = str(cfg.get("cmd_show") if cfg.get("cmd_show") is not None else "ON").strip()
+                    wait_ms = str(cfg.get("waiting") or "10000").strip() or "10000"
+                    extra_f = str(cfg.get("cmd_extra") if cfg.get("cmd_extra") is not None else "5").strip()
+                    _register_ini_tokens(exe_p, g_scr, "")
+                    _register_ini_tokens(exe_args, g_scr, "")
+                    send_u = f':Utility.CMD,"{exe_p}","{exe_args}","{show_f or "ON"}","{wait_ms}","{extra_f or "0"}"' if (show_f or extra_f) else f':Utility.CMD,"{exe_p}","{exe_args}"'
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=send_u,
+                        reply=str(cfg.get("reply") if cfg.get("reply") is not None else "0").strip(),
+                        ref=str(cfg.get("ref") or "").strip(), waiting=wait_ms, exec_mode="1",
+                        description=f"PC#-#Utility.CMD ({exe_p})", test_id="OTFX054",
+                    ))
                 elif uact == "kill_pro":
                     proc_nm = str(cfg.get("proc_name") or "adb.exe").strip() or "adb.exe"
                     steps.append(_step(
@@ -1515,6 +1551,9 @@ def build_workspace_from_sequence(
                             {"Send": f':Delay,"{p_wait}"', "ExecMode": "0", "Description": "PC#-#Wait Power Discharge"},
                             {"Send": on_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} ON"},
                         ])
+                    elif p_act == "off":
+                        off_cmd = ':Dev.OUTONOFF,"OFF"' if is_pph else (':Dev.OutOnOff,"OFF"' if is_ps2005 else f':Dev.SwitchOFF,"{p_ch}"')
+                        c_steps.append({"Send": off_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} Power OFF"})
                     elif p_act in ("mcurr", "mscurr"):
                         m_dl = dl_s or "50"
                         m_ul = ul_s or "800"

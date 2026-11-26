@@ -384,6 +384,8 @@
       case 'comm_cmd':
         return Object.assign({}, base, {
           protocol: 'uart', title: 'Check UART & FW Version', port: 'COM4', ssh_user: 'root', ssh_pass: '', dut_ip: '192.168.11.143',
+          app_alias: 'CmdConsole', app_conn: '', cmd_exe: '{0}\\SPT_repeater.exe', cmd_args: '-AckSWDL *(sfUUID),olympus', cmd_show: 'ON', cmd_extra: '5',
+          conn_action: 'send', keep_open: false,
           command: 'cat /etc/version', end_prompt: '#', waiting: '5000', retry: '3',
           extract_mode: 'within', reply_keyword: 'PASS',
           sample_log: 'root@DUT:~# cat /etc/version\nFW version=1.0.0_release\nroot@DUT:~#',
@@ -504,6 +506,8 @@
         }
         return (c.sfis_mode === 'online' ? `線上(${c.tsp || 'PEGA,2'})` : '工程離線') + (c.use_phase0 === false ? '[P1+]' : '[P0]') + dNote;
       case 'comm_cmd':
+        if (c.protocol === 'util_cmd') return `Utility.CMD:${(c.cmd_exe || '').slice(0, 12)}${dNote}`;
+        if (c.protocol === 'cmd') return `${c.app_alias || 'CmdConsole'}@${(c.command || '').slice(0, 12)}${dNote}`;
         return `${String(c.protocol || 'uart').toUpperCase()}@${(c.command || '').slice(0, 14)}${dNote}`;
       case 'delay':
         return `${c.ms || 2000}ms (${_formatMsReadable(c.ms || 2000)})`;
@@ -1386,8 +1390,12 @@
         } else if (p === 'ssh' || p === 'telnet') {
           out.push(`Global.ini [Settings]: DUTIP_1=${c.dut_ip || '192.168.11.143'}, PCIP_1=192.168.11.3`);
           out.push(`DUTs Sheet: "${p.toUpperCase()}","${p === 'ssh' ? 'SSH1' : 'TELNET1'}","*$(PCIP_1),*$(DUTIP_1)..."`);
+        } else if (p === 'util_cmd' || p === 'utility_cmd') {
+          out.push('免建 DUTs 連線（Centimani 內建 :Utility.CMD 直接執行外部工具）');
         } else {
-          out.push('DUTs Sheet: "APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"');
+          const apA = c.app_alias || 'CmdConsole';
+          const apC = c.app_conn || 'C:\\Windows\\System32\\cmd.exe,0,5000,';
+          out.push(`DUTs Sheet: "APP","${apA}","${apC}"`);
         }
         if (c.use_ini_var && c.extract_mode !== 'reply_only') {
           const vn = c.var_name || 'DUT_FW';
@@ -1768,14 +1776,14 @@
     if (['start', 'end', 'isn', 'multi_sku', 'group'].includes(item.kind)) return '';
     const c = item.config || {};
     return `
-      <div style="margin-top:10px; background:#FAF5FF; border:1.5px dashed #A855F7; border-radius:8px; padding:8px 11px;">
-        <div style="font-size:0.8rem; font-weight:900; color:#581C87; margin-bottom:5px;">🏷️ TestID（7 碼錯誤碼即時搜尋套用 — 進階設定）：</div>
+      <div class="bb-adv-box" style="margin-top:10px;">
+        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🏷️ TestID（7 碼錯誤碼即時搜尋套用）：</span></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <input value="${_esc(c.test_id || '')}" placeholder="預設自動（例 BRME027）" oninput="bbUpdateField(${idx},'test_id',this.value,false)" class="mono" style="width:140px; padding:4px 8px; border:1.5px solid #A855F7; border-radius:5px; font-weight:800; color:#4C1D95;">
-          <input value="${_esc(item._tidQuery || '')}" placeholder="輸入關鍵字搜代碼，例：電流 / 電壓 / LED" oninput="bbSearchTestIdAdv(${idx}, this.value)" style="flex:1; min-width:190px; padding:4px 8px; border:1px solid #C084FC; border-radius:5px; font-size:0.8rem;">
+          <input value="${_esc(c.test_id || '')}" placeholder="預設自動（例 BRME027）" oninput="bbUpdateField(${idx},'test_id',this.value,false)" class="mono" style="width:140px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; color:#312E81; background:#FFFFFF;">
+          <input value="${_esc(item._tidQuery || '')}" placeholder="輸入關鍵字搜代碼，例：電流 / 電壓 / LED" oninput="bbSearchTestIdAdv(${idx}, this.value)" style="flex:1; min-width:190px; padding:4px 8px; border:1px solid #818CF8; border-radius:5px; font-size:0.8rem; background:#FFFFFF;">
           ${c.test_id ? `<button type="button" class="btn" style="padding:3px 8px; font-size:0.75rem;" onclick="bbUpdateField(${idx},'test_id','',true)">清除改自動</button>` : ''}
         </div>
-        <div id="bbTidAdvRes_${idx}" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; font-size:0.76rem; color:#64748B;">
+        <div id="bbTidAdvRes_${idx}" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; font-size:0.76rem; color:#4338CA;">
           <span>輸入關鍵字即列出官方 TestID，點一下自動寫入本積木</span>
         </div>
       </div>
@@ -1799,17 +1807,17 @@
       ['*$(DelayTimeExe)', '*$(INI開關)'],
     ];
     return `
-      <div style="margin-top:8px; background:#F0F9FF; border:1.5px dashed #38BDF8; border-radius:8px; padding:8px 11px;">
-        <div style="font-size:0.8rem; font-weight:900; color:#0369A1; margin-bottom:5px;">🧭 ExecMode 執行模式 & Title 前綴/重試（進階設定，*$(VAR) 自動寫入 [Scripts]）：</div>
+      <div class="bb-adv-box">
+        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🧭 ExecMode 執行模式 &amp; Title 前綴/重試（*$(VAR) 自動寫入 [Scripts]）：</span></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:7px;">
-          <input value="${_esc(curEm)}" placeholder="預設自動（可填 6 / 2:0 / 4:P,F / *$(VAR)）" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="width:190px; padding:4px 8px; border:1.5px solid #0EA5E9; border-radius:5px; font-weight:800; color:#0C4A6E;">
+          <input value="${_esc(curEm)}" placeholder="預設自動（可填 6 / 2:0 / 4:P,F / *$(VAR)）" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="width:190px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; color:#312E81; background:#FFFFFF;">
           ${presets.map(([v, lbl]) => `
-            <button type="button" onclick="bbUpdateField(${idx},'exec_mode','${_esc(v)}',true)" style="cursor:pointer; padding:3px 8px; border-radius:5px; border:1px solid ${curEm === v ? '#0284C7' : '#BAE6FD'}; background:${curEm === v ? '#0284C7' : '#FFFFFF'}; color:${curEm === v ? '#FFFFFF' : '#0369A1'}; font-size:0.75rem; font-weight:800; transition:background 0.15s;" onmouseenter="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#E0F2FE'" onmouseleave="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#FFFFFF'">${lbl}</button>
+            <button type="button" onclick="bbUpdateField(${idx},'exec_mode','${_esc(v)}',true)" style="cursor:pointer; padding:3px 8px; border-radius:5px; border:1px solid ${curEm === v ? '#4F46E5' : '#A5B4FC'}; background:${curEm === v ? '#4F46E5' : '#FFFFFF'}; color:${curEm === v ? '#FFFFFF' : '#312E81'}; font-size:0.75rem; font-weight:800; transition:background 0.15s;" onmouseenter="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#C7D2FE'" onmouseleave="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#FFFFFF'">${lbl}</button>
           `).join('')}
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; border-top:1px dashed #BAE6FD; padding-top:6px;">
-          <label style="font-size:0.78rem; font-weight:800; color:#0369A1;">Title RunMode 前綴：
-            <select onchange="bbUpdateField(${idx},'title_run_mode',this.value||null,true)" style="margin-left:4px; padding:3px 6px; border:1px solid #0EA5E9; border-radius:5px; font-weight:700;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; border-top:1px dashed #A5B4FC; padding-top:6px;">
+          <label style="font-size:0.78rem; font-weight:800; color:#312E81;">Title RunMode 前綴：
+            <select onchange="bbUpdateField(${idx},'title_run_mode',this.value||null,true)" style="margin-left:4px; padding:3px 6px; border:1px solid #6366F1; border-radius:5px; font-weight:700; background:#FFFFFF;">
               <option value="" ${curTm === '' ? 'selected' : ''}>維持預設 (0,)</option>
               <option value="0" ${curTm === '0' ? 'selected' : ''}>0, (必跑不略過)</option>
               <option value="1" ${curTm === '1' ? 'selected' : ''}>1, (前 Fail 則略過)</option>
@@ -1818,8 +1826,8 @@
               <option value="none" ${curTm === 'none' ? 'selected' : ''}>無前綴 (僅 Title 名稱)</option>
             </select>
           </label>
-          <label style="font-size:0.78rem; font-weight:800; color:#0369A1;">Title 重試次：
-            <input value="${_esc(curRetry)}" placeholder="不改(留空)" oninput="bbUpdateField(${idx},'title_retry',this.value===''?null:this.value,false)" class="mono" style="width:90px; margin-left:4px; padding:3px 7px; border:1px solid #0EA5E9; border-radius:5px;">
+          <label style="font-size:0.78rem; font-weight:800; color:#312E81;">Title 重試次：
+            <input value="${_esc(curRetry)}" placeholder="不改(留空)" oninput="bbUpdateField(${idx},'title_retry',this.value===''?null:this.value,false)" class="mono" style="width:90px; margin-left:4px; padding:3px 7px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
           </label>
         </div>
       </div>
@@ -2246,19 +2254,22 @@
               </label>
             </div>
             ${showAdv ? `
-              <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:10px 12px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
-                <label style="font-size:0.82rem; font-weight:800;">System.ini DebugMode
-                  <select onchange="bbUpdateField(${idx},'debug_mode',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:5px;">
-                    <option value="1" ${String(c.debug_mode ?? '1') === '1' ? 'selected' : ''}>1（工程調試免驗證簽章）</option>
-                    <option value="0" ${String(c.debug_mode) === '0' ? 'selected' : ''}>0（量產強制 Checksum 簽章）</option>
-                  </select>
-                </label>
-                <label style="font-size:0.82rem; font-weight:800;">System.ini SFIS_Enable 預設
-                  <select onchange="bbUpdateField(${idx},'sfis_enable',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:5px;">
-                    <option value="0" ${String(c.sfis_enable ?? '0') === '0' ? 'selected' : ''}>0（離線單機）</option>
-                    <option value="1" ${String(c.sfis_enable) === '1' ? 'selected' : ''}>1（連線產線 SFIS）</option>
-                  </select>
-                </label>
+              <div class="bb-adv-box">
+                <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:6px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>System.ini 開機環境預設值</span></div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+                  <label style="font-size:0.82rem; font-weight:800; color:#1E1B4B;">System.ini DebugMode
+                    <select onchange="bbUpdateField(${idx},'debug_mode',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                      <option value="1" ${String(c.debug_mode ?? '1') === '1' ? 'selected' : ''}>1（工程調試免驗證簽章）</option>
+                      <option value="0" ${String(c.debug_mode) === '0' ? 'selected' : ''}>0（量產強制 Checksum 簽章）</option>
+                    </select>
+                  </label>
+                  <label style="font-size:0.82rem; font-weight:800; color:#1E1B4B;">System.ini SFIS_Enable 預設
+                    <select onchange="bbUpdateField(${idx},'sfis_enable',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                      <option value="0" ${String(c.sfis_enable ?? '0') === '0' ? 'selected' : ''}>0（離線單機）</option>
+                      <option value="1" ${String(c.sfis_enable) === '1' ? 'selected' : ''}>1（連線產線 SFIS）</option>
+                    </select>
+                  </label>
+                </div>
               </div>
             ` : ''}
           </div>
@@ -2411,83 +2422,143 @@
                   ['uart', '🔌 UART 串口'],
                   ['adb', '🤖 ADB 指令'],
                   ['ssh', '🔐 SSH 連線'],
-                  ['cmd', '💻 Windows CMD'],
+                  ['cmd', '💻 Windows CMD / APP'],
+                  ['util_cmd', '⚡ Utility.CMD (單次執行)'],
                   ['telnet', '📡 Telnet']
                 ].map(([val, lbl]) => `
                   <button type="button" class="btn" onclick="bbUpdateField(${idx},'protocol','${val}',true)"
-                    style="padding:6px 13px; font-weight:800; font-size:0.84rem; ${c.protocol === val ? 'background:#2563EB; color:#FFFFFF; border-color:#1D4ED8;' : 'background:#F8FAFC; color:#1E293B;'}">
+                    style="padding:6px 13px; font-weight:800; font-size:0.84rem; ${c.protocol === val ? 'background:#2563EB; color:#FFFFFF; border-color:#1D4ED8;' : 'background:#F8FAFC; color:#1E293B;'} transition:background 0.14s;"
+                    onmouseenter="if('${val}'!=='${_esc(c.protocol || 'uart')}') this.style.background='#E0F2FE'"
+                    onmouseleave="if('${val}'!=='${_esc(c.protocol || 'uart')}') this.style.background='#F8FAFC'">
                     ${lbl}
                   </button>
                 `).join('')}
               </div>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px;">
-              <label style="font-weight:700; font-size:0.84rem;">測項名稱 (Title)
-                <input value="${_esc(c.title || '')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-              </label>
-              <label style="font-weight:700; font-size:0.84rem;">下達指令 (Send)
-                <input value="${_esc(c.command || '')}" oninput="bbUpdateField(${idx},'command',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-              </label>
-              ${c.protocol === 'uart' ? `
-                <label style="font-weight:700; font-size:0.84rem;">COM Port (DUT_UR1)
-                  <input value="${_esc(c.port || 'COM4')}" oninput="bbUpdateField(${idx},'port',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+            ${c.protocol === 'util_cmd' ? `
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                <label style="font-weight:700; font-size:0.84rem;">測項名稱 (Title)
+                  <input value="${_esc(c.title || 'Utility CMD')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                 </label>
-              ` : (c.protocol === 'ssh' || c.protocol === 'telnet') ? `
-                <label style="font-weight:700; font-size:0.84rem;">DUT IP / 帳號
-                  <div style="display:flex; gap:4px; margin-top:3px;">
-                    <input value="${_esc(c.dut_ip || '192.168.11.143')}" oninput="bbUpdateField(${idx},'dut_ip',this.value)" class="mono" style="flex:1.4; padding:6px; border:1px solid #94A3B8; border-radius:6px; min-width:0;">
-                    <input value="${_esc(c.ssh_user || 'root')}" oninput="bbUpdateField(${idx},'ssh_user',this.value)" class="mono" style="flex:0.8; padding:6px; border:1px solid #94A3B8; border-radius:6px; min-width:0;">
+                <label style="font-weight:700; font-size:0.84rem;">執行檔路徑 (支援 {0})
+                  <input value="${_esc(c.cmd_exe || '{0}\\\\SPT_repeater.exe')}" oninput="bbUpdateField(${idx},'cmd_exe',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">傳入參數 (支援 *(變數))
+                  <input value="${_esc(c.cmd_args ?? '')}" oninput="bbUpdateField(${idx},'cmd_args',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">顯示視窗 / 第5參數
+                  <div style="display:flex; gap:5px; margin-top:3px;">
+                    <select onchange="bbUpdateField(${idx},'cmd_show',this.value,true)" class="mono" style="flex:1; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
+                      <option value="ON" ${(c.cmd_show || 'ON') === 'ON' ? 'selected' : ''}>ON</option>
+                      <option value="OFF" ${c.cmd_show === 'OFF' ? 'selected' : ''}>OFF</option>
+                      <option value="" ${c.cmd_show === '' ? 'selected' : ''}>(精簡2參數)</option>
+                    </select>
+                    <input value="${_esc(c.cmd_extra ?? '5')}" placeholder="5" oninput="bbUpdateField(${idx},'cmd_extra',this.value)" class="mono" style="width:58px; padding:6px; border:1px solid #94A3B8; border-radius:6px;">
                   </div>
                 </label>
-              ` : ''}
-            </div>
-            ${showAdv ? `
-              <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:9px 12px; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+              </div>
+            ` : `
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px;">
+                <label style="font-weight:700; font-size:0.84rem;">測項名稱 (Title)
+                  <input value="${_esc(c.title || '')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.84rem;">下達指令 (Send)
+                  <input value="${_esc(c.command || '')}" oninput="bbUpdateField(${idx},'command',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
                 ${c.protocol === 'uart' ? `
-                  <label style="font-size:0.8rem; font-weight:700;">連線別名 (Alias，預設 UART)
-                    <input value="${_esc(c.alias || 'UART')}" placeholder="例 LinuxUART / LUART" oninput="bbUpdateField(${idx},'alias',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  <label style="font-weight:700; font-size:0.84rem;">COM Port (DUT_UR1)
+                    <input value="${_esc(c.port || 'COM4')}" oninput="bbUpdateField(${idx},'port',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
                   </label>
-                  <label style="font-size:0.8rem; font-weight:700;">BaudRate (速率)
-                    <select onchange="bbUpdateField(${idx},'baud_rate',this.value,true)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
-                      <option value="115200" ${(c.baud_rate || '115200') === '115200' ? 'selected' : ''}>115200</option>
-                      <option value="9600" ${c.baud_rate === '9600' ? 'selected' : ''}>9600 (Modbus/氣密)</option>
-                      <option value="19200" ${c.baud_rate === '19200' ? 'selected' : ''}>19200</option>
-                      <option value="57600" ${c.baud_rate === '57600' ? 'selected' : ''}>57600</option>
-                    </select>
+                ` : (c.protocol === 'ssh' || c.protocol === 'telnet') ? `
+                  <label style="font-weight:700; font-size:0.84rem;">DUT IP / 帳號
+                    <div style="display:flex; gap:4px; margin-top:3px;">
+                      <input value="${_esc(c.dut_ip || '192.168.11.143')}" oninput="bbUpdateField(${idx},'dut_ip',this.value)" class="mono" style="flex:1.4; padding:6px; border:1px solid #94A3B8; border-radius:6px; min-width:0;">
+                      <input value="${_esc(c.ssh_user || 'root')}" oninput="bbUpdateField(${idx},'ssh_user',this.value)" class="mono" style="flex:0.8; padding:6px; border:1px solid #94A3B8; border-radius:6px; min-width:0;">
+                    </div>
                   </label>
-                  <label style="font-size:0.8rem; font-weight:700;">CharMode (Hex/文字)
-                    <select onchange="bbUpdateField(${idx},'char_mode',this.value,true)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
-                      <option value="" ${!c.char_mode ? 'selected' : ''}>預設 ASCII</option>
-                      <option value="Hex" ${c.char_mode === 'Hex' ? 'selected' : ''}>Hex (自動免換行)</option>
-                      <option value="Mix" ${c.char_mode === 'Mix' ? 'selected' : ''}>Mix</option>
-                    </select>
+                ` : c.protocol === 'cmd' ? `
+                  <label style="font-weight:700; font-size:0.84rem;">APP 通道別名 (預設 CmdConsole)
+                    <input value="${_esc(c.app_alias || 'CmdConsole')}" list="bbAppAliasList_${idx}" oninput="bbUpdateField(${idx},'app_alias',this.value)" class="mono" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                    <datalist id="bbAppAliasList_${idx}">
+                      <option value="CmdConsole">CmdConsole</option>
+                      <option value="CmdConsole2">CmdConsole2</option>
+                      <option value="MtCmd">MtCmd (MediaTek CLI)</option>
+                      <option value="STCmd">STCmd (STM32 CLI)</option>
+                      <option value="ViCmd">ViCmd</option>
+                    </datalist>
                   </label>
                 ` : ''}
-                <label style="font-size:0.8rem; font-weight:700;">Reply 比對模式
-                  <select onchange="bbUpdateField(${idx},'reply_mode',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
-                    <option value="contains" ${(c.reply_mode || 'contains') === 'contains' ? 'selected' : ''}>含關鍵字 (@kw)</option>
-                    <option value="exact" ${c.reply_mode === 'exact' ? 'selected' : ''}>精確原字 (0 或 @$||@&)</option>
-                    <option value="raw" ${c.reply_mode === 'raw' ? 'selected' : ''}>空白/Raw (Hex 專用)</option>
-                  </select>
-                </label>
-                <label style="font-size:0.8rem; font-weight:700;">結尾提示符 (EndPrompt)
-                  <input value="${_esc(c.end_prompt ?? '#')}" oninput="bbUpdateField(${idx},'end_prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                </label>
-                <label style="font-size:0.8rem; font-weight:700;">超時等待 Waiting (ms)
-                  <input value="${_esc(c.waiting || '5000')}" oninput="bbUpdateField(${idx},'waiting',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                </label>
-                <label style="font-size:0.8rem; font-weight:700;">Prompt 串流欄位 (如 !)
-                  <input value="${_esc(c.prompt || '')}" placeholder="留空或填 !" oninput="bbUpdateField(${idx},'prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                </label>
-                <label style="font-size:0.8rem; font-weight:700;">重試次數 (Retry)
-                  <input type="number" min="0" max="50" value="${_esc(c.retry || '3')}" oninput="bbUpdateField(${idx},'retry',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                </label>
-                <label style="display:flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; cursor:pointer; align-self:end; padding:4px 0;">
-                  <input type="checkbox" ${c.skip_connect ? 'checked' : ''} onchange="bbUpdateField(${idx},'skip_connect',this.checked,true)"> 略過 :Connect (沿用已開連線)
-                </label>
-                <label style="display:flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; cursor:pointer; align-self:end; padding:4px 0;">
-                  <input type="checkbox" ${c.skip_prompt_check ? 'checked' : ''} onchange="bbUpdateField(${idx},'skip_prompt_check',this.checked,true)"> 略過 Prompt 空換行預檢
-                </label>
+              </div>
+            `}
+            ${showAdv ? `
+              <div class="bb-adv-box">
+                <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:6px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>通訊細項參數 / 連線動作 / Hex 與串流控制</span></div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+                  ${c.protocol === 'uart' ? `
+                    <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">連線別名 (Alias，預設 UART)
+                      <input value="${_esc(c.alias || 'UART')}" placeholder="例 LinuxUART / LUART" oninput="bbUpdateField(${idx},'alias',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                    </label>
+                    <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">BaudRate (速率)
+                      <select onchange="bbUpdateField(${idx},'baud_rate',this.value,true)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                        <option value="115200" ${(c.baud_rate || '115200') === '115200' ? 'selected' : ''}>115200</option>
+                        <option value="9600" ${c.baud_rate === '9600' ? 'selected' : ''}>9600 (Modbus/氣密)</option>
+                        <option value="19200" ${c.baud_rate === '19200' ? 'selected' : ''}>19200</option>
+                        <option value="57600" ${c.baud_rate === '57600' ? 'selected' : ''}>57600</option>
+                      </select>
+                    </label>
+                    <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">CharMode (Hex/文字)
+                      <select onchange="bbUpdateField(${idx},'char_mode',this.value,true)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                        <option value="" ${!c.char_mode ? 'selected' : ''}>預設 ASCII</option>
+                        <option value="Hex" ${c.char_mode === 'Hex' ? 'selected' : ''}>Hex (自動免換行)</option>
+                        <option value="Mix" ${c.char_mode === 'Mix' ? 'selected' : ''}>Mix</option>
+                      </select>
+                    </label>
+                  ` : ''}
+                  ${c.protocol === 'cmd' ? `
+                    <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">APP ConnectString
+                      <input value="${_esc(c.app_conn || '')}" placeholder="cmd.exe,1,5000," oninput="bbUpdateField(${idx},'app_conn',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                    </label>
+                  ` : ''}
+                  ${c.protocol !== 'util_cmd' ? `
+                    <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">連線動作
+                      <select onchange="bbUpdateField(${idx},'conn_action',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                        <option value="send" ${(c.conn_action || 'send') === 'send' ? 'selected' : ''}>一般送出指令</option>
+                        <option value="connect_only" ${c.conn_action === 'connect_only' ? 'selected' : ''}>僅開啟連線 (:Connect)</option>
+                        <option value="disconnect_only" ${c.conn_action === 'disconnect_only' ? 'selected' : ''}>僅關閉連線 (:Disconnect)</option>
+                      </select>
+                    </label>
+                  ` : ''}
+                  <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">Reply 比對模式
+                    <select onchange="bbUpdateField(${idx},'reply_mode',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+                      <option value="contains" ${(c.reply_mode || 'contains') === 'contains' ? 'selected' : ''}>含關鍵字 (@kw)</option>
+                      <option value="exact" ${c.reply_mode === 'exact' ? 'selected' : ''}>精確原字 (0 或 @$||@&)</option>
+                      <option value="raw" ${c.reply_mode === 'raw' ? 'selected' : ''}>空白/Raw (Hex 專用)</option>
+                    </select>
+                  </label>
+                  <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">結尾提示符 (EndPrompt)
+                    <input value="${_esc(c.end_prompt ?? '#')}" oninput="bbUpdateField(${idx},'end_prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                  </label>
+                  <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">超時等待 Waiting (ms)
+                    <input value="${_esc(c.waiting || '5000')}" oninput="bbUpdateField(${idx},'waiting',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                  </label>
+                  <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">Prompt 串流欄位 (如 !)
+                    <input value="${_esc(c.prompt || '')}" placeholder="留空或填 !" oninput="bbUpdateField(${idx},'prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                  </label>
+                  <label style="font-size:0.8rem; font-weight:700; color:#1E1B4B;">重試次數 (Retry)
+                    <input type="number" min="0" max="50" value="${_esc(c.retry || '3')}" oninput="bbUpdateField(${idx},'retry',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #6366F1; border-radius:5px; box-sizing:border-box; background:#FFFFFF;">
+                  </label>
+                  ${c.protocol !== 'util_cmd' ? `
+                    <label style="display:flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#1E1B4B; cursor:pointer; align-self:end; padding:4px 0;">
+                      <input type="checkbox" ${c.skip_connect ? 'checked' : ''} onchange="bbUpdateField(${idx},'skip_connect',this.checked,true)"> 略過 :Connect (沿用已開連線)
+                    </label>
+                    <label style="display:flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#1E1B4B; cursor:pointer; align-self:end; padding:4px 0;">
+                      <input type="checkbox" ${c.keep_open ? 'checked' : ''} onchange="bbUpdateField(${idx},'keep_open',this.checked,true)"> 不自動 :Disconnect (保持開啟)
+                    </label>
+                    <label style="display:flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#1E1B4B; cursor:pointer; align-self:end; padding:4px 0;">
+                      <input type="checkbox" ${c.skip_prompt_check ? 'checked' : ''} onchange="bbUpdateField(${idx},'skip_prompt_check',this.checked,true)"> 略過 Prompt 空換行預檢
+                    </label>
+                  ` : ''}
+                </div>
               </div>
             ` : ''}
 
@@ -2550,7 +2621,8 @@
                   </label>
                 </div>
                 ${showAdv ? `
-                  <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:7px; padding:8px 10px; margin-bottom:8px;">
+                  <div class="bb-adv-box" style="margin-bottom:8px;">
+                    <div style="font-size:0.8rem; font-weight:900; color:#312E81; margin-bottom:6px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>擷取邊界 / 字串正規化 / INI 門檻抽出</span></div>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:6px;">
                       ${c.extract_mode === 'split' ? `
                         <label style="font-size:0.8rem; font-weight:700;">分隔符號 (例 : 或 =)
@@ -2907,13 +2979,16 @@
                   <select onchange="bbUpdateField(${idx},'pwr_action',this.value,true)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px;">
                     <option value="mcurr" ${c.pwr_action === 'mcurr' ? 'selected' : ''}>⚡ 送電並量測電流 (MCurr + DL/UL)</option>
                     <option value="on" ${c.pwr_action === 'on' ? 'selected' : ''}>🟢 僅開啟供電 (:Dev.SetON / SwitchON)</option>
+                    <option value="off" ${c.pwr_action === 'off' ? 'selected' : ''}>🔴 關閉供電 (:Dev.OUTONOFF,"OFF" / SwitchOFF)</option>
                     <option value="cycle" ${c.pwr_action === 'cycle' ? 'selected' : ''}>🔄 冷重開 (OFF ➔ Wait ➔ ON)</option>
                   </select>
                 </label>
-                <label style="font-size:0.81rem; font-weight:700;">輸出電壓 (V) / 埠號
-                  <input value="${_esc(/pph1503/i.test(selectedName) ? (c.pwr_volt || '12') : (c.pwr_ch || '1'))}" oninput="bbUpdateField(${idx},'${/pph1503/i.test(selectedName) ? 'pwr_volt' : 'pwr_ch'}',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                </label>
-                ${c.pwr_action !== 'on' ? `
+                ${!(c.pwr_action === 'off' && /pph1503|ps2005/i.test(selectedName)) ? `
+                  <label style="font-size:0.81rem; font-weight:700;">輸出電壓 (V) / 埠號
+                    <input value="${_esc(/pph1503/i.test(selectedName) ? (c.pwr_volt || '12') : (c.pwr_ch || '1'))}" oninput="bbUpdateField(${idx},'${/pph1503/i.test(selectedName) ? 'pwr_volt' : 'pwr_ch'}',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  </label>
+                ` : ''}
+                ${(c.pwr_action !== 'on' && c.pwr_action !== 'off') ? `
                   <label style="font-size:0.81rem; font-weight:700;">緩衝穩定時間 (ms)
                     <input type="number" value="${_esc(c.pwr_wait_ms || '500')}" oninput="bbUpdateField(${idx},'pwr_wait_ms',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                   </label>
@@ -3305,6 +3380,7 @@
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${[
                   ['gen_dt', '🕒 GenDT 時間戳'],
+                  ['cmd', '⚡ Utility.CMD 執行檔'],
                   ['get_com', '🔌 GetCOM+AddAttr 抓埠'],
                   ['cfile', '📁 CFile 複製檔案'],
                   ['fchksum', '🔐 fChkSum MD5檢查'],
@@ -3335,6 +3411,9 @@
                 ` : uact === 'chk_len' ? `
                   <label style="font-size:0.82rem; font-weight:700;">來源變數 <input value="${_esc(c.src_expr || '*(rawData)')}" oninput="bbUpdateField(${idx},'src_expr',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
                   <label style="font-size:0.82rem; font-weight:700;">預期字元長度 <input value="${_esc(c.expect_len ?? '70')}" oninput="bbUpdateField(${idx},'expect_len',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                ` : uact === 'cmd' ? `
+                  <label style="font-size:0.82rem; font-weight:700;">執行檔路徑 <input value="${_esc(c.cmd_exe || '{0}\\\\SPT_repeater.exe')}" oninput="bbUpdateField(${idx},'cmd_exe',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">傳入參數 <input value="${_esc(c.cmd_args ?? '')}" oninput="bbUpdateField(${idx},'cmd_args',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
                 ` : uact === 'close_msg' ? `
                   <div style="font-size:0.8rem; color:#475569; align-self:center;">呼叫 <code>:CloseMessage</code> 關閉先前的圖片提示視窗</div>
                 ` : `
@@ -3456,44 +3535,47 @@
               <input value="${_esc((parentGrp.config && parentGrp.config.title) || '自訂機能群組')}" oninput="bbGroupSetField(${entry.stackIdx},'title',this.value)" style="padding:2px 7px; border:1px solid #F59E0B; border-radius:5px; font-size:0.78rem; font-weight:800; width:150px;">
             </label>
             ${BB_STATE.qaShowAdv ? `
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#92400E;">
-                  <span>群組階段角色：</span>
-                  <select onchange="bbGroupSetField(${entry.stackIdx},'phase_role',this.value); bbRender();" style="padding:2px 6px; border:1px solid #F59E0B; border-radius:5px; font-size:0.76rem; font-weight:800;">
-                    <option value="normal" ${(!parentGrp.config || !parentGrp.config.phase_role || parentGrp.config.phase_role === 'normal') ? 'selected' : ''}>一般測項 (自動順編 Phase 1+)</option>
-                    <option value="0" ${(parentGrp.config && parentGrp.config.phase_role) === '0' ? 'selected' : ''}>Phase 0 (Pretest 不計CT/Fail退重掃)</option>
-                    <option value="-1" ${(parentGrp.config && parentGrp.config.phase_role) === '-1' ? 'selected' : ''}>Phase -1 (暫停略過不跑)</option>
-                    <option value="97:PWROFF" ${(parentGrp.config && parentGrp.config.phase_role) === '97:PWROFF' ? 'selected' : ''}>Phase 97:PWROFF (收尾前先斷電)</option>
-                    <option value="97" ${(parentGrp.config && parentGrp.config.phase_role) === '97' ? 'selected' : ''}>Phase 97 強制收尾</option>
-                    <option value="98" ${(parentGrp.config && parentGrp.config.phase_role) === '98' ? 'selected' : ''}>Phase 98 (PASS 綠燈收尾)</option>
-                    <option value="99" ${(parentGrp.config && parentGrp.config.phase_role) === '99' ? 'selected' : ''}>Phase 99 (FAIL 紅燈收尾)</option>
-                  </select>
-                </label>
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#92400E;">
-                  <span>Title 前綴：</span>
-                  <select onchange="bbGroupSetField(${entry.stackIdx},'title_run_mode',this.value); bbRender();" style="padding:2px 6px; border:1px solid #F59E0B; border-radius:5px; font-size:0.76rem; font-weight:800;">
-                    <option value="0" ${(!parentGrp.config || !parentGrp.config.title_run_mode || parentGrp.config.title_run_mode === '0') ? 'selected' : ''}>0,</option>
-                    <option value="1" ${(parentGrp.config && parentGrp.config.title_run_mode) === '1' ? 'selected' : ''}>1, (前Fail跳過)</option>
-                    <option value="2" ${(parentGrp.config && parentGrp.config.title_run_mode) === '2' ? 'selected' : ''}>2,</option>
-                    <option value="*$(TitleStatus)" ${(parentGrp.config && parentGrp.config.title_run_mode) === '*$(TitleStatus)' ? 'selected' : ''}>*$(TitleStatus),</option>
-                    <option value="none" ${(parentGrp.config && parentGrp.config.title_run_mode) === 'none' ? 'selected' : ''}>無前綴</option>
-                  </select>
-                </label>
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#92400E;">
-                  <span>Retry：</span>
-                  <input value="${_esc((parentGrp.config && parentGrp.config.retry) || '0')}" oninput="bbGroupSetField(${entry.stackIdx},'retry',this.value)" class="mono" style="width:42px; padding:2px 5px; border:1px solid #F59E0B; border-radius:5px; font-size:0.76rem;">
-                </label>
-                <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#92400E; cursor:pointer;" title="留空 Phase 欄位，沿用前一塊群組的 Phase 編號">
-                  <input type="checkbox" ${parentGrp.config && parentGrp.config.same_phase ? 'checked' : ''} onchange="bbGroupSetField(${entry.stackIdx},'same_phase',this.checked); bbRender();">
-                  <span>沿用前一個 Phase (不換號)</span>
-                </label>
+              <div class="bb-adv-box" style="width:100%; margin-top:4px; padding:7px 10px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <span class="bb-adv-badge">⚙️ 進階設定</span>
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                    <span>群組階段角色：</span>
+                    <select onchange="bbGroupSetField(${entry.stackIdx},'phase_role',this.value); bbRender();" style="padding:2px 6px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF;">
+                      <option value="normal" ${(!parentGrp.config || !parentGrp.config.phase_role || parentGrp.config.phase_role === 'normal') ? 'selected' : ''}>一般測項 (自動順編 Phase 1+)</option>
+                      <option value="0" ${(parentGrp.config && parentGrp.config.phase_role) === '0' ? 'selected' : ''}>Phase 0 (Pretest 不計CT/Fail退重掃)</option>
+                      <option value="-1" ${(parentGrp.config && parentGrp.config.phase_role) === '-1' ? 'selected' : ''}>Phase -1 (暫停略過不跑)</option>
+                      <option value="97:PWROFF" ${(parentGrp.config && parentGrp.config.phase_role) === '97:PWROFF' ? 'selected' : ''}>Phase 97:PWROFF (收尾前先斷電)</option>
+                      <option value="97" ${(parentGrp.config && parentGrp.config.phase_role) === '97' ? 'selected' : ''}>Phase 97 強制收尾</option>
+                      <option value="98" ${(parentGrp.config && parentGrp.config.phase_role) === '98' ? 'selected' : ''}>Phase 98 (PASS 綠燈收尾)</option>
+                      <option value="99" ${(parentGrp.config && parentGrp.config.phase_role) === '99' ? 'selected' : ''}>Phase 99 (FAIL 紅燈收尾)</option>
+                    </select>
+                  </label>
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                    <span>Title 前綴：</span>
+                    <select onchange="bbGroupSetField(${entry.stackIdx},'title_run_mode',this.value); bbRender();" style="padding:2px 6px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF;">
+                      <option value="0" ${(!parentGrp.config || !parentGrp.config.title_run_mode || parentGrp.config.title_run_mode === '0') ? 'selected' : ''}>0,</option>
+                      <option value="1" ${(parentGrp.config && parentGrp.config.title_run_mode) === '1' ? 'selected' : ''}>1, (前Fail跳過)</option>
+                      <option value="2" ${(parentGrp.config && parentGrp.config.title_run_mode) === '2' ? 'selected' : ''}>2,</option>
+                      <option value="*$(TitleStatus)" ${(parentGrp.config && parentGrp.config.title_run_mode) === '*$(TitleStatus)' ? 'selected' : ''}>*$(TitleStatus),</option>
+                      <option value="none" ${(parentGrp.config && parentGrp.config.title_run_mode) === 'none' ? 'selected' : ''}>無前綴</option>
+                    </select>
+                  </label>
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                    <span>Retry：</span>
+                    <input value="${_esc((parentGrp.config && parentGrp.config.retry) || '0')}" oninput="bbGroupSetField(${entry.stackIdx},'retry',this.value)" class="mono" style="width:42px; padding:2px 5px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; background:#FFFFFF;">
+                  </label>
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81; cursor:pointer;" title="留空 Phase 欄位，沿用前一塊群組的 Phase 編號">
+                    <input type="checkbox" ${parentGrp.config && parentGrp.config.same_phase ? 'checked' : ''} onchange="bbGroupSetField(${entry.stackIdx},'same_phase',this.checked); bbRender();">
+                    <span>沿用前一個 Phase (不換號)</span>
+                  </label>
+                </div>
               </div>
             ` : ''}
           </div>
         ` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
-          <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; padding:4px 10px; border-radius:999px; border:1px solid #CBD5E1; background:${BB_STATE.qaShowAdv ? '#EFF6FF' : '#F8FAFC'}; font-size:0.79rem; font-weight:800; color:#334155;">
+          <label class="bb-adv-toggle" style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; padding:4px 11px; border-radius:999px; border:1.5px solid ${BB_STATE.qaShowAdv ? '#4F46E5' : '#CBD5E1'}; background:${BB_STATE.qaShowAdv ? '#E0E7FF' : '#F8FAFC'}; font-size:0.79rem; font-weight:900; color:${BB_STATE.qaShowAdv ? '#312E81' : '#334155'};">
             <input type="checkbox" ${BB_STATE.qaShowAdv ? 'checked' : ''} onchange="bbToggleQaAdv(this.checked)" style="cursor:pointer;">
             <span>⚙️ 顯示進階細項設定</span>
           </label>
