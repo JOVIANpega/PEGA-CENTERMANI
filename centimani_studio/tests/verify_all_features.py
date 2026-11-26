@@ -2744,6 +2744,13 @@ def run_all_verifications():
                   and 'id="genToolShortcut_qa"' in hub_sec,
                   "v0.8.072 建立與編修中心精簡為 2 張主力手風琴卡 (1->N / 0->1) ＋ 右上 3 項獨立工具捷徑檢查通過")
 
+            # [v0.8.073] 兩張主力卡取消手風琴改為等寬雙大卡 (.gen-dual-grid / .gen-big-card) + 懸浮上浮效果
+            check('class="gen-dual-grid"' in hub_sec
+                  and 'class="gen-big-card"' in hub_sec
+                  and '.gen-big-card:hover' in app_css
+                  and 'translateY(-5px)' in app_css,
+                  "v0.8.073 兩張主力卡取消手風琴改為並排等寬雙大卡與懸浮上浮變色效果檢查通過")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

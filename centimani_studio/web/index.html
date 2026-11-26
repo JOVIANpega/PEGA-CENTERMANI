@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.072</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.073</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -906,39 +906,35 @@
           <span id="genToolShortcut_qa" role="button" tabindex="0" class="top-nav-pill" style="cursor:pointer; border:1px solid #818CF8; background:#EEF2FF; color:#3730A3; padding:5px 11px; font-size:0.83rem; font-weight:800;" onclick="switchGenSubMode('qa')" onkeydown="if(event.key==='Enter') switchGenSubMode('qa')" title="查詢 Phase / Title / ExecMode / Ref 撰寫邏輯與指令百科">💬 問編寫問題</span>
         </div>
       </div>
-      <div class="acc-row" style="min-height:290px;">
-        <div id="genHubCard_edit" class="acc-card active" data-theme="blue" onmouseenter="setActiveGenHubCard('edit')" onclick="switchGenSubMode('edit')">
+      <div class="gen-dual-grid">
+        <div id="genHubCard_edit" class="gen-big-card" data-theme="blue" onclick="switchGenSubMode('edit')">
           <div>
             <div class="acc-num">01 / EDIT (1 → N)</div>
             <div class="acc-icon">📝</div>
             <div class="acc-title">既有腳本編修</div>
             <div class="acc-sub">已有 TestFlow.xlsx 的日常改版、插入儀器與跨檔複製</div>
-          </div>
-          <div class="acc-body">
             <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#1E3A8A; line-height:1.7;">
               <li><b>6 格快捷編修區</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與 Error Code</li>
               <li><b>跨檔複製與插入儀器</b>：保留格式複製整張 Sheet、直接插入實機儀器區塊並檢驗缺漏 DLL</li>
               <li>支援直接開啟既有腳本、最近紀錄或從健檢結果一鍵帶入</li>
             </ul>
-            <div class="acc-enter-hint" style="color:#1D4ED8;">點擊卡片進入 ▶</div>
           </div>
+          <div class="acc-enter-hint" style="color:#1D4ED8;">點擊卡片進入 ▶</div>
         </div>
 
-        <div id="genHubCard_create" class="acc-card" data-theme="green" onmouseenter="setActiveGenHubCard('create')" onclick="switchGenSubMode('create')">
+        <div id="genHubCard_create" class="gen-big-card" data-theme="green" onclick="switchGenSubMode('create')">
           <div>
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
             <div class="acc-title">產生首次範本 (積木拖曳)</div>
             <div class="acc-sub">從零以直立撲克牌積木與群組方框建置新母體 (0 → 1)</div>
-          </div>
-          <div class="acc-body">
             <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
               <li><b>撲克牌拖曳編排</b>：支援群組方框共用 Phase、固定開始/結束護欄與一鍵最佳排序</li>
               <li><b>逐頁設定 ＋ 進階 TestID</b>：一頁一塊問答、Log 反白擷取變數與 7 碼錯誤碼即時搜尋</li>
               <li>匯出前預設自動執行 16 欄語法體檢並顯示連動寫入之重點 INI 設定</li>
             </ul>
-            <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
           </div>
+          <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
         </div>
       </div>
     </div>
@@ -1870,14 +1866,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.072"></script>
-<script src="/js/audit_editors.js?v=0.8.072"></script>
-<script src="/js/flow_guide.js?v=0.8.072"></script>
-<script src="/js/block_sorter.js?v=0.8.072"></script>
-<script src="/js/script_qa.js?v=0.8.072"></script>
-<script src="/js/sfis_hmi.js?v=0.8.072"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.072"></script>
-<script src="/js/create_block_builder.js?v=0.8.072"></script>
+<script src="/js/inst_hmi.js?v=0.8.073"></script>
+<script src="/js/audit_editors.js?v=0.8.073"></script>
+<script src="/js/flow_guide.js?v=0.8.073"></script>
+<script src="/js/block_sorter.js?v=0.8.073"></script>
+<script src="/js/script_qa.js?v=0.8.073"></script>
+<script src="/js/sfis_hmi.js?v=0.8.073"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.073"></script>
+<script src="/js/create_block_builder.js?v=0.8.073"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
