@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.068</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.069</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1267,7 +1267,7 @@
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span style="font-size:0.88rem; font-weight:800; color:#1E293B;">🎯 目前目標測試站：</span>
             <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.88rem; font-weight:800; color:#0F172A; background:#FFFFFF;"></select>
-            <span style="font-size:0.83rem; color:#64748B;">（點擊下方 5 格水平手風琴卡牌，即可排序測試流程、改跳轉或進入專屬全頁面設定）</span>
+            <span style="font-size:0.83rem; color:#64748B;">（點擊下方 6 格水平手風琴卡牌，即可排序測試流程、改跳轉、查詢 Error Code 或進入專屬全頁面設定）</span>
           </div>
         </div>
 
@@ -1916,14 +1916,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.068"></script>
-<script src="/js/audit_editors.js?v=0.8.068"></script>
-<script src="/js/flow_guide.js?v=0.8.068"></script>
-<script src="/js/block_sorter.js?v=0.8.068"></script>
-<script src="/js/script_qa.js?v=0.8.068"></script>
-<script src="/js/sfis_hmi.js?v=0.8.068"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.068"></script>
-<script src="/js/create_block_builder.js?v=0.8.068"></script>
+<script src="/js/inst_hmi.js?v=0.8.069"></script>
+<script src="/js/audit_editors.js?v=0.8.069"></script>
+<script src="/js/flow_guide.js?v=0.8.069"></script>
+<script src="/js/block_sorter.js?v=0.8.069"></script>
+<script src="/js/script_qa.js?v=0.8.069"></script>
+<script src="/js/sfis_hmi.js?v=0.8.069"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.069"></script>
+<script src="/js/create_block_builder.js?v=0.8.069"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {

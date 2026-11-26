@@ -2682,6 +2682,16 @@ def run_all_verifications():
                   "v0.8.068 群組方框共用單一Phase + UART自動去重 + 子積木各自指定TestID + 0 Error 通過",
                   f"grp_rows={len(grp_rows)}, phases={grp_phases}, tids={grp_tids}, uart_conns={len(grp_uart_connects)}, errs={v68_errs}")
 
+            # [v0.8.069] 群組收合卡純向下箭頭(▼)免換行溢位、右側空白區接住群組拖出子積木、qaIdx依展開頁數夾緊、返回積木調整收起舊匯出橫幅
+            cbb_69 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check("▸ 展開" not in cbb_69
+                  and 'onclick="bbToggleGroupCollapse(${idx})">▼</button>' in cbb_69
+                  and "BB_STATE.dragSrcType==='group_child'" in cbb_69
+                  and "const navLen = _getQaNavList().length;" in cbb_69
+                  and "if (viewName !== 'export')" in cbb_69
+                  and "點擊下方 6 格水平手風琴卡牌" in index_html,
+                  "v0.8.069 群組收合卡純向下箭頭(▼)、群組拖出至右側空白區與qaIdx/舊橫幅清理檢查通過")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

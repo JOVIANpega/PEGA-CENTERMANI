@@ -694,7 +694,8 @@
     const meta = META_BY_KIND[item.kind];
     if (meta && meta.fixed) return;
     BB_STATE.stack.splice(idx, 1);
-    if (BB_STATE.qaIdx >= BB_STATE.stack.length) BB_STATE.qaIdx = Math.max(0, BB_STATE.stack.length - 1);
+    const navLen = _getQaNavList().length;
+    if (BB_STATE.qaIdx >= navLen) BB_STATE.qaIdx = Math.max(0, navLen - 1);
     bbRender();
   };
 
@@ -801,6 +802,8 @@
     const grp = BB_STATE.stack[groupIdx];
     if (!grp || grp.kind !== 'group' || !Array.isArray(grp.config && grp.config.children)) return;
     grp.config.children.splice(childIdx, 1);
+    const navLen = _getQaNavList().length;
+    if (BB_STATE.qaIdx >= navLen) BB_STATE.qaIdx = Math.max(0, navLen - 1);
     bbRender();
   };
 
@@ -1007,6 +1010,10 @@
   window.bbGoView = function (viewName) {
     bbHidePop();
     BB_STATE.view = viewName;
+    if (viewName !== 'export') {
+      const alertBox = document.getElementById('genAlertBox');
+      if (alertBox) alertBox.style.display = 'none';
+    }
     const it = window.bbGetBlockByNavIdx(BB_STATE.qaIdx);
     if (viewName === 'qa' && it) it.configured = true;
     bbRender();
@@ -1774,7 +1781,7 @@
             ${!isFixed ? `
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
               ${isGrp
-                ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:3px; padding:0 5px; font-size:0.66rem; font-weight:900; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▸ 展開</button>`
+                ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 6px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
                 : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
             ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
@@ -1985,7 +1992,7 @@
         <!-- 右欄：貪食蛇等大直立撲克牌順序 -->
         <div id="bbRightPane" class="bb-right-pane"
           ondragover="event.preventDefault();"
-          ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && !event.target.classList.contains('bb-drop-slot-turn') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
+          ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && !event.target.classList.contains('bb-drop-slot-turn')){ if(BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; } else if(BB_STATE.dragSrcType==='group_child'){ const td=BB_STATE.stack.findIndex(b=>b.kind==='teardown'); bbDropAtSlot(event, td>=1?td:BB_STATE.stack.length-1); } }">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
