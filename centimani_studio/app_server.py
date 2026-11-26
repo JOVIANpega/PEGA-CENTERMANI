@@ -71,6 +71,7 @@ from core.golden_data import (
     STANDARD_BLOCKS,
     get_golden_mother,
     search_test_ids,
+    analyze_workspace_test_ids,
     set_tic_catalog_path,
     get_active_tic_info
 )
@@ -1011,7 +1012,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.074",
+                "server_build": "Build v0.8.075",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1612,6 +1613,107 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 self._send_json({"status": "ok", **diff_res})
                 return
 
+            if parsed.path == "/api/tic_audit_excel":
+                excel_path = str(payload.get("excel_path", "")).strip()
+                station = str(payload.get("station", "")).strip()
+                ws = payload.get("workspace")
+                if excel_path and os.path.exists(excel_path):
+                    ws = import_excel_to_workspace(excel_path)
+                elif not isinstance(ws, dict) or not ws.get("stations"):
+                    self._send_json({"status": "error", "message": "請先載入或指定要對照的 TestFlow Excel 檔案。"}, 400)
+                    return
+                audit_res = analyze_workspace_test_ids(ws, target_station=station)
+                self._send_json({
+                    "status": "ok",
+                    "excel_path": ws.get("source_file", excel_path),
+                    "workspace": ws,
+                    **audit_res,
+                })
+                return
+
+            if parsed.path == "/api/tic_apply_batch":
+                excel_path = str(payload.get("excel_path", "")).strip()
+                ws = payload.get("workspace")
+                if (not isinstance(ws, dict) or not ws.get("stations")) and excel_path and os.path.exists(excel_path):
+                    ws = import_excel_to_workspace(excel_path)
+                if not isinstance(ws, dict) or not ws.get("stations"):
+                    self._send_json({"status": "error", "message": "找不到可寫回的 Excel 工作區資料。"}, 400)
+                    return
+
+                updates = payload.get("updates") or []
+                update_desc = bool(payload.get("update_description", False))
+                applied_count = 0
+                active_sheet = str(payload.get("active_sheet", "")).strip()
+                for upd in updates:
+                    if not isinstance(upd, dict):
+                        continue
+                    st = str(upd.get("station", "")).strip()
+                    idx = upd.get("row_idx")
+                    new_tid = str(upd.get("test_id", "")).strip().upper()
+                    if not st or idx is None or not new_tid:
+                        continue
+                    rows = (ws.get("stations") or {}).get(st)
+                    if not isinstance(rows, list) or not (0 <= int(idx) < len(rows)):
+                        continue
+                    rows[int(idx)]["TestID"] = new_tid
+                    if update_desc:
+                        new_desc = str(upd.get("description", "")).strip()
+                        if new_desc:
+                            rows[int(idx)]["Description"] = new_desc
+                    applied_count += 1
+                    if not active_sheet:
+                        active_sheet = st
+
+                src_file = ws.get("source_file") or excel_path or ""
+                if not src_file or not os.path.exists(src_file) or "uploaded_temp" in os.path.abspath(src_file):
+                    st_first = active_sheet or next(iter((ws.get("stations") or {}).keys()), "MB")
+                    proj_first = ws.get("project_name", "Centimani") or "Centimani"
+                    orig_dir = os.path.join(OUTPUT_ROOT, f"{proj_first}_{st_first}_Fixed", "System")
+                    os.makedirs(orig_dir, exist_ok=True)
+                    base_name = f"{proj_first}_TestFlow_{st_first}"
+                else:
+                    orig_dir = os.path.dirname(os.path.abspath(src_file))
+                    base_name = os.path.splitext(os.path.basename(src_file))[0]
+                    for sfx in ["_Fixed", "_FIXED", "_DryRun", "temp_uploaded"]:
+                        base_name = base_name.replace(sfx, "")
+                    if not base_name:
+                        st_first = active_sheet or "MB"
+                        base_name = f"Centimani_TestFlow_{st_first}"
+
+                fixed_xlsx_name = f"{base_name}_FIXED.xlsx"
+                target_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
+                try:
+                    if os.path.exists(target_xlsx_path):
+                        with open(target_xlsx_path, "a+"):
+                            pass
+                except (PermissionError, IOError):
+                    import time
+                    fixed_xlsx_name = f"{base_name}_FIXED_{time.strftime('%H%M%S')}.xlsx"
+                    target_xlsx_path = os.path.join(orig_dir, fixed_xlsx_name)
+
+                actual_xlsx_path = export_workspace_to_excel(ws, target_xlsx_path, active_sheet=active_sheet)
+                actual_xlsx_name = os.path.basename(actual_xlsx_path)
+                sys_ini, glb_ini = sync_and_generate_inis(ws, actual_xlsx_name, orig_dir)
+                ws_re = import_excel_to_workspace(actual_xlsx_path)
+                rep_re = audit_workspace(ws_re)
+
+                if payload.get("open_folder", True):
+                    open_folder_in_explorer(orig_dir)
+                if payload.get("open_excel", True) and os.path.exists(actual_xlsx_path):
+                    launch_excel_file_async(actual_xlsx_path)
+
+                self._send_json({
+                    "status": "ok",
+                    "applied_count": applied_count,
+                    "output_dir": orig_dir,
+                    "excel_path": actual_xlsx_path,
+                    "system_ini": sys_ini,
+                    "global_ini": glb_ini,
+                    "workspace": ws_re,
+                    "report": rep_re,
+                })
+                return
+
             if parsed.path == "/api/fix_and_export_in_place":
                 ws = payload.get("workspace", {})
                 user_choices = payload.get("user_choices", {})
@@ -1715,7 +1817,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.074")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.075")
 
                 self._send_json({
                     "status": "ok",
@@ -2095,7 +2197,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.074")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.075")
 
                 self._send_json({
                     "status": "ok",
@@ -2349,7 +2451,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.074")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.075")
 
                 self._send_json({
                     "status": "ok",
@@ -2719,7 +2821,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.074")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.075")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2885,7 +2987,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.074) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.075) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

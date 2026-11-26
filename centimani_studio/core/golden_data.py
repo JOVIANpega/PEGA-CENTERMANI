@@ -1012,3 +1012,221 @@ def search_test_ids(query, limit=30, generic_only=False):
 
     scored.sort(key=lambda x: x[0], reverse=True)
     return [x[1] for x in scored[:limit]]
+
+
+_CONTROL_SEND_PREFIXES = (
+    ":delay",
+    ":obtaindevice",
+    ":releasedevice",
+    ":obtainsubdevice",
+    ":releasesubdevice",
+    ":connect",
+    ":disconnect",
+    ":closemessage",
+    ":showisn",
+    ":end",
+    ":return",
+    ":if",
+    ":else",
+    ":endif",
+)
+
+_PLACEHOLDER_TEST_IDS = {
+    "B7PL025",
+    "OTFX054",
+    "OTFX074",
+    "OTFX082",
+    "OTFX001",
+    "OTFX002",
+    "OTFX000",
+}
+
+_ATE_SYNONYM_GROUPS = [
+    (("電壓", "volt", "voltage", "vdd", "vcc", "vbus", "vbat", "dcv", "acv"), ["voltage", "volt", "電壓"]),
+    (("電流", "curr", "current", "mscurr", "mcurr", "amp", "leakage"), ["current", "curr", "電流"]),
+    (("電阻", "ohm", "res", "resistance"), ["resistance", "ohm", "電阻"]),
+    (("功率", "power", "watt", "pph", "pwr"), ["power", "電源"]),
+    (("版本", "version", "fw", "firmware", "sw_ver", "hw_ver"), ["version", "fw", "版本"]),
+    (("mac", "imac", "bdaddr"), ["mac"]),
+    (("ping", "ethernet", "lan", "iperf"), ["ping", "ethernet", "network"]),
+    (("wifi", "wlan", "rssi", "evm", "2g", "5g", "6g"), ["wifi", "wlan", "rf"]),
+    (("bt", "bluetooth", "ble"), ["bluetooth", "bt", "藍牙"]),
+    (("led", "feasa", "rgb", "lux", "亮度", "色溫", "light"), ["led", "light"]),
+    (("條碼", "isn", "barcode", "scan", "sn"), ["isn", "barcode", "條碼"]),
+    (("路由", "route", "sfcheck", "checkroute", "chkroute"), ["route", "sfis"]),
+    (("上傳", "sfsave", "linkdata", "wsfis"), ["sfis", "save", "upload"]),
+    (("uart", "com", "serial", "baud"), ["uart", "serial"]),
+    (("adc", "ni6008", "ni6009", "daq", "analog"), ["voltage", "adc", "analog"]),
+    (("sensor", "temp", "溫度", "imu", "accel", "gyro", "als"), ["sensor", "temp"]),
+    (("camera", "cam", "sfr", "lens", "focus", "影像", "鏡頭"), ["camera", "cam"]),
+    (("audio", "mic", "spk", "speaker", "聲音", "音頻"), ["audio", "mic", "speaker"]),
+    (("button", "key", "按鍵", "switch"), ["button", "key", "按鍵"]),
+    (("fixture", "治具", "uartf"), ["fixture", "治具"]),
+    (("flash", "燒錄", "fwdl", "download"), ["download", "flash", "燒錄"]),
+    (("usb", "getcom"), ["usb"]),
+]
+
+_STOP_KEYWORDS = {
+    "test", "check", "chk", "get", "set", "read", "write", "run", "cmd", "send",
+    "step", "item", "wait", "mode", "init", "start", "end", "pass", "fail",
+    "dev", "utility", "dut", "phase", "auto", "manual", "all", "one", "the",
+}
+
+
+def _is_control_send(send_str):
+    s = (send_str or "").strip().lower()
+    if not s:
+        return False
+    return any(s.startswith(p) for p in _CONTROL_SEND_PREFIXES)
+
+
+def _extract_row_keywords(title, desc, send):
+    import re
+    raw = f"{title} {desc} {send}"
+    low = raw.lower()
+    syn_tokens = []
+    seen = set()
+
+    for triggers, expanded in _ATE_SYNONYM_GROUPS:
+        if any(t in low for t in triggers):
+            for tok in expanded:
+                tl = tok.lower()
+                if tl not in seen:
+                    seen.add(tl)
+                    syn_tokens.append(tok)
+
+    raw_source = f"{title} {desc}"
+    for w in re.findall(r"[a-zA-Z]{3,}|[\u4e00-\u9fff]{2,}", raw_source):
+        wl = w.lower()
+        if wl in _STOP_KEYWORDS or wl in seen:
+            continue
+        seen.add(wl)
+        syn_tokens.append(w)
+
+    return syn_tokens
+
+
+def analyze_workspace_test_ids(workspace, target_station=""):
+    """
+    Scans a workspace's station sheets to detect missing, generic-placeholder,
+    or semantically mismatched TestIDs, and proposes Top 5 catalog candidates per flagged row.
+    """
+    catalog = get_tic_catalog()
+    cat_map = {item["test_id"].upper(): item for item in catalog if item.get("test_id")}
+    stations = (workspace or {}).get("stations") or {}
+
+    issues = []
+    total_checked = 0
+    ok_count = 0
+
+    for st_name, rows in stations.items():
+        if target_station and st_name != target_station:
+            continue
+        for row_idx, r in enumerate(rows or []):
+            title = str(r.get("Title") or "").strip()
+            desc = str(r.get("Description") or "").strip()
+            send = str(r.get("Send") or "").strip()
+            tid = str(r.get("TestID") or "").strip().upper()
+            phase = str(r.get("Phase") or "").strip()
+            index_val = str(r.get("Index") or "").strip()
+
+            if not (title or desc or send or tid):
+                continue
+            if not send and not tid:
+                continue
+
+            total_checked += 1
+            is_ctrl = _is_control_send(send)
+            import re
+            tid_valid_fmt = bool(re.match(r"^[A-Z0-9]{7}$", tid))
+            cur_item = cat_map.get(tid) if tid_valid_fmt else None
+
+            if is_ctrl and cur_item is not None:
+                ok_count += 1
+                continue
+
+            kw_tokens = _extract_row_keywords(title, desc, send)
+            reason_code = ""
+            reason_label = ""
+
+            if not tid:
+                reason_code = "missing"
+                reason_label = "TestID 空白未填"
+            elif not tid_valid_fmt:
+                reason_code = "missing"
+                reason_label = f"TestID '{tid}' 非標準 7 碼格式"
+            elif cur_item is None:
+                reason_code = "missing"
+                reason_label = f"TestID '{tid}' 不在官方代碼表內"
+            else:
+                cur_blob = f"{cur_item.get('desc_en', '')} {cur_item.get('desc_cn', '')} {cur_item.get('main_func', '')}".lower()
+                is_ph = tid in _PLACEHOLDER_TEST_IDS or any(w in cur_item.get("desc_en", "").lower() for w in ("others", "other ", "delay time"))
+                if is_ph and not is_ctrl:
+                    reason_code = "generic_placeholder"
+                    reason_label = f"測試步驟使用了通用佔位碼 {tid}（{cur_item.get('desc_en', '') or cur_item.get('desc_cn', '')}）"
+                elif kw_tokens and not is_ctrl:
+                    overlap = any(k.lower() in cur_blob for k in kw_tokens)
+                    if not overlap:
+                        reason_code = "semantic_mismatch"
+                        reason_label = f"現有 {tid}（{cur_item.get('desc_en', '')} / {cur_item.get('desc_cn', '')}）與步驟關鍵字不符"
+
+            if not reason_code:
+                ok_count += 1
+                continue
+
+            # Gather up to 5 deduplicated candidate TestIDs
+            candidates = []
+            seen_tids = set()
+            queries_to_try = []
+            if kw_tokens:
+                queries_to_try.append(" ".join(kw_tokens[:3]))
+                for single_kw in kw_tokens[:4]:
+                    queries_to_try.append(single_kw)
+            if not queries_to_try and title:
+                queries_to_try.append(title)
+
+            for q_str in queries_to_try:
+                if len(candidates) >= 5:
+                    break
+                for cand in search_test_ids(q_str, limit=8):
+                    c_tid = cand.get("test_id", "").upper()
+                    if not c_tid or c_tid in seen_tids:
+                        continue
+                    seen_tids.add(c_tid)
+                    candidates.append(cand)
+                    if len(candidates) >= 5:
+                        break
+
+            # Do not flag semantic_mismatch if catalog has no alternative suggestion at all
+            if reason_code == "semantic_mismatch" and not candidates:
+                ok_count += 1
+                continue
+
+            issues.append({
+                "station": st_name,
+                "row_idx": row_idx,
+                "excel_row": row_idx + 2,
+                "index": index_val,
+                "phase": phase,
+                "title": title,
+                "description": desc,
+                "send": send,
+                "current_test_id": tid,
+                "current_desc_en": cur_item.get("desc_en", "") if cur_item else "",
+                "current_desc_cn": cur_item.get("desc_cn", "") if cur_item else "",
+                "reason_code": reason_code,
+                "reason_label": reason_label,
+                "query_keywords": kw_tokens[:6],
+                "candidates": candidates,
+            })
+
+    summary = {
+        "total_checked": total_checked,
+        "ok_count": ok_count,
+        "flagged_count": len(issues),
+        "missing_count": sum(1 for x in issues if x["reason_code"] == "missing"),
+        "placeholder_count": sum(1 for x in issues if x["reason_code"] == "generic_placeholder"),
+        "mismatch_count": sum(1 for x in issues if x["reason_code"] == "semantic_mismatch"),
+    }
+    return {"issues": issues, "summary": summary, "stations": list(stations.keys())}
+

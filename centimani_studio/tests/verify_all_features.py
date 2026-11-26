@@ -2817,6 +2817,81 @@ def run_all_verifications():
                   "v0.8.074 多別名LinuxUART + 多行鏈式Ref + 客製DLL寫DUTs + ExecMode開關 + Phase98群組 + 0 Error 通過",
                   f"phases={v74_phases}, ems={v74_ems}, ar={v74_ar}")
 
+            # [v0.8.075] 精簡手風琴/雙卡文案 + 右上 4 工具改名含副標 + 知識文件同步 + 整份 Excel 自動比對與批次補換 TestID
+            doc1_txt = open(os.path.join(PROJECT_ROOT, "完整知識庫文件清單", "DESIGN_AND_HANDOVER.md"), "r", encoding="utf-8").read()
+            doc2_txt = open(os.path.join(PROJECT_ROOT, "完整知識庫文件清單", "Centimani_自動化腳本生成系統完整架構與需求規格書.md"), "r", encoding="utf-8").read()
+            check("生單台儀器範例" in hub_sec
+                  and "實機測試 SFIS / DLL" in hub_sec
+                  and "語法寫法小抄" in hub_sec
+                  and "批次補換 TestID" in hub_sec
+                  and 'id="genToolShortcut_tic"' in hub_sec
+                  and "openTicBatchAuditFromGen" in index_html
+                  and 'id="btnTicSubBatch"' in index_html
+                  and 'id="ticBatchWrap"' in index_html
+                  and 'id="chkTicBatchUpdateDesc">' in index_html
+                  and ".tic-cand-pill:hover" in app_css
+                  and ".gen-tool-pill:hover" in app_css
+                  and "Build v0.8.075" in doc1_txt and "analyze_workspace_test_ids" in doc1_txt
+                  and "Build v0.8.075" in doc2_txt,
+                  "v0.8.075 右上4工具改名與副標 + Hover樣式 + 批次TestID介面 + 知識文件紀錄 檢查通過")
+
+            ws_tic_test = json.loads(json.dumps(ws_v74))
+            ws_tic_test["source_file"] = v74_res["excel_path"]
+            ws_tic_test["stations"]["FATP_OPT"].extend([
+                {
+                    "Index": "80", "Phase": "7", "Title": "Measure 5V Voltage",
+                    "Description": "ORIG_VOLT_DESC", "Send": ":Dev.MVolt,1",
+                    "TestID": "", "ExecMode": "0",
+                },
+                {
+                    "Index": "81", "Phase": "7", "Title": "Check Input Current",
+                    "Description": "ORIG_CURR_DESC", "Send": ":Dev.MSCurr,5",
+                    "TestID": "B7PL025", "ExecMode": "0",
+                },
+                {
+                    "Index": "82", "Phase": "7", "Title": "Wait Stabilize",
+                    "Description": "Delay 200ms", "Send": ":Delay,200",
+                    "TestID": "B7PL025", "ExecMode": "0",
+                },
+            ])
+            tic_aud = post_json("/api/tic_audit_excel", {"workspace": ws_tic_test, "station": "FATP_OPT"})
+            tic_issues = tic_aud.get("issues") or []
+            iss_volt = next((x for x in tic_issues if x.get("title") == "Measure 5V Voltage"), None)
+            iss_curr = next((x for x in tic_issues if x.get("title") == "Check Input Current"), None)
+            iss_delay = next((x for x in tic_issues if x.get("title") == "Wait Stabilize"), None)
+            check(tic_aud.get("status") == "ok"
+                  and iss_volt is not None and iss_volt["reason_code"] == "missing" and len(iss_volt.get("candidates") or []) >= 1
+                  and iss_curr is not None and iss_curr["reason_code"] == "generic_placeholder" and len(iss_curr.get("candidates") or []) >= 1
+                  and iss_delay is None,
+                  "v0.8.075 /api/tic_audit_excel 正確挑出空白/佔位碼測項並推薦候選 TestID，且略過純 :Delay 控制列",
+                  f"volt={bool(iss_volt)}, curr={bool(iss_curr)}, delay={iss_delay}")
+
+            cand_v = iss_volt["candidates"][0]["test_id"]
+            cand_c = iss_curr["candidates"][0]["test_id"]
+            tic_apply = post_json("/api/tic_apply_batch", {
+                "workspace": tic_aud["workspace"],
+                "excel_path": v74_res["excel_path"],
+                "updates": [
+                    {"station": "FATP_OPT", "row_idx": iss_volt["row_idx"], "test_id": cand_v, "description": iss_volt["candidates"][0].get("desc_en", "")},
+                    {"station": "FATP_OPT", "row_idx": iss_curr["row_idx"], "test_id": cand_c, "description": iss_curr["candidates"][0].get("desc_en", "")},
+                ],
+                "update_description": False,
+                "open_folder": False,
+                "open_excel": False,
+            })
+            ws_tic_fixed = _parse_v50(tic_apply["excel_path"])
+            fixed_rows = ws_tic_fixed["stations"]["FATP_OPT"]
+            row_v_after = next((r for r in fixed_rows if r.get("Title") == "Measure 5V Voltage"), {})
+            row_c_after = next((r for r in fixed_rows if r.get("Title") == "Check Input Current"), {})
+            check(tic_apply.get("status") == "ok"
+                  and tic_apply.get("applied_count") == 2
+                  and str(row_v_after.get("TestID") or "") == cand_v
+                  and str(row_c_after.get("TestID") or "") == cand_c
+                  and str(row_v_after.get("Description") or "") == "ORIG_VOLT_DESC"
+                  and str(row_c_after.get("Description") or "") == "ORIG_CURR_DESC",
+                  "v0.8.075 /api/tic_apply_batch 成功批次寫回 TestID 至 *_FIXED.xlsx 並保留原始 Description",
+                  f"v={row_v_after}, c={row_c_after}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

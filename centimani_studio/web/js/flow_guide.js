@@ -74,7 +74,7 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-green',
     btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
-      { num: '①', title: '選擇 2 主模式＋3 工具', jumpIdx: 0, items: ['既有編修(1→N) / 首次範本(0→1)', '右上捷徑：單台儀器/實機驗證/寫法百科'] },
+      { num: '①', title: '選 2 主模式＋4 工具', jumpIdx: 0, items: ['既有編修(1→N) / 首次範本(0→1)', '工具：儀器範例/實機測試/寫法小抄/換碼'] },
       { num: '②', title: '既有腳本：手風琴編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
       { num: '③', title: '首次範本：積木拖曳建母體', jumpIdx: 6, items: ['撲克牌拖曳 & 📦群組方框', '逐頁設定 + TestID + 語法體檢'] },
       { num: '④', title: '儀器撲克牌庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
@@ -83,8 +83,8 @@ const FLOW_GUIDE_DATA = {
     detailedSteps: [
       {
         stageIdx: 0,
-        step: 'Step 1｜選擇 2 大主力作業模式（既有編修 / 首次範本）與右上 3 項獨立輔助工具',
-        desc: '進入「02 腳本建立與編修中心」後，主畫面對齊最常用的兩大流程：日常改版選「01 既有腳本編修 (1→N)」；全新開案選「02 產生首次範本 (0→1)」。右上角工具條另收錄「🧪 單台儀器母體」、「🛡️ 實機驗證 (SFIS / DLL)」與「💬 問編寫問題」，隨點即用。',
+        step: 'Step 1｜選擇 2 大主力作業模式（既有編修 / 首次範本）與右上 4 項獨立工具',
+        desc: '進入「02 腳本建立與編修中心」後，主畫面提供兩大主力模式：日常改版選「01 既有腳本編修 (1→N)」；全新開案選「02 產生首次範本 (0→1)」。右上角 4 顆獨立工具為「🧪 生單台儀器範例」、「🛡️ 實機測試 SFIS / DLL」、「📖 語法寫法小抄」與「🏷️ 批次補換 TestID」。',
         img: '/images/guide_editor_tab.png'
       },
       {
