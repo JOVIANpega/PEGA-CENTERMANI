@@ -163,6 +163,7 @@ async function openBlockSorterModal(preferredSheet = '') {
 
   const container = document.getElementById('modalBlockSorter');
   if (container) {
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(container, 'btnBsCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
     container.style.display = 'flex';
     container.classList.add('open');
   }
@@ -174,6 +175,7 @@ function closeBlockSorterModal() {
   if (container) {
     container.style.display = 'none';
     container.classList.remove('open');
+    container.classList.remove('as-page');
   }
 }
 

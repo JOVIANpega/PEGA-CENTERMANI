@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.084">
+<link rel="stylesheet" href="/css/app.css?v=0.8.085">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.084</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.085</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -327,8 +327,8 @@
   <div id="jumpEditorModal" class="modal-backdrop">
       <div class="modal-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#1E293B; color:#FFFFFF;">
-          <div style="font-weight:700; font-size:1rem;">🔀 Title 區塊跳轉編輯器（打勾設定 PASS / FAIL / 重試點）</div>
-          <button onclick="closeJumpEditorModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.83rem;" title="放棄並關閉跳轉編輯視窗">✕ 關閉</button>
+          <div style="font-weight:700; font-size:1rem;">🔀 Title 區塊跳轉編輯（打勾設定 PASS / FAIL / 重試點）</div>
+          <button id="btnJeCloseModal" onclick="closeJumpEditorModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.83rem;" title="返回上一層畫面">✕ 關閉</button>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:10px 16px; background:#EFF6FF; border-bottom:1px solid #CBD5E1;">
           <label style="font-weight:700; color:#1E3A8A; font-size:0.9rem;">工作表：
@@ -1648,7 +1648,7 @@
         <button type="button" id="btnBsApplyAndOpenTop" class="btn btn-primary-green" style="padding:6px 18px; font-size:0.9rem; font-weight:800; cursor:pointer;" onclick="bsApplyAndOpenExcel()" title="將新排序寫入 Excel 並自動開啟檢視">
           🚀 套用排序、自動修復並開啟 Excel 檢視
         </button>
-        <button onclick="closeBlockSorterModal()" class="btn btn-modal-close" style="padding:6px 16px; font-size:0.87rem;" title="放棄未儲存之排序並關閉視窗">
+        <button id="btnBsCloseModal" onclick="closeBlockSorterModal()" class="btn btn-modal-close" style="padding:6px 16px; font-size:0.87rem;" title="返回上一層畫面">
           ✕ 關閉
         </button>
       </div>
@@ -1762,7 +1762,7 @@
   <div class="modal-panel" style="max-width:680px; background:#FFFFFF; padding:20px 22px; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">
       <div style="font-size:1.1rem; font-weight:900; color:#0F172A;">📋 跨檔案複製整張 Sheet（100% 保留完整格式）</div>
-      <button onclick="document.getElementById('copySheetModal').classList.remove('open')" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.83rem;">✕ 關閉</button>
+      <button id="btnCsCloseModal" onclick="closeCopySheetModal()" class="btn btn-modal-close" style="padding:4px 12px; font-size:0.83rem;">✕ 關閉</button>
     </div>
     <div style="display:flex; flex-direction:column; gap:12px; font-size:0.9rem; color:#334155;">
       <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:8px 12px; font-size:0.83rem; color:#1E40AF;">
@@ -1809,7 +1809,7 @@
       </div>
     </div>
     <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid #E2E8F0; padding-top:12px;">
-      <button onclick="document.getElementById('copySheetModal').classList.remove('open')" class="btn">取消</button>
+      <button onclick="closeCopySheetModal()" class="btn">取消返回</button>
       <button onclick="csExecuteCopy()" class="btn btn-primary-green" style="font-weight:800;">✨ 複製整張 Sheet 並匯出驗證</button>
     </div>
   </div>
@@ -1913,14 +1913,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.084"></script>
-<script src="/js/audit_editors.js?v=0.8.084"></script>
-<script src="/js/flow_guide.js?v=0.8.084"></script>
-<script src="/js/block_sorter.js?v=0.8.084"></script>
-<script src="/js/script_qa.js?v=0.8.084"></script>
-<script src="/js/sfis_hmi.js?v=0.8.084"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.084"></script>
-<script src="/js/create_block_builder.js?v=0.8.084"></script>
+<script src="/js/inst_hmi.js?v=0.8.085"></script>
+<script src="/js/audit_editors.js?v=0.8.085"></script>
+<script src="/js/flow_guide.js?v=0.8.085"></script>
+<script src="/js/block_sorter.js?v=0.8.085"></script>
+<script src="/js/script_qa.js?v=0.8.085"></script>
+<script src="/js/sfis_hmi.js?v=0.8.085"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.085"></script>
+<script src="/js/create_block_builder.js?v=0.8.085"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2007,13 +2007,34 @@ function toggleLeftSidebar() {
   icon.textContent = collapsed ? '▶' : '◀';
 }
 
+function _applyAsPageMode(backdropEl, closeBtnId, defaultCloseText, pageBackText) {
+  if (!backdropEl) return;
+  const inEdit = (typeof CURRENT_TAB !== 'undefined' && CURRENT_TAB === 'gen')
+    && (typeof GEN_SUB_MODE === 'undefined' || GEN_SUB_MODE === 'edit');
+  const btn = closeBtnId ? document.getElementById(closeBtnId) : null;
+  if (inEdit) {
+    backdropEl.classList.add('as-page');
+    const hdr = document.querySelector('.top-header');
+    backdropEl.style.top = (hdr ? Math.round(hdr.getBoundingClientRect().bottom) : 48) + 'px';
+    if (btn) btn.textContent = pageBackText || '⬅ 返回 1 → N 編修總覽';
+  } else {
+    backdropEl.classList.remove('as-page');
+    backdropEl.style.top = '';
+    if (btn) btn.textContent = defaultCloseText || '✕ 關閉';
+  }
+}
+
 function switchTab(tab) {
   CURRENT_TAB = tab;
 
-  // 切換分頁時自動收合並隱藏積木排序器，並平滑回到頁面頂部
+  // 切換分頁時自動收合全頁編輯器 / 彈窗，並平滑回到頁面頂部
   if (typeof closeBlockSorterModal === 'function') {
     closeBlockSorterModal();
   }
+  ['jumpEditorModal', 'templateSkuModal', 'copySheetModal', 'stationDiffModal'].forEach(mid => {
+    const el = document.getElementById(mid);
+    if (el) { el.classList.remove('open'); el.classList.remove('as-page'); if (mid === 'jumpEditorModal') el.style.display = 'none'; }
+  });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   document.getElementById('panelHome').style.display = (tab === 'home') ? 'block' : 'none';
@@ -5090,12 +5111,6 @@ function renderAuditResults() {
                 🤖 反白確認左右差異與 AI 報告並彈出 INI ▶
               </button>
             ` : ''}
-            <button onclick="applyFixAndExport(true)" class="btn btn-dry" style="padding:6px 12px; font-size:0.85rem; font-weight:800;">
-              🧪 無儀器試跑匯出
-            </button>
-            <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:6px 14px; font-size:0.87rem; font-weight:800;">
-              💾 寫入並匯出 Excel (*_FIXED.xlsx)
-            </button>
           </div>
         </div>
       `;
@@ -5546,11 +5561,17 @@ function openJumpEditorModal(preferSheet, preferTitle) {
     sel.value = STATE.activeSheetFilter;
   }
   jeOnSheetChange(preferTitle);
-  const jm = document.getElementById('jumpEditorModal'); if (jm) { jm.style.display = 'flex'; jm.classList.add('open'); }
+  const jm = document.getElementById('jumpEditorModal');
+  if (jm) {
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(jm, 'btnJeCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+    jm.style.display = 'flex';
+    jm.classList.add('open');
+  }
 }
 
 async function closeJumpEditorModal() {
-  const jm = document.getElementById('jumpEditorModal'); if (jm) { jm.style.display = 'none'; jm.classList.remove('open'); }
+  const jm = document.getElementById('jumpEditorModal');
+  if (jm) { jm.style.display = 'none'; jm.classList.remove('open'); jm.classList.remove('as-page'); }
   await reAuditWorkspace();
 }
 
@@ -7345,7 +7366,11 @@ async function openCopySheetModal() {
   const currPath = (STATE && STATE.workspace && STATE.workspace.source_file) ? STATE.workspace.source_file : '';
   const dstInput = document.getElementById('csDstPath');
   if (currPath && !dstInput.value) dstInput.value = currPath;
-  document.getElementById('copySheetModal').classList.add('open');
+  const cm = document.getElementById('copySheetModal');
+  if (cm) {
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(cm, 'btnCsCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+    cm.classList.add('open');
+  }
 
   try {
     const res = await fetch('/api/init');
@@ -7358,6 +7383,11 @@ async function openCopySheetModal() {
     if (s1) s1.innerHTML = opts;
     if (s2) s2.innerHTML = opts;
   } catch (e) {}
+}
+
+function closeCopySheetModal() {
+  const cm = document.getElementById('copySheetModal');
+  if (cm) { cm.classList.remove('open'); cm.classList.remove('as-page'); }
 }
 
 async function csPickFile(role) {

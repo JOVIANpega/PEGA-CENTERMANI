@@ -3208,9 +3208,9 @@ def run_all_verifications():
                   and 0 < hub_host_pos < exp_bar_pos
                   and 'id="editorSheetSel"' in ae79_src
                   and 'openStationDiffModal()' in ae79_src
-                  and "▼ 修改 System.ini" in ae79_src
-                  and "↗ 開啟順序編排" in ae79_src
-                  and "↗ 編輯跳轉規則" in ae79_src
+                  and "修改 System.ini" in ae79_src
+                  and "進入順序編排" in ae79_src
+                  and "進入跳轉規則" in ae79_src
                   and "Marco 子流程表" in idx79_src,
                   "v0.8.079/v0.8.081 1->N 介面大掃除：拖曳載入、去重頂部按鈕、測站與比對鈕整合於編修主入口、手風琴預期標示與 Marco 子流程說明",
                   f"hub={hub_host_pos}, exp={exp_bar_pos}")
@@ -3449,6 +3449,20 @@ def run_all_verifications():
                   and 'id="btnEditorTplSkuWizard"' not in idx81_src,
                   "v0.8.084 1->N 改為 3x2 寬版功能格（INI合併/跳轉+SKU同卡/跨檔複製獨立卡/頂部去重）檢查通過",
                   "missing expected v0.8.084 markers")
+
+            # [v0.8.085] 移除 pendingChangesBar 重複匯出鈕、1->N 各功能進入獨立全寬頁面 (.as-page)
+            pending_sec85 = idx81_src.split("if (pendings.length > 0)")[1].split("} else {")[0]
+            check('applyFixAndExport' not in pending_sec85
+                  and '_applyAsPageMode' in idx81_src
+                  and '.modal-backdrop.open.as-page' in css83_src
+                  and '_applyAsPageMode' in bs82_src
+                  and '_applyAsPageMode' in tsw83_src
+                  and 'btnJeCloseModal' in idx81_src
+                  and 'btnBsCloseModal' in idx81_src
+                  and 'btnCsCloseModal' in idx81_src
+                  and 'btnTswCloseModal' in tsw83_src,
+                  "v0.8.085 移除暫存列重複匯出按鈕、1->N 所有卡片點入皆以全寬獨立頁面呈現 (.as-page) 檢查通過",
+                  "missing expected v0.8.085 markers")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

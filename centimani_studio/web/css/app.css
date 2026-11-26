@@ -63,6 +63,8 @@
 
   /* Top Navigation Bar */
   .top-header {
+    position: relative;
+    z-index: 1000;
     background: var(--slate-900);
     color: #FFFFFF;
     padding: 10px 24px;
@@ -428,6 +430,26 @@
   }
   .modal-backdrop.open {
     display: flex !important;
+  }
+  /* 從 1->N 編修總覽進入時改以全寬獨立頁面呈現（無黑底彈窗遮罩） */
+  .modal-backdrop.open.as-page {
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #F1F5F9;
+    padding: 12px 20px 18px 20px;
+    align-items: stretch;
+    justify-content: center;
+    z-index: 950;
+  }
+  .modal-backdrop.open.as-page .modal-panel {
+    max-width: 1460px !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
   }
   .modal-panel {
     background: #FFFFFF;

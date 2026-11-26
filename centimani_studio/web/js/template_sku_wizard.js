@@ -107,7 +107,7 @@
               <span style="font-size:1.12rem; font-weight:900; color:#1E1B4B;">🎯 多 SKU 分流設定精靈</span>
               <span id="tswTargetBadge" class="tsw-tag" style="background:#E0F2FE; color:#0369A1; font-size:0.82rem;"></span>
             </div>
-            <button type="button" onclick="closeTemplateSkuWizard()" class="btn btn-modal-close" style="padding:4px 12px;">✕ 關閉</button>
+            <button id="btnTswCloseModal" type="button" onclick="closeTemplateSkuWizard()" class="btn btn-modal-close" style="padding:4px 12px;">✕ 關閉</button>
           </div>
           <div id="tswBody" style="flex:1; overflow-y:auto; padding:14px 18px;"></div>
           <div style="background:#FFFFFF; padding:10px 18px; border-top:1.5px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -182,6 +182,14 @@
 
     const modal = document.getElementById('templateSkuModal');
     if (modal) {
+      if (TSW.targetMode === 'edit' && typeof window._applyAsPageMode === 'function') {
+        window._applyAsPageMode(modal, 'btnTswCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+      } else {
+        modal.classList.remove('as-page');
+        modal.style.top = '';
+        const cBtn = document.getElementById('btnTswCloseModal');
+        if (cBtn) cBtn.textContent = '✕ 關閉';
+      }
       modal.style.display = '';
       modal.classList.add('open');
     }
@@ -190,7 +198,7 @@
 
   window.closeTemplateSkuWizard = function () {
     const m = document.getElementById('templateSkuModal');
-    if (m) m.classList.remove('open');
+    if (m) { m.classList.remove('open'); m.classList.remove('as-page'); }
     if (typeof window._syncWizMultiSkuToggleUi === 'function') window._syncWizMultiSkuToggleUi();
   };
 

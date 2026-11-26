@@ -508,7 +508,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
           </div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">▼ 修改 System.ini${sModCount > 0 ? ` (${sModCount})` : ''}</button>
+          <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">🏭 修改 System.ini${sModCount > 0 ? ` (${sModCount})` : ''}</button>
           <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="flex:1; padding:6px 10px; font-size:0.82rem; font-weight:800;">🔌 修改 Global.ini${gModCount > 0 ? ` (${gModCount})` : ''}</button>
         </div>
       </div>
@@ -528,7 +528,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             拖拉重排 Phase（保留 Phase 0）、順編或設 -1 暫停
           </div>
         </div>
-        <button type="button" onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">↗ 開啟順序編排</button>
+        <button type="button" onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">🧩 進入順序編排</button>
       </div>
 
       <!-- 03 跳轉、重試與多 SKU 分流 -->
@@ -547,8 +547,8 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
           </div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">↗ 編輯跳轉規則</button>
-          <button id="btnEditorTplSkuWizard" type="button" onclick="event.stopPropagation(); openTemplateSkuWizard('edit');" class="btn" data-pop-tip="設定多 SKU 分支條件、上下限與共用指令" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#FFFFFF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;">🎯 多 SKU 分流設定</button>
+          <button type="button" onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">🔀 進入跳轉規則</button>
+          <button id="btnEditorTplSkuWizard" type="button" onclick="event.stopPropagation(); openTemplateSkuWizard('edit');" class="btn" data-pop-tip="設定多 SKU 分支條件、上下限與共用指令" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#FFFFFF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;">🎯 進入多 SKU 分流</button>
         </div>
       </div>
 
@@ -567,7 +567,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             啟閉測試站、調整 ISN 條碼位數與掛載外部儀器
           </div>
         </div>
-        <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">▼ 設定站別與儀器</button>
+        <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">📋 設定站別與儀器</button>
       </div>
 
       <!-- 05 跨檔案複製整張 Sheet -->
@@ -585,7 +585,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             保留原格式欄寬與 Marco 子表，從其他 Excel 複製測站到此檔
           </div>
         </div>
-        <button type="button" onclick="event.stopPropagation(); openCopySheetModal();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B; font-weight:800;">📋 選擇來源並複製 Sheet</button>
+        <button type="button" onclick="event.stopPropagation(); openCopySheetModal();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B; font-weight:800;">📋 進入跨檔複製</button>
       </div>
 
       <!-- 06 錯誤碼 / TestID -->
@@ -603,7 +603,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             搜尋官方 7 碼代碼，批次檢查並回填缺漏 TestID
           </div>
         </div>
-        <button type="button" onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">↗ 查詢與回填 TestID</button>
+        <button type="button" onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">🏷️ 進入 TestID 查詢與回填</button>
       </div>
     </div>
   `;
@@ -1442,6 +1442,15 @@ function renderGlobalEditorPanel() {
     </div>
   `;
 
+  const fBar = document.getElementById('editorFileBar');
+  if (fBar && STATE && STATE.workspace && Object.keys(STATE.workspace.stations || {}).length > 0) {
+    fBar.style.display = (AUDIT_GLOBAL_TAB === 'hub') ? 'flex' : 'none';
+  }
+  const pBar = document.getElementById('pendingChangesBar');
+  if (pBar) {
+    const hasPend = (STATE && Array.isArray(STATE.pendingInserts) && STATE.pendingInserts.length > 0);
+    pBar.style.display = (AUDIT_GLOBAL_TAB === 'hub' && hasPend) ? 'block' : 'none';
+  }
   const expBar = document.getElementById('editorExportBar');
   if (expBar) {
     expBar.style.display = 'flex';
