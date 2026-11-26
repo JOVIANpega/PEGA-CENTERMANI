@@ -473,11 +473,12 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const dutPortShort = _escAttr(gSet.DUT_UR1 || gSet.PCUART_1 || 'COM4');
   const fixPortShort = _escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8');
 
+  const totalIniMod = sModCount + gModCount;
   return `
-    <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
-        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（點擊下方 6 項功能卡片修改 INI、順序、跳轉與錯誤碼）</div>
-        <div style="font-size:0.84rem; color:#64748B;">滑鼠移過可預覽各項目詳細設定；右側選擇要調整流程與跳轉的目標測試站。</div>
+        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修功能總覽（點選任一卡片進入修改）</div>
+        <div style="font-size:0.83rem; color:#64748B;">所有設定已整併為 6 張寬版功能卡；右側選擇要調整流程與跳轉的目標測試站。</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:5px 10px;">
         <span style="font-size:0.86rem; font-weight:800; color:#1E293B;">🎯 目標測試站：</span>
@@ -490,113 +491,119 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
       </div>
     </div>
 
-    <div class="acc-row" style="min-height:265px;">
-      <!-- 01 System.ini -->
-      <div id="globalHubCard_system" class="acc-card active" data-theme="slate" onmouseenter="_setActiveHubCard('system')" onclick="switchGlobalEditorTab('system')">
+    <div class="hub-grid-3x2">
+      <!-- 01 INI 環境設定（合併 System.ini + Global.ini） -->
+      <div id="globalHubCard_system" class="hub-grid-card" data-theme="blue" onclick="switchGlobalEditorTab('system')">
         <div>
-          <div class="acc-num">01 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${sModCount} 項</span>` : ''}</div>
-          <div class="acc-icon">🏭</div>
-          <div class="acc-title">過站開關 (System.ini)</div>
-          <div class="acc-sub">Debug、SFIS/iPLAS 與廠區網址</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(15,23,42,0.07); color:#334155; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">Debug=${_escAttr(sys.DebugMode || '1')} · SFIS${String(sys.SFIS_Enable)==='1'?'開':'關'} · ${_escAttr(factoryShort)}</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#1E293B; line-height:1.65; margin-bottom:10px;">
-            <div>Debug：<b>${String(sys.DebugMode)==='1'?'調試 (1)':'量產 (0)'}</b> ｜ SFIS <b>${String(sys.SFIS_Enable)==='1'?'開':'關'}</b> ｜ iPLAS <b>${String(sys.iPLAS_Enable)==='1'?'開':'關'}</b></div>
-            <div>廠區 <b class="mono">${_escAttr(factoryShort)}</b> ｜ 路由 <b class="mono">${_escAttr(sys.SFIS_TSP || '-')}</b></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#1E40AF;">01 / INI 環境</span>
+            ${totalIniMod > 0 ? `<span style="background:#FEF08A; color:#854D0E; padding:1px 7px; border-radius:999px; font-size:0.74rem; font-weight:800;">已改 ${totalIniMod} 項</span>` : `<span class="mono" style="font-size:0.74rem; font-weight:700; color:#1E3A8A; background:rgba(37,99,235,0.1); padding:1px 7px; border-radius:999px;">Debug=${_escAttr(sys.DebugMode || '1')} · ${dutPortShort}</span>`}
           </div>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">▼ 修改 System.ini</button>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">⚙️</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">環境與埠號 (INI 設定)</span>
+          </div>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            Debug / SFIS / 廠區 · DUT ${dutPortShort} / 治具 ${fixPortShort}
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('system');" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#334155; color:#FFFFFF; border:none; font-weight:800;">▼ 修改 System.ini${sModCount > 0 ? ` (${sModCount})` : ''}</button>
+          <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="flex:1; padding:6px 10px; font-size:0.82rem; font-weight:800;">🔌 修改 Global.ini${gModCount > 0 ? ` (${gModCount})` : ''}</button>
         </div>
       </div>
 
-      <!-- 02 Global.ini -->
-      <div id="globalHubCard_global" class="acc-card" data-theme="blue" onmouseenter="_setActiveHubCard('global')" onclick="switchGlobalEditorTab('global')">
+      <!-- 02 測項順序與停用 -->
+      <div id="globalHubCard_flow" class="hub-grid-card" data-theme="amber" onclick="openBlockSorterModal()">
         <div>
-          <div class="acc-num">02 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${gModCount} 項</span>` : ''}</div>
-          <div class="acc-icon">🔌</div>
-          <div class="acc-title">埠號與變數 (Global.ini)</div>
-          <div class="acc-sub">COM Port、DUT/PC IP 與共用變數</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(37,99,235,0.1); color:#1E3A8A; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">DUT:${dutPortShort} · 治具:${fixPortShort}</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#1E3A8A; line-height:1.65; margin-bottom:10px;">
-            <div>DUT <b class="mono">${dutPortShort}</b> / <b class="mono">${_escAttr(gSet.DUTIP_1 || '-')}</b> ｜ 治具 <b class="mono">${fixPortShort}</b></div>
-            <div>1號槽：<b>${gSet.LOAD_1 || 'true'}</b>${gScr.FW_VERSION ? ` ｜ FW <b class="mono">${_escAttr(gScr.FW_VERSION)}</b>` : ''}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#B45309;">02 / FLOW SORT</span>
+            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#92400E; background:rgba(217,119,6,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · ${curPhases} Phase / ${curSteps.length} 步</span>
           </div>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('global');" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">▼ 修改 Global.ini</button>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">🧩</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">測項順序與停用</span>
+          </div>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            拖拉重排 Phase（保留 Phase 0）、順編或設 -1 暫停
+          </div>
+        </div>
+        <button type="button" onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">↗ 開啟順序編排</button>
+      </div>
+
+      <!-- 03 跳轉、重試與多 SKU 分流 -->
+      <div id="globalHubCard_jump" class="hub-grid-card" data-theme="indigo" onclick="openJumpEditorModal()">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#4338CA;">03 / JUMP &amp; SKU</span>
+            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#3730A3; background:rgba(99,102,241,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · 4:P,F / SKU</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">🔀</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">跳轉與多 SKU 分流</span>
+          </div>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            設定失敗重試 (2:XX)、分支跳轉或整站多 SKU 上下限分流
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">↗ 編輯跳轉規則</button>
+          <button id="btnEditorTplSkuWizard" type="button" onclick="event.stopPropagation(); openTemplateSkuWizard('edit');" class="btn" data-pop-tip="設定多 SKU 分支條件、上下限與共用指令" style="flex:1; padding:6px 10px; font-size:0.82rem; background:#FFFFFF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;">🎯 多 SKU 分流設定</button>
         </div>
       </div>
 
-      <!-- 03 Flow Sort -->
-      <div id="globalHubCard_flow" class="acc-card" data-theme="amber" onmouseenter="_setActiveHubCard('flow')" onclick="openBlockSorterModal()">
+      <!-- 04 站別、條碼與儀器 -->
+      <div id="globalHubCard_station_isn" class="hub-grid-card" data-theme="green" onclick="switchGlobalEditorTab('station_isn')">
         <div>
-          <div class="acc-num">03 / FLOW SORT</div>
-          <div class="acc-icon">🧩</div>
-          <div class="acc-title">測項順序與停用</div>
-          <div class="acc-sub">調整 Phase 順序、順編或設 -1 暫停</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(217,119,6,0.12); color:#92400E; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · ${curPhases} Phase / ${curSteps.length} 步</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#78350F; line-height:1.65; margin-bottom:10px;">
-            <div>站別 <b class="mono">${_escAttr(curStation || '-')}</b>：共 <b>${curSteps.length} 步</b> / <b>${curPhases} Phase</b></div>
-            <div>拖拉調整順序（保留 Phase 0）或設 <code>-1</code> 暫停</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#15803D;">04 / STATION &amp; INST</span>
+            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#166534; background:rgba(22,163,74,0.12); padding:1px 7px; border-radius:999px;">${stationKeys.length} 站 · ${_escAttr(curIsnBadge)} · ${activeInstCount} 儀器</span>
           </div>
-          <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">↗ 開啟順序編排</button>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">📋</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">站別、條碼與儀器</span>
+          </div>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            啟閉測試站、調整 ISN 條碼位數與掛載外部儀器
+          </div>
         </div>
+        <button type="button" onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="width:100%; padding:6px 12px; font-size:0.85rem; font-weight:800;">▼ 設定站別與儀器</button>
       </div>
 
-      <!-- 04 Jump & Retry -->
-      <div id="globalHubCard_jump" class="acc-card" data-theme="indigo" onmouseenter="_setActiveHubCard('jump')" onclick="openJumpEditorModal()">
+      <!-- 05 跨檔案複製整張 Sheet -->
+      <div id="globalHubCard_copy_sheet" class="hub-grid-card" data-theme="gold" onclick="openCopySheetModal()">
         <div>
-          <div class="acc-num">04 / JUMP &amp; RETRY</div>
-          <div class="acc-icon">🔀</div>
-          <div class="acc-title">跳轉與重試 (ExecMode)</div>
-          <div class="acc-sub">設定失敗重試 (2:XX) 與分支跳轉 (4:P,F)</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(99,102,241,0.12); color:#3730A3; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · PASS / FAIL 規則</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#312E81; line-height:1.65; margin-bottom:10px;">
-            <div>編輯 <b class="mono">${_escAttr(curStation || '-')}</b> 各列步驟之 <code>ExecMode</code></div>
-            <div>同 Phase 內可對多列分別設重試與跳轉目標</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#A16207;">05 / COPY SHEET</span>
+            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#854D0E; background:rgba(234,179,8,0.18); padding:1px 7px; border-radius:999px;">目前共 ${stationKeys.length} 站</span>
           </div>
-          <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">↗ 編輯跳轉規則</button>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">📋</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">跨檔案複製整張 Sheet</span>
+          </div>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            保留原格式欄寬與 Marco 子表，從其他 Excel 複製測站到此檔
+          </div>
         </div>
+        <button type="button" onclick="event.stopPropagation(); openCopySheetModal();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#FEF3C7; color:#92400E; border:1.5px solid #F59E0B; font-weight:800;">📋 選擇來源並複製 Sheet</button>
       </div>
 
-      <!-- 05 Station, ISN & Instrument Mount -->
-      <div id="globalHubCard_station_isn" class="acc-card" data-theme="green" onmouseenter="_setActiveHubCard('station_isn')" onclick="switchGlobalEditorTab('station_isn')">
+      <!-- 06 錯誤碼 / TestID -->
+      <div id="globalHubCard_tic" class="hub-grid-card" data-theme="purple" onclick="if(typeof openTicFromEdit==='function') openTicFromEdit();">
         <div>
-          <div class="acc-num">05 / STATION &amp; INST</div>
-          <div class="acc-icon">📋</div>
-          <div class="acc-title">站別、條碼與儀器</div>
-          <div class="acc-sub">測站開關、ISN 位數與儀器掛載</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(22,163,74,0.12); color:#166534; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${stationKeys.length} 站 · ${_escAttr(curIsnBadge)} · ${activeInstCount} 台儀器</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#14532D; line-height:1.65; margin-bottom:10px;">
-            <div>測試站 <b>${stationKeys.length}</b> 站 ｜ 條碼 <b class="mono">${_escAttr(curIsnBadge)}</b></div>
-            <div>已掛載外部儀器 <b>${activeInstCount}</b> 台（設 IP/COM 與 Mount）</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+            <span class="mono" style="font-size:0.78rem; font-weight:800; color:#7E22CE;">06 / ERROR CODE</span>
+            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#6B21A8; background:rgba(168,85,247,0.12); padding:1px 7px; border-radius:999px;">Test Item Code V2.04</span>
           </div>
-          <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">▼ 設定站別與儀器</button>
-        </div>
-      </div>
-
-      <!-- 06 Error Code / TestID 速查 -->
-      <div id="globalHubCard_tic" class="acc-card" data-theme="purple" onmouseenter="_setActiveHubCard('tic')" onclick="if(typeof openTicFromEdit==='function') openTicFromEdit();">
-        <div>
-          <div class="acc-num">06 / ERROR CODE</div>
-          <div class="acc-icon">🏷️</div>
-          <div class="acc-title">錯誤碼 / TestID</div>
-          <div class="acc-sub">查詢官方 7 碼代碼或批次補齊</div>
-          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(168,85,247,0.12); color:#6B21A8; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">Test Item Code V2.04</span></div>
-        </div>
-        <div class="acc-body">
-          <div style="font-size:0.86rem; color:#581C87; line-height:1.65; margin-bottom:10px;">
-            <div>關鍵字搜尋官方 7 碼錯誤代碼</div>
-            <div>一鍵掃描並回填整份 Excel 缺漏之 TestID</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:1.35rem;">🏷️</span>
+            <span style="font-size:1.05rem; font-weight:900; color:#0F172A;">錯誤碼 / TestID</span>
           </div>
-          <button onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">↗ 查詢與回填 TestID</button>
+          <div style="font-size:0.83rem; color:#475569; line-height:1.45;">
+            搜尋官方 7 碼代碼，批次檢查並回填缺漏 TestID
+          </div>
         </div>
+        <button type="button" onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="width:100%; padding:6px 12px; font-size:0.85rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">↗ 查詢與回填 TestID</button>
       </div>
     </div>
   `;
@@ -678,7 +685,11 @@ function _renderSystemIniFullPageHtml(ws) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <!-- 頂部醒目返回導覽列 -->
       ${_renderBackToHubBar(
-        `<span>🏭 01 / System.ini 過站與廠區設定</span>${sChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${sChangedCount} 項</span>` : ''}`,
+        `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+           <span style="padding:4px 10px; border-radius:6px; background:#334155; color:#FFFFFF; font-size:0.85rem; font-weight:800;">🏭 System.ini (過站/廠區)</span>
+           <button type="button" onclick="switchGlobalEditorTab('global')" class="btn" style="padding:4px 10px; font-size:0.84rem; background:#FFFFFF; color:#1E40AF; border:1.5px solid #93C5FD; font-weight:800;">🔌 切換至 Global.ini</button>
+           ${sChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${sChangedCount} 項</span>` : ''}
+         </div>`,
         '#F1F5F9',
         '#CBD5E1',
         `
@@ -894,7 +905,11 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     <div style="display:flex; flex-direction:column; gap:12px;">
       <!-- 頂部醒目返回導覽列 -->
       ${_renderBackToHubBar(
-        `<span>🔌 02 / Global.ini 通訊、槽位與韌體版號</span>${gChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${gChangedCount} 項</span>` : ''}`,
+        `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+           <button type="button" onclick="switchGlobalEditorTab('system')" class="btn" style="padding:4px 10px; font-size:0.84rem; background:#FFFFFF; color:#334155; border:1.5px solid #CBD5E1; font-weight:800;">🏭 切換至 System.ini</button>
+           <span style="padding:4px 10px; border-radius:6px; background:#1D4ED8; color:#FFFFFF; font-size:0.85rem; font-weight:800;">🔌 Global.ini (通訊/變數)</span>
+           ${gChangedCount > 0 ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #EAB308; padding:2px 8px; border-radius:999px; font-size:0.8rem; font-weight:800;">已改 ${gChangedCount} 項</span>` : ''}
+         </div>`,
         '#EFF6FF',
         '#93C5FD',
         `

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.083">
+<link rel="stylesheet" href="/css/app.css?v=0.8.084">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.083</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.084</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1161,31 +1161,21 @@
     <div id="genModeEdit" style="display:block;">
       <!-- ① 目標檔案列 -->
       <input type="file" id="localExcelPickerInput" accept=".xlsx" style="display:none;" onchange="uploadExcelForEditor(this)">
-      <div id="editorFileBar" class="action-bar" style="display:none; flex-direction:column; align-items:stretch; gap:8px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-primary-blue" data-pop-tip="選擇電腦上另一份 TestFlow.xlsx 切換為目前編修目標" onclick="document.getElementById('localExcelPickerInput').click()">
-              📂 更換編修的 TestFlow.xlsx
-            </button>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button id="btnEditorTplSkuWizard" class="btn" data-pop-tip="設定多 SKU 分支條件、上下限與共用指令" style="background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('edit')">
-              🎯 多 SKU 分流設定
-            </button>
-            <button class="btn" data-pop-tip="保留原有欄位寬度與 Marco 子表，跨檔案複製整張站別工作表" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
-              📋 跨檔案複製整張 Sheet
-            </button>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:6px 10px;">
-          <span style="font-weight:700; color:#475569; font-size:0.87rem; white-space:nowrap;">📍 目前編修檔案：</span>
-          <span id="editorPickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
-            尚未載入 Excel 檔案
-          </span>
-          <button id="btnEditorOpenExcel" class="btn" data-pop-tip="立即在 Microsoft Excel 開啟目前正在編修的這份原檔" style="display:none; padding:4px 11px; font-size:0.83rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
-            📂 開啟目前原檔
+      <div id="editorFileBar" class="action-bar" style="display:none; flex-direction:row; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:260px;">
+          <button class="btn btn-primary-blue" data-pop-tip="選擇電腦上另一份 TestFlow.xlsx 切換為目前編修目標" onclick="document.getElementById('localExcelPickerInput').click()" style="white-space:nowrap;">
+            📂 更換編修檔案
           </button>
+          <div style="display:flex; align-items:center; gap:6px; flex:1; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:5px; padding:5px 10px; min-width:0;">
+            <span style="font-weight:700; color:#475569; font-size:0.85rem; white-space:nowrap;">📍 目前：</span>
+            <span id="editorPickedPathText" class="mono" style="color:#0F172A; font-weight:700; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="">
+              尚未載入 Excel 檔案
+            </span>
+          </div>
         </div>
+        <button id="btnEditorOpenExcel" class="btn" data-pop-tip="立即在 Microsoft Excel 開啟目前正在編修的這份原檔" style="display:none; padding:6px 12px; font-size:0.84rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
+          📂 開啟目前原檔
+        </button>
       </div>
 
       <!-- 未載入檔案時的引導卡片 (支援拖曳上傳 + 乾淨進場動作) -->
@@ -1923,14 +1913,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.083"></script>
-<script src="/js/audit_editors.js?v=0.8.083"></script>
-<script src="/js/flow_guide.js?v=0.8.083"></script>
-<script src="/js/block_sorter.js?v=0.8.083"></script>
-<script src="/js/script_qa.js?v=0.8.083"></script>
-<script src="/js/sfis_hmi.js?v=0.8.083"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.083"></script>
-<script src="/js/create_block_builder.js?v=0.8.083"></script>
+<script src="/js/inst_hmi.js?v=0.8.084"></script>
+<script src="/js/audit_editors.js?v=0.8.084"></script>
+<script src="/js/flow_guide.js?v=0.8.084"></script>
+<script src="/js/block_sorter.js?v=0.8.084"></script>
+<script src="/js/script_qa.js?v=0.8.084"></script>
+<script src="/js/sfis_hmi.js?v=0.8.084"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.084"></script>
+<script src="/js/create_block_builder.js?v=0.8.084"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -4182,6 +4172,7 @@ function syncEditorView() {
     const stNames = Object.keys(STATE.workspace.stations || {});
     const dispPath = STATE.selectedPath || (STATE.workspace && STATE.workspace.source_file) || '記憶體母體工作區 (尚未存檔)';
     pathEl.textContent = `${dispPath}  （共 ${stNames.length} 個測試站）`;
+    pathEl.title = pathEl.textContent;
     if (fileBar) fileBar.style.display = 'flex';
     emptyEl.style.display = 'none';
     bodyEl.style.display = 'block';

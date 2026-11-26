@@ -2084,7 +2084,7 @@ def run_all_verifications():
                   and "openTemplateSkuWizard('create')" in index_html
                   and "openTemplateSkuWizard('edit')" in index_html
                   and 'id="btnEmptyEditorSkuWizard"' in index_html
-                  and 'id="btnEditorTplSkuWizard"' in index_html
+                  and 'id="btnEditorTplSkuWizard"' in (index_html + open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read())
                   and "tswSelectReason" in tsw_js_txt
                   and "tswToggleRowLimit" in tsw_js_txt
                   and "param_to_ini" in tsw_js_txt,
@@ -2693,7 +2693,7 @@ def run_all_verifications():
                   and "BB_STATE.dragSrcType==='group_child'" in cbb_69
                   and "const navLen = _getQaNavList().length;" in cbb_69
                   and "if (viewName !== 'export')" in cbb_69
-                  and "點擊下方 6 項功能卡片" in (index_html + aud_68),
+                  and "6 項功能卡片" in (index_html + aud_68),
                   "v0.8.069 群組收合卡純向下箭頭(▼)、群組拖出至右側空白區與qaIdx/舊橫幅清理檢查通過")
 
             # [v0.8.070] 方案1撲克牌總覽匯出頁 + 恢復預設6塊 + 返回模式選擇入口 + 舊4步驟文案更新 + 匯出預設自動語法檢查與INI設定摘要通知
@@ -3105,7 +3105,7 @@ def run_all_verifications():
                   and "DeviceSemaphore" in ae78_src
                   and "RobotMode" in ae78_src
                   and "PCUART_1" in ae78_src
-                  and ("5～6 格" in ae78_src or "6 項功能卡片" in ae78_src)
+                  and ("5～6 格" in ae78_src or "6 張寬版功能卡" in ae78_src)
                   and "返回 6 格設定入口" in ae78_src
                   and "['Switch']" in ae78_src and "['Sub']" in ae78_src,
                   "v0.8.078 audit_editors.js 具備免掃條碼保護、*$(var)/空規則支援、DeviceSemaphore/RobotMode、Inst Sub/Switch 與 PCUART_1",
@@ -3374,10 +3374,10 @@ def run_all_verifications():
                   and 'id="qaCheatsheetModal"' in idx81_src
                   and "qaCopySnippet" in qa81_src
                   and "bbLoadSingleInstPreset" in bb81_src
-                  and "過站開關 (System.ini)" in ae81_src
-                  and "埠號與變數 (Global.ini)" in ae81_src
+                  and "環境與埠號 (INI 設定)" in ae81_src
+                  and "修改 Global.ini" in ae81_src
                   and "測項順序與停用" in ae81_src
-                  and "跳轉與重試 (ExecMode)" in ae81_src
+                  and "跳轉與多 SKU 分流" in ae81_src
                   and 'id="editorSheetSel"' in ae81_src
                   and "IS_FROZEN" in open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
                   and "('IMAGES', 'IMAGES')" in spec81_src,
@@ -3439,6 +3439,16 @@ def run_all_verifications():
                   and '失敗回前步重試 (2:XX)' in idx81_src,
                   "v0.8.083 雙主卡初始著色與懸浮拉伸、1->N恆常顯示匯出列、跳轉多重起點與白話模板全部檢查通過",
                   "missing expected v0.8.083 markers")
+
+            # [v0.8.084] 1->N 改為 3x2 寬版功能網格：合併 INI 卡、跳轉+SKU 同卡、跨檔複製卡、頂部去重
+            check('class="hub-grid-3x2"' in ae81_src
+                  and 'globalHubCard_copy_sheet' in ae81_src
+                  and '切換至 Global.ini' in ae81_src
+                  and '切換至 System.ini' in ae81_src
+                  and 'id="btnEditorTplSkuWizard"' in ae81_src
+                  and 'id="btnEditorTplSkuWizard"' not in idx81_src,
+                  "v0.8.084 1->N 改為 3x2 寬版功能格（INI合併/跳轉+SKU同卡/跨檔複製獨立卡/頂部去重）檢查通過",
+                  "missing expected v0.8.084 markers")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

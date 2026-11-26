@@ -2636,3 +2636,79 @@ button:not(:disabled):hover {
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.38);
   pointer-events: none;
 }
+/* ======================== 1->N Editor 3x2 Spacious Card Grid ======================== */
+.hub-grid-3x2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 1080px) {
+  .hub-grid-3x2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .hub-grid-3x2 { grid-template-columns: 1fr; }
+}
+.hub-grid-card {
+  border-radius: 12px;
+  border: 1.5px solid #CBD5E1;
+  background: #F8FAFC;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.hub-grid-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px -6px rgba(15, 23, 42, 0.14);
+}
+.hub-grid-card[data-theme="blue"] {
+  background: linear-gradient(145deg, #EFF6FF 0%, #F8FAFC 100%);
+  border-color: #93C5FD;
+}
+.hub-grid-card[data-theme="blue"]:hover {
+  background: linear-gradient(145deg, #DBEAFE 0%, #EFF6FF 100%);
+  border-color: #2563EB;
+}
+.hub-grid-card[data-theme="amber"] {
+  background: linear-gradient(145deg, #FFFBEB 0%, #FFFFFF 100%);
+  border-color: #FCD34D;
+}
+.hub-grid-card[data-theme="amber"]:hover {
+  background: linear-gradient(145deg, #FEF3C7 0%, #FFFBEB 100%);
+  border-color: #D97706;
+}
+.hub-grid-card[data-theme="indigo"] {
+  background: linear-gradient(145deg, #EEF2FF 0%, #F8FAFC 100%);
+  border-color: #A5B4FC;
+}
+.hub-grid-card[data-theme="indigo"]:hover {
+  background: linear-gradient(145deg, #E0E7FF 0%, #EEF2FF 100%);
+  border-color: #4F46E5;
+}
+.hub-grid-card[data-theme="green"] {
+  background: linear-gradient(145deg, #F0FDF4 0%, #FFFFFF 100%);
+  border-color: #86EFAC;
+}
+.hub-grid-card[data-theme="green"]:hover {
+  background: linear-gradient(145deg, #DCFCE7 0%, #F0FDF4 100%);
+  border-color: #16A34A;
+}
+.hub-grid-card[data-theme="gold"] {
+  background: linear-gradient(145deg, #FEFCE8 0%, #FFFFFF 100%);
+  border-color: #FDE047;
+}
+.hub-grid-card[data-theme="gold"]:hover {
+  background: linear-gradient(145deg, #FEF9C3 0%, #FEFCE8 100%);
+  border-color: #CA8A04;
+}
+.hub-grid-card[data-theme="purple"] {
+  background: linear-gradient(145deg, #FAF5FF 0%, #FFFFFF 100%);
+  border-color: #D8B4FE;
+}
+.hub-grid-card[data-theme="purple"]:hover {
+  background: linear-gradient(145deg, #F3E8FF 0%, #FAF5FF 100%);
+  border-color: #7C3AED;
+}
