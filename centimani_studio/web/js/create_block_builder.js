@@ -290,6 +290,19 @@
       popTitle: '開局條碼顯示與 SFIS CheckRoute (Phase 0)',
       popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由（一般測試包僅放一次即可，可在右欄拖曳調整位置）。',
       popExample: '例：:ShowISN,"*(ISN)" ➔ :SfCheckRoute'
+    },
+    {
+      kind: 'dll_call',
+      icon: '🔌',
+      shortName: 'DLL',
+      name: '🔌 DLL',
+      tier: 'advanced',
+      exclusivePage: false,
+      theme: '#F8FAFC',
+      border: '#475569',
+      popTitle: '外部 DLL 掛載 / Utility 系統工具呼叫',
+      popDesc: '進階擴充積木：可掛載 AutLabs / 相機 / 治具 DLL 並呼叫方法（支援 Validation %SELF），或直接產出 Utility.GenDT / GetCOM / CFile / fChkSum。',
+      popExample: '例：:CamPEGA.SFR / :autLabs.Upload / :Utility.GenDT'
     }
   ];
 
@@ -391,6 +404,13 @@
         return Object.assign({}, base, { rw_mode: 'get_version', title: 'SFIS Get MAC', table_name: 'ISN_BASEINFO', field_name: 'MAC1', var_name: 'sfMAC', label_len: '12', save_value: '*(sfMAC)' });
       case 'sfis_upload':
         return Object.assign({}, base, { title: 'Update SFIS', items: [{ field: 'SN1', var_name: 'DUT_FW' }] });
+      case 'dll_call':
+        return Object.assign({}, base, {
+          dll_mode: 'utility', title: 'Utility Step', util_action: 'gen_dt', dt_fmt: 'yyyyMMddhhmmss', var_name: 'sDATE1',
+          dll_file: 'AutLabs.dll', dll_alias: 'autLabs', init_arg: '*$(AL_Alias),ON,ON', send_cmd: ':autLabs.Active,"*(ISN)","1","Step"',
+          reply: '0', ref: '', validation: '', port_id: '*$(PortID)', com_idx: '1', target_alias: 'LinuxUART',
+          src_path: '.\\capture\\shot.bmp', dst_path: '.\\Record\\shot.bmp', file_dir: '.\\API', file_name: 'sample.ini', expect_md5: '*$(sampleMD5)', img_file: 'Loimage.gif'
+        });
       case 'python':
         return Object.assign({}, base, { python_path: 'D:\\PythonScript', script_name: 'my_test.py', result_prefix: 'RESULT=', min_val: '0.0', max_val: '100.0' });
       case 'ping':
@@ -502,6 +522,8 @@
         const chs = Array.isArray(c.children) ? c.children : [];
         return `${c.title || '機能群組'} (${chs.length}塊共用Phase)`;
       }
+      case 'dll_call':
+        return (c.dll_mode === 'utility' ? `Utility.${c.util_action || 'gen_dt'}` : `${c.dll_alias || 'DLL'}.${c.title || ''}`) + dNote;
       case 'teardown':
         return c.teardown_mode === '97_98_99' ? '97 + 98/99' : 'Phase 97';
       case 'end':
@@ -1285,7 +1307,14 @@
       const bc = (b && b.config) || {};
       const numL = nav[i].numLabel || `#${i + 1}`;
       const lbl = (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind;
-      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') addV(bc.var_name || 'gCmdOut', `${numL} ${lbl}`);
+      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') {
+        addV(bc.var_name || 'gCmdOut', `${numL} ${lbl}`);
+        if (Array.isArray(bc.multi_refs)) bc.multi_refs.forEach(mr => addV(mr && mr.var_name, `${numL} ${lbl}(多變數)`));
+      }
+      if (b.kind === 'dll_call') {
+        if (bc.var_name) addV(bc.var_name, `${numL} DLL/Util`);
+        if (bc.ref && String(bc.ref).startsWith('$')) addV(bc.ref, `${numL} DLL/Util`);
+      }
       if (b.kind === 'sfis_rw' && bc.rw_mode !== 'save_link') addV(bc.var_name || 'sfMAC', `${numL} ${lbl}`);
       if (b.kind === 'prompt_box' && bc.prompt_mode === 'input') addV(bc.var_name || 'ScanSub', `${numL} ${lbl}`);
       if (b.kind === 'set_val' || b.kind === 'ext_file') addV(bc.var_name, `${numL} ${lbl}`);
@@ -1726,6 +1755,56 @@
       </div>
     `;
   }
+
+  function _renderExecModeAdvPicker(item, idx) {
+    if (!BB_STATE.qaShowAdv) return '';
+    if (['start', 'end', 'isn', 'multi_sku', 'group', 'teardown'].includes(item.kind)) return '';
+    const c = item.config || {};
+    const curEm = String(c.exec_mode || '');
+    const presets = [
+      ['', '預設自動'],
+      ['0', '0 失敗即停'],
+      ['1', '1 失敗重試(依Retry)'],
+      ['6', '6 失敗仍繼續'],
+      ['2:0', '2:0 失敗跳列重跑'],
+      ['*$(execmode_n)', '*$(INI開關)'],
+    ];
+    return `
+      <div style="margin-top:8px; background:#F0F9FF; border:1.5px dashed #38BDF8; border-radius:8px; padding:8px 11px;">
+        <div style="font-size:0.8rem; font-weight:900; color:#0369A1; margin-bottom:5px;">🧭 ExecMode 執行與失敗跳轉模式（進階設定）：</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <input value="${_esc(curEm)}" placeholder="預設自動（可填 6 / 2:0 / 4:P,F / *$(VAR)）" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="width:190px; padding:4px 8px; border:1.5px solid #0EA5E9; border-radius:5px; font-weight:800; color:#0C4A6E;">
+          ${presets.map(([v, lbl]) => `
+            <button type="button" onclick="bbUpdateField(${idx},'exec_mode','${_esc(v)}',true)" style="cursor:pointer; padding:3px 8px; border-radius:5px; border:1px solid ${curEm === v ? '#0284C7' : '#BAE6FD'}; background:${curEm === v ? '#0284C7' : '#FFFFFF'}; color:${curEm === v ? '#FFFFFF' : '#0369A1'}; font-size:0.75rem; font-weight:800;">${lbl}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  window.bbCmdAddRefRow = function (idx) {
+    const it = window.bbGetBlockByNavIdx(idx);
+    if (!it) return;
+    it.config = it.config || {};
+    it.config.multi_refs = Array.isArray(it.config.multi_refs) ? it.config.multi_refs : [];
+    it.config.multi_refs.push({ var_name: 'gVar' + (it.config.multi_refs.length + 1), extract_mode: 'within', left_delim: 'Key:', right_delim: '\\n', trim: true, rm_mac: false, up_string: false, rp_space: false });
+    it.configured = true;
+    bbRender();
+  };
+
+  window.bbCmdDelRefRow = function (idx, rIdx) {
+    const it = window.bbGetBlockByNavIdx(idx);
+    if (!it || !it.config || !Array.isArray(it.config.multi_refs)) return;
+    it.config.multi_refs.splice(rIdx, 1);
+    bbRender();
+  };
+
+  window.bbCmdUpdateRefRow = function (idx, rIdx, key, val) {
+    const it = window.bbGetBlockByNavIdx(idx);
+    if (!it || !it.config || !Array.isArray(it.config.multi_refs) || !it.config.multi_refs[rIdx]) return;
+    it.config.multi_refs[rIdx][key] = val;
+    it.configured = true;
+  };
 
   function _buildTopActionButtonsHtml() {
     const totalPages = _getQaNavList().length;
@@ -2305,6 +2384,11 @@
             </div>
             ${showAdv ? `
               <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:9px 12px; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+                ${c.protocol === 'uart' ? `
+                  <label style="font-size:0.8rem; font-weight:700;">連線別名 (Alias，預設 UART)
+                    <input value="${_esc(c.alias || 'UART')}" placeholder="例 LinuxUART / LUART" oninput="bbUpdateField(${idx},'alias',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                  </label>
+                ` : ''}
                 <label style="font-size:0.8rem; font-weight:700;">結尾提示符 (EndPrompt)
                   <input value="${_esc(c.end_prompt ?? '#')}" oninput="bbUpdateField(${idx},'end_prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                 </label>
@@ -2401,9 +2485,35 @@
                         </label>
                       `}
                     </div>
-                    <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; cursor:pointer;">
-                      <input type="checkbox" ${c.use_ini_var ? 'checked' : ''} onchange="bbUpdateField(${idx},'use_ini_var',this.checked)"> 將目標值/上下限同時抽出到 Global.ini [Scripts]（日後免改 Excel）
-                    </label>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:4px;">
+                      <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.8rem; font-weight:700; cursor:pointer;">
+                        <input type="checkbox" ${c.use_ini_var ? 'checked' : ''} onchange="bbUpdateField(${idx},'use_ini_var',this.checked)"> 將目標值/上下限抽出到 Global.ini [Scripts]
+                      </label>
+                      <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; cursor:pointer;"><input type="checkbox" ${c.trim ? 'checked' : ''} onchange="bbUpdateField(${idx},'trim',this.checked)"> :Trim</label>
+                      <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; cursor:pointer;"><input type="checkbox" ${c.rm_mac ? 'checked' : ''} onchange="bbUpdateField(${idx},'rm_mac',this.checked)"> :rmMAC</label>
+                      <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; cursor:pointer;"><input type="checkbox" ${c.up_string ? 'checked' : ''} onchange="bbUpdateField(${idx},'up_string',this.checked)"> :upString</label>
+                      <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; cursor:pointer;"><input type="checkbox" ${c.rp_space ? 'checked' : ''} onchange="bbUpdateField(${idx},'rp_space',this.checked)"> :rpString去空白</label>
+                    </div>
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #CBD5E1;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:0.79rem; font-weight:900; color:#1E40AF;">🧬 單筆指令同時擷取多個變數（多行 Ref，如 mfg sysinfo）：</span>
+                        <button type="button" class="btn" style="padding:2px 9px; font-size:0.74rem; font-weight:800; background:#DBEAFE; border:1px solid #60A5FA;" onclick="bbCmdAddRefRow(${idx})">＋ 新增同時擷取變數</button>
+                      </div>
+                      ${(Array.isArray(c.multi_refs) && c.multi_refs.length) ? c.multi_refs.map((mr, mi) => `
+                        <div style="display:grid; grid-template-columns:110px 95px 1fr 1fr auto 28px; gap:5px; align-items:center; margin-top:4px;">
+                          <input value="${_esc(mr.var_name || '')}" placeholder="變數名" oninput="bbCmdUpdateRefRow(${idx},${mi},'var_name',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
+                          <select onchange="bbCmdUpdateRefRow(${idx},${mi},'extract_mode',this.value)" style="padding:3px; border:1px solid #94A3B8; border-radius:4px; font-size:0.75rem;">
+                            <option value="within" ${mr.extract_mode !== 'split' && mr.extract_mode !== 'sub' ? 'selected' : ''}>Within</option>
+                            <option value="split" ${mr.extract_mode === 'split' ? 'selected' : ''}>Split</option>
+                            <option value="sub" ${mr.extract_mode === 'sub' ? 'selected' : ''}>Sub</option>
+                          </select>
+                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_sep || ':') : (mr.extract_mode === 'sub' ? (mr.sub_start || '0') : (mr.left_delim ?? '')))}" placeholder="左界/分隔/起" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_sep' : (mr.extract_mode === 'sub' ? 'sub_start' : 'left_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
+                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_idx || '1') : (mr.extract_mode === 'sub' ? (mr.sub_len || '8') : (mr.right_delim ?? '\\n')))}" placeholder="右界/段數/長" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_idx' : (mr.extract_mode === 'sub' ? 'sub_len' : 'right_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
+                          <label style="font-size:0.72rem; font-weight:700;"><input type="checkbox" ${mr.trim ? 'checked' : ''} onchange="bbCmdUpdateRefRow(${idx},${mi},'trim',this.checked)">Trim</label>
+                          <button type="button" style="border:1px solid #FCA5A5; background:#FFF; color:#DC2626; border-radius:4px; cursor:pointer; font-weight:900;" onclick="bbCmdDelRefRow(${idx},${mi})">✕</button>
+                        </div>
+                      `).join('') : '<div style="font-size:0.74rem; color:#64748B;">（未新增多行 Ref 時，只擷取上方單一變數）</div>'}
+                    </div>
                   </div>
                 ` : ''}
                 <div id="bbExtractSimBox" style="background:#FFFFFF; border:1px solid #93C5FD; border-radius:6px; padding:6px 10px; font-size:0.82rem;">
@@ -3016,6 +3126,67 @@
         `;
       }
 
+      case 'dll_call': {
+        const dmode = c.dll_mode || 'utility';
+        const uact = c.util_action || 'gen_dt';
+        return `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <label style="cursor:pointer; padding:6px 12px; border-radius:8px; border:1.5px solid ${dmode === 'utility' ? '#2563EB' : '#CBD5E1'}; background:${dmode === 'utility' ? '#EFF6FF' : '#F8FAFC'}; font-weight:800; font-size:0.84rem;">
+                <input type="radio" name="bbDllM_${idx}" ${dmode === 'utility' ? 'checked' : ''} onchange="bbUpdateField(${idx},'dll_mode','utility',true)"> 🧰 內建 Utility 工具指令（時間戳 / GetCOM / CFile / MD5 / 顯示圖片）
+              </label>
+              <label style="cursor:pointer; padding:6px 12px; border-radius:8px; border:1.5px solid ${dmode === 'custom_dll' ? '#2563EB' : '#CBD5E1'}; background:${dmode === 'custom_dll' ? '#EFF6FF' : '#F8FAFC'}; font-weight:800; font-size:0.84rem;">
+                <input type="radio" name="bbDllM_${idx}" ${dmode === 'custom_dll' ? 'checked' : ''} onchange="bbUpdateField(${idx},'dll_mode','custom_dll',true)"> 🔌 掛載並呼叫外部客製 DLL（自動寫入 DUTs Connection）
+              </label>
+            </div>
+            ${dmode === 'utility' ? `
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${[
+                  ['gen_dt', '🕒 GenDT 時間戳'],
+                  ['get_com', '🔌 GetCOM+AddAttr 抓埠'],
+                  ['cfile', '📁 CFile 複製檔案'],
+                  ['fchksum', '🔐 fChkSum MD5檢查'],
+                  ['show_img', '🖼️ ShowImageMessage 圖片'],
+                  ['get_yr', '📅 GetYR 年份'],
+                ].map(([ak, al]) => `
+                  <button type="button" class="btn" style="padding:4px 10px; font-size:0.8rem; font-weight:800; ${uact === ak ? 'background:#1E293B; color:#FFF;' : ''}" onclick="bbUpdateField(${idx},'util_action','${ak}',true)">${al}</button>
+                `).join('')}
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:8px;">
+                <label style="font-size:0.82rem; font-weight:700;">階段標題 (Title)
+                  <input value="${_esc(c.title || 'Utility Step')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                ${uact === 'get_com' ? `
+                  <label style="font-size:0.82rem; font-weight:700;">PortID / Token <input value="${_esc(c.port_id || '*$(PortID)')}" oninput="bbUpdateField(${idx},'port_id',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">目標 UART 別名 <input value="${_esc(c.target_alias || 'LinuxUART')}" oninput="bbUpdateField(${idx},'target_alias',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                ` : uact === 'cfile' ? `
+                  <label style="font-size:0.82rem; font-weight:700;">來源路徑 <input value="${_esc(c.src_path || '.\\\\capture\\\\shot.bmp')}" oninput="bbUpdateField(${idx},'src_path',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">目的路徑 <input value="${_esc(c.dst_path || '.\\\\Record\\\\shot.bmp')}" oninput="bbUpdateField(${idx},'dst_path',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                ` : uact === 'fchksum' ? `
+                  <label style="font-size:0.82rem; font-weight:700;">資料夾 <input value="${_esc(c.file_dir || '.\\\\API')}" oninput="bbUpdateField(${idx},'file_dir',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">檔名 <input value="${_esc(c.file_name || 'sample.ini')}" oninput="bbUpdateField(${idx},'file_name',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">預期 MD5 <input value="${_esc(c.expect_md5 || '*$(sampleMD5)')}" oninput="bbUpdateField(${idx},'expect_md5',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                ` : uact === 'show_img' ? `
+                  <label style="font-size:0.82rem; font-weight:700;">圖片檔名 <input value="${_esc(c.img_file || 'Loimage.gif')}" oninput="bbUpdateField(${idx},'img_file',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                ` : `
+                  <label style="font-size:0.82rem; font-weight:700;">時間格式 <input value="${_esc(c.dt_fmt || 'yyyyMMddhhmmss')}" oninput="bbUpdateField(${idx},'dt_fmt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                  <label style="font-size:0.82rem; font-weight:700;">存進變數 ($) <input value="${_esc(c.var_name || 'sDATE1')}" oninput="bbUpdateField(${idx},'var_name',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                `}
+              </div>
+            ` : `
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:8px;">
+                <label style="font-size:0.82rem; font-weight:700;">DLL 檔名 (例 dllCam.dll) <input value="${_esc(c.dll_file || 'AutLabs.dll')}" oninput="bbUpdateField(${idx},'dll_file',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                <label style="font-size:0.82rem; font-weight:700;">連線別名 (Alias) <input value="${_esc(c.dll_alias || 'autLabs')}" oninput="bbUpdateField(${idx},'dll_alias',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                <label style="font-size:0.82rem; font-weight:700;">DUTs 初始參數 <input value="${_esc(c.init_arg || '')}" oninput="bbUpdateField(${idx},'init_arg',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                <label style="font-size:0.82rem; font-weight:700;">呼叫指令 (Send) <input value="${_esc(c.send_cmd || '')}" oninput="bbUpdateField(${idx},'send_cmd',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                <label style="font-size:0.82rem; font-weight:700;">Ref 擷取變數 <input value="${_esc(c.ref || '')}" placeholder="例 items 或 $ret" oninput="bbUpdateField(${idx},'ref',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+                <label style="font-size:0.82rem; font-weight:700;">Validation (支援 %SELF) <input value="${_esc(c.validation || '')}" placeholder="例 (items,%SELF,,)" oninput="bbUpdateField(${idx},'validation',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;"></label>
+              </div>
+            `}
+          </div>
+        `;
+      }
+
       case 'teardown':
         return `
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -3115,6 +3286,17 @@
               <span>共用 Title：</span>
               <input value="${_esc((parentGrp.config && parentGrp.config.title) || '自訂機能群組')}" oninput="bbGroupSetField(${entry.stackIdx},'title',this.value)" style="padding:2px 7px; border:1px solid #F59E0B; border-radius:5px; font-size:0.78rem; font-weight:800; width:150px;">
             </label>
+            ${BB_STATE.qaShowAdv ? `
+              <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#92400E;">
+                <span>群組階段角色：</span>
+                <select onchange="bbGroupSetField(${entry.stackIdx},'phase_role',this.value); bbRender();" style="padding:2px 6px; border:1px solid #F59E0B; border-radius:5px; font-size:0.76rem; font-weight:800;">
+                  <option value="normal" ${(parentGrp.config && parentGrp.config.phase_role) !== '97' && (parentGrp.config && parentGrp.config.phase_role) !== '98' && (parentGrp.config && parentGrp.config.phase_role) !== '99' ? 'selected' : ''}>一般測項 (自動順編)</option>
+                  <option value="97" ${(parentGrp.config && parentGrp.config.phase_role) === '97' ? 'selected' : ''}>Phase 97 強制收尾</option>
+                  <option value="98" ${(parentGrp.config && parentGrp.config.phase_role) === '98' ? 'selected' : ''}>Phase 98 (PASS 綠燈收尾)</option>
+                  <option value="99" ${(parentGrp.config && parentGrp.config.phase_role) === '99' ? 'selected' : ''}>Phase 99 (FAIL 紅燈收尾)</option>
+                </select>
+              </label>
+            ` : ''}
           </div>
         ` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
@@ -3128,6 +3310,7 @@
         <div style="min-height:175px;">
           ${_renderQaBody(item, navIdx)}
           ${_renderTestIdAdvPicker(item, navIdx)}
+          ${_renderExecModeAdvPicker(item, navIdx)}
           <div id="bbLinkedIniBadgeBox">${_renderLinkedIniBadge(item, navIdx)}</div>
           ${_renderPostDelayBar(item, navIdx)}
         </div>

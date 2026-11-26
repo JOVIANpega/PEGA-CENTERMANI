@@ -687,11 +687,16 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
         ws_prop.append([p_name, p_val])
     apply_sheet_formatting(ws_prop, is_station=False)
 
-    # 2. DUTs
+    # 2. DUTs (preserve Connection1..4 plus any extra Connection5..10 added by multi-alias UART/DLL blocks)
     ws_duts = wb.create_sheet(title="DUTs")
-    ws_duts.append(DUTS_HEADERS_10)
+    duts_hdrs = list(DUTS_HEADERS_10)
     for d in workspace.get("duts", []):
-        ws_duts.append([d.get(h, "") or None for h in DUTS_HEADERS_10])
+        for k in d.keys():
+            if k not in duts_hdrs and k.startswith("Connection") and str(d.get(k) or "").strip():
+                duts_hdrs.append(k)
+    ws_duts.append(duts_hdrs)
+    for d in workspace.get("duts", []):
+        ws_duts.append([d.get(h, "") or None for h in duts_hdrs])
     apply_sheet_formatting(ws_duts, is_station=False)
 
     # 3. Switch

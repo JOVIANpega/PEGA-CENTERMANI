@@ -2751,6 +2751,72 @@ def run_all_verifications():
                   and 'translateY(-5px)' in app_css,
                   "v0.8.073 兩張主力卡取消手風琴改為並排等寬雙大卡與懸浮上浮變色效果檢查通過")
 
+            # [v0.8.074] 4 大高回報積木升級：多別名UART + ExecMode進階選單 + 多行Ref鏈式處理 + 通用DLL/Utility積木 + Phase 97/98/99群組容器
+            cbb_74 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check("kind: 'dll_call'" in cbb_74
+                  and "_renderExecModeAdvPicker" in cbb_74
+                  and "bbCmdAddRefRow" in cbb_74
+                  and "phase_role" in cbb_74
+                  and "連線別名 (Alias，預設 UART)" in cbb_74,
+                  "v0.8.074 多別名UART、ExecMode進階選單、多行Ref表、通用DLL積木與97/98/99群組容器UI檢查通過")
+
+            v74_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V74_UPGRADE_PROJ",
+                "station_name": "FATP_OPT",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 6, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "u0", "kind": "start", "config": {"project": "V74_UPGRADE_PROJ", "station": "FATP_OPT", "dut_count": 1}},
+                    {"uid": "u1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 6, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "u2", "kind": "sfis_route", "config": {"sfis_mode": "offline"}},
+                    {"uid": "u3", "kind": "comm_cmd", "config": {
+                        "protocol": "uart", "alias": "LinuxUART", "port": "COM31", "title": "SysInfo MultiRef",
+                        "command": "mfg sysinfo", "end_prompt": "/#", "exec_mode": "6",
+                        "multi_refs": [
+                            {"var_name": "gMod", "extract_mode": "within", "left_delim": "Model:", "right_delim": "\\n", "trim": True, "rp_space": True},
+                            {"var_name": "gMAC", "extract_mode": "within", "left_delim": "MAC:", "right_delim": "\\n", "trim": True, "rm_mac": True, "up_string": True},
+                        ],
+                    }},
+                    {"uid": "u4", "kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "gen_dt", "title": "Stamp", "dt_fmt": "yyyyMMdd", "var_name": "cDATE"}},
+                    {"uid": "u5", "kind": "dll_call", "config": {
+                        "dll_mode": "custom_dll", "dll_file": "dllCam.dll", "dll_alias": "CamPEGA",
+                        "init_arg": ".\\API\\sample.ini", "title": "SFR Check",
+                        "send_cmd": ':CamPEGA.SFR,"*(ISN),1,1"', "ref": "items", "validation": "(items,%SELF,,)",
+                        "exec_mode": "*$(AULAB)", "test_id": "IPIO01C",
+                    }},
+                    {"uid": "u6", "kind": "group", "config": {
+                        "title": "PASS_DISCONNECTION", "phase_role": "98",
+                        "children": [
+                            {"uid": "td1", "kind": "comm_cmd", "config": {"protocol": "uart", "alias": "LinuxUART", "port": "COM31", "title": "Kill Cam", "command": "killall cam", "exec_mode": "3"}},
+                        ],
+                    }},
+                    {"uid": "u7", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "u8", "kind": "end", "config": {"confirmed": True}},
+                ],
+            })
+            ws_v74 = _parse_v50(v74_res["excel_path"])
+            v74_rows = ws_v74["stations"]["FATP_OPT"]
+            v74_sends = [str(r.get("Send") or "") for r in v74_rows]
+            v74_refs = [str(r.get("Ref") or "") for r in v74_rows]
+            v74_ems = [str(r.get("ExecMode") or "") for r in v74_rows]
+            v74_phases = set(str(r.get("Phase") or "").strip() for r in v74_rows if str(r.get("Phase") or "").strip())
+            v74_dut_vals = " | ".join(str(v or "") for v in ws_v74["duts"][0].values())
+            v74_ar = v74_res.get("audit_report") or {}
+            check(v74_res.get("status") == "ok"
+                  and "LinuxUART@mfg sysinfo\\r\\n" in v74_sends
+                  and ':Utility.GenDT,"yyyyMMdd"' in v74_sends
+                  and ':CamPEGA.SFR,"*(ISN),1,1"' in v74_sends
+                  and "LinuxUART@killall cam\\r\\n" in v74_sends
+                  and any(":Trim:rmMAC:upString" in rf and ":rpString" in rf for rf in v74_refs)
+                  and "*$(AULAB)" in v74_ems and "6" in v74_ems
+                  and "98" in v74_phases
+                  and "LinuxUART" in v74_dut_vals and "CamPEGA" in v74_dut_vals
+                  and int(v74_ar.get("error_count", -1)) == 0,
+                  "v0.8.074 多別名LinuxUART + 多行鏈式Ref + 客製DLL寫DUTs + ExecMode開關 + Phase98群組 + 0 Error 通過",
+                  f"phases={v74_phases}, ems={v74_ems}, ar={v74_ar}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

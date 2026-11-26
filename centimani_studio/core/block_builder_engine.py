@@ -56,7 +56,7 @@ def _safe_var(name, default="gVal"):
 
 
 def _ensure_dut_connection(ws, alias, conn_str_fn):
-    """Ensure every DUT slot has `alias` mounted in Connection1..5 without duplicates."""
+    """Ensure every DUT slot has `alias` mounted in Connection1..10 without duplicates."""
     alias_low = str(alias or "").strip().lower()
     if not alias_low:
         return
@@ -66,6 +66,11 @@ def _ensure_dut_connection(ws, alias, conn_str_fn):
         "Connection3 (Type,Name,ConnectString)",
         "Connection4(Type,Name,ConnectString)",
         "Connection5(Type,Name,ConnectString)",
+        "Connection6(Type,Name,ConnectString)",
+        "Connection7(Type,Name,ConnectString)",
+        "Connection8(Type,Name,ConnectString)",
+        "Connection9(Type,Name,ConnectString)",
+        "Connection10(Type,Name,ConnectString)",
     ]
     for slot_idx, dut in enumerate(ws.get("duts") or [], 1):
         already = False
@@ -123,23 +128,76 @@ def _apply_custom_test_id(rows_slice, custom_tid):
         rows_slice[0]["TestID"] = tid
 
 
+def _apply_custom_exec_mode(rows_slice, custom_em, g_set=None):
+    """Apply user-chosen ExecMode (e.g. '6', '2:0', '*$(AULAB)') to primary action rows."""
+    em = str(custom_em or "").strip()
+    if not em or not rows_slice:
+        return
+    if g_set is not None:
+        for m in re.finditer(r"\*\$\(([^)]+)\)", em):
+            vn = m.group(1).strip()
+            if vn and vn not in g_set:
+                g_set[vn] = "1"
+    applied = False
+    for r in rows_slice:
+        s = str(r.get("Send") or "").strip()
+        if not any(s.startswith(p) for p in _UTILITY_SENDS):
+            r["ExecMode"] = em
+            applied = True
+    if not applied:
+        rows_slice[0]["ExecMode"] = em
+
+
+def _build_single_ref_line(spec):
+    vn = _safe_var(spec.get("var_name") or "gCmdOut", "gCmdOut")
+    em = str(spec.get("extract_mode") or "within").strip().lower()
+    chain = f"${vn}"
+    if spec.get("rp_space"):
+        chain += ':rpString," ",""'
+    if em == "split":
+        sep = str(spec.get("split_sep") or ":").replace('"', '\\"')
+        idx_s = str(spec.get("split_idx") or "1").strip() or "1"
+        chain += f':SplitString,"{sep}","{idx_s}"'
+    elif em == "sub":
+        st_i = str(spec.get("sub_start") or "0").strip() or "0"
+        ln_i = str(spec.get("sub_len") or "8").strip() or "8"
+        chain += f':SubString,"{st_i}","{ln_i}"'
+    else:
+        left_s = str(spec.get("left_delim") if spec.get("left_delim") is not None else "version=").replace('"', '\\"')
+        right_s = str(spec.get("right_delim") if spec.get("right_delim") is not None else "\\r\\n").replace('"', '\\"')
+        chain += f':WithinString,"{left_s}","{right_s}",""'
+    if spec.get("trim"):
+        chain += ":Trim"
+    if spec.get("rm_mac"):
+        chain += ":rmMAC"
+    if spec.get("up_string"):
+        chain += ":upString"
+    return chain
+
+
+def _register_ini_tokens(text, g_set, default_val="1"):
+    for m in re.finditer(r"\*\$\(([^)]+)\)", str(text or "")):
+        vn = m.group(1).strip()
+        if vn and vn not in g_set:
+            g_set[vn] = default_val
+
+
 def _dedup_group_steps(grp_steps):
     """Keep one shared Phase/Title for a group box and strip redundant mid-group UART connects."""
     opened_uart = set()
     cleaned = []
-    skip_next_prompt = False
+    skip_prompt_alias = ""
     for r in grp_steps:
         s = str(r.get("Send") or "").strip()
-        if skip_next_prompt and s == "UART@\\r\\n":
-            skip_next_prompt = False
+        if skip_prompt_alias and s == f"{skip_prompt_alias}@\\r\\n":
+            skip_prompt_alias = ""
             continue
-        skip_next_prompt = False
+        skip_prompt_alias = ""
         m_conn = re.match(r'^:Connect,"([^"]+)"$', s)
         if m_conn:
             alias = m_conn.group(1)
             if alias in opened_uart:
-                if alias == "UART":
-                    skip_next_prompt = True
+                skip_prompt_alias = alias
                 continue
             opened_uart.add(alias)
         m_disc = re.match(r'^:Disconnect,"([^"]+)"$', s)
@@ -177,9 +235,22 @@ def build_workspace_from_sequence(
         next_phase[0] += 1
         return p
 
-    # Separate teardown and end guardrail items cleanly
-    normal_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") not in ("teardown", "end")]
-    teardown_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") == "teardown"]
+    # Separate teardown blocks and phase_role 97/98/99 groups cleanly
+    normal_items = []
+    teardown_items = []
+    teardown_groups = []
+    for it in (sequence or []):
+        if not isinstance(it, dict):
+            continue
+        k = it.get("kind")
+        if k == "teardown":
+            teardown_items.append(it)
+        elif k == "end":
+            continue
+        elif k == "group" and str((it.get("config") or {}).get("phase_role") or "normal") in ("97", "98", "99"):
+            teardown_groups.append(it)
+        else:
+            normal_items.append(it)
 
     def _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route):
         from core.sfis_client import build_sfis_excel_steps
@@ -326,16 +397,25 @@ def build_workspace_from_sequence(
 
             # Determine connection alias & prefix
             if proto == "uart":
-                alias = "UART"
-                g_set["DUT_UR1"] = str(cfg.get("port") or g_set.get("DUT_UR1") or "COM4").strip()
-                _ensure_dut_connection(
-                    ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
-                )
-                connect_step = _step(phase=ph, title=t_str, send=':Connect,"UART"', reply="0",
-                                     exec_mode="1", description="PC#-#Connect UART Port", test_id="OTFX082")
-                prompt_step = _step(send="UART@\\r\\n", reply=f"@{endp}" if endp else "@#", end_prompt=endp or "#",
-                                    waiting="5000", exec_mode="1", description="DUT#-#Check Console Prompt", test_id="OTFX079")
-                send_str = f"UART@{cmd}\\r\\n"
+                raw_alias = str(cfg.get("alias") or "UART").strip()
+                alias = _safe_var(raw_alias, "UART") if raw_alias else "UART"
+                port_val = str(cfg.get("port") or g_set.get("DUT_UR1") or "COM4").strip()
+                if alias == "UART":
+                    g_set["DUT_UR1"] = port_val
+                    _ensure_dut_connection(
+                        ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
+                    )
+                else:
+                    ini_ur_key = f"{alias}_UR"
+                    g_set[f"{ini_ur_key}1"] = port_val
+                    _ensure_dut_connection(
+                        ws, alias, lambda sl, a=alias, k=ini_ur_key: f'"Uart","{a}","*$({k}{sl}),115200,8,One,None,None,10000,5000"'
+                    )
+                connect_step = _step(phase=ph, title=t_str, send=f':Connect,"{alias}"', reply="0",
+                                     exec_mode="1", description=f"PC#-#Connect {alias} Port", test_id="OTFX082")
+                prompt_step = _step(send=f"{alias}@\\r\\n", reply=f"@{endp}" if endp else "@#", end_prompt=endp or "#",
+                                    waiting="5000", exec_mode="1", description=f"DUT#-#Check {alias} Prompt", test_id="OTFX079")
+                send_str = f"{alias}@{cmd}\\r\\n"
                 close_step = None
             elif proto == "ssh":
                 alias = "SSH1"
@@ -383,23 +463,19 @@ def build_workspace_from_sequence(
                 close_step = _step(send=':Disconnect,"CmdConsole"', reply="0", exec_mode="3",
                                    description="PC#-#Close Console", test_id="B7PL025")
 
+            _register_ini_tokens(cmd, g_set, "1")
+            _register_ini_tokens(reply_kw, g_set, "1")
             ref_expr = ""
             val_expr = ""
+            multi_refs = [mr for mr in (cfg.get("multi_refs") or []) if isinstance(mr, dict) and str(mr.get("var_name") or "").strip()]
             step_reply = f"@{reply_kw}" if (extract_mode == "reply_only" and reply_kw) else "@"
-            if extract_mode != "reply_only":
-                if extract_mode == "split":
-                    sep = str(cfg.get("split_sep") or ":").replace('"', '\\"')
-                    idx_s = str(cfg.get("split_idx") or "1").strip() or "1"
-                    ref_expr = f'${var_name}:SplitString,"{sep}","{idx_s}"'
-                elif extract_mode == "sub":
-                    st_i = str(cfg.get("sub_start") or "0").strip() or "0"
-                    ln_i = str(cfg.get("sub_len") or "8").strip() or "8"
-                    ref_expr = f'${var_name}:SubString,"{st_i}","{ln_i}"'
-                else:
-                    # default: within
-                    left_s = str(cfg.get("left_delim") if cfg.get("left_delim") is not None else "version=").replace('"', '\\"')
-                    right_s = str(cfg.get("right_delim") if cfg.get("right_delim") is not None else "\\r\\n").replace('"', '\\"')
-                    ref_expr = f'${var_name}:WithinString,"{left_s}","{right_s}",""'
+            if multi_refs:
+                ref_lines = [_build_single_ref_line(mr) for mr in multi_refs]
+                ref_expr = ";\n".join(ref_lines) + ";"
+                if reply_kw:
+                    step_reply = f"@{reply_kw}"
+            elif extract_mode != "reply_only":
+                ref_expr = _build_single_ref_line(cfg)
 
                 if expect_min != "" or expect_max != "":
                     if val_type == "%s":
@@ -796,6 +872,89 @@ def build_workspace_from_sequence(
                 )
             _append_standard_block_steps(bid_map[kind], blk_map, wizard_config, ws, steps, next_phase)
 
+        elif kind == "dll_call":
+            dmode = str(cfg.get("dll_mode") or "custom_dll").strip().lower()
+            title_lbl = str(cfg.get("title") or "DLL / Utility Step").strip() or "DLL / Utility Step"
+            ph = _alloc_phase()
+            if dmode == "utility":
+                uact = str(cfg.get("util_action") or "gen_dt").strip().lower()
+                if uact == "get_com":
+                    port_id = str(cfg.get("port_id") or "*$(PortID)").strip() or "*$(PortID)"
+                    _register_ini_tokens(port_id, g_set, "Port_#0001.Hub_#0001")
+                    com_idx = str(cfg.get("com_idx") or "1").strip() or "1"
+                    tgt_alias = _safe_var(cfg.get("target_alias") or "UART", "UART")
+                    if tgt_alias != "UART":
+                        _ensure_dut_connection(
+                            ws, tgt_alias, lambda sl, a=tgt_alias: f'"Uart","{a}","*$({a}_UR{sl}),115200,8,One,None,None,10000,5000"'
+                        )
+                    steps.extend([
+                        _step(phase=ph, title=f"0,{title_lbl}", send=f':Utility.GetCOM,"{port_id}","{com_idx}"', reply="0",
+                              ref="$comPort", exec_mode="2:0", description="PC#-#Get Dynamic COM", test_id="NBOT043"),
+                        _step(send=f':AddAttribute,"{tgt_alias}","COM","*(comPort)"', reply="0", waiting="500",
+                              exec_mode="0", description=f"PC#-#Bind {tgt_alias} COM", test_id="NBOT043"),
+                        _step(send=f':Parameter,"{tgt_alias}"', reply="*(comPort)", exec_mode="0",
+                              description=f"PC#-#Verify {tgt_alias} Param", test_id="NBOT043"),
+                        _step(send=f':Connect,"{tgt_alias}"', reply="0", waiting="500", exec_mode="2:1",
+                              description=f"PC#-#Open {tgt_alias}", test_id="OTFX117"),
+                    ])
+                elif uact == "cfile":
+                    src_p = str(cfg.get("src_path") or ".\\capture\\shot.bmp").strip()
+                    dst_p = str(cfg.get("dst_path") or ".\\Record\\shot.bmp").strip()
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.CFile,"{src_p}","{dst_p}"',
+                        reply="0", exec_mode="1", description=f"PC#-#Copy File ({title_lbl})", test_id="IOCD041",
+                    ))
+                elif uact == "fchksum":
+                    fdir = str(cfg.get("file_dir") or ".\\API").strip()
+                    fname = str(cfg.get("file_name") or "sample.ini").strip()
+                    exp_md5 = str(cfg.get("expect_md5") or "*$(sampleMD5)").strip()
+                    _register_ini_tokens(exp_md5, g_scr, "")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.fChkSum,"MD5","{fdir}","{fname}"',
+                        reply="0", ref="$fMD5", validation=f"(fMD5,%s,{exp_md5},)", exec_mode="1",
+                        description=f"PC#-#Check MD5 ({fname})", test_id="OTFX076",
+                    ))
+                elif uact == "show_img":
+                    img_f = str(cfg.get("img_file") or "Loimage.gif").strip()
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':ShowImageMessage,"{img_f}","0"',
+                        reply="0", exec_mode="1", description=f"PC#-#Show Image ({img_f})", test_id="B7PL025",
+                    ))
+                elif uact == "get_yr":
+                    out_v = _safe_var(cfg.get("var_name") or "currYR", "currYR")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=":GetYR",
+                        reply="@", ref=f"${out_v}", exec_mode="0", description="PC#-#Get Year", test_id="B7PL025",
+                    ))
+                else:
+                    # gen_dt default
+                    dt_fmt = str(cfg.get("dt_fmt") or "yyyyMMddhhmmss").strip() or "yyyyMMddhhmmss"
+                    out_v = _safe_var(cfg.get("var_name") or "sDATE1", "sDATE1")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.GenDT,"{dt_fmt}"',
+                        reply="0", ref=f"${out_v}", exec_mode="0", description="PC#-#Get Current DTS", test_id="NBOT001",
+                    ))
+            else:
+                dll_file = str(cfg.get("dll_file") or "AutLabs.dll").strip() or "AutLabs.dll"
+                dll_alias = _safe_var(cfg.get("dll_alias") or "autLabs", "autLabs")
+                init_arg = str(cfg.get("init_arg") or "").strip()
+                send_cmd = str(cfg.get("send_cmd") or f":{dll_alias}.Active,\"*(ISN)\",\"1\",\"Step\"").strip()
+                reply_s = str(cfg.get("reply") if cfg.get("reply") is not None else "0").strip()
+                ref_s = str(cfg.get("ref") or "").strip()
+                val_s = str(cfg.get("validation") or "").strip()
+                wait_s = str(cfg.get("waiting") or "").strip()
+                _register_ini_tokens(init_arg, g_set, "1")
+                _register_ini_tokens(send_cmd, g_set, "1")
+                _register_ini_tokens(reply_s, g_set, "1")
+                _ensure_dut_connection(
+                    ws, dll_alias, lambda _sl, df=dll_file, da=dll_alias, ia=init_arg: f'"DLL:{df}","{da}","{ia}"'
+                )
+                steps.append(_step(
+                    phase=ph, title=f"0,{title_lbl}", send=send_cmd, reply=reply_s,
+                    ref=ref_s, validation=val_s, waiting=wait_s, exec_mode="1",
+                    description=f"APP#-#{title_lbl}", test_id="IPIO01C" if "%SELF" in val_s else "B7PL025",
+                ))
+
         elif kind == "group":
             children = [c for c in (cfg.get("children") or []) if isinstance(c, dict)]
             if children:
@@ -832,6 +991,8 @@ def build_workspace_from_sequence(
         )
         if kind != "inst" and cfg.get("test_id"):
             _apply_custom_test_id(steps[step_start_idx:], cfg.get("test_id"))
+        if kind != "inst" and cfg.get("exec_mode"):
+            _apply_custom_exec_mode(steps[step_start_idx:], cfg.get("exec_mode"), g_set=g_set)
         if not skip_post_delay and cfg.get("post_delay_enabled"):
             try:
                 sec = float(cfg.get("post_delay_sec") if cfg.get("post_delay_sec") is not None else 0.5)
@@ -847,18 +1008,49 @@ def build_workspace_from_sequence(
                     test_id="B7PL025",
                 ))
 
-    # Append Teardown block(s) at the end unless running inside a group box
+    # Append Teardown block(s) + custom Phase 97/98/99 groups at the end unless running inside a group box
     if not skip_teardown:
-        if teardown_items:
-            td_cfg = teardown_items[-1].get("config") or {}
-            td_mode = str(td_cfg.get("teardown_mode") or "97_only").strip().lower()
-            for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
-                steps.append(dict(r))
-            if td_mode == "97_98_99":
-                for r in (blk_map.get("BLK_PHASE98_99_BRANCH_TEARDOWN", {}).get("steps") or []):
-                    steps.append(dict(r))
+        td_by_role = {}
+        for tg in teardown_groups:
+            tcfg = tg.get("config") or {}
+            role = str(tcfg.get("phase_role") or "97").strip()
+            tchs = [c for c in (tcfg.get("children") or []) if isinstance(c, dict)]
+            if tchs:
+                tmp_td = {
+                    "project_name": ws.get("project_name"),
+                    "duts": ws.setdefault("duts", []),
+                    "instruments": ws.setdefault("instruments", []),
+                    "switches": ws.setdefault("switches", []),
+                    "marcos": ws.setdefault("marcos", {}),
+                    "global_ini": ws.setdefault("global_ini", {}),
+                    "system_ini": ws.setdefault("system_ini", {}),
+                    "stations": {},
+                }
+                build_workspace_from_sequence(tmp_td, station_name, tchs, wizard_config, build_wizard_block_steps_fn, skip_teardown=True)
+                raw_td = _dedup_group_steps(tmp_td.get("stations", {}).get(station_name) or [])
+                if raw_td:
+                    def_t = {"97": "DISCONNECTION", "98": "PASS_DISCONNECTION", "99": "FAIL_DISCONNECTION"}.get(role, "DISCONNECTION")
+                    g_t = str(tcfg.get("title") or def_t).strip() or def_t
+                    for gi, gr in enumerate(raw_td):
+                        gr["Phase"] = role if gi == 0 else ""
+                        gr["Title"] = g_t if gi == 0 else ""
+                    td_by_role.setdefault(role, []).extend(raw_td)
+
+        td_cfg = (teardown_items[-1].get("config") or {}) if teardown_items else {}
+        td_mode = str(td_cfg.get("teardown_mode") or "97_only").strip().lower()
+        if "97" in td_by_role:
+            steps.extend(td_by_role["97"])
         else:
             for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
+                steps.append(dict(r))
+
+        if "98" in td_by_role or "99" in td_by_role:
+            if "98" in td_by_role:
+                steps.extend(td_by_role["98"])
+            if "99" in td_by_role:
+                steps.extend(td_by_role["99"])
+        elif td_mode == "97_98_99":
+            for r in (blk_map.get("BLK_PHASE98_99_BRANCH_TEARDOWN", {}).get("steps") or []):
                 steps.append(dict(r))
 
     ws["stations"] = {station_name: steps}
@@ -985,15 +1177,18 @@ def build_workspace_from_sequence(
                             {"Send": f':Delay,"{p_wait}"', "ExecMode": "0", "Description": "PC#-#Wait Power Discharge"},
                             {"Send": on_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} ON"},
                         ])
-                    elif p_act == "mcurr":
+                    elif p_act in ("mcurr", "mscurr"):
                         m_dl = dl_s or "50"
                         m_ul = ul_s or "800"
+                        _register_ini_tokens(p_volt, g_set, "12")
+                        meas_cmd = ':Dev.MSCurr' if p_act == "mscurr" else (':Dev.MCurr' if is_pph else f':Dev.Measure,"{p_ch}"')
                         c_steps.extend([
                             {"Send": f':Dev.SetON,"{p_volt}","2"' if is_pph else f':Dev.SwitchON,"{p_ch}"', "ExecMode": "1", "Description": f"Power#-#Set {p_volt}V ON"},
                             {"Send": f':Delay,"{p_wait}"', "ExecMode": "0", "Description": "PC#-#Stabilize Current"},
-                            {"Send": ':Dev.MCurr' if is_pph else f':Dev.Measure,"{p_ch}"', "Ref": "$gCurr", "Validation": f"(gCurr,%f,{m_dl},{m_ul})", "ExecMode": "2:0", "Description": f"Power#-#Check Current ({m_dl}~{m_ul})"},
+                            {"Send": meas_cmd, "Ref": "$gCurr", "Validation": f"(gCurr,%f,{m_dl},{m_ul})", "ExecMode": "2:0", "Description": f"Power#-#Check Current ({m_dl}~{m_ul})"},
                         ])
                     else:
+                        _register_ini_tokens(p_volt, g_set, "12")
                         on_cmd = f':Dev.SetON,"{p_volt}","2"' if is_pph else (':Dev.OutOnOff,"ON"' if is_ps2005 else f':Dev.SwitchON,"{p_ch}"')
                         c_steps.append({"Send": on_cmd, "ExecMode": "1", "Description": f"Power#-#{inst_nm} Power ON"})
                     c_steps.append({"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"})
@@ -1037,6 +1232,12 @@ def build_workspace_from_sequence(
             base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
             if added_n > 0:
                 _apply_custom_test_id(after_steps[base_pos:base_pos + added_n], icfg.get("test_id"))
+        if icfg.get("exec_mode"):
+            after_steps = ws["stations"][station_name]
+            added_n = len(after_steps) - before_inst_len
+            base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
+            if added_n > 0:
+                _apply_custom_exec_mode(after_steps[base_pos:base_pos + added_n], icfg.get("exec_mode"), g_set=g_set)
 
         if icfg.get("post_delay_enabled"):
             try:
