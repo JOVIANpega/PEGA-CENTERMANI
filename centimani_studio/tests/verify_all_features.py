@@ -2307,21 +2307,26 @@ def run_all_verifications():
             })
             v58_wb = openpyxl.load_workbook(v58_res["excel_path"])
             v58_ws = v58_wb["MB2"]
-            v58_sku_has_ni_cmt = any(
-                "NI-6009" in (v58_ws.cell(r_i, 1).comment.text if v58_ws.cell(r_i, 1).comment else "")
+            v58_sku_has_ni = any(
+                "NI-6009" in str(v58_ws.cell(r_i, 7).value or "")
                 and "SetVal" in str(v58_ws.cell(r_i, 7).value or "")
                 for r_i in range(2, v58_ws.max_row + 1)
             )
-            v58_p_minus1_cmt = next(
-                (v58_ws.cell(r_i, 2).comment.text for r_i in range(2, v58_ws.max_row + 1)
-                 if str(v58_ws.cell(r_i, 2).value or "").strip() == "-1" and v58_ws.cell(r_i, 2).comment),
-                ""
+            v58_has_minus1 = any(
+                str(v58_ws.cell(r_i, 2).value or "").strip() == "-1"
+                for r_i in range(2, v58_ws.max_row + 1)
+            )
+            v58_no_comments = not any(
+                v58_ws.cell(r_i, c_i).comment is not None
+                for r_i in range(2, v58_ws.max_row + 1)
+                for c_i in range(1, 17)
             )
             v58_wb.close()
             check(v58_res.get("status") == "ok"
-                  and not v58_sku_has_ni_cmt
-                  and "原編號為 Phase" in v58_p_minus1_cmt,
-                  "v0.8.058 SKU 區塊前插後 NI-6009 標註列位零位移錯位，且 Phase=-1 註解清楚保留原 Phase 編號")
+                  and not v58_sku_has_ni
+                  and v58_has_minus1
+                  and v58_no_comments,
+                  "v0.8.058 SKU 區塊前插後 NI-6009 標註列位零位移錯位，保留 Phase=-1 且 Excel 無多餘註解")
 
             qa_js_txt = open(os.path.join(STUDIO_DIR, "web", "js", "script_qa.js"), "r", encoding="utf-8").read()
             check("qa_phase_gap_minus1" in qa_js_txt and "0, 1, 2, -1, 4, 97" in qa_js_txt,
@@ -3249,6 +3254,94 @@ def run_all_verifications():
                   and v79_phases == ["0", "-1", "1", "97"],
                   "v0.8.079 單顆積木直接設定 Phase 0 / -1 不浪費耗號，下一顆一般測項準確從 Phase 1 起編",
                   f"phases={v79_phases}")
+
+            # [v0.8.080] Ref 冒號/分號轉義（防 Centimani 報 The Ref function """ doesn't define）、
+            #            Phase 0 永遠置頂於 Phase 1 之前、匯出無 Excel Cell Comment、單積木獨立進階切換、
+            #            全站字體連動與按鍵懸停說明 Popup
+            with open(os.path.join(STUDIO_DIR, "web", "js", "create_block_builder.js"), "r", encoding="utf-8") as f_bb80:
+                bb80_src = f_bb80.read()
+            with open(os.path.join(STUDIO_DIR, "web", "index.html"), "r", encoding="utf-8") as f_idx80:
+                idx80_src = f_idx80.read()
+            with open(os.path.join(STUDIO_DIR, "web", "css", "app.css"), "r", encoding="utf-8") as f_css80:
+                css80_src = f_css80.read()
+
+            check("bbToggleItemAdv" in bb80_src
+                  and "item._showAdv" in bb80_src
+                  and "BB_STATE.qaShowAdv ?" not in bb80_src
+                  and "data-pop-tip=" in bb80_src
+                  and 'id="appGlobalBtnPop"' in idx80_src
+                  and "initGlobalButtonPopup" in idx80_src
+                  and "NI-DAQmx 未安裝（安裝後重整網頁 F5 即自動更新）" in idx80_src
+                  and ".app-btn-popup" in css80_src
+                  and "min-width:175px" in bb80_src
+                  and "min-width:195px" in bb80_src,
+                  "v0.8.080 單積木獨立展開進階設定、輸入框加寬不截字、全站按鍵懸停說明 Popup 與字體連動規則檢查通過",
+                  "missing expected v0.8.080 UI/popup/adv markers")
+
+            # Test Phase 0 placed after Phase 1 in input sequence is sorted to the top, AND ':' in SplitString is escaped as '\:'
+            v80_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V80_REF_P0_TOP",
+                "station_name": "FUNCTION",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 10, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "a0", "kind": "start", "config": {"project": "V80_REF_P0_TOP", "station": "FUNCTION", "dut_count": 1}},
+                    {"uid": "a1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 10, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "a2", "kind": "sfis_rw", "config": {"rw_mode": "get_version", "field_name": "MYPROJECT", "var_name": "sfPROJECT", "title": "SFIS Get MAC"}},
+                    {"uid": "a3", "kind": "sfis_route", "config": {"sfis_mode": "offline", "use_phase0": True}},
+                    {"uid": "a4", "kind": "comm_cmd", "config": {
+                        "protocol": "uart", "port": "COM4", "alias": "UART",
+                        "title": "Check UART & FW Version3", "command": "cat /etc/version",
+                        "extract_mode": "split", "split_sep": ":", "split_idx": "1",
+                        "var_name": "DUT_FW", "val_type": "%s", "expect_min": "1.0.0_release",
+                    }},
+                    {"uid": "a5", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "a6", "kind": "end", "config": {"confirmed": True}},
+                ]
+            })
+            ws_v80 = _parse_v50(v80_res["excel_path"])
+            v80_rows = ws_v80["stations"]["FUNCTION"]
+            v80_phases = [str(r.get("Phase") or "").strip() for r in v80_rows if str(r.get("Phase") or "").strip()]
+            v80_refs = [str(r.get("Ref") or "").strip() for r in v80_rows if str(r.get("Ref") or "").strip()]
+            wb_v80_cmt_check = openpyxl.load_workbook(v80_res["excel_path"])
+            v80_any_comment = any(
+                wb_v80_cmt_check[sn].cell(r_i, c_i).comment is not None
+                for sn in wb_v80_cmt_check.sheetnames
+                for r_i in range(1, wb_v80_cmt_check[sn].max_row + 1)
+                for c_i in range(1, wb_v80_cmt_check[sn].max_column + 1)
+            )
+            wb_v80_cmt_check.close()
+            check(v80_res.get("status") == "ok"
+                  and v80_phases == ["0", "1", "2", "97"]
+                  and '$DUT_FW:SplitString,"\\:","1"' in v80_refs
+                  and not v80_any_comment
+                  and int((v80_res.get("audit_report") or {}).get("error_count", -1)) == 0,
+                  "v0.8.080 Phase 0 強制排於 Phase 1 之前 + SplitString 冒號自動轉義為 \\: + 匯出 Excel 無多餘註解 + 0 Error",
+                  f"phases={v80_phases}, refs={v80_refs}, cmt={v80_any_comment}, ar={v80_res.get('audit_report')}")
+
+            # Verify script_doctor detects and auto-fixes legacy unescaped SplitString,":","1"
+            from core.script_doctor import audit_workspace as _aud80, auto_fix_workspace as _fix80
+            ws_bad_ref = {
+                "project_name": "TEST_REF_COLON",
+                "duts": [{"Load": "*$(LOAD_1)", "DUT Name": "P$MB", "Station": "MB,1", "Parameter": "*$(PCIP_1),*$(DUTIP_1),1", "SFIS_DeviceID": "*$(DEVID_1)", "ScanBarcode( {Name,Lengh,Pattern} )": "{ISN,3,[0-9A-Z]}", "Connection1 (Type,Name,ConnectString)": '"Uart","UART","*$(DUT_UR1),115200,8,One,None,None,10000,5000"'}],
+                "instruments": [], "switches": [], "global_ini": {"Settings": {"LOAD_1": "true", "PCIP_1": "1.1.1.1", "DUTIP_1": "1.1.1.2", "DEVID_1": "1", "DUT_UR1": "COM1"}, "Scripts": {}}, "system_ini": {},
+                "stations": {"MB": [
+                    {"Index": "000", "Phase": "0", "Title": "0,Route", "Send": ":ShowISN,\"*(ISN)\"", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "001", "Phase": "", "Title": "", "Send": ":SfCheckRoute", "ExecMode": "8", "TestID": "OTFX085"},
+                    {"Index": "002", "Phase": "1", "Title": "0,Ver,3", "Send": ":Connect,\"UART\"", "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "003", "Phase": "", "Title": "", "Send": "UART@cat /etc/version\\r\\n", "Reply": "@", "Ref": '$DUT_FW:SplitString,":","1"', "ExecMode": "1", "TestID": "B7PL025"},
+                    {"Index": "004", "Phase": "97", "Title": "1,End", "Send": ":Disconnect,\"UART\"", "ExecMode": "3", "TestID": "B7PL025"},
+                ]}
+            }
+            rep_bad = _aud80(ws_bad_ref)
+            _fix80(ws_bad_ref)
+            fixed_ref_str = ws_bad_ref["stations"]["MB"][3]["Ref"]
+            check(any("未跳脫之冒號" in e for e in rep_bad.get("errors", []))
+                  and fixed_ref_str == '$DUT_FW:SplitString,"\\:","1"',
+                  "v0.8.080 script_doctor 正確偵測並自動修復 SplitString 未跳脫冒號 ':' -> '\\:'",
+                  f"errs={rep_bad.get('errors')}, fixed={fixed_ref_str!r}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

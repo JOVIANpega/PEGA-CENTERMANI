@@ -39,10 +39,18 @@
   }
   .btn {
     font-size: calc(var(--app-font-size, 15px) * 0.95);
+    transition: background-color 0.14s ease, border-color 0.14s ease, filter 0.14s ease;
+  }
+  .btn:hover:not(:disabled) {
+    filter: brightness(0.95);
   }
   input, select, textarea {
-    font-size: calc(var(--app-font-size, 15px) * 0.93);
+    font-size: calc(var(--app-font-size, 15px) * 0.94);
     font-family: inherit;
+  }
+  #createBlockBuilderRoot, #auditGlobalEditor, #createBlockBuilderRoot button, #auditGlobalEditor button,
+  #createBlockBuilderRoot label, #auditGlobalEditor label, #createBlockBuilderRoot select, #auditGlobalEditor select {
+    font-size: inherit;
   }
   h1, h2, h3, h4, strong, th, .bold-title {
     font-family: "Calibri", "Microsoft JhengHei UI", sans-serif;
@@ -2575,12 +2583,14 @@ button:not(:disabled):hover {
   color: #312E81 !important;
 }
 .bb-adv-box {
-  margin-top: 9px;
+  margin-top: 10px;
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
   border: 2px dashed #4F46E5;
   border-left: 5px solid #4F46E5;
   border-radius: 9px;
-  padding: 9px 12px;
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  color: #1E1B4B;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 .bb-adv-badge {
@@ -2589,10 +2599,25 @@ button:not(:disabled):hover {
   gap: 4px;
   background: #4F46E5;
   color: #FFFFFF;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 900;
-  padding: 1px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
   letter-spacing: 0.3px;
   margin-right: 6px;
+}
+.app-btn-popup {
+  position: fixed;
+  z-index: 99999;
+  display: none;
+  max-width: 340px;
+  background: #0F172A;
+  color: #F8FAFC;
+  border: 1.5px solid #38BDF8;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: calc(var(--app-font-size, 15px) * 0.88);
+  line-height: 1.48;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.38);
+  pointer-events: none;
 }

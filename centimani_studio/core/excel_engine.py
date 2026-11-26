@@ -403,6 +403,8 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None, row_visual
                 curr_phase_str = str(row[1].value).strip()
 
         for c_idx, cell in enumerate(row, start=1):
+            if cell.comment and getattr(cell.comment, "author", "") == "ScriptDoctor":
+                cell.comment = None
             cell.border = BORDER_THIN
             if r_idx == 1:
                 cell.font = FONT_HEADER
@@ -464,12 +466,7 @@ def apply_sheet_formatting(ws, is_station=False, fixed_cell_map=None, row_visual
                     else:
                         cell.fill = FILL_FIXED_CELL
                         cell.font = FONT_FIXED
-
-                    if show_cmt and note_txt:
-                        cmt = Comment(f"[Centimani Studio 自動標註]\n{note_txt}", "ScriptDoctor")
-                        cmt.width = 320
-                        cmt.height = 120
-                        cell.comment = cmt
+                    # Do not attach Excel cell Comment popups on export (keep clean sheets with fill highlights only)
 
     # Auto-adjust column widths based on text length (bounded by actual_max_c & actual_max_r)
     for col_idx in range(1, actual_max_c + 1):

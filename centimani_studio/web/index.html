@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.079">
+<link rel="stylesheet" href="/css/app.css?v=0.8.080">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.079</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.080</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1912,14 +1912,79 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.079"></script>
-<script src="/js/audit_editors.js?v=0.8.079"></script>
-<script src="/js/flow_guide.js?v=0.8.079"></script>
-<script src="/js/block_sorter.js?v=0.8.079"></script>
-<script src="/js/script_qa.js?v=0.8.079"></script>
-<script src="/js/sfis_hmi.js?v=0.8.079"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.079"></script>
-<script src="/js/create_block_builder.js?v=0.8.079"></script>
+<div id="appGlobalBtnPop" class="app-btn-popup"></div>
+<script src="/js/inst_hmi.js?v=0.8.080"></script>
+<script src="/js/audit_editors.js?v=0.8.080"></script>
+<script src="/js/flow_guide.js?v=0.8.080"></script>
+<script src="/js/block_sorter.js?v=0.8.080"></script>
+<script src="/js/script_qa.js?v=0.8.080"></script>
+<script src="/js/sfis_hmi.js?v=0.8.080"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.080"></script>
+<script src="/js/create_block_builder.js?v=0.8.080"></script>
+<script>
+// 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
+(function initGlobalButtonPopup() {
+  const escH = (s) => String(s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  let activeEl = null;
+  const getPop = () => document.getElementById('appGlobalBtnPop');
+  const posPop = (pop, evt) => {
+    const x = Math.min((evt.clientX || 200) + 14, window.innerWidth - 355);
+    const y = Math.min((evt.clientY || 200) + 16, window.innerHeight - 135);
+    pop.style.left = Math.max(8, x) + 'px';
+    pop.style.top = Math.max(8, y) + 'px';
+  };
+  document.addEventListener('mouseover', (e) => {
+    const target = e.target && e.target.closest ? e.target.closest('button, .btn, .top-nav-pill, .bb-adv-toggle, [data-pop-tip]') : null;
+    if (!target || target.closest('.bb-poker-card')) return;
+    if (activeEl === target) return;
+    if (activeEl && activeEl.hasAttribute('data-native-title')) {
+      activeEl.setAttribute('title', activeEl.getAttribute('data-native-title'));
+      activeEl.removeAttribute('data-native-title');
+    }
+    activeEl = target;
+    let tip = target.getAttribute('data-pop-tip');
+    if (!tip) {
+      const nt = target.getAttribute('title');
+      if (nt) {
+        target.setAttribute('data-native-title', nt);
+        target.removeAttribute('title');
+        tip = nt;
+      } else {
+        const lbl = (target.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 36);
+        tip = lbl ? `點擊執行「${lbl}」` : '';
+      }
+    } else if (target.hasAttribute('title')) {
+      target.setAttribute('data-native-title', target.getAttribute('title'));
+      target.removeAttribute('title');
+    }
+    const pop = getPop();
+    if (!pop || !tip) return;
+    const rawLbl = (target.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 32);
+    pop.innerHTML = (rawLbl && rawLbl !== tip)
+      ? `<div style="font-weight:900; color:#7DD3FC; margin-bottom:3px;">💡 ${escH(rawLbl)}</div><div style="color:#E2E8F0;">${escH(tip)}</div>`
+      : `<div style="color:#E2E8F0;">💡 ${escH(tip)}</div>`;
+    pop.style.display = 'block';
+    posPop(pop, e);
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!activeEl) return;
+    const pop = getPop();
+    if (pop && pop.style.display === 'block') posPop(pop, e);
+  });
+  document.addEventListener('mouseout', (e) => {
+    if (!activeEl) return;
+    const related = e.relatedTarget;
+    if (related && activeEl.contains(related)) return;
+    if (activeEl.hasAttribute('data-native-title')) {
+      activeEl.setAttribute('title', activeEl.getAttribute('data-native-title'));
+      activeEl.removeAttribute('data-native-title');
+    }
+    activeEl = null;
+    const pop = getPop();
+    if (pop) pop.style.display = 'none';
+  });
+})();
+</script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -7461,8 +7526,8 @@ function renderCentimaniEnvUi(profile) {
     const safe = s => String(s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
     if (p.exists) {
       const niHtml = p.ni_daqmx_installed
-        ? '<span style="color:#15803D; font-weight:700;">NI-DAQmx 已安裝</span>'
-        : '<span style="color:#DC2626; font-weight:800;">⚠️ NI-DAQmx 未安裝</span>';
+        ? '<span style="color:#15803D; font-weight:700;" data-pop-tip="偵測到 Windows 系統已安裝 NI-DAQmx (nicaiu.dll)，可直接實機執行 NI6008 / NI6009 類比量測">NI-DAQmx 已安裝</span>'
+        : '<span style="color:#DC2626; font-weight:800;" data-pop-tip="本機尚未偵測到 nicaiu.dll。安裝完 NI-DAQmx 驅動後，只需重整本網頁 (F5) 或點 05 設定頁重新掃描即會自動更新為已安裝">⚠️ NI-DAQmx 未安裝（安裝後重整網頁 F5 即自動更新）</span>';
       homeSumEl.innerHTML = `📊 本機環境：<b>${safe(p.dir_name || 'Centimani')}</b> (v${safe(p.exe_version || '-')}) · 實機可用 DLL <b>${p.dll_count || 0}</b> 支 · ${niHtml}`;
     } else {
       homeSumEl.innerHTML = `<span style="color:#DC2626; font-weight:800;">⚠️ 系統狀態：尚未指定本機 Centimani 主程式目錄</span>`;

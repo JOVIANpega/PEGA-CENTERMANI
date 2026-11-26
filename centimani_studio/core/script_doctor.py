@@ -380,6 +380,27 @@ def _iter_dut_connection_columns(d_row):
         yield col_idx, col_key
 
 
+_REF_DELIM_CALL_RE = re.compile(r'(:(?:SplitString|WithinString)((?:,"(?:\\.|[^"\\])*")+))')
+_UNESC_COL_SEMI_RE = re.compile(r'(?<!\\)([:;])')
+
+
+def _fix_ref_unescaped_delims(raw_ref):
+    """Escape unescaped ':' and ';' inside quoted SplitString/WithinString Ref arguments."""
+    def _repl_call(m):
+        full = m.group(0)
+        head_pos = full.find(",")
+        fn_name = full[:head_pos]
+        args_part = full[head_pos:]
+        fixed_args = re.sub(
+            r'"((?:\\.|[^"\\])*)"',
+            lambda qm: '"' + _UNESC_COL_SEMI_RE.sub(r'\\\1', qm.group(1)) + '"',
+            args_part,
+        )
+        return fn_name + fixed_args
+
+    return _REF_DELIM_CALL_RE.sub(_repl_call, str(raw_ref or ""))
+
+
 def audit_workspace(workspace):
     """
     Runs the 10-Point Logic & Optimization Audit on a workspace dict.
@@ -752,6 +773,10 @@ def audit_workspace(workspace):
                     if ':SplitString,"\\,"' in s_ref:
                         warnings.append(
                             f"[{st_name} 第 {r_num} 列] Ref '{s_ref}' 在 SplitString 誤用跳脫逗號 '\\,'（Centimani 僅還原 \\: 與 \\;，逗號應直接寫為 \",\"）"
+                        )
+                    if _fix_ref_unescaped_delims(s_ref) != s_ref:
+                        errors.append(
+                            f"[{st_name} 第 {r_num} 列] Ref '{s_ref}' 參數內含未跳脫之冒號 ':' 或分號 ';'（Centimani 載入時會誤分割函式名稱並報錯 The Ref function doesn't define，應寫為 \\: 或 \\;）"
                         )
                     if cmd_head_low == ":sfgetimac" and ':SplitString,"\\;"' in s_ref and "%len,12,12" in s_val:
                         warnings.append(
@@ -1456,6 +1481,17 @@ def auto_fix_workspace(workspace, user_choices=None):
                     step["Send"] = fixed_send
                     s_send = fixed_send
                 s_mode = str(step.get("ExecMode", "")).strip()
+
+                raw_ref_val = str(step.get("Ref", "") or "")
+                fixed_ref_val = _fix_ref_unescaped_delims(raw_ref_val)
+                if fixed_ref_val != raw_ref_val:
+                    step["Ref"] = fixed_ref_val
+                    fixed_logs.append(f"[{st_name} 第 {r_num} 列] Ref 字串參數內冒號/分號已自動轉義（防止 Centimani 報錯 The Ref function doesn't define）")
+                    modified_cells.append({
+                        "sheet": st_name, "row": r_num, "col_name": "Ref",
+                        "old": raw_ref_val, "new": fixed_ref_val,
+                        "note": "轉義 SplitString/WithinString 參數內的 : / ;",
+                    })
 
                 # Check if user explicitly picked an option on a Choice Card
                 for c_suffix in ["exec2", "exec4", "obtain"]:

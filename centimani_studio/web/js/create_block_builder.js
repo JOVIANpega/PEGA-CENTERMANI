@@ -1133,10 +1133,22 @@
     if (rerender) bbRender();
   };
 
-  window.bbToggleQaAdv = function (checked) {
-    BB_STATE.qaShowAdv = !!checked;
+  window.bbToggleItemAdv = function (navIdx, checked) {
+    const entry = _getQaNavList()[navIdx];
+    if (!entry || !entry.item) return;
+    const nextVal = !!checked;
+    entry.item._showAdv = nextVal;
+    if (entry.parentGrp) entry.parentGrp._showAdv = nextVal;
     bbRender();
   };
+
+  window.bbToggleQaAdv = function (checked) {
+    window.bbToggleItemAdv(BB_STATE.qaIdx, checked);
+  };
+
+  function _escCentimaniRefArg(val) {
+    return String(val == null ? '' : val).replace(/(?<!\\)([":;])/g, '\\$1');
+  }
 
   function _simulateExtract(cfg) {
     const raw = String(cfg.sample_log || '');
@@ -1150,7 +1162,7 @@
       const idx = parseInt(cfg.split_idx || '1', 10) || 0;
       const parts = sep ? raw.split(sep) : [raw];
       const hit = (idx >= 0 && idx < parts.length) ? parts[idx].trim() : '(超出索引)';
-      return { ok: idx >= 0 && idx < parts.length, text: hit, expr: `$${cfg.var_name || 'gOut'}:SplitString,"${sep}","${idx}"` };
+      return { ok: idx >= 0 && idx < parts.length, text: hit, expr: `$${cfg.var_name || 'gOut'}:SplitString,"${_escCentimaniRefArg(sep)}","${idx}"` };
     }
     if (m === 'sub') {
       const s = parseInt(cfg.sub_start || '0', 10) || 0;
@@ -1171,7 +1183,7 @@
     return {
       ok,
       text: out,
-      expr: `$${cfg.var_name || 'gOut'}:WithinString,"${cfg.left_delim || ''}","${cfg.right_delim || '\\n'}",""`
+      expr: `$${cfg.var_name || 'gOut'}:WithinString,"${_escCentimaniRefArg(cfg.left_delim || '')}","${_escCentimaniRefArg(cfg.right_delim || '\\n')}",""`
     };
   }
 
@@ -1772,18 +1784,18 @@
   };
 
   function _renderTestIdAdvPicker(item, idx) {
-    if (!BB_STATE.qaShowAdv) return '';
+    if (!item._showAdv) return '';
     if (['start', 'end', 'isn', 'multi_sku', 'group'].includes(item.kind)) return '';
     const c = item.config || {};
     return `
       <div class="bb-adv-box" style="margin-top:10px;">
-        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🏷️ TestID（7 碼錯誤碼即時搜尋套用）：</span></div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <input value="${_esc(c.test_id || '')}" placeholder="預設自動（例 BRME027）" oninput="bbUpdateField(${idx},'test_id',this.value,false)" class="mono" style="width:140px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; color:#312E81; background:#FFFFFF;">
-          <input value="${_esc(item._tidQuery || '')}" placeholder="輸入關鍵字搜代碼，例：電流 / 電壓 / LED" oninput="bbSearchTestIdAdv(${idx}, this.value)" style="flex:1; min-width:190px; padding:4px 8px; border:1px solid #818CF8; border-radius:5px; font-size:0.8rem; background:#FFFFFF;">
-          ${c.test_id ? `<button type="button" class="btn" style="padding:3px 8px; font-size:0.75rem;" onclick="bbUpdateField(${idx},'test_id','',true)">清除改自動</button>` : ''}
+        <div style="font-size:0.88rem; font-weight:900; color:#312E81; margin-bottom:7px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🏷️ TestID（7 碼錯誤碼即時搜尋套用）：</span></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input value="${_esc(c.test_id || '')}" placeholder="自動 (例 BRME027)" oninput="bbUpdateField(${idx},'test_id',this.value,false)" class="mono" style="min-width:175px; flex:0 1 210px; padding:6px 10px; border:1.5px solid #6366F1; border-radius:6px; font-size:0.88rem; font-weight:800; color:#312E81; background:#FFFFFF;">
+          <input value="${_esc(item._tidQuery || '')}" placeholder="輸入關鍵字搜代碼，例：電流 / 電壓 / LED" oninput="bbSearchTestIdAdv(${idx}, this.value)" style="flex:1; min-width:220px; padding:6px 10px; border:1.5px solid #818CF8; border-radius:6px; font-size:0.88rem; background:#FFFFFF; color:#0F172A;">
+          ${c.test_id ? `<button type="button" class="btn" data-pop-tip="清除手動指定的 TestID，改回匯出時依測項類型自動帶入" style="padding:5px 10px; font-size:0.84rem;" onclick="bbUpdateField(${idx},'test_id','',true)">清除改自動</button>` : ''}
         </div>
-        <div id="bbTidAdvRes_${idx}" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; font-size:0.76rem; color:#4338CA;">
+        <div id="bbTidAdvRes_${idx}" style="margin-top:7px; display:flex; gap:6px; flex-wrap:wrap; font-size:0.84rem; color:#4338CA;">
           <span>輸入關鍵字即列出官方 TestID，點一下自動寫入本積木</span>
         </div>
       </div>
@@ -1791,7 +1803,7 @@
   }
 
   function _renderExecModeAdvPicker(item, idx) {
-    if (!BB_STATE.qaShowAdv) return '';
+    if (!item._showAdv) return '';
     if (['start', 'end', 'isn', 'multi_sku', 'group', 'teardown'].includes(item.kind)) return '';
     const c = item.config || {};
     const curEm = String(c.exec_mode || '');
@@ -1800,39 +1812,39 @@
     const curPhaseRole = String(c.phase_role || 'normal');
     const allowPhaseRole = (item.kind !== 'sfis_route');
     const presets = [
-      ['', '預設自動'],
-      ['0', '0 失敗即停'],
-      ['1', '1 失敗重試(依Retry)'],
-      ['6', '6 失敗仍繼續'],
-      ['2:0', '2:0 失敗跳列重跑'],
-      ['4:P,F', '4:P,F 分支跳轉'],
-      ['*$(DelayTimeExe)', '*$(INI開關)'],
+      ['', '預設自動', '交由系統依指令類型自動填入最適合的 ExecMode（如 UART 為 1、SFIS 為 8）'],
+      ['0', '0 失敗即停', 'ExecMode=0：此步驟 Fail 時立刻停止整個測試站並報錯'],
+      ['1', '1 失敗重試(依Retry)', 'ExecMode=1：Fail 時依所屬 Title 設定的 RetryCount 次數重跑整個 Title'],
+      ['6', '6 失敗仍繼續', 'ExecMode=6：此步驟僅記錄或除錯用，Fail 不中斷後續測試流程'],
+      ['2:0', '2:0 失敗跳列重跑', 'ExecMode=2:0：此步驟 Fail 時直接跳回本 Title 第 0 列重測（可自改數字目標）'],
+      ['4:P,F', '4:P,F 分支跳轉', 'ExecMode=4:P,F：依結果跳到 PASS 指定步驟或 FAIL 指定步驟（P/F 請改為步驟序號）'],
+      ['*$(DelayTimeExe)', '*$(INI開關)', '由 Global.ini [Scripts] DelayTimeExe 動態決定此步驟執行或略過'],
     ];
     return `
       <div class="bb-adv-box">
-        <div style="font-size:0.81rem; font-weight:900; color:#312E81; margin-bottom:5px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🧭 Phase 角色 / ExecMode 執行模式 / Title 前綴：</span></div>
+        <div style="font-size:0.88rem; font-weight:900; color:#312E81; margin-bottom:7px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;"><span class="bb-adv-badge">⚙️ 進階設定</span><span>🧭 Phase 角色 / ExecMode 執行模式 / Title 前綴：</span></div>
         ${allowPhaseRole ? `
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:7px; padding-bottom:6px; border-bottom:1px dashed #A5B4FC;">
-            <label style="font-size:0.78rem; font-weight:800; color:#312E81;">階段位置 (Phase)：
-              <select onchange="bbUpdateField(${idx},'phase_role',this.value,true)" style="margin-left:4px; padding:3px 7px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; background:#FFFFFF; color:#312E81;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #A5B4FC;">
+            <label style="font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="決定這顆積木歸屬的執行階段：Phase 0 會在開頭預檢先跑、Phase -1 暫停略過不跑">階段位置 (Phase)：
+              <select onchange="bbUpdateField(${idx},'phase_role',this.value,true)" style="margin-left:4px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:6px; font-size:0.86rem; font-weight:800; background:#FFFFFF; color:#312E81;">
                 <option value="normal" ${curPhaseRole === 'normal' || !curPhaseRole ? 'selected' : ''}>一般測項 (自動順編 Phase 1+)</option>
                 <option value="0" ${curPhaseRole === '0' ? 'selected' : ''}>Phase 0 (開頭 Pretest：不計CT / 失敗退重掃)</option>
                 <option value="-1" ${curPhaseRole === '-1' ? 'selected' : ''}>Phase -1 (暫停略過不執行)</option>
                 <option value="same" ${curPhaseRole === 'same' ? 'selected' : ''}>沿用前一塊 Phase (留空不換號)</option>
               </select>
             </label>
-            ${curPhaseRole === '0' ? '<span style="font-size:0.74rem; color:#4338CA; font-weight:700;">💡 Phase 0 會集中於最前面 PrepareTest 先跑，建議擺在序列開頭</span>' : ''}
+            ${curPhaseRole === '0' ? '<span style="font-size:0.82rem; color:#4338CA; font-weight:700;">💡 Phase 0 匯出時將自動排在最上方開頭 PrepareTest</span>' : ''}
           </div>
         ` : ''}
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:7px;">
-          <input value="${_esc(curEm)}" placeholder="預設自動（可填 6 / 2:0 / 4:P,F / *$(VAR)）" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="width:190px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:5px; font-weight:800; color:#312E81; background:#FFFFFF;">
-          ${presets.map(([v, lbl]) => `
-            <button type="button" onclick="bbUpdateField(${idx},'exec_mode','${_esc(v)}',true)" style="cursor:pointer; padding:3px 8px; border-radius:5px; border:1px solid ${curEm === v ? '#4F46E5' : '#A5B4FC'}; background:${curEm === v ? '#4F46E5' : '#FFFFFF'}; color:${curEm === v ? '#FFFFFF' : '#312E81'}; font-size:0.75rem; font-weight:800; transition:background 0.15s;" onmouseenter="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#C7D2FE'" onmouseleave="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#FFFFFF'">${lbl}</button>
+        <div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+          <input value="${_esc(curEm)}" placeholder="自動 (如 6 / 4:P,F)" oninput="bbUpdateField(${idx},'exec_mode',this.value,false)" class="mono" style="min-width:195px; flex:0 1 230px; padding:6px 10px; border:1.5px solid #6366F1; border-radius:6px; font-size:0.88rem; font-weight:800; color:#312E81; background:#FFFFFF;">
+          ${presets.map(([v, lbl, tip]) => `
+            <button type="button" data-pop-tip="${_esc(tip)}" onclick="bbUpdateField(${idx},'exec_mode','${_esc(v)}',true)" style="cursor:pointer; padding:5px 10px; border-radius:6px; border:1.5px solid ${curEm === v ? '#4F46E5' : '#A5B4FC'}; background:${curEm === v ? '#4F46E5' : '#FFFFFF'}; color:${curEm === v ? '#FFFFFF' : '#312E81'}; font-size:0.84rem; font-weight:800; transition:background 0.15s;" onmouseenter="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#C7D2FE'" onmouseleave="if('${_esc(v)}' !== '${_esc(curEm)}') this.style.background='#FFFFFF'">${lbl}</button>
           `).join('')}
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; border-top:1px dashed #A5B4FC; padding-top:6px;">
-          <label style="font-size:0.78rem; font-weight:800; color:#312E81;">Title RunMode 前綴：
-            <select onchange="bbUpdateField(${idx},'title_run_mode',this.value||null,true)" style="margin-left:4px; padding:3px 6px; border:1px solid #6366F1; border-radius:5px; font-weight:700; background:#FFFFFF;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; border-top:1px dashed #A5B4FC; padding-top:8px;">
+          <label style="font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="控制此 Title 在前段失敗時是否還要執行（0=必跑、1=前Fail則略過、2=前Fail仍跑）">Title RunMode 前綴：
+            <select onchange="bbUpdateField(${idx},'title_run_mode',this.value||null,true)" style="margin-left:4px; padding:4px 8px; border:1.5px solid #6366F1; border-radius:6px; font-size:0.86rem; font-weight:700; background:#FFFFFF; color:#0F172A;">
               <option value="" ${curTm === '' ? 'selected' : ''}>維持預設 (0,)</option>
               <option value="0" ${curTm === '0' ? 'selected' : ''}>0, (必跑不略過)</option>
               <option value="1" ${curTm === '1' ? 'selected' : ''}>1, (前 Fail 則略過)</option>
@@ -1841,8 +1853,8 @@
               <option value="none" ${curTm === 'none' ? 'selected' : ''}>無前綴 (僅 Title 名稱)</option>
             </select>
           </label>
-          <label style="font-size:0.78rem; font-weight:800; color:#312E81;">Title 重試次：
-            <input value="${_esc(curRetry)}" placeholder="不改(留空)" oninput="bbUpdateField(${idx},'title_retry',this.value===''?null:this.value,false)" class="mono" style="width:90px; margin-left:4px; padding:3px 7px; border:1px solid #6366F1; border-radius:5px; background:#FFFFFF;">
+          <label style="font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="設定整個 Title 失敗時最多重試幾次（留空或 0 表示不額外重跑）">Title 重試次：
+            <input value="${_esc(curRetry)}" placeholder="不改(留空)" oninput="bbUpdateField(${idx},'title_retry',this.value===''?null:this.value,false)" class="mono" style="min-width:110px; margin-left:4px; padding:5px 8px; border:1.5px solid #6366F1; border-radius:6px; font-size:0.86rem; background:#FFFFFF;">
           </label>
         </div>
       </div>
@@ -1876,10 +1888,10 @@
   function _buildTopActionButtonsHtml() {
     const totalPages = _getQaNavList().length;
     return `
-      <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
+      <button type="button" class="btn" data-pop-tip="切換全螢幕與標準視窗大小，方便專心拖曳編排積木流程" style="padding:5px 12px; font-size:0.86rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
         ${BB_STATE.fullscreen ? '🗗 退出全螢幕' : '⛶ 全螢幕編排'}
       </button>
-      <button type="button" class="btn btn-primary-blue" style="padding:6px 15px; font-size:0.88rem; font-weight:900;" onclick="bbStartQa(0)">
+      <button type="button" class="btn btn-primary-blue" data-pop-tip="依目前排列好的積木順序，一頁一塊逐一填寫參數與設定值" style="padding:6px 15px; font-size:0.88rem; font-weight:900;" onclick="bbStartQa(0)">
         🚀 開始逐塊設定 (${totalPages} 頁) ▶
       </button>
     `;
@@ -3406,17 +3418,17 @@
             ${dmode === 'utility' ? `
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${[
-                  ['gen_dt', '🕒 GenDT 時間戳'],
-                  ['cmd', '⚡ Utility.CMD 執行檔'],
-                  ['get_com', '🔌 GetCOM+AddAttr 抓埠'],
-                  ['cfile', '📁 CFile 複製檔案'],
-                  ['fchksum', '🔐 fChkSum MD5檢查'],
-                  ['show_img', '🖼️ ShowImageMessage 圖片'],
-                  ['close_msg', '✖️ CloseMessage 關彈窗'],
-                  ['chk_len', '📏 ChkLEN 檢長度'],
-                  ['get_yr', '📅 GetYR 年份'],
-                ].map(([ak, al]) => `
-                  <button type="button" class="btn" style="padding:4px 10px; font-size:0.8rem; font-weight:800; ${uact === ak ? 'background:#1E293B; color:#FFF;' : ''}" onclick="bbUpdateField(${idx},'util_action','${ak}',true)">${al}</button>
+                  ['gen_dt', '🕒 GenDT 時間戳', '產生日期時間字串（:Utility.GenDT）存入變數供寫入裝置或 Log'],
+                  ['cmd', '⚡ Utility.CMD 執行檔', '以 Centimani 內建 :Utility.CMD 直接執行 .exe/.bat 工具，免建 DUTs 連線'],
+                  ['get_com', '🔌 GetCOM+AddAttr 抓埠', '自動依 USB PortID/VID/PID 搜尋 COM Port 並綁定到指定 UART 別名'],
+                  ['cfile', '📁 CFile 複製檔案', '複製測試紀錄或韌體檔案到指定資料夾（:Utility.CFile）'],
+                  ['fchksum', '🔐 fChkSum MD5檢查', '驗證本機檔案 MD5 雜湊值是否符合預期（:Utility.fChkSum）'],
+                  ['show_img', '🖼️ ShowImageMessage 圖片', '彈出圖片視窗引導作業員目視或擺放待測物'],
+                  ['close_msg', '✖️ CloseMessage 關彈窗', '關閉先前開啟的提示圖片或訊息視窗（:CloseMessage）'],
+                  ['chk_len', '📏 ChkLEN 檢長度', '檢查變數字串字元數是否等於指定長度（:Utility.ChkLEN）'],
+                  ['get_yr', '📅 GetYR 年份', '取得系統西元年（2 碼或 4 碼）存入變數'],
+                ].map(([ak, al, atip]) => `
+                  <button type="button" class="btn" data-pop-tip="${_esc(atip)}" style="padding:5px 11px; font-size:0.84rem; font-weight:800; ${uact === ak ? 'background:#1E293B; color:#FFF;' : ''}" onclick="bbUpdateField(${idx},'util_action','${ak}',true)">${al}</button>
                 `).join('')}
               </div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:8px;">
@@ -3557,17 +3569,17 @@
               <span class="mono" style="background:#D97706; color:#FFF; padding:1px 7px; border-radius:999px;">${_esc(entry.numLabel)}</span>
               <span>📦 所屬群組方框 · 此群組內所有積木將合併寫入同一個 Phase</span>
             </div>
-            <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#78350F;">
+            <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.85rem; font-weight:800; color:#78350F;">
               <span>共用 Title：</span>
-              <input value="${_esc((parentGrp.config && parentGrp.config.title) || '自訂機能群組')}" oninput="bbGroupSetField(${entry.stackIdx},'title',this.value)" style="padding:2px 7px; border:1px solid #F59E0B; border-radius:5px; font-size:0.78rem; font-weight:800; width:150px;">
+              <input value="${_esc((parentGrp.config && parentGrp.config.title) || '自訂機能群組')}" oninput="bbGroupSetField(${entry.stackIdx},'title',this.value)" style="padding:4px 8px; border:1px solid #F59E0B; border-radius:5px; font-size:0.85rem; font-weight:800; min-width:165px;">
             </label>
-            ${BB_STATE.qaShowAdv ? `
-              <div class="bb-adv-box" style="width:100%; margin-top:4px; padding:7px 10px;">
-                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            ${(parentGrp._showAdv || item._showAdv) ? `
+              <div class="bb-adv-box" style="width:100%; margin-top:6px; padding:9px 12px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                   <span class="bb-adv-badge">⚙️ 進階設定</span>
-                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="決定這整組積木寫入哪個階段（Phase 0 預檢 / Phase -1 略過 / 97~99 收尾）">
                     <span>群組階段角色：</span>
-                    <select onchange="bbGroupSetField(${entry.stackIdx},'phase_role',this.value); bbRender();" style="padding:2px 6px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF;">
+                    <select onchange="bbGroupSetField(${entry.stackIdx},'phase_role',this.value); bbRender();" style="padding:4px 8px; border:1px solid #6366F1; border-radius:5px; font-size:0.86rem; font-weight:800; background:#FFFFFF;">
                       <option value="normal" ${(!parentGrp.config || !parentGrp.config.phase_role || parentGrp.config.phase_role === 'normal') ? 'selected' : ''}>一般測項 (自動順編 Phase 1+)</option>
                       <option value="0" ${(parentGrp.config && parentGrp.config.phase_role) === '0' ? 'selected' : ''}>Phase 0 (Pretest 不計CT/Fail退重掃)</option>
                       <option value="-1" ${(parentGrp.config && parentGrp.config.phase_role) === '-1' ? 'selected' : ''}>Phase -1 (暫停略過不跑)</option>
@@ -3577,9 +3589,9 @@
                       <option value="99" ${(parentGrp.config && parentGrp.config.phase_role) === '99' ? 'selected' : ''}>Phase 99 (FAIL 紅燈收尾)</option>
                     </select>
                   </label>
-                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="設定這組共用 Title 的前綴（0,=必跑、1,=前Fail則略過、2,=前Fail仍跑）">
                     <span>Title 前綴：</span>
-                    <select onchange="bbGroupSetField(${entry.stackIdx},'title_run_mode',this.value); bbRender();" style="padding:2px 6px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF;">
+                    <select onchange="bbGroupSetField(${entry.stackIdx},'title_run_mode',this.value); bbRender();" style="padding:4px 8px; border:1px solid #6366F1; border-radius:5px; font-size:0.86rem; font-weight:800; background:#FFFFFF;">
                       <option value="0" ${(!parentGrp.config || !parentGrp.config.title_run_mode || parentGrp.config.title_run_mode === '0') ? 'selected' : ''}>0,</option>
                       <option value="1" ${(parentGrp.config && parentGrp.config.title_run_mode) === '1' ? 'selected' : ''}>1, (前Fail跳過)</option>
                       <option value="2" ${(parentGrp.config && parentGrp.config.title_run_mode) === '2' ? 'selected' : ''}>2,</option>
@@ -3587,11 +3599,11 @@
                       <option value="none" ${(parentGrp.config && parentGrp.config.title_run_mode) === 'none' ? 'selected' : ''}>無前綴</option>
                     </select>
                   </label>
-                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81;">
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.86rem; font-weight:800; color:#312E81;" data-pop-tip="設定整個 Title 失敗時重試次數">
                     <span>Retry：</span>
-                    <input value="${_esc((parentGrp.config && parentGrp.config.retry) || '0')}" oninput="bbGroupSetField(${entry.stackIdx},'retry',this.value)" class="mono" style="width:42px; padding:2px 5px; border:1px solid #6366F1; border-radius:5px; font-size:0.76rem; background:#FFFFFF;">
+                    <input value="${_esc((parentGrp.config && parentGrp.config.retry) || '0')}" oninput="bbGroupSetField(${entry.stackIdx},'retry',this.value)" class="mono" style="width:52px; padding:3px 6px; border:1px solid #6366F1; border-radius:5px; font-size:0.86rem; background:#FFFFFF;">
                   </label>
-                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.76rem; font-weight:800; color:#312E81; cursor:pointer;" title="留空 Phase 欄位，沿用前一塊群組的 Phase 編號">
+                  <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.86rem; font-weight:800; color:#312E81; cursor:pointer;" data-pop-tip="留空本群組 Phase 欄位，直接沿用前一塊群組的 Phase 編號不換號">
                     <input type="checkbox" ${parentGrp.config && parentGrp.config.same_phase ? 'checked' : ''} onchange="bbGroupSetField(${entry.stackIdx},'same_phase',this.checked); bbRender();">
                     <span>沿用前一個 Phase (不換號)</span>
                   </label>
@@ -3602,12 +3614,12 @@
         ` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
-          <label class="bb-adv-toggle" style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; padding:4px 11px; border-radius:999px; border:1.5px solid ${BB_STATE.qaShowAdv ? '#4F46E5' : '#CBD5E1'}; background:${BB_STATE.qaShowAdv ? '#E0E7FF' : '#F8FAFC'}; font-size:0.79rem; font-weight:900; color:${BB_STATE.qaShowAdv ? '#312E81' : '#334155'};">
-            <input type="checkbox" ${BB_STATE.qaShowAdv ? 'checked' : ''} onchange="bbToggleQaAdv(this.checked)" style="cursor:pointer;">
-            <span>⚙️ 顯示進階細項設定</span>
+          <label class="bb-adv-toggle" data-pop-tip="僅展開或收合「目前這一顆積木」的進階細項設定（Phase、ExecMode、TestID），預設皆關閉，不會影響其他積木。" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; padding:5px 12px; border-radius:999px; border:1.5px solid ${item._showAdv ? '#4F46E5' : '#CBD5E1'}; background:${item._showAdv ? '#E0E7FF' : '#F8FAFC'}; font-size:0.85rem; font-weight:900; color:${item._showAdv ? '#312E81' : '#334155'};">
+            <input type="checkbox" ${item._showAdv ? 'checked' : ''} onchange="bbToggleItemAdv(${navIdx}, this.checked)" style="cursor:pointer;">
+            <span>⚙️ 顯示進階細項設定（僅本積木）</span>
           </label>
         </div>
-        <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
+        <div style="font-size:0.88rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
           ${_renderQaBody(item, navIdx)}
           ${_renderTestIdAdvPicker(item, navIdx)}
@@ -3620,14 +3632,14 @@
         <div class="bb-bottom-dock">
           ${_renderProgressStrip(navIdx)}
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <button type="button" class="btn" style="padding:6px 13px; font-size:0.84rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木編排</button>
+            <button type="button" class="btn" data-pop-tip="返回左側積木庫與右側流程排列畫面，調整順序或增減積木" style="padding:6px 13px; font-size:0.88rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木編排</button>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="mono" style="background:${meta.exclusivePage ? '#FEE2E2' : '#DBEAFE'}; color:${meta.exclusivePage ? '#991B1B' : '#1E3A8A'}; padding:3px 10px; border-radius:999px; font-weight:900; font-size:0.83rem;">第 ${navIdx + 1} / ${nav.length} 頁 (${_esc(entry.numLabel)})</span>
-              <span style="font-weight:800; font-size:0.9rem; color:#334155;">${meta.icon || ''} ${_esc(meta.shortName || item.kind)}</span>
+              <span class="mono" style="background:${meta.exclusivePage ? '#FEE2E2' : '#DBEAFE'}; color:${meta.exclusivePage ? '#991B1B' : '#1E3A8A'}; padding:3px 10px; border-radius:999px; font-weight:900; font-size:0.85rem;">第 ${navIdx + 1} / ${nav.length} 頁 (${_esc(entry.numLabel)})</span>
+              <span style="font-weight:800; font-size:0.92rem; color:#334155;">${meta.icon || ''} ${_esc(meta.shortName || item.kind)}</span>
             </div>
             <div style="display:flex; gap:8px;">
-              <button type="button" class="btn" style="padding:6px 14px; font-size:0.85rem; font-weight:800;" onclick="bbQaStep(-1)">${navIdx === 0 ? '◀ 回排順序' : '◀ 上一塊'}</button>
-              <button type="button" class="btn ${isLast ? 'btn-primary-green' : 'btn-primary-blue'}" style="padding:6px 18px; font-size:0.88rem; font-weight:900;" onclick="bbQaStep(1)">${isLast ? '✅ 完成設定，看總覽匯出 ▶' : '下一塊 ▶'}</button>
+              <button type="button" class="btn" data-pop-tip="切換至前一塊積木（首頁時會回到流程編排頁）" style="padding:6px 14px; font-size:0.88rem; font-weight:800;" onclick="bbQaStep(-1)">${navIdx === 0 ? '◀ 回排順序' : '◀ 上一塊'}</button>
+              <button type="button" class="btn ${isLast ? 'btn-primary-green' : 'btn-primary-blue'}" data-pop-tip="${isLast ? '檢視所有積木與連動 INI 摘要並匯出 Excel' : '儲存目前積木參數並前往下一塊繼續設定'}" style="padding:6px 18px; font-size:0.9rem; font-weight:900;" onclick="bbQaStep(1)">${isLast ? '✅ 完成設定，看總覽匯出 ▶' : '下一塊 ▶'}</button>
             </div>
           </div>
         </div>

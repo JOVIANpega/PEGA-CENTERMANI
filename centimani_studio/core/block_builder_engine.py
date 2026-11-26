@@ -184,6 +184,11 @@ def _apply_custom_title(rows_slice, title_run_mode=None, title_retry=None, g_scr
         break
 
 
+def _escape_ref_arg(val):
+    """Escape literal quotes, colons, and semicolons inside Centimani Ref function arguments."""
+    return re.sub(r'(?<!\\)([":;])', r'\\\1', str(val if val is not None else ""))
+
+
 def _build_single_ref_line(spec):
     vn = _safe_var(spec.get("var_name") or "gCmdOut", "gCmdOut")
     em = str(spec.get("extract_mode") or "within").strip().lower()
@@ -191,7 +196,7 @@ def _build_single_ref_line(spec):
     if spec.get("rp_space"):
         chain += ':rpString," ",""'
     if em == "split":
-        sep = str(spec.get("split_sep") or ":").replace('"', '\\"')
+        sep = _escape_ref_arg(spec.get("split_sep") if spec.get("split_sep") is not None else ":")
         idx_s = str(spec.get("split_idx") or "1").strip() or "1"
         chain += f':SplitString,"{sep}","{idx_s}"'
     elif em == "sub":
@@ -199,8 +204,8 @@ def _build_single_ref_line(spec):
         ln_i = str(spec.get("sub_len") or "8").strip() or "8"
         chain += f':SubString,"{st_i}","{ln_i}"'
     else:
-        left_s = str(spec.get("left_delim") if spec.get("left_delim") is not None else "version=").replace('"', '\\"')
-        right_s = str(spec.get("right_delim") if spec.get("right_delim") is not None else "\\r\\n").replace('"', '\\"')
+        left_s = _escape_ref_arg(spec.get("left_delim") if spec.get("left_delim") is not None else "version=")
+        right_s = _escape_ref_arg(spec.get("right_delim") if spec.get("right_delim") is not None else "\\r\\n")
         chain += f':WithinString,"{left_s}","{right_s}",""'
     if spec.get("trim"):
         chain += ":Trim"
@@ -276,22 +281,30 @@ def build_workspace_from_sequence(
         next_phase[0] += 1
         return p
 
-    # Separate teardown blocks and phase_role 97/98/99 groups cleanly
-    normal_items = []
+    # Separate teardown blocks and phase_role 97/98/99 groups cleanly, and ensure Phase 0 always stays above Phase 1+
+    setup_items = []
+    phase0_items = []
+    other_normal_items = []
     teardown_items = []
     teardown_groups = []
     for it in (sequence or []):
         if not isinstance(it, dict):
             continue
-        k = it.get("kind")
+        k = str(it.get("kind") or "").strip()
+        ic = it.get("config") or {}
         if k == "teardown":
             teardown_items.append(it)
         elif k == "end":
             continue
-        elif k == "group" and str((it.get("config") or {}).get("phase_role") or "normal").strip() in ("97", "97:PWROFF", "98", "99"):
+        elif k == "group" and str(ic.get("phase_role") or "normal").strip() in ("97", "97:PWROFF", "98", "99"):
             teardown_groups.append(it)
+        elif k in ("start", "isn"):
+            setup_items.append(it)
+        elif (k == "sfis_route" and bool(ic.get("use_phase0", True))) or (k not in ("multi_sku",) and str(ic.get("phase_role") or "").strip() == "0"):
+            phase0_items.append(it)
         else:
-            normal_items.append(it)
+            other_normal_items.append(it)
+    normal_items = setup_items + phase0_items + other_normal_items
 
     def _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route):
         from core.sfis_client import build_sfis_excel_steps
@@ -911,7 +924,7 @@ def build_workspace_from_sequence(
                 ph = _alloc_phase()
                 ref_mode = str(cfg.get("ref_slice_mode") or "raw").strip().lower()
                 if ref_mode == "split":
-                    s_sep = str(cfg.get("ref_split_sep") or ",").strip()
+                    s_sep = _escape_ref_arg(cfg.get("ref_split_sep") if cfg.get("ref_split_sep") is not None else ",")
                     s_idx = str(cfg.get("ref_split_idx") or "0").strip() or "0"
                     sf_ref = f'${out_var}:SplitString,"{s_sep}","{s_idx}";'
                 elif ref_mode == "sub":
@@ -919,8 +932,8 @@ def build_workspace_from_sequence(
                     sb_l = str(cfg.get("ref_sub_len") or "12").strip() or "12"
                     sf_ref = f'${out_var}:SubString,"{sb_s}","{sb_l}";'
                 elif ref_mode == "within":
-                    w_l = str(cfg.get("ref_left") or "")
-                    w_r = str(cfg.get("ref_right") or ";")
+                    w_l = _escape_ref_arg(cfg.get("ref_left") or "")
+                    w_r = _escape_ref_arg(cfg.get("ref_right") if cfg.get("ref_right") is not None else ";")
                     sf_ref = f'${out_var}:WithinString,"{w_l}","{w_r}","";'
                 else:
                     sf_ref = f"${out_var};"
