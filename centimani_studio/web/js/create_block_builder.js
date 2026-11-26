@@ -59,13 +59,13 @@
     {
       kind: 'var_check',
       icon: '🔍',
-      shortName: '檢查',
-      name: '🔍 檢查',
+      shortName: '比對',
+      name: '🔍 比對',
       tier: 'common',
       exclusivePage: false,
       theme: '#ECFEFF',
       border: '#06B6D4',
-      popTitle: '變數運算與門檻檢查 (:GetVal / :CheckLimit)',
+      popTitle: '變數運算與門檻比對 (:GetVal / :CheckLimit)',
       popDesc: '拿前面步驟抓到的 $變數 做數值上下限判斷 (:CheckLimit) 或字串比對 (:GetVal)。',
       popExample: '例：:CheckLimit,"*(VCC_3V3)","3.15","3.45","%f"'
     },
@@ -111,21 +111,21 @@
     {
       kind: 'sfis_rw',
       icon: '🔐',
-      shortName: '過站',
-      name: '🔐 過站',
+      shortName: 'getSFIS',
+      name: '🔐 getSFIS',
       tier: 'common',
       exclusivePage: false,
       theme: '#FDF2F8',
       border: '#EC4899',
-      popTitle: 'SFIS 過站讀取與即時連通實測',
-      popDesc: '指 SFIS 系統過站讀寫：支援 6 廠區環境快選與即時連通實測，讀取 MAC1 / 69PN / SNA 或 Ref 字串分段擷取。',
+      popTitle: 'SFIS 讀取資料 (:SfGetVersion / :SfGetiMAC)',
+      popDesc: '從 SFIS 系統讀取 MAC1 / 69PN / SNA 等欄位或即時連通實測，並支援 Ref 字串分段擷取。',
       popExample: '例：:SfGetVersion,"*(ISN)","ISN_BASEINFO","2","MAC1",""'
     },
     {
       kind: 'sfis_upload',
       icon: '📤',
-      shortName: '上傳',
-      name: '📤 上傳',
+      shortName: 'wSFIS',
+      name: '📤 wSFIS',
       tier: 'common',
       exclusivePage: false,
       theme: '#FDF2F8',
@@ -264,6 +264,19 @@
       popTitle: '動態綁定連線／裝置屬性 (:AddAttribute)',
       popDesc: '執行時期透過 :AddAttribute 修改連線（例如將偵測到的 COM Port 動態綁定給 UART）。',
       popExample: '例：:AddAttribute,"UART","COM","*(comPort)"'
+    },
+    {
+      kind: 'sfis_route',
+      icon: '🛡️',
+      shortName: 'chkRoute',
+      name: '🛡️ chkRoute',
+      tier: 'advanced',
+      exclusivePage: false,
+      theme: '#FDF2F8',
+      border: '#DB2777',
+      popTitle: '開局條碼顯示與 SFIS CheckRoute (Phase 0)',
+      popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由（一般測試包僅放一次即可，可在右欄拖曳調整位置）。',
+      popExample: '例：:ShowISN,"*(ISN)" ➔ :SfCheckRoute'
     }
   ];
 
@@ -275,22 +288,10 @@
       name: '🟢 開始',
       fixed: true,
       exclusivePage: false,
-      theme: '#ECFDF5',
-      border: '#10B981',
-      popTitle: '🟢 測試開始（固定起點，無法拖曳/刪除）',
+      theme: '#F1F5F9',
+      border: '#64748B',
+      popTitle: '🟢 測試開始（灰階固定起點，無法拖曳/刪除）',
       popDesc: '設定此測試包的專案名稱 (Project)、測試站別 (Station)、並行槽位數 (1/2/4 槽) 與全域 Debug/SFIS 基礎環境。',
-    },
-    sfis_route: {
-      kind: 'sfis_route',
-      icon: '🛡️',
-      shortName: '路由',
-      name: '🛡️ 路由',
-      fixed: false,
-      exclusivePage: false,
-      theme: '#FDF2F8',
-      border: '#DB2777',
-      popTitle: '開局條碼顯示與 SFIS CheckRoute (Phase 0)',
-      popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由。可設為離線調試或產線過站。',
     },
     end: {
       kind: 'end',
@@ -300,8 +301,8 @@
       fixed: true,
       exclusivePage: false,
       theme: '#F1F5F9',
-      border: '#475569',
-      popTitle: '🏁 測試結束（固定終點，無法拖曳/刪除）',
+      border: '#64748B',
+      popTitle: '🏁 測試結束（灰階固定終點，無法拖曳/刪除）',
       popDesc: '標記整個測試流程的終止護欄，設定啟動站別模式 (StationName) 與無硬體試跑 (Phase = -1) 並確認產出。',
     }
   };
@@ -501,13 +502,19 @@
         .bb-poker-card:hover { background:#E0F2FE; border-color:#38BDF8; transform:translateY(-2px); box-shadow:0 4px 10px rgba(14,165,233,0.18); }
         .bb-poker-card.is-red { background:#FEF2F2; border-color:#EF4444; border-top-color:#DC2626; }
         .bb-poker-card.is-red:hover { background:#FEE2E2; border-color:#DC2626; box-shadow:0 4px 12px rgba(220,38,38,0.22); }
-        .bb-poker-card.is-fixed { background:#F8FAFC; border-style:dashed; }
+        .bb-poker-card.is-fixed { filter:grayscale(100%); background:#E2E8F0 !important; border:1.5px dashed #94A3B8 !important; border-top:4px solid #64748B !important; opacity:0.86; }
+        .bb-poker-card.is-fixed:hover { filter:grayscale(25%); background:#F1F5F9 !important; opacity:1; }
+        .bb-poker-card.drag-over-card { outline:2.5px dashed #2563EB; background:#DBEAFE !important; transform:scale(1.04); }
         .bb-poker-plus { width:100%; height:22px; padding:0; border-radius:5px; border:1px solid #94A3B8; background:#F8FAFC; color:#0F172A; font-weight:900; font-size:0.95rem; line-height:1; cursor:pointer; transition:all 0.12s; }
         .bb-poker-plus:hover { background:#2563EB; border-color:#1D4ED8; color:#FFFFFF; }
         .bb-poker-card.is-red .bb-poker-plus { background:#FFFFFF; border-color:#FCA5A5; color:#991B1B; }
         .bb-poker-card.is-red .bb-poker-plus:hover { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
-        .bb-drop-slot-v { width:18px; height:86px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#94A3B8; font-weight:900; font-size:0.85rem; border:1.5px dashed transparent; transition:all 0.14s ease; flex-shrink:0; }
+        .bb-drop-slot-v { width:20px; height:86px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:0.95rem; border:1.5px dashed transparent; transition:all 0.14s ease; flex-shrink:0; }
         .bb-drop-slot-v.drag-over { width:34px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
+        .bb-snake-wrap { display:flex; flex-direction:column; gap:2px; align-items:flex-start; }
+        .bb-snake-grid-row { display:grid; align-items:center; gap:4px; }
+        .bb-drop-slot-turn { width:82px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:1rem; border:1.5px dashed transparent; transition:all 0.14s ease; }
+        .bb-drop-slot-turn.drag-over { height:32px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
         .bb-bottom-dock { margin-top:14px; padding-top:12px; border-top:1.5px solid #CBD5E1; display:flex; flex-direction:column; gap:10px; }
         .bb-progress-strip { display:flex; align-items:stretch; gap:6px; overflow-x:auto; padding:8px 10px; background:#F1F5F9; border:1.5px solid #CBD5E1; border-radius:10px; }
         .bb-step-pill { min-width:82px; max-width:118px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
@@ -566,6 +573,7 @@
       if (splitter) splitter.classList.remove('dragging');
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      if (BB_STATE.view === 'stack') bbRender();
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -697,18 +705,69 @@
 
   window.bbDropAtSlot = function (ev, slotIdx) {
     ev.preventDefault();
+    ev.stopPropagation();
     bbHidePop();
-    document.querySelectorAll('.bb-drop-slot-v.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.drag-over, .drag-over-card').forEach(el => { el.classList.remove('drag-over'); el.classList.remove('drag-over-card'); });
+    const minPos = (BB_STATE.stack[0] && BB_STATE.stack[0].kind === 'start') ? 1 : 0;
+    const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
+      ? BB_STATE.stack.length - 1
+      : BB_STATE.stack.length;
     if (BB_STATE.dragSrcType === 'palette' && BB_STATE.dragKind) {
       _insertBlockAt(BB_STATE.dragKind, slotIdx);
-    } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= 1) {
+    } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= minPos) {
       const from = BB_STATE.dragStackIdx;
       const item = BB_STATE.stack[from];
-      if (!item) return;
+      if (!item || (META_BY_KIND[item.kind] && META_BY_KIND[item.kind].fixed)) return;
       BB_STATE.stack.splice(from, 1);
+      const maxAfterRemove = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
+        ? BB_STATE.stack.length - 1
+        : BB_STATE.stack.length;
       let ins = slotIdx > from ? slotIdx - 1 : slotIdx;
-      ins = Math.max(1, Math.min(ins, BB_STATE.stack.length - 1));
+      ins = Math.max(minPos, Math.min(ins, maxAfterRemove));
       BB_STATE.stack.splice(ins, 0, item);
+      bbRender();
+    }
+    BB_STATE.dragSrcType = null;
+    BB_STATE.dragKind = null;
+    BB_STATE.dragStackIdx = -1;
+  };
+
+  window.bbCardDragOver = function (ev, targetIdx) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (ev.currentTarget) ev.currentTarget.classList.add('drag-over-card');
+  };
+
+  window.bbCardDragLeave = function (ev) {
+    if (ev.currentTarget) ev.currentTarget.classList.remove('drag-over-card');
+  };
+
+  window.bbDropOnCard = function (ev, targetIdx) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    bbHidePop();
+    document.querySelectorAll('.drag-over, .drag-over-card').forEach(el => { el.classList.remove('drag-over'); el.classList.remove('drag-over-card'); });
+    const minPos = (BB_STATE.stack[0] && BB_STATE.stack[0].kind === 'start') ? 1 : 0;
+    const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
+      ? BB_STATE.stack.length - 1
+      : BB_STATE.stack.length;
+    if (BB_STATE.dragSrcType === 'palette' && BB_STATE.dragKind) {
+      const safePos = Math.max(minPos, Math.min(targetIdx === 0 ? 1 : targetIdx, endIdx));
+      _insertBlockAt(BB_STATE.dragKind, safePos);
+    } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= minPos) {
+      const from = BB_STATE.dragStackIdx;
+      if (from === targetIdx) {
+        BB_STATE.dragSrcType = null;
+        return;
+      }
+      const item = BB_STATE.stack[from];
+      if (!item || (META_BY_KIND[item.kind] && META_BY_KIND[item.kind].fixed)) return;
+      BB_STATE.stack.splice(from, 1);
+      const maxAfterRemove = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
+        ? BB_STATE.stack.length - 1
+        : BB_STATE.stack.length;
+      const dest = Math.max(minPos, Math.min(targetIdx, maxAfterRemove));
+      BB_STATE.stack.splice(dest, 0, item);
       bbRender();
     }
     BB_STATE.dragSrcType = null;
@@ -1361,45 +1420,57 @@
     }
   };
 
+  function _buildTopActionButtonsHtml() {
+    return `
+      <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
+        ${BB_STATE.fullscreen ? '🗗 退出全螢幕' : '⛶ 全螢幕編排'}
+      </button>
+      <button type="button" class="btn btn-primary-blue" style="padding:6px 15px; font-size:0.88rem; font-weight:900;" onclick="bbStartQa(0)">
+        🚀 開始逐塊設定 (${BB_STATE.stack.length} 塊) ▶
+      </button>
+    `;
+  }
+
   function _renderStackView() {
     const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
     const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
 
-    // 直立撲克牌（82x96px），只放 Icon + 最多 2 字中文 + 下方 [+]
-    const mkPaletteCard = (b) => `
-      <div class="bb-poker-card palette-card ${b.exclusivePage ? 'is-red' : ''}"
-        style="border-top-color:${b.border || '#3B82F6'};"
-        data-bb-pop="${b.kind}"
-        draggable="true"
-        ondragstart="bbDragStartPalette(event, '${b.kind}')"
-        ondragend="bbHidePop()"
-        onmousemove="bbShowPop(event, '${b.kind}')"
-        onmouseleave="bbHidePop()">
-        <div style="font-size:1.25rem; line-height:1.1; margin-top:2px;">${b.icon}</div>
-        <div style="font-weight:900; font-size:0.9rem; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; letter-spacing:0.5px;">${_esc(b.shortName)}</div>
-        <button type="button" class="bb-poker-plus" title="加入 ${_esc(b.shortName)}" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
-      </div>
-    `;
+    // 直立撲克牌（82x96px），簡潔 Icon + 名稱 + 下方 [+]
+    const mkPaletteCard = (b) => {
+      const sn = String(b.shortName || '');
+      const fSize = sn.length >= 5 ? '0.76rem' : '0.88rem';
+      return `
+        <div class="bb-poker-card palette-card ${b.exclusivePage ? 'is-red' : ''}"
+          style="border-top-color:${b.border || '#3B82F6'};"
+          data-bb-pop="${b.kind}"
+          draggable="true"
+          ondragstart="bbDragStartPalette(event, '${b.kind}')"
+          ondragend="bbHidePop()"
+          onmousemove="bbShowPop(event, '${b.kind}')"
+          onmouseleave="bbHidePop()">
+          <div style="font-size:1.25rem; line-height:1.1; margin-top:2px;">${b.icon}</div>
+          <div style="font-weight:900; font-size:${fSize}; color:${b.exclusivePage ? '#991B1B' : '#0F172A'}; letter-spacing:${sn.length >= 5 ? '0' : '0.4px'}; white-space:nowrap;">${_esc(sn)}</div>
+          <button type="button" class="bb-poker-plus" title="加入 ${_esc(sn)}" onclick="event.stopPropagation(); bbAddBlock('${b.kind}');">+</button>
+        </div>
+      `;
+    };
 
-    // 右欄採用與左欄完全等大之直立撲克牌 (82x96px)，以「+ / ➔」串接排列
-    const stackHtml = BB_STATE.stack.map((item, idx) => {
+    const mkStackCard = (item, idx) => {
       const meta = META_BY_KIND[item.kind] || {};
       const isFixed = !!meta.fixed;
       const isRed = !!meta.exclusivePage;
-      const slotBefore = idx > 0 ? `
-        <div class="bb-drop-slot-v"
-          ondragover="event.preventDefault(); this.classList.add('drag-over');"
-          ondragleave="this.classList.remove('drag-over');"
-          ondrop="bbDropAtSlot(event, ${idx})">➔</div>
-      ` : '';
+      const sn = String(meta.shortName || item.kind);
+      const fSize = sn.length >= 5 ? '0.76rem' : '0.86rem';
       return `
-        ${slotBefore}
         <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''}"
           style="cursor:pointer; border-top-color:${meta.border || '#3B82F6'};"
           data-bb-pop="${item.kind}"
           draggable="${isFixed ? 'false' : 'true'}"
           ondragstart="bbDragStartStack(event, ${idx})"
           ondragend="bbHidePop()"
+          ondragover="bbCardDragOver(event, ${idx})"
+          ondragleave="bbCardDragLeave(event)"
+          ondrop="bbDropOnCard(event, ${idx})"
           onmousemove="bbShowPop(event, '${item.kind}')"
           onmouseleave="bbHidePop()"
           onclick="bbJumpQa(${idx})">
@@ -1407,38 +1478,82 @@
             <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isRed ? '#FEE2E2' : '#E2E8F0'}; color:${isRed ? '#991B1B' : '#334155'};">#${idx + 1}</span>
             ${!isFixed
               ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
-              : `<span style="font-size:0.65rem; color:#64748B; font-weight:800;">固定</span>`}
+              : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">固定</span>`}
           </div>
           <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
             <span style="font-size:1.15rem; line-height:1;">${meta.icon || '🧩'}</span>
-            <span style="font-weight:900; font-size:0.86rem; color:${isRed ? '#991B1B' : '#0F172A'};">${_esc(meta.shortName || item.kind)}</span>
+            <span style="font-weight:900; font-size:${fSize}; color:${isRed ? '#991B1B' : '#0F172A'}; white-space:nowrap;">${_esc(sn)}</span>
           </div>
           <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
             ${!isFixed ? `
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
               <span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
-            ` : `<span style="font-size:0.7rem; font-weight:900; color:${item.configured ? '#15803D' : '#64748B'};">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
+            ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
           </div>
         </div>
       `;
-    }).join('');
+    };
+
+    // 貪食蛇 (S-curve Snake) 跨行箭頭排版：偶數列 左➔右，行尾 ⬇ 轉下一列，奇數列 右⬅左 整齊對齊
+    const paneEl = document.getElementById('bbRightPane');
+    const availW = BB_STATE.fullscreen
+      ? Math.max(420, (window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 95)
+      : Math.max(420, (paneEl ? paneEl.clientWidth : ((window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 130)));
+    const cols = Math.max(3, Math.min(7, Math.floor((availW - 18) / 106)));
+    const gridTemplate = Array.from({ length: cols * 2 - 1 }, (_, k) => (k % 2 === 0 ? '82px' : '20px')).join(' ');
+    const rows = [];
+    for (let i = 0; i < BB_STATE.stack.length; i += cols) {
+      rows.push({ start: i, items: BB_STATE.stack.slice(i, i + cols) });
+    }
+    const stackHtml = `
+      <div class="bb-snake-wrap">
+        ${rows.map((rowObj, rIdx) => {
+          const isRtl = (rIdx % 2 === 1);
+          const cells = [];
+          rowObj.items.forEach((it, k) => {
+            const absIdx = rowObj.start + k;
+            const gridCol = isRtl ? ((cols - 1 - k) * 2 + 1) : (k * 2 + 1);
+            cells.push(`<div style="grid-column:${gridCol}; grid-row:1;">${mkStackCard(it, absIdx)}</div>`);
+            if (k < rowObj.items.length - 1) {
+              const arrowCol = isRtl ? ((cols - 1 - k) * 2) : (k * 2 + 2);
+              const nextIdx = absIdx + 1;
+              cells.push(`
+                <div class="bb-drop-slot-v" style="grid-column:${arrowCol}; grid-row:1;"
+                  ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                  ondragleave="this.classList.remove('drag-over');"
+                  ondrop="bbDropAtSlot(event, ${nextIdx})">${isRtl ? '⬅' : '➔'}</div>
+              `);
+            }
+          });
+          const hasNextRow = (rIdx < rows.length - 1);
+          const turnCol = isRtl ? 1 : (cols * 2 - 1);
+          const turnSlotIdx = rowObj.start + rowObj.items.length;
+          return `
+            <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">${cells.join('')}</div>
+            ${hasNextRow ? `
+              <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">
+                <div class="bb-drop-slot-turn" style="grid-column:${turnCol};"
+                  ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                  ondragleave="this.classList.remove('drag-over');"
+                  ondrop="bbDropAtSlot(event, ${turnSlotIdx})">⬇</div>
+              </div>
+            ` : ''}
+          `;
+        }).join('')}
+      </div>
+    `;
 
     return `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:9px 14px;">
-        <div style="font-weight:900; font-size:0.98rem; color:#0F172A;">🃏 撲克牌小積木拖曳編排（點 + 或拖到右側排列，中間線可拖曳調寬）</div>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
-            ${BB_STATE.fullscreen ? '🗗 退出全螢幕' : '⛶ 全螢幕編排'}
-          </button>
-          <button type="button" class="btn btn-primary-blue" style="padding:6px 15px; font-size:0.88rem; font-weight:900;" onclick="bbStartQa(0)">
-            🚀 開始逐塊設定 (${BB_STATE.stack.length} 塊) ▶
-          </button>
+      ${BB_STATE.fullscreen ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:8px 14px;">
+          <div style="font-weight:900; font-size:0.95rem; color:#0F172A;">🌱 產生首次範本 🃏 積木拖曳編排</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${_buildTopActionButtonsHtml()}</div>
         </div>
-      </div>
+      ` : ''}
 
       <div id="bbSplitContainer" class="bb-split-container">
-        <!-- 左欄：直立撲克牌庫（2字中文 + 紅標專屬頁） -->
+        <!-- 左欄：直立撲克牌庫 -->
         <div id="bbLeftPane" class="bb-left-pane" style="width:${Number(BB_STATE.splitLeftPx || 300)}px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:8px;">
             <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🃏 積木庫</span>
@@ -1465,17 +1580,17 @@
           <div class="bb-splitter-bar"></div>
         </div>
 
-        <!-- 右欄：橫向串接的等大直立撲克牌順序 -->
+        <!-- 右欄：貪食蛇等大直立撲克牌順序 -->
         <div id="bbRightPane" class="bb-right-pane"
           ondragover="event.preventDefault();"
-          ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
+          ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && !event.target.classList.contains('bb-drop-slot-turn') && BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; }">
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
                 <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#EEF2FF; border:1.5px solid #818CF8; color:#312E81;" onclick="bbAutoSortStack()" title="由程式依 ATE 實戰前後依賴關係自動排最佳順序">🪄 一鍵自動排最佳順序</button>
               </div>
-              <span style="font-size:0.76rem; color:#64748B;">拖曳插入或點卡片直接設定</span>
+              <span style="font-size:0.76rem; color:#64748B;">直接拖卡片到任意積木上方或箭頭處即可調換順序</span>
             </div>
             ${BB_STATE.autoSortMsg ? `<div style="background:#EEF2FF; border:1px solid #A5B4FC; color:#1E1B4B; font-size:0.78rem; font-weight:700; padding:6px 10px; border-radius:7px; margin-bottom:8px;">${_esc(BB_STATE.autoSortMsg)}</div>` : ''}
             <div class="bb-poker-track">
@@ -2631,6 +2746,7 @@
     bbHidePop();
     _ensureStylesAndPop();
     const topBackBtn = document.getElementById('btnGenModeHubBack');
+    const bbTopHost = document.getElementById('bbTopActionHost');
     if (topBackBtn && (typeof GEN_SUB_MODE === 'undefined' || GEN_SUB_MODE === 'create')) {
       if (BB_STATE.view === 'qa' || BB_STATE.view === 'export') {
         topBackBtn.style.display = 'inline-flex';
@@ -2638,6 +2754,15 @@
         topBackBtn.onclick = () => bbGoView('stack');
       } else {
         topBackBtn.style.display = 'none';
+      }
+    }
+    if (bbTopHost && (typeof GEN_SUB_MODE === 'undefined' || GEN_SUB_MODE === 'create')) {
+      if (BB_STATE.view === 'stack' && !BB_STATE.fullscreen) {
+        bbTopHost.style.display = 'flex';
+        bbTopHost.innerHTML = _buildTopActionButtonsHtml();
+      } else {
+        bbTopHost.style.display = 'none';
+        bbTopHost.innerHTML = '';
       }
     }
     const host = document.getElementById('createBlockBuilderRoot');

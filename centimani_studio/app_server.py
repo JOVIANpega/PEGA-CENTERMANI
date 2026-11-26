@@ -1011,7 +1011,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.066",
+                "server_build": "Build v0.8.067",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1715,7 +1715,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.066")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.067")
 
                 self._send_json({
                     "status": "ok",
@@ -2065,7 +2065,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.066")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.067")
 
                 self._send_json({
                     "status": "ok",
@@ -2317,7 +2317,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.066")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.067")
 
                 self._send_json({
                     "status": "ok",
@@ -2687,7 +2687,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.066")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.067")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2853,7 +2853,7 @@ def run_server(port=8765):
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
     server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.066) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.067) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

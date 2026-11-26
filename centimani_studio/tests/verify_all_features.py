@@ -2571,7 +2571,7 @@ def run_all_verifications():
             cbb_66 = open(cbb_js_path, "r", encoding="utf-8").read()
             check("kind: 'start'" in cbb_66 and "kind: 'end'" in cbb_66
                   and "shortName: '清理'" in cbb_66
-                  and "shortName: '上傳'" in cbb_66
+                  and "shortName: 'wSFIS'" in cbb_66
                   and "bbToggleQaAdv" in cbb_66
                   and "bbAutoInferExtract" in cbb_66
                   and "_renderLinkedIniBadge" in cbb_66
@@ -2606,6 +2606,18 @@ def run_all_verifications():
                   and len(v66_errs) == 0,
                   "v0.8.066 start/end護欄 + 獨立上傳(:SfSaveLinkData 多欄位) 產出 0 Error 測試包通過",
                   f"sends={v66_sends}, errs={v66_errs}")
+
+            # [v0.8.067] 開始/結束灰階、chkRoute/比對/getSFIS/wSFIS 改名與 chkRoute 列入進階、卡片對卡片直接拖曳、貪食蛇跨行轉折箭頭、單行整合標題列
+            check("shortName: 'chkRoute'" in cbb_66
+                  and "shortName: '比對'" in cbb_66
+                  and "shortName: 'getSFIS'" in cbb_66
+                  and "bbDropOnCard" in cbb_66
+                  and "bb-snake-wrap" in cbb_66
+                  and "bb-drop-slot-turn" in cbb_66
+                  and "filter:grayscale(100%)" in cbb_66
+                  and 'id="bbTopActionHost"' in index_html
+                  and "產生首次範本 🃏 積木拖曳編排" in index_html,
+                  "v0.8.067 開始/結束灰階、chkRoute進階積木與積木庫改名、卡片直接拖曳重排、貪食蛇轉折箭頭與單行標題列整合檢查通過")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
