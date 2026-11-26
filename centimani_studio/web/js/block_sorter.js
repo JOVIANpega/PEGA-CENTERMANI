@@ -208,17 +208,29 @@ function bsResetOrder() {
 }
 
 function bsAutoSortByPhase() {
-  const normalBlocks = [];
+  const leadingPaused = [];
+  const activeBlocks = [];
+  const midPausedAfter = []; // { anchorOrigIdx, block }
   const teardownBlocks = [];
+  let seenActive = false;
+  let lastActiveOrigIdx = null;
+
   BS_STATE.currentBlocks.forEach(b => {
-    if (b.is_teardown) {
+    const isPaused = !!(b.is_skipped || b.phase_num === -1);
+    const isTd = !!(b.is_teardown || (!isPaused && b.phase_num !== null && b.phase_num >= 95));
+    if (isTd) {
       teardownBlocks.push(b);
+    } else if (isPaused) {
+      if (!seenActive) leadingPaused.push(b);
+      else midPausedAfter.push({ anchorOrigIdx: lastActiveOrigIdx, block: b });
     } else {
-      normalBlocks.push(b);
+      seenActive = true;
+      lastActiveOrigIdx = b.orig_idx;
+      activeBlocks.push(b);
     }
   });
 
-  normalBlocks.sort((a, b) => {
+  activeBlocks.sort((a, b) => {
     const pa = a.phase_num !== null && a.phase_num !== undefined ? a.phase_num : a.orig_idx;
     const pb = b.phase_num !== null && b.phase_num !== undefined ? b.phase_num : b.orig_idx;
     return pa - pb;
@@ -230,7 +242,15 @@ function bsAutoSortByPhase() {
     return pa - pb;
   });
 
-  BS_STATE.currentBlocks = [...normalBlocks, ...teardownBlocks];
+  const mergedNormal = [...leadingPaused];
+  activeBlocks.forEach(ab => {
+    mergedNormal.push(ab);
+    midPausedAfter.forEach(mp => {
+      if (mp.anchorOrigIdx === ab.orig_idx) mergedNormal.push(mp.block);
+    });
+  });
+
+  BS_STATE.currentBlocks = [...mergedNormal, ...teardownBlocks];
   BS_STATE.selectedIdx = 0;
   bsRenderBlocks();
 }
@@ -246,9 +266,12 @@ function bsToggleBlockPause(idx) {
   if (!b || b.is_teardown || (b.phase_num !== null && b.phase_num >= 95)) return;
   if (b.is_skipped || b.phase_num === -1) {
     b.is_skipped = false;
-    b.phase_num = 1;
-    b.phase = '1';
+    const restNum = (b._savedPhaseNum !== undefined && b._savedPhaseNum !== null && b._savedPhaseNum >= 0) ? b._savedPhaseNum : 1;
+    b.phase_num = restNum;
+    b.phase = (b._savedPhase !== undefined && b._savedPhase !== null && b._savedPhase !== '-1') ? b._savedPhase : String(restNum);
   } else {
+    b._savedPhaseNum = b.phase_num;
+    b._savedPhase = b.phase;
     b.is_skipped = true;
     b.phase_num = -1;
     b.phase = '-1';
@@ -492,8 +515,12 @@ function bsComputeLiveInspection() {
     if (isPaused) {
       previewPhase = '-1';
     } else if (autoRenumber && !isFixed) {
-      previewPhase = String(nextPhase);
-      nextPhase += 1;
+      if (b.phase_num === 0) {
+        previewPhase = '0';
+      } else {
+        previewPhase = String(nextPhase);
+        nextPhase += 1;
+      }
     }
 
     let hasTeardownViolation = false;

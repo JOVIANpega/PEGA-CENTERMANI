@@ -118,6 +118,9 @@ function _describeSystemKey(k) {
     iPLAS_Site: 'iPLAS 廠區代碼',
     iPLAS_ProjectName: 'iPLAS 專案名稱',
     DebugMode: '除錯模式 (1=免簽章調試, 0=正式量產)',
+    DeviceSemaphore: '共用儀器信號量 (1=跨槽互斥, 0=多槽併發靠 SubDev 同步)',
+    RobotMode: '機械手臂連動開關 (1=啟用自動手臂, 0=手動測試)',
+    IndividualScanBarCode: '各槽獨立掃碼開關 (1=獨立掃描)',
     RetryCount: '測項失敗自動重測次數',
     CSVReport_Enable: '自動產出 CSV 報表',
     IpFinder_Enable: 'IpFinder 自動搜尋開關',
@@ -142,6 +145,10 @@ function _describeGlobalVar(k) {
   if (/^FW_VERSION|^MFG_WIFI/i.test(k)) return '目標韌體版本號';
   if (/^sfisSKU|^Product_SKU/i.test(k)) return '機種 SKU 料號';
   if (/^Boot_Delay/i.test(k)) return '開機等待延遲 (ms)';
+  if (/^TitleStatus$/i.test(k)) return 'Title 執行旗標 (0=執行, 2=略過)';
+  if (/^DelayTimeExe$/i.test(k)) return 'Delay 執行開關 (1=執行, 6=略過)';
+  if (/^AULAB$/i.test(k)) return 'AutLabs 上報開關 (1=啟用, 6=略過)';
+  if (/^(SPT|LOCKTEST|RL|Debug_MAC|Debug_UUID|LEDOff_Verify)$/i.test(k)) return '測項段開關旗標';
   return '腳本自訂變數';
 }
 
@@ -443,10 +450,17 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   }).length;
 
   let curIsnLen = '15';
+  let curIsnBadge = '15 碼';
   if (duts.length > 0) {
     const k0 = _findKeyByPrefix(duts[0], 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
     const sb0 = _parseScanBarcode(duts[0][k0]);
-    if (sb0.simple) curIsnLen = sb0.len;
+    if (sb0.empty) {
+      curIsnLen = '';
+      curIsnBadge = '免掃條碼';
+    } else if (sb0.simple) {
+      curIsnLen = sb0.len;
+      curIsnBadge = sb0.len ? (sb0.len.includes('*$(') ? sb0.len : `${sb0.len} 碼`) : '不限碼數';
+    }
   }
 
   const matchedFactory = SFIS_FACTORY_PRESETS.find(fp => fp.weblink === String(sys.SFIS_WebLink || '').trim() || fp.alt_weblink === String(sys.SFIS_WebLink || '').trim());
@@ -456,7 +470,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
     <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div>
         <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
-        <div style="font-size:0.85rem; color:#64748B;">先於上方選定目標測試站，再點擊下方卡片進入修改（1～2 格設定 INI 環境、3～4 格調整流程順序與跳轉、5 格設定站別與儀器）。</div>
+        <div style="font-size:0.85rem; color:#64748B;">先於上方選定目標測試站，再點擊下方卡片進入修改（1～2 格設定 INI 環境、3～4 格調整流程順序與跳轉、5～6 格設定站別儀器與 Error Code）。</div>
       </div>
     </div>
 
@@ -490,7 +504,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
             <li>啟用槽位：<b>1號槽 (${gSet.LOAD_1 || 'true'})</b></li>
-            <li>序列埠號：<b class="mono">${_escAttr(gSet.DUT_UR1 || 'COM4')}</b> (待測物) ｜ <b class="mono">${_escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8')}</b> (治具)</li>
+            <li>序列埠號：<b class="mono">${_escAttr(gSet.DUT_UR1 || gSet.PCUART_1 || 'COM4')}</b> (待測物) ｜ <b class="mono">${_escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8')}</b> (治具)</li>
             <li>連線位址：DUT <b class="mono">${_escAttr(gSet.DUTIP_1 || '-')}</b> ｜ PC <b class="mono">${_escAttr(gSet.PCIP_1 || '-')}</b></li>
             ${gScr.FW_VERSION ? `<li>韌體版號：<b class="mono">${_escAttr(gScr.FW_VERSION)}</b></li>` : ''}
           </ul>
@@ -545,7 +559,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
             <li>已定義站別：共 <b>${duts.length} 列</b>（含 ${stationKeys.length} 個 Excel 分頁）</li>
-            <li>目前條碼位數：<b class="mono">${_escAttr(curIsnLen)} 碼</b>（支援一鍵統一修改）</li>
+            <li>目前條碼規則：<b class="mono">${_escAttr(curIsnBadge)}</b>（支援一鍵修改或設為免掃）</li>
             <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（可勾選掛載測試站與連線位址）</li>
           </ul>
           <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
@@ -635,6 +649,9 @@ function _renderSystemIniFullPageHtml(ws) {
   const curSite = String(sys.iPLAS_Site !== undefined ? sys.iPLAS_Site : 'DC').trim();
   const origSite = String(origSys.iPLAS_Site !== undefined ? origSys.iPLAS_Site : curSite).trim();
   const siteMod = (curSite !== origSite);
+  const advSysMod = siteMod || ['DeviceSemaphore', 'RobotMode', 'CSVReport_Enable', 'IpFinder_Enable', 'TestItemCodeFile'].some(k =>
+    String(sys[k] !== undefined ? sys[k] : '') !== String(origSys[k] !== undefined ? origSys[k] : (sys[k] !== undefined ? sys[k] : ''))
+  );
   const siteOptions = ['DC', 'PTB', 'PSZ', 'PCQ', 'PVN', 'PMX'];
   if (curSite && !siteOptions.includes(curSite)) siteOptions.unshift(curSite);
 
@@ -699,7 +716,7 @@ function _renderSystemIniFullPageHtml(ws) {
       </div>
 
       <!-- 4. 說明書細項分類摺疊引導區（平時免動，需要改細項再點開） -->
-      <details ${siteMod ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
+      <details ${advSysMod ? 'open' : ''} style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
         <summary style="cursor:pointer; font-weight:800; font-size:0.87rem; color:#334155;">
           📖 進階細項：iPLAS 廠區代碼、CSV 報表與測試代碼表設定（點此依說明書分類微調）
         </summary>
@@ -717,6 +734,8 @@ function _renderSystemIniFullPageHtml(ws) {
               ${siteOptions.map(s => `<option value="${_escAttr(s)}" ${s === curSite ? 'selected' : ''}>${_escAttr(s)}</option>`).join('')}
             </select>
           </div>
+          ${mkSysCheckbox('DeviceSemaphore', '多槽共用儀器鎖定 (DeviceSemaphore=1)', '勾選(1)=跨槽互斥鎖定；取消(0)=多槽併發不鎖（如 DevUart Sub=1）', '1', '0')}
+          ${mkSysCheckbox('RobotMode', '機械手臂自動模式 (RobotMode=1)', '勾選(1)=產線機械手臂連動；取消(0)=手動單站操作', '1', '0')}
           ${sys.CSVReport_Enable !== undefined ? mkSysCheckbox('CSVReport_Enable', '自動產出 CSV 報表', '勾選=每次測試自動產生 CSV 數據檔') : ''}
           ${sys.IpFinder_Enable !== undefined ? mkSysCheckbox('IpFinder_Enable', 'IpFinder 自動搜尋', '勾選=自動掃描區域網路待測物 IP') : ''}
           ${sys.TestItemCodeFile !== undefined ? mkSysText('System', 'TestItemCodeFile', '官方測項代碼表檔名', 165) : ''}
@@ -839,12 +858,13 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
     `;
   };
 
-  const coreScriptKeys = Object.keys(gScr).filter(k => /^(FW_VERSION|MFG_WIFI|sfisSKU|Product_SKU)/i.test(k)).slice(0, 3);
+  const coreScriptKeys = Object.keys(gScr).filter(k => /^(FW_VERSION|MFG_WIFI|sfisSKU|Product_SKU|TitleStatus|DelayTimeExe|AULAB|RL|SPT|LOCKTEST|Debug_MAC|Debug_UUID|LEDOff_Verify)$/i.test(k)).slice(0, 6);
   const otherScriptKeys = Object.keys(gScr).filter(k => !coreScriptKeys.includes(k) && (usedVars.has(k) || !/^[A-Z]/.test(k))).slice(0, 6);
+  const dutUrKey = gSet['DUT_UR1'] !== undefined ? 'DUT_UR1' : (gSet['PCUART_1'] !== undefined ? 'PCUART_1' : 'DUT_UR1');
 
   const shownSettingsKeys = new Set([
     'LOAD_1', 'LOAD_2', 'LOAD_3', 'LOAD_4',
-    'DUT_UR1', 'PCUART_fixture', 'PCUART_fixture_1', 'LED_AZ1', 'DAQ_1',
+    'DUT_UR1', 'PCUART_1', 'PCUART_fixture', 'PCUART_fixture_1', 'LED_AZ1', 'DAQ_1',
     'PCIP_1', 'DUTIP_1', 'DEVID_1', 'DUT_Login'
   ]);
   const auxComChanged = ['LED_AZ1', 'DAQ_1'].some(k =>
@@ -882,7 +902,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
         ${mkGlobalText('Settings', 'DUTIP_1', '待測物連線 IP', 140)}
         ${mkGlobalText('Settings', 'PCIP_1', '電腦端網卡 IP', 140)}
-        ${mkComSelectField('DUT_UR1', '待測物序列埠 (DUT)')}
+        ${mkComSelectField(dutUrKey, `待測物序列埠 (${dutUrKey})`)}
         ${mkComSelectField('PCUART_fixture_1', '氣動治具控制埠')}
         ${mkGlobalText('Settings', 'DEVID_1', 'SFIS 機台編號', 125)}
         ${coreScriptKeys.map(k => mkGlobalText('Scripts', k, _describeGlobalVar(k), 150)).join('')}
@@ -935,10 +955,13 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
   const duts = ws.duts || [];
   let topIsnLen = STATE.lastIsnLen || '15';
   let topIsnPat = STATE.lastIsnPat || '[0-9]';
+  let topIsnEmpty = false;
   if (duts.length > 0) {
     const k0 = _findKeyByPrefix(duts[0], 'ScanBarcode', 'ScanBarcode( {Name,Lengh,Pattern} )');
     const sb0 = _parseScanBarcode(duts[0][k0]);
-    if (sb0.simple) {
+    if (sb0.empty) {
+      topIsnEmpty = true;
+    } else if (sb0.simple) {
       topIsnLen = sb0.len;
       topIsnPat = sb0.pat;
       STATE.lastIsnLen = topIsnLen;
@@ -951,22 +974,27 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
     const loadVal = String(d['Load'] || '').trim();
     const isEnabled = loadVal !== '' && loadVal.toLowerCase() !== 'false' && loadVal !== '0';
     const sb = _parseScanBarcode(d[scanKey]);
-    if (!String(d[scanKey] || '').trim() && sb.simple) {
-      d[scanKey] = `{ ${sb.name},${sb.len},${sb.pat} }`;
-    }
-    const patPresets = ['[0-9]', '[0-9A-Z]', '[0-9A-Za-z]'];
-    const sbHtml = sb.simple ? `
+    const patPresets = ['[0-9]', '[0-9A-Z]', '[0-9A-F]', '[0-9A-Za-z]', ''];
+    const sbHtml = sb.empty ? `
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <span style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; border-radius:4px; padding:3px 8px; font-size:0.79rem; font-weight:700;">⚪ 免掃條碼 (留空)</span>
+        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',true)" class="btn" style="padding:3px 8px; font-size:0.77rem; background:#EFF6FF; color:#1D4ED8; border:1px solid #93C5FD; font-weight:700;">＋ 啟用掃碼</button>
+      </div>
+    ` : (sb.simple ? `
       <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-        <input value="${_escAttr(sb.name)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,true)" class="mono" style="width:58px;padding:4px;font-size:0.8rem;" title="條碼名稱">
-        <input type="number" min="1" max="64" value="${_escAttr(sb.len)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,true)" class="mono" style="width:56px;padding:4px;font-size:0.83rem;font-weight:800;color:#1E3A8A;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:4px;" title="直接輸入條碼位數即刻生效"> 碼
+        <input value="${_escAttr(sb.name)}" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','name',this.value,true)" class="mono" style="width:62px;padding:4px;font-size:0.8rem;" title="條碼名稱 (例 ISN / QRISN)">
+        <input value="${_escAttr(sb.len)}" placeholder="留空或數" oninput="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,false)" onchange="_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','len',this.value,true)" class="mono" style="width:68px;padding:4px;font-size:0.82rem;font-weight:800;color:#1E3A8A;background:#FEF9C3;border:1.5px solid #EAB308;border-radius:4px;" title="條碼位數 (支援數字、*$(VAR) 或留空)"> 碼
         <select onchange="if(this.value!=='__CUSTOM__'){_updateScanBarcodeField(${i},'${_escAttr(scanKey)}','pat',this.value,true);}" class="mono" style="padding:4px;font-size:0.8rem;">
           <option value="[0-9]" ${sb.pat==='[0-9]'?'selected':''}>純數字 [0-9]</option>
           <option value="[0-9A-Z]" ${sb.pat==='[0-9A-Z]'?'selected':''}>大寫英數 [0-9A-Z]</option>
+          <option value="[0-9A-F]" ${sb.pat==='[0-9A-F]'?'selected':''}>Hex [0-9A-F]</option>
           <option value="[0-9A-Za-z]" ${sb.pat==='[0-9A-Za-z]'?'selected':''}>大小寫 [0-9A-Za-z]</option>
+          <option value="" ${sb.pat===''?'selected':''}>(不限字元/留空)</option>
           ${!patPresets.includes(sb.pat) ? `<option value="__CUSTOM__" selected>自訂 (${_escAttr(sb.pat)})</option>` : ''}
         </select>
+        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',false)" class="btn" style="padding:3px 7px; font-size:0.75rem; background:#F8FAFC; color:#64748B; border:1px solid #CBD5E1;" title="清空條碼規則（改為免掃）">免掃</button>
       </div>
-    ` : `<input value="${_escAttr(sb.raw)}" onchange="STATE.workspace.duts[${i}]['${_escAttr(scanKey)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:0.8rem;box-sizing:border-box;">`;
+    ` : `<input value="${_escAttr(sb.raw)}" onchange="STATE.workspace.duts[${i}]['${_escAttr(scanKey)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:0.8rem;box-sizing:border-box;">`);
 
     return `
       <tr>
@@ -1019,10 +1047,12 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
             ${checksHtml || '<span style="color:#94A3B8;font-size:0.8rem;">尚無測試站</span>'}
           </div>
         </td>
-        <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')}</td>
-        <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:245px;padding:4px;font-size:0.8rem;" placeholder="例：192.168.100.254 或 COM Port"></td>
+        <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')} ${String(inst['Sub']||'').trim()==='1'?'<span style="background:#DBEAFE;color:#1E40AF;font-size:0.7rem;padding:1px 5px;border-radius:4px;">Sub=1</span>':''}</td>
+        <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:225px;padding:4px;font-size:0.8rem;" placeholder="例：192.168.100.254 或 COM Port"></td>
+        <td><input value="${_escAttr(inst['Sub']||'')}" onchange="STATE.workspace.instruments[${idx}]['Sub']=this.value" class="mono" style="width:42px;padding:4px;font-size:0.8rem;text-align:center;" placeholder="空/1" title="填 1 表示共用子設備 (:ObtainSubDevice)"></td>
+        <td><input value="${_escAttr(inst['Switch']||'')}" onchange="STATE.workspace.instruments[${idx}]['Switch']=this.value" class="mono" style="width:105px;padding:4px;font-size:0.8rem;" placeholder="Switch"></td>
         <td class="mono" style="font-size:0.8rem;color:#475569;">${_escAttr(inst['Functions']||'')}</td>
-        <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${idx}]['Version']=this.value" class="mono" style="width:78px;padding:4px;font-size:0.8rem;"></td>
+        <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${idx}]['Version']=this.value" class="mono" style="width:72px;padding:4px;font-size:0.8rem;"></td>
       </tr>
     `;
   };
@@ -1040,7 +1070,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
       <!-- 統一批量設定列 -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#EFF6FF; border:1px solid #93C5FD; border-radius:8px; padding:10px 14px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.87rem;">
-          <span style="font-weight:800; color:#1E3A8A;">🔢 統一設定所有站別 ISN 條碼（目前 <span style="color:#DC2626;font-size:1rem;">${_escAttr(topIsnLen)}</span> 碼）：</span>
+          <span style="font-weight:800; color:#1E3A8A;">🔢 統一設定所有站別 ISN 條碼（目前 ${topIsnEmpty ? '<span style="color:#64748B;">免掃條碼</span>' : `<span style="color:#DC2626;font-size:1rem;">${_escAttr(topIsnLen)}</span> 碼`}）：</span>
           <label>位數 <input id="geIsnLen" type="number" min="1" max="64" value="${_escAttr(topIsnLen)}" oninput="batchApplyDutIsn(false)" class="mono" style="width:62px;padding:4px 7px;font-weight:800;color:#1E3A8A;"></label>
           <label>規則 <select id="geIsnPat" class="mono" style="padding:4px 7px;">
             <option value="[0-9]" ${topIsnPat==='[0-9]'?'selected':''}>[0-9]（純數字）</option>
@@ -1072,8 +1102,8 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
           </div>
           <div style="overflow:auto; max-height:320px; border:1px solid #FDE68A; border-radius:6px; background:#FFFFFF;">
             <table class="meas-table" style="margin:0;">
-              <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>功能</th><th>驅動版本</th></tr></thead>
-              <tbody>${activeInsts.map(renderPlainInstRow).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748B;padding:14px;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
+              <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>Sub</th><th>Switch</th><th>功能</th><th>驅動版本</th></tr></thead>
+              <tbody>${activeInsts.map(renderPlainInstRow).join('') || '<tr><td colspan="7" style="text-align:center;color:#64748B;padding:14px;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
             </table>
           </div>
           ${idleInsts.length > 0 ? `
@@ -1081,7 +1111,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
               <summary style="cursor:pointer; font-weight:700; font-size:0.8rem; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
               <div style="overflow:auto; max-height:260px; margin-top:6px;">
                 <table class="meas-table" style="margin:0;">
-                  <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>功能</th><th>驅動版本</th></tr></thead>
+                  <thead><tr><th>啟用站別 (打勾掛載)</th><th>儀器名稱</th><th>連線位址 (IP / COM / Port)</th><th>Sub</th><th>Switch</th><th>功能</th><th>驅動版本</th></tr></thead>
                   <tbody>${idleInsts.map(renderPlainInstRow).join('')}</tbody>
                 </table>
               </div>
@@ -1124,9 +1154,11 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
         </div>
       </td>
       <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')}</td>
-      <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${i}]['Settings']=this.value" class="mono" style="width:260px;padding:4px;font-size:0.8rem;"></td>
+      <td><input value="${_escAttr(inst['Sub']||'')}" onchange="STATE.workspace.instruments[${i}]['Sub']=this.value" class="mono" style="width:45px;padding:4px;font-size:0.8rem;text-align:center;" placeholder="空/1"></td>
+      <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${i}]['Settings']=this.value" class="mono" style="width:230px;padding:4px;font-size:0.8rem;"></td>
+      <td><input value="${_escAttr(inst['Switch']||'')}" onchange="STATE.workspace.instruments[${i}]['Switch']=this.value" class="mono" style="width:110px;padding:4px;font-size:0.8rem;" placeholder="Switch"></td>
       <td class="mono" style="font-size:0.8rem;">${_escAttr(inst['Functions']||'')}</td>
-      <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${i}]['Version']=this.value" class="mono" style="width:80px;padding:4px;font-size:0.8rem;"></td>
+      <td><input value="${_escAttr(inst['Version']||'')}" onchange="STATE.workspace.instruments[${i}]['Version']=this.value" class="mono" style="width:76px;padding:4px;font-size:0.8rem;"></td>
     </tr>
   `;
 
@@ -1135,7 +1167,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       <div style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:0.87rem; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 5 格設定入口
+            ⬅ 返回 6 格設定入口
           </button>
           <span style="font-weight:900; font-size:1.03rem; color:#78350F;">🎛️ 05-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
         </div>
@@ -1146,14 +1178,14 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
 
       <div style="overflow:auto; max-height:420px; display:flex; flex-direction:column; gap:10px;">
         <table class="meas-table">
-          <thead><tr><th>Mount (掛載站別)</th><th>儀器名稱</th><th>Settings (IP / COM / GPIB)</th><th>Functions</th><th>Version</th></tr></thead>
-          <tbody>${activeInsts.map(renderInstRow).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748B;padding:20px;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
+          <thead><tr><th>Mount (掛載站別)</th><th>儀器名稱</th><th>Sub</th><th>Settings (IP / COM / GPIB)</th><th>Switch</th><th>Functions</th><th>Version</th></tr></thead>
+          <tbody>${activeInsts.map(renderInstRow).join('') || '<tr><td colspan="7" style="text-align:center;color:#64748B;padding:20px;">目前測站尚無掛載使用中之儀器</td></tr>'}</tbody>
         </table>
         ${idleInsts.length > 0 ? `
           <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:8px 12px;">
             <summary style="cursor:pointer; font-weight:700; font-size:0.83rem; color:#475569;">📦 展開其餘未掛載的型錄儀器（共 ${idleInsts.length} 台）</summary>
             <table class="meas-table" style="margin-top:6px;">
-              <thead><tr><th>Mount</th><th>儀器名稱</th><th>Settings</th><th>Functions</th><th>Version</th></tr></thead>
+              <thead><tr><th>Mount</th><th>儀器名稱</th><th>Sub</th><th>Settings</th><th>Switch</th><th>Functions</th><th>Version</th></tr></thead>
               <tbody>${idleInsts.map(renderInstRow).join('')}</tbody>
             </table>
           </details>
@@ -1288,20 +1320,32 @@ function _collectUsedVarsAndInstruments(ws) {
 
 function _parseScanBarcode(raw) {
   const s = String(raw || '').trim();
-  const defLen = (STATE && STATE.lastIsnLen) ? String(STATE.lastIsnLen) : '15';
-  const defPat = (STATE && STATE.lastIsnPat) ? String(STATE.lastIsnPat) : '[0-9]';
-  if (!s) return { simple: true, name: 'ISN', len: defLen, pat: defPat };
-  if (s.includes(';')) return { simple: false, raw: s };
-  const m = s.match(/^\{\s*([^,]+)\s*,\s*(\d+)\s*,\s*([^}]+?)\s*\}$/);
-  if (!m) return { simple: false, raw: s };
-  return { simple: true, name: m[1].trim(), len: m[2].trim(), pat: m[3].trim() };
+  if (!s) return { simple: true, empty: true, name: 'ISN', len: '', pat: '' };
+  if (s.includes(';')) return { simple: false, empty: false, raw: s };
+  const m = s.match(/^\{\s*([^,}]*)\s*,\s*([^,}]*)\s*,\s*([^}]*?)\s*\}$/);
+  if (!m) return { simple: false, empty: false, raw: s };
+  return { simple: true, empty: false, name: (m[1] || 'ISN').trim(), len: m[2].trim(), pat: m[3].trim() };
 }
+
+window._toggleDutScanBlank = function (dutIdx, scanKey, enable) {
+  const d = STATE.workspace && STATE.workspace.duts && STATE.workspace.duts[dutIdx];
+  if (!d) return;
+  if (enable) {
+    const defLen = (STATE && STATE.lastIsnLen) ? String(STATE.lastIsnLen) : '15';
+    const defPat = (STATE && STATE.lastIsnPat) ? String(STATE.lastIsnPat) : '[0-9A-Z]';
+    d[scanKey] = `{ ISN,${defLen},${defPat} }`;
+  } else {
+    d[scanKey] = '';
+  }
+  _recordPendingIniNotice(`Excel DUTs 第 ${dutIdx + 1} 列條碼規則已更新為: ${d[scanKey] || '(免掃條碼/留空)'}`);
+  renderGlobalEditorPanel();
+};
 
 function _updateScanBarcodeField(dutIdx, scanKey, field, val, rerender = false) {
   const d = STATE.workspace.duts[dutIdx];
   if (!d) return;
   const parsed = _parseScanBarcode(d[scanKey]);
-  if (!parsed.simple) return;
+  if (!parsed.simple || parsed.empty) return;
   parsed[field] = String(val).trim();
   d[scanKey] = `{ ${parsed.name},${parsed.len},${parsed.pat} }`;
   if (field === 'len') {

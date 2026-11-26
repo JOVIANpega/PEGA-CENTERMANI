@@ -254,14 +254,16 @@ def reorder_station_blocks(workspace, sheet_name, new_order_indices, auto_renumb
                 b["phase_num"] = cand
                 b["is_skipped"] = False
 
-    # Determine starting phase number if auto-renumbering (keep skipped Phase=-1 intact!)
+    # Determine starting phase number if auto-renumbering (keep Phase 0 & skipped Phase=-1 intact!)
     if auto_renumber_phase:
-        normal_nums = [b["phase_num"] for b in ordered_blocks if b["phase_num"] is not None and 0 <= b["phase_num"] < 95]
+        normal_nums = [b["phase_num"] for b in ordered_blocks if b["phase_num"] is not None and 1 <= b["phase_num"] < 95]
         next_phase = min(normal_nums) if normal_nums else 1
         if next_phase > 1:
             next_phase = 1
         for b in ordered_blocks:
-            if b["phase_num"] is not None and 0 <= b["phase_num"] < 95:
+            if b["phase_num"] == 0:
+                continue
+            if b["phase_num"] is not None and 1 <= b["phase_num"] < 95:
                 b["_rows"][0]["Phase"] = str(next_phase)
                 b["phase"] = str(next_phase)
                 b["phase_num"] = next_phase

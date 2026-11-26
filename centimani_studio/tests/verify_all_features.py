@@ -3082,6 +3082,107 @@ def run_all_verifications():
                   "v0.8.077 Option B :Utility.CMD + 自訂APP別名(MtCmd/CmdConsole2) + keep_open + PPH1503 OUTONOFF OFF 通過",
                   f"sends={v77_sends}, dut={v77_dut_str}, ar={v77_res.get('audit_report')}")
 
+            # [v0.8.078] 既有腳本編修 (1 -> N) 四項改善驗收：
+            #   1. Phase 0 保留不順編進 1（含多塊 Phase 0）；無 Phase 0 的腳本仍從 Phase 1 起編
+            #   2. block_sorter.js 記憶 _savedPhaseNum / bsAutoSortByPhase 保留中段暫停位置 / LivePreview 保留 Phase 0
+            #   3. ScanBarcode 空白不自動覆寫 { ISN,15,[0-9] }、支援 *$(ISN_len) 與 {QRISN,,}
+            #   4. System.ini (DeviceSemaphore/RobotMode) & Instrument (Sub/Switch) & PCUART_1 & 6 格文案與持久化
+            with open(os.path.join(STUDIO_DIR, "web", "js", "block_sorter.js"), "r", encoding="utf-8") as f_bs78:
+                bs78_src = f_bs78.read()
+            with open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8") as f_ae78:
+                ae78_src = f_ae78.read()
+
+            check("_savedPhaseNum" in bs78_src
+                  and "b.phase_num === 0" in bs78_src
+                  and "midPausedAfter" in bs78_src
+                  and "anchorOrigIdx" in bs78_src,
+                  "v0.8.078 block_sorter.js 包含 Phase 0 保留、暫停記憶原 Phase 與中段暫停錨點保留邏輯",
+                  f"has_saved={('_savedPhaseNum' in bs78_src)}, has_p0={('b.phase_num === 0' in bs78_src)}, has_mid={('midPausedAfter' in bs78_src)}")
+
+            check("empty: true" in ae78_src
+                  and "_toggleDutScanBlank" in ae78_src
+                  and "免掃條碼" in ae78_src
+                  and "DeviceSemaphore" in ae78_src
+                  and "RobotMode" in ae78_src
+                  and "PCUART_1" in ae78_src
+                  and "5～6 格" in ae78_src
+                  and "返回 6 格設定入口" in ae78_src
+                  and "['Switch']" in ae78_src and "['Sub']" in ae78_src,
+                  "v0.8.078 audit_editors.js 具備免掃條碼保護、*$(var)/空規則支援、DeviceSemaphore/RobotMode、Inst Sub/Switch 與 PCUART_1",
+                  "missing expected v0.8.078 UI/editor markers in audit_editors.js")
+
+            from core.block_sorter import reorder_station_blocks as _reord78
+            # 1a. 多塊 Phase 0（首端與中段各有 Phase 0）+ 測項順編：所有 Phase 0 皆維持 '0'，其餘從 1 起編
+            v78_ws_p0 = {
+                "stations": {"ST": [
+                    {"Index": "000", "Phase": "0", "Title": "0,LoadParam", "Instrument": "", "Send": ":Delay,10", "ExecMode": "0"},
+                    {"Index": "001", "Phase": "3", "Title": "0,Boot", "Instrument": "", "Send": ":Delay,100", "ExecMode": "0"},
+                    {"Index": "002", "Phase": "0", "Title": "0,InitEnv", "Instrument": "", "Send": ":Delay,10", "ExecMode": "0"},
+                    {"Index": "003", "Phase": "-1", "Title": "0,PausedMid", "Instrument": "", "Send": ":Delay,50", "ExecMode": "0"},
+                    {"Index": "004", "Phase": "8", "Title": "0,Check", "Instrument": "", "Send": ":Delay,100", "ExecMode": "0"},
+                    {"Index": "005", "Phase": "97", "Title": "0,Teardown", "Instrument": "", "Send": ":Delay,10", "ExecMode": "0"},
+                ]}
+            }
+            v78_blks_p0 = _ext_blks(v78_ws_p0["stations"]["ST"])
+            _reord78(
+                v78_ws_p0,
+                "ST",
+                [b["orig_idx"] for b in v78_blks_p0],
+                auto_renumber_phase=True,
+                paused_orig_indices=[b["orig_idx"] for b in v78_blks_p0 if b["phase"] == "-1"],
+            )
+            v78_phases_p0 = [b["phase"] for b in _ext_blks(v78_ws_p0["stations"]["ST"])]
+            # 1b. 無 Phase 0 的腳本（例如 OTA）：仍從 Phase 1 起編，不強制變 0
+            v78_ws_no_p0 = {
+                "stations": {"OTA": [
+                    {"Index": "000", "Phase": "5", "Title": "0,Connect", "Instrument": "", "Send": ":Delay,100", "ExecMode": "0"},
+                    {"Index": "001", "Phase": "10", "Title": "0,OTA", "Instrument": "", "Send": ":Delay,200", "ExecMode": "0"},
+                    {"Index": "002", "Phase": "97", "Title": "0,End", "Instrument": "", "Send": ":Delay,10", "ExecMode": "0"},
+                ]}
+            }
+            v78_blks_no_p0 = _ext_blks(v78_ws_no_p0["stations"]["OTA"])
+            _reord78(
+                v78_ws_no_p0,
+                "OTA",
+                [b["orig_idx"] for b in v78_blks_no_p0],
+                auto_renumber_phase=True,
+            )
+            v78_phases_no_p0 = [b["phase"] for b in _ext_blks(v78_ws_no_p0["stations"]["OTA"])]
+            check(v78_phases_p0 == ["0", "1", "0", "-1", "2", "97"]
+                  and v78_phases_no_p0 == ["1", "2", "97"],
+                  "v0.8.078 reorder_station_blocks 保留所有既有 Phase 0 不重編，無 Phase 0 腳本仍從 Phase 1 起編",
+                  f"with_p0={v78_phases_p0}, no_p0={v78_phases_no_p0}")
+
+            # 4. In-Place Patch 驗證 DeviceSemaphore / RobotMode (INI) 與 Instrument Sub / Switch (Excel)
+            from core.ini_engine import sync_and_generate_inis as _sync_inis78
+            from core.excel_engine import export_workspace_to_excel as _exp_xlsx78
+            with tempfile.TemporaryDirectory() as v78_ini_dir:
+                v78_src_xlsx = os.path.join(v78_ini_dir, "TestFlow_v78.xlsx")
+                shutil.copy2(v77_res["excel_path"], v78_src_xlsx)
+                with open(os.path.join(v78_ini_dir, "System.ini"), "w", encoding="utf-8") as f_s78:
+                    f_s78.write("[System]\nDebugMode=0\nDeviceSemaphore=1\nRobotMode=0\n")
+                ws_v78_in = _parse_v50(v78_src_xlsx)
+                ws_v78_in["source_file"] = v78_src_xlsx
+                ws_v78_in["system_ini"]["DeviceSemaphore"] = "0"
+                ws_v78_in["system_ini"]["RobotMode"] = "1"
+                ws_v78_in["preserved_inis"] = {"System.ini": open(os.path.join(v78_ini_dir, "System.ini"), encoding="utf-8").read()}
+                if ws_v78_in.get("instruments"):
+                    ws_v78_in["instruments"][0]["Sub"] = "1"
+                    ws_v78_in["instruments"][0]["Switch"] = "RF_SW_A"
+                v78_exp_xlsx = os.path.join(v78_ini_dir, "TestFlow_v78_OUT.xlsx")
+                _exp_xlsx78(ws_v78_in, v78_exp_xlsx)
+                _sync_inis78(ws_v78_in, "TestFlow_v78_OUT.xlsx", v78_ini_dir)
+                with open(os.path.join(v78_ini_dir, "System.ini"), "r", encoding="utf-8") as f_s78_out:
+                    s78_out_txt = f_s78_out.read()
+                ws_v78_reparsed = _parse_v50(v78_exp_xlsx)
+                inst0_rep = (ws_v78_reparsed.get("instruments") or [{}])[0]
+                check("DeviceSemaphore=0" in s78_out_txt
+                      and "RobotMode=1" in s78_out_txt
+                      and str(inst0_rep.get("Sub") or "").strip() == "1"
+                      and str(inst0_rep.get("Switch") or "").strip() == "RF_SW_A",
+                      "v0.8.078 In-Place Patch 正確持久化 DeviceSemaphore / RobotMode 與 Instrument Sub / Switch",
+                      f"sys={s78_out_txt!r}, inst0={inst0_rep}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

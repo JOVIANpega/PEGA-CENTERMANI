@@ -580,7 +580,9 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
             ws_inst = wb["Instrument"]
             headers = [str(c.value).strip() if c.value is not None else "" for c in ws_inst[1]]
             mount_col = headers.index("Mount") + 1 if "Mount" in headers else None
+            sub_col = headers.index("Sub") + 1 if "Sub" in headers else None
             ver_col = headers.index("Version") + 1 if "Version" in headers else None
+            sw_col = headers.index("Switch") + 1 if "Switch" in headers else None
             name_col = headers.index("Name") + 1 if "Name" in headers else None
             dll_col = headers.index("ControlDLL") + 1 if "ControlDLL" in headers else None
             set_col = headers.index("Settings") + 1 if "Settings" in headers else None
@@ -613,6 +615,12 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
                     if mount_col and "Mount" in match_item and match_item.get("Mount") is not None:
                         m_str = str(match_item.get("Mount", "")).strip()
                         ws_inst.cell(row=r, column=mount_col).value = m_str if m_str else None
+                    if sub_col and "Sub" in match_item and match_item.get("Sub") is not None:
+                        s_str = str(match_item.get("Sub", "")).strip()
+                        ws_inst.cell(row=r, column=sub_col).value = s_str if s_str else None
+                    if sw_col and "Switch" in match_item and match_item.get("Switch") is not None:
+                        w_str = str(match_item.get("Switch", "")).strip()
+                        ws_inst.cell(row=r, column=sw_col).value = w_str if w_str else None
                     if set_col and match_item.get("Settings"):
                         ws_inst.cell(row=r, column=set_col, value=match_item.get("Settings"))
 

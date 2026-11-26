@@ -141,7 +141,7 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
                 ):
                     if re.search(r"(?m)^StationName=.*$", raw_sys):
                         raw_sys = re.sub(r"(?m)^StationName=.*$", "StationName=", raw_sys)
-                for k_ov in ("DebugMode", "RetryCount", "StationList", "StationName", "SFIS_Enable", "SFIS_AutoLogin", "SFIS_LoginID", "SFIS_GetDateISN", "SFIS_SkipSaveResultOnFail", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
+                for k_ov in ("DebugMode", "RetryCount", "DeviceSemaphore", "RobotMode", "IndividualScanBarCode", "CSVReport_Enable", "IpFinder_Enable", "TestItemCodeFile", "StationList", "StationName", "SFIS_Enable", "SFIS_AutoLogin", "SFIS_LoginID", "SFIS_GetDateISN", "SFIS_SkipSaveResultOnFail", "SFIS_LinkIPLAS", "SFIS_WebLink", "SFIS_TSP", "iPLAS_Enable", "iPLAS_Site", "iPLAS_ProjectName"):
                     if k_ov in sys_cfg and str(sys_cfg[k_ov]).strip() != "":
                         v_ov = str(sys_cfg[k_ov]).strip()
                         if re.search(rf"(?m)^{re.escape(k_ov)}=.*$", raw_sys):
