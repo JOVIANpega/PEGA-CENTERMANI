@@ -631,8 +631,8 @@ def run_all_verifications():
             rf_inst_vals = [r.get("Instrument", "") for r in pwr_rows]
             check(rf_inst_vals == ["SetON", "", ""],
                   "一鍵修復自動精簡同區塊連續重複之 Instrument 為僅首列寫入", str(rf_inst_vals))
-            check('id="genToolShortcut_qa"' in index_html and 'id="genModeQa"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
-                  "腳本建立與編修中心已具備『問編寫問題』快捷工具與直覺置頂問答模組")
+            check('id="topBtnQaCheatsheet"' in index_html and 'id="qaCheatsheetModal"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
+                  "頂部導覽列已具備全域『語法寫法小抄』彈窗入口與直覺問答模組")
             # 驗證 use_ini_switch=True 生成 *$(EN_xxx) 開關，以及全數匯出皆自動產出隨附 _編寫與使用說明.txt
             check('id="iiUseIniSwitch"' in index_html and 'id="tab3UseIniSwitch"' in index_html and 'openGuideTxtFile' in index_html,
                   "UI 已具備 Global.ini 一鍵開關勾選框與隨附說明 .txt 開啟鈕")
@@ -1277,15 +1277,15 @@ def run_all_verifications():
                   and "filtered.filter(i => i.dll_exists !== false)" in index_html,
                   "UI 已具備頂部主程式環境徽章、首次掃描橫幅、SFIS/DLLtest 按鈕，且 USABLE 僅列實機 DLL")
 
-            # [v0.8.025] 驗證實機驗證入口 (SFIS / DLL)、移除書籤N 字眼、NI-DAQmx 驅動缺漏偵測與 Log 診斷
-            check('id="genToolShortcut_tools"' in index_html
+            # [v0.8.025] 驗證實機驗證入口 (SFIS / DLL，現已移至首頁 05 手風琴)、移除書籤N 字眼、NI-DAQmx 驅動缺漏偵測與 Log 診斷
+            check('id="accCard_tools"' in index_html
                   and 'id="genModeTools"' in index_html
                   and 'id="btnGenModeTools"' in index_html
                   and 'toolsCheckSfisLink()' in sfis_hmi_js
                   and 'ISN 刷過' in index_html
                   and 'GET' in index_html
                   and 'WRITE' in index_html,
-                  "腳本建立與編修中心已具備『實機驗證 (SFIS / DLL)』含 ISN/GET/WRITE 與 DLLtest 工作區")
+                  "首頁手風琴已具備獨立『實機驗證 (SFIS / DLL)』入口含 ISN/GET/WRITE 與 DLLtest 工作區")
 
             check("書籤" not in index_html and "書籤" not in flow_guide_js,
                   "index.html 與 flow_guide.js 內文已徹底移除所有『書籤N』字眼")
@@ -2635,7 +2635,6 @@ def run_all_verifications():
                   and "globalHubCard_tic" in aud_68
                   and "openTicFromEdit" in aud_68
                   and "ticBackFromEditBar" in index_html
-                  and "btnEditorOpenTic" in index_html
                   and "returnToEditFromTic" in index_html,
                   "v0.8.068 群組方框UI、進階TestID即時搜尋、Error Code嵌入式頁籤與手風琴卡檢查通過")
 
@@ -2694,7 +2693,7 @@ def run_all_verifications():
                   and "BB_STATE.dragSrcType==='group_child'" in cbb_69
                   and "const navLen = _getQaNavList().length;" in cbb_69
                   and "if (viewName !== 'export')" in cbb_69
-                  and "點擊下方 6 格水平手風琴卡牌" in index_html,
+                  and "點擊下方 6 格水平手風琴卡牌" in (index_html + aud_68),
                   "v0.8.069 群組收合卡純向下箭頭(▼)、群組拖出至右側空白區與qaIdx/舊橫幅清理檢查通過")
 
             # [v0.8.070] 方案1撲克牌總覽匯出頁 + 恢復預設6塊 + 返回模式選擇入口 + 舊4步驟文案更新 + 匯出預設自動語法檢查與INI設定摘要通知
@@ -2738,16 +2737,16 @@ def run_all_verifications():
                   "v0.8.070 匯出預設自動執行Excel語法檢查(0 Error) + 回傳實際寫入INI摘要(System/Settings/Scripts) 通過",
                   f"ar={v70_ar}, ini={v70_ini}")
 
-            # [v0.8.072] 方向 A：建立與編修中心精簡為 2 大主力手風琴卡 (1->N 與 0->1) + 右上 3 項獨立輔助工具捷徑
+            # [v0.8.072 / v0.8.081] 建立與編修中心專注保留 2 大主力雙卡 (1->N 與 0->1)，移除角落雜訊按鈕
             check('id="genHubCard_edit"' in hub_sec
                   and 'id="genHubCard_create"' in hub_sec
                   and 'id="genHubCard_inst"' not in hub_sec
                   and 'id="genHubCard_qa"' not in hub_sec
                   and 'id="genHubCard_tools"' not in hub_sec
-                  and 'id="genToolShortcut_inst"' in hub_sec
-                  and 'id="genToolShortcut_tools"' in hub_sec
-                  and 'id="genToolShortcut_qa"' in hub_sec,
-                  "v0.8.072 建立與編修中心精簡為 2 張主力手風琴卡 (1->N / 0->1) ＋ 右上 3 項獨立工具捷徑檢查通過")
+                  and 'id="genToolShortcut_inst"' not in hub_sec
+                  and 'id="genToolShortcut_tools"' not in hub_sec
+                  and 'id="genToolShortcut_qa"' not in hub_sec,
+                  "v0.8.072/v0.8.081 建立與編修中心專注保留 2 張主力雙卡 (1->N / 0->1) 且移出角落獨立工具檢查通過")
 
             # [v0.8.073] 兩張主力卡取消手風琴改為等寬雙大卡 (.gen-dual-grid / .gen-big-card) + 懸浮上浮效果
             check('class="gen-dual-grid"' in hub_sec
@@ -2822,23 +2821,19 @@ def run_all_verifications():
                   "v0.8.074 多別名LinuxUART + 多行鏈式Ref + 客製DLL寫DUTs + ExecMode開關 + Phase98群組 + 0 Error 通過",
                   f"phases={v74_phases}, ems={v74_ems}, ar={v74_ar}")
 
-            # [v0.8.075] 精簡手風琴/雙卡文案 + 右上 4 工具改名含副標 + 知識文件同步 + 整份 Excel 自動比對與批次補換 TestID
+            # [v0.8.075 / v0.8.081] Hover樣式 + 批次TestID介面 + 知識文件紀錄
             doc1_txt = open(os.path.join(PROJECT_ROOT, "完整知識庫文件清單", "DESIGN_AND_HANDOVER.md"), "r", encoding="utf-8").read()
             doc2_txt = open(os.path.join(PROJECT_ROOT, "完整知識庫文件清單", "Centimani_自動化腳本生成系統完整架構與需求規格書.md"), "r", encoding="utf-8").read()
-            check("生單台儀器範例" in hub_sec
-                  and "實機測試 SFIS / DLL" in hub_sec
-                  and "語法寫法小抄" in hub_sec
-                  and "批次補換 TestID" in hub_sec
-                  and 'id="genToolShortcut_tic"' in hub_sec
-                  and "openTicBatchAuditFromGen" in index_html
+            check("實機測試 SFIS / DLL" in home_sec
+                  and "語法小抄" in index_html
+                  and "純儀器單測骨架" in open(cbb_js_path, "r", encoding="utf-8").read()
                   and 'id="btnTicSubBatch"' in index_html
                   and 'id="ticBatchWrap"' in index_html
                   and 'id="chkTicBatchUpdateDesc">' in index_html
                   and ".tic-cand-pill:hover" in app_css
-                  and ".gen-tool-pill:hover" in app_css
                   and "Build v0.8.075" in doc1_txt and "analyze_workspace_test_ids" in doc1_txt
                   and "Build v0.8.075" in doc2_txt,
-                  "v0.8.075 右上4工具改名與副標 + Hover樣式 + 批次TestID介面 + 知識文件紀錄 檢查通過")
+                  "v0.8.075/v0.8.081 實機測試置於首頁、全域語法小抄、純儀器整合進積木 + 批次TestID介面 + 知識文件紀錄 檢查通過")
 
             ws_tic_test = json.loads(json.dumps(ws_v74))
             ws_tic_test["source_file"] = v74_res["excel_path"]
@@ -3110,7 +3105,7 @@ def run_all_verifications():
                   and "DeviceSemaphore" in ae78_src
                   and "RobotMode" in ae78_src
                   and "PCUART_1" in ae78_src
-                  and "5～6 格" in ae78_src
+                  and ("5～6 格" in ae78_src or "6 格水平手風琴" in ae78_src)
                   and "返回 6 格設定入口" in ae78_src
                   and "['Switch']" in ae78_src and "['Sub']" in ae78_src,
                   "v0.8.078 audit_editors.js 具備免掃條碼保護、*$(var)/空規則支援、DeviceSemaphore/RobotMode、Inst Sub/Switch 與 PCUART_1",
@@ -3205,19 +3200,20 @@ def run_all_verifications():
                   "missing Phase role picker or card badges in create_block_builder.js")
 
             exp_bar_pos = idx79_src.find('id="editorExportBar"')
-            sheet_sel_pos = idx79_src.find('id="editorSheetSel"')
-            diff_btn_pos = idx79_src.find('openStationDiffModal()')
+            hub_host_pos = idx79_src.find('id="auditGlobalEditor"')
             check('id="editorDropZoneStrip"' in idx79_src
                   and "handleEditorFileDrop" in idx79_src
                   and 'id="btnTab1LaunchSfis"' not in idx79_src
                   and 'id="btnTab1LaunchDll"' not in idx79_src
-                  and 0 < sheet_sel_pos < diff_btn_pos < exp_bar_pos
+                  and 0 < hub_host_pos < exp_bar_pos
+                  and 'id="editorSheetSel"' in ae79_src
+                  and 'openStationDiffModal()' in ae79_src
                   and "▼ 展開修改 System.ini" in ae79_src
                   and "↗ 彈窗排序測試流程" in ae79_src
                   and "↗ 彈窗編輯跳轉規則" in ae79_src
                   and "Marco 子流程表" in idx79_src,
-                  "v0.8.079 1->N 介面大掃除：拖曳載入、去重頂部按鈕、比對按鈕上移至測站列、手風琴預期標示與 Marco 子流程說明",
-                  f"sheet={sheet_sel_pos}, diff={diff_btn_pos}, exp={exp_bar_pos}")
+                  "v0.8.079/v0.8.081 1->N 介面大掃除：拖曳載入、去重頂部按鈕、測站與比對鈕整合於編修主入口、手風琴預期標示與 Marco 子流程說明",
+                  f"hub={hub_host_pos}, exp={exp_bar_pos}")
 
             v79_res = post_json("/api/generate_new_standalone", {
                 "project_name": "V79_SINGLE_P0_PROJ",
@@ -3342,6 +3338,51 @@ def run_all_verifications():
                   and fixed_ref_str == '$DUT_FW:SplitString,"\\:","1"',
                   "v0.8.080 script_doctor 正確偵測並自動修復 SplitString 未跳脫冒號 ':' -> '\\:'",
                   f"errs={rep_bad.get('errors')}, fixed={fixed_ref_str!r}")
+
+            # [v0.8.081]
+            #  1. log_analyzer 偵測 Centimani Ref function doesn't define 與 Format of Script Error=3
+            #  2. 01 健檢清單預設 3 筆摺疊、首頁 05 實機測試獨立卡、全域語法小抄彈窗+複製、1->N 標題併入測站列+方案 A 文案與摘要膠囊、純儀器單測骨架與 Frozen EXE 相容性
+            ref_err_log = (
+                '2026/11/26 16:33:19 [System]    The Ref function """ of UART@cat /etc/version\n'
+                " of Check UART & FW Version3(2) doesn't define.\n"
+                "2026/11/26 16:33:19 [System]    Format of Script has some wrongs. Error=3.\n"
+                "2026/11/26 16:33:19 [System]    Load PEGA_NEW444_TestFlow_FUNCTION.xlsx Fail !\n"
+            )
+            ref_diag = log_analyzer.analyze_centimani_log(ref_err_log)
+            ref_blob = str(ref_diag)
+            check("REF_FUNCTION_NOT_DEFINED" in ref_blob or "Ref 函式解析錯誤" in ref_blob
+                  and "腳本格式驗證失敗" in ref_blob,
+                  "v0.8.081 log_analyzer 可辨識 Centimani Ref function doesn't define 與 Format of Script Error=3 並引導一鍵修復",
+                  str(ref_diag.get("issues")))
+
+            with open(os.path.join(STUDIO_DIR, "web", "index.html"), "r", encoding="utf-8") as f_idx81:
+                idx81_src = f_idx81.read()
+            with open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8") as f_ae81:
+                ae81_src = f_ae81.read()
+            with open(os.path.join(STUDIO_DIR, "web", "js", "script_qa.js"), "r", encoding="utf-8") as f_qa81:
+                qa81_src = f_qa81.read()
+            with open(os.path.join(STUDIO_DIR, "web", "js", "create_block_builder.js"), "r", encoding="utf-8") as f_bb81:
+                bb81_src = f_bb81.read()
+            with open(os.path.join(PROJECT_ROOT, "CentimaniStudio.spec"), "r", encoding="utf-8") as f_sp81:
+                spec81_src = f_sp81.read()
+
+            check('id="auditRecentExpandBar"' in idx81_src
+                  and "toggleAuditRecentExpand" in idx81_src
+                  and "rows.slice(0, 3)" in idx81_src
+                  and 'id="accCard_tools"' in idx81_src
+                  and 'id="topBtnQaCheatsheet"' in idx81_src
+                  and 'id="qaCheatsheetModal"' in idx81_src
+                  and "qaCopySnippet" in qa81_src
+                  and "bbLoadSingleInstPreset" in bb81_src
+                  and "過站開關 (System.ini)" in ae81_src
+                  and "埠號與變數 (Global.ini)" in ae81_src
+                  and "測項順序與停用" in ae81_src
+                  and "跳轉與重試 (ExecMode)" in ae81_src
+                  and 'id="editorSheetSel"' in ae81_src
+                  and "IS_FROZEN" in open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
+                  and "('IMAGES', 'IMAGES')" in spec81_src,
+                  "v0.8.081 3筆清單摺疊、首頁05實機測試卡、全域語法小抄、1->N排版整併與方案A文案、純儀器骨架與EXE打包相容檢查通過",
+                  "missing expected v0.8.081 markers")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

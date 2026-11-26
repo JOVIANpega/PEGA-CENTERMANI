@@ -288,6 +288,30 @@ def analyze_centimani_log(log_text, file_path=""):
                     "solution": "系統已全面修正 INI 產出邏輯！請重新點擊【一鍵產生新測試包】或【💾 一鍵修好】，工具將自動完整生成包含 [System] (含 StationList=站名)、[SFIS]、[iPLAS] 等 9 大標準區段的 System.ini。"
                 })
 
+        if "The Ref function" in line and ("doesn't define" in line or " of " in line):
+            key = "REF_FUNC_UNDEFINED"
+            if key not in seen_issues:
+                seen_issues.add(key)
+                issues.append({
+                    "category": "Ref 函式解析錯誤", "severity": "ERROR",
+                    "title": "Ref 擷取函式名稱無效或參數未轉義 (The Ref function doesn't define)",
+                    "raw_match": sline,
+                    "cause": "常見原因為 Ref 欄位的 :SplitString 或 :WithinString 參數內含有未轉義的冒號 ':' 或分號 ';'（例如 SplitString,\":\",\"1\"），被主程式誤切斷為無效函式名稱；或是較舊版主程式 v1.2.1.2 不支援新版函式（如 :Trim）。",
+                    "solution": "請回到本工具【01 腳本健檢與自動修復】載入該 Excel，點選【💾 一鍵修好並匯出】將未轉義冒號/分號自動修復為 \\: / \\; 后即可正常載入。"
+                })
+
+        if "Format of Script has some wrongs" in line:
+            key = "SCRIPT_FORMAT_WRONG"
+            if key not in seen_issues:
+                seen_issues.add(key)
+                issues.append({
+                    "category": "腳本格式驗證失敗", "severity": "ERROR",
+                    "title": "Centimani 載入測試腳本格式失敗 (Format of Script has some wrongs)",
+                    "raw_match": sline,
+                    "cause": "Centimani 主程式預檢 Excel 時發現 Ref / Send / ExecMode / Phase 或 DUTs 欄位語法不符規定，故拒絕載入整個工作簿。",
+                    "solution": "請優先檢視本報告上方的具體列位錯誤訊息，或直接將該份 TestFlow.xlsx 拖曳至【01 腳本健檢與自動修復】執行一鍵修復後再試。"
+                })
+
         if "is Fail !" in line:
             em = p_errcode.search(line)
             err_c = em.group(1) if em else "未知代碼"

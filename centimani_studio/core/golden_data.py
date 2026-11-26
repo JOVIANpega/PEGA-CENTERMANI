@@ -191,8 +191,17 @@ def get_configured_centimani_dir():
     and saves the discovered path into config.json so the user isn't prompted repeatedly.
     """
     import json
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    proj_root = os.path.dirname(base_dir)
+    if getattr(sys, "frozen", False):
+        _exe_d = os.path.dirname(os.path.abspath(sys.executable))
+        base_dir = _exe_d
+        proj_root = _exe_d
+        for _cand_root in (_exe_d, os.path.dirname(_exe_d), os.path.dirname(os.path.dirname(_exe_d))):
+            if any(os.path.isdir(os.path.join(_cand_root, sub)) for sub in ("Centmimani_Altas_TRY", "CENTERMAINA_TRY", "SCRIPTS")):
+                proj_root = _cand_root
+                break
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        proj_root = os.path.dirname(base_dir)
     cfg_path = os.path.join(base_dir, "config.json")
     cfg = {}
     if os.path.exists(cfg_path):
@@ -287,7 +296,10 @@ def scan_centimani_environment(target_dir=None, persist=True, confirmed=None):
     """
     import json
     import datetime
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if getattr(sys, "frozen", False):
+        base_dir = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cfg_path = os.path.join(base_dir, "config.json")
     cfg = {}
     if os.path.exists(cfg_path):

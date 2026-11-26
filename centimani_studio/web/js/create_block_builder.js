@@ -1330,6 +1330,26 @@
     bbRender();
   };
 
+  window.bbLoadSingleInstPreset = function () {
+    const startCfg = _defaultConfigForKind('start');
+    startCfg.debug_mode = '1';
+    startCfg.sfis_enable = '0';
+    const isnCfg = _defaultConfigForKind('isn');
+    isnCfg.enable_scan = false;
+    BB_STATE.stack = [
+      { uid: _newUid(), kind: 'start', configured: true, config: startCfg },
+      { uid: _newUid(), kind: 'isn', configured: true, config: isnCfg },
+      { uid: _newUid(), kind: 'inst', configured: false, config: _defaultConfigForKind('inst') },
+      { uid: _newUid(), kind: 'teardown', configured: true, config: _defaultConfigForKind('teardown') },
+      { uid: _newUid(), kind: 'end', configured: true, config: _defaultConfigForKind('end') }
+    ];
+    BB_STATE.qaIdx = 0;
+    BB_STATE.autoSortMsg = '⚡ 已切換為「純儀器單測骨架」（開始 ➔ 免掃條碼 ➔ 儀器挑選 ➔ 清理 ➔ 結束），點選儀器卡即可挑機器直出測檔！';
+    const alertBox = document.getElementById('genAlertBox');
+    if (alertBox) alertBox.style.display = 'none';
+    bbRender();
+  };
+
   function _collectPrecedingVars(beforeNavIdx) {
     const vars = [];
     const seen = new Set();
@@ -2225,9 +2245,10 @@
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-weight:900; font-size:0.88rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
-                <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#EEF2FF; border:1.5px solid #818CF8; color:#312E81;" onclick="bbAutoSortStack()" title="由程式依 ATE 實戰前後依賴關係自動排最佳順序">🪄 一鍵自動排最佳順序</button>
-                <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#475569;" onclick="bbResetDefaultStack()" title="清空自訂排列，恢復預設 6 塊首次範本骨架">🔄 恢復預設 6 塊</button>
+                <span style="font-weight:900; font-size:0.9rem; color:#581C87;">🧱 已排定執行序列（共 ${BB_STATE.stack.length} 張）</span>
+                <button type="button" class="btn" data-pop-tip="依實戰測試前後依賴關係自動重新排序（Phase 0 ➔ 量測 ➔ 通訊 ➔ 上傳 ➔ Phase 97 收尾）" style="padding:4px 10px; font-size:0.84rem; font-weight:800; background:#EEF2FF; border:1.5px solid #818CF8; color:#312E81;" onclick="bbAutoSortStack()">🪄 一鍵自動排最佳順序</button>
+                <button type="button" class="btn" data-pop-tip="清空目前編排，恢復標準 6 塊完整流程（含條碼與 chkRoute）" style="padding:4px 10px; font-size:0.84rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#475569;" onclick="bbResetDefaultStack()">🔄 恢復預設 6 塊</button>
+                <button type="button" class="btn" data-pop-tip="載入純儀器單測極簡骨架（免掃條碼/免 SFIS，專注驗證單台電源、DAQ、LED 或 RF 儀器）" style="padding:4px 10px; font-size:0.84rem; font-weight:800; background:#F0FDF4; border:1.5px solid #4ADE80; color:#15803D;" onclick="bbLoadSingleInstPreset()">⚡ 純儀器單測骨架</button>
               </div>
               <span style="font-size:0.76rem; color:#64748B;">直接拖卡片到任意積木上方或箭頭處即可調換順序</span>
             </div>

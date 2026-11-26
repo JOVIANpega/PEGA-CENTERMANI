@@ -61,10 +61,22 @@ def _parse_multipart_form(headers, rfile):
                 fields[f"{field_key}__filename"] = os.path.basename(fn_m.group(1).replace("\\", "/"))
     return fields
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(BASE_DIR)
-SCRIPTS_ROOT = os.path.join(PROJECT_ROOT, "SCRIPTS")
-OUTPUT_ROOT = os.path.join(BASE_DIR, "output_system")
+IS_FROZEN = getattr(sys, "frozen", False)
+EXE_DIR = os.path.dirname(os.path.abspath(sys.executable)) if IS_FROZEN else os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = getattr(sys, "_MEIPASS", EXE_DIR) if IS_FROZEN else os.path.dirname(os.path.abspath(__file__))
+if IS_FROZEN:
+    PROJECT_ROOT = EXE_DIR
+    for _cand_root in (EXE_DIR, os.path.dirname(EXE_DIR), os.path.dirname(os.path.dirname(EXE_DIR))):
+        if os.path.isdir(os.path.join(_cand_root, "SCRIPTS")) or os.path.isdir(os.path.join(_cand_root, "Centmimani_Altas_TRY")):
+            PROJECT_ROOT = _cand_root
+            break
+    SCRIPTS_ROOT = os.path.join(EXE_DIR, "SCRIPTS") if os.path.isdir(os.path.join(EXE_DIR, "SCRIPTS")) else os.path.join(PROJECT_ROOT, "SCRIPTS")
+    OUTPUT_ROOT = os.path.join(EXE_DIR, "output_system")
+else:
+    PROJECT_ROOT = os.path.dirname(BASE_DIR)
+    SCRIPTS_ROOT = os.path.join(PROJECT_ROOT, "SCRIPTS")
+    OUTPUT_ROOT = os.path.join(BASE_DIR, "output_system")
+os.makedirs(OUTPUT_ROOT, exist_ok=True)
 
 sys.path.insert(0, BASE_DIR)
 from core.golden_data import (
@@ -86,7 +98,14 @@ from core.log_analyzer import analyze_centimani_log
 from desktop_app import convert_workspace_to_dry_run
 
 
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+CONFIG_FILE = os.path.join(EXE_DIR if IS_FROZEN else BASE_DIR, "config.json")
+if IS_FROZEN and not os.path.exists(CONFIG_FILE):
+    _bundled_cfg = os.path.join(BASE_DIR, "config.json")
+    if os.path.exists(_bundled_cfg):
+        try:
+            shutil.copy2(_bundled_cfg, CONFIG_FILE)
+        except Exception:
+            pass
 
 
 DEFAULT_SETTINGS = {
@@ -980,8 +999,14 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(content)
         elif parsed.path.startswith("/images/"):
             fname = os.path.basename(unquote(parsed.path[len("/images/"):]))
-            img_path = os.path.join(PROJECT_ROOT, "IMAGES", fname)
-            if not fname or not os.path.exists(img_path):
+            img_path = ""
+            if fname:
+                for _img_dir in (os.path.join(BASE_DIR, "IMAGES"), os.path.join(EXE_DIR, "IMAGES"), os.path.join(PROJECT_ROOT, "IMAGES")):
+                    _cand_img = os.path.join(_img_dir, fname)
+                    if os.path.exists(_cand_img):
+                        img_path = _cand_img
+                        break
+            if not fname or not img_path:
                 self.send_error(404)
                 return
             ext = os.path.splitext(fname)[1].lower()
@@ -1012,7 +1037,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
             self._send_json({
-                "server_build": "Build v0.8.080",
+                "server_build": "Build v0.8.081",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "recent_files": get_recent_excel_files(),
@@ -1180,7 +1205,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self._send_json({"status": "ok", "items": items})
         elif parsed.path == "/api/sfis_hmi_profiles":
             from core.sfis_client import SFIS_PLANT_PRESETS, DEFAULT_VIRTUAL_MO_TEMPLATES
-            prof_file = os.path.join(BASE_DIR, "sfis_hmi_profiles.json")
+            prof_file = os.path.join(EXE_DIR if IS_FROZEN else BASE_DIR, "sfis_hmi_profiles.json")
             saved = {}
             if os.path.exists(prof_file):
                 try:
@@ -1817,7 +1842,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.080")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.081")
 
                 self._send_json({
                     "status": "ok",
@@ -2197,7 +2222,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.080")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.081")
 
                 self._send_json({
                     "status": "ok",
@@ -2451,7 +2476,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.080")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.081")
 
                 self._send_json({
                     "status": "ok",
@@ -2821,7 +2846,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.080")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.081")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -2900,7 +2925,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                             parsed_cfg["device_id"] = v
                 self._send_json({"status": "ok", "config": parsed_cfg})
             elif parsed.path == "/api/sfis_hmi_profiles":
-                prof_file = os.path.join(BASE_DIR, "sfis_hmi_profiles.json")
+                prof_file = os.path.join(EXE_DIR if IS_FROZEN else BASE_DIR, "sfis_hmi_profiles.json")
                 cur = {}
                 if os.path.exists(prof_file):
                     try:
@@ -2985,9 +3010,14 @@ def run_server(port=8765):
     from core.golden_data import get_valid_test_ids, get_configured_centimani_dir
     threading.Thread(target=get_valid_test_ids, daemon=True).start()
     threading.Thread(target=get_configured_centimani_dir, daemon=True).start()
-    server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
     url = f"http://127.0.0.1:{port}"
-    print(f"Centimani Studio V2.4 (Build v0.8.080) Server running at {url}")
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", port), StudioRequestHandler)
+    except OSError:
+        # Port already in use (e.g. already running); open existing studio window instead of silent exit
+        launch_fullscreen_browser(url)
+        return
+    print(f"Centimani Studio V2.4 (Build v0.8.081) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

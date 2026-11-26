@@ -435,7 +435,9 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const selEl = document.getElementById('editorSheetSel');
   const curStation = (selEl && selEl.value && ws.stations && ws.stations[selEl.value])
     ? selEl.value
-    : (stationKeys[0] || '');
+    : ((STATE && STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && ws.stations && ws.stations[STATE.activeSheetFilter])
+        ? STATE.activeSheetFilter
+        : (stationKeys[0] || ''));
   const curSteps = (curStation && ws.stations && ws.stations[curStation]) ? ws.stations[curStation] : [];
   const curPhases = new Set(curSteps.map(s => String(s.Phase || '').trim()).filter(Boolean)).size;
 
@@ -466,22 +468,37 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const matchedFactory = SFIS_FACTORY_PRESETS.find(fp => fp.weblink === String(sys.SFIS_WebLink || '').trim() || fp.alt_weblink === String(sys.SFIS_WebLink || '').trim());
   const factoryShort = matchedFactory ? matchedFactory.site : (sys.iPLAS_Site || 'DC');
 
+  const stationOptsHtml = stationKeys.map(n => `<option value="${_escAttr(n)}" ${n === curStation ? 'selected' : ''}>${_escAttr(n)}</option>`).join('');
+  const canDiff = stationKeys.length >= 2;
+  const dutPortShort = _escAttr(gSet.DUT_UR1 || gSet.PCUART_1 || 'COM4');
+  const fixPortShort = _escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8');
+
   return `
-    <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
-        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（滑鼠移過預覽狀態，點擊卡片進入修改）</div>
-        <div style="font-size:0.85rem; color:#64748B;">先於上方選定目標測試站，再點擊下方卡片進入修改（1～2 格設定 INI 環境、3～4 格調整流程順序與跳轉、5～6 格設定站別儀器與 Error Code）。</div>
+        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（點擊下方 6 格水平手風琴卡牌修改 INI、順序、跳轉與錯誤碼）</div>
+        <div style="font-size:0.84rem; color:#64748B;">滑鼠移過可預覽各項目詳細設定；右側選擇要調整流程與跳轉的目標測試站。</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:5px 10px;">
+        <span style="font-size:0.86rem; font-weight:800; color:#1E293B;">🎯 目標測試站：</span>
+        <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:4px 9px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.88rem; font-weight:800; color:#0F172A; background:#FFFFFF;">${stationOptsHtml}</select>
+        <button type="button" onclick="openStationDiffModal()" ${canDiff ? '' : 'disabled'} class="btn"
+          data-pop-tip="${canDiff ? '比對同份 Excel 內兩張測試站工作表的步驟與 Phase 差異' : '目前僅有 1 個測試站，需至少 2 個測試站才能比較差異'}"
+          style="padding:4px 11px; font-size:0.83rem; background:#FFFFFF; color:${canDiff ? '#0F172A' : '#94A3B8'}; border:1px solid ${canDiff ? '#94A3B8' : '#E2E8F0'}; font-weight:800; cursor:${canDiff ? 'pointer' : 'not-allowed'};">
+          🔍 比對站別差異
+        </button>
       </div>
     </div>
 
-    <div class="acc-row" style="min-height:310px;">
+    <div class="acc-row" style="min-height:300px;">
       <!-- 01 System.ini -->
       <div id="globalHubCard_system" class="acc-card active" data-theme="slate" onmouseenter="_setActiveHubCard('system')" onclick="switchGlobalEditorTab('system')">
         <div>
           <div class="acc-num">01 / SYSTEM.INI ${sModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${sModCount} 項</span>` : ''}</div>
           <div class="acc-icon">🏭</div>
-          <div class="acc-title">廠區 / SFIS / 量產模式</div>
-          <div class="acc-sub">System.ini 過站開關與廠區伺服器網址</div>
+          <div class="acc-title">過站開關 (System.ini)</div>
+          <div class="acc-sub">設定 Debug、SFIS/iPLAS 過站、廠區網址與重測次</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(15,23,42,0.07); color:#334155; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">Debug=${_escAttr(sys.DebugMode || '1')} · SFIS${String(sys.SFIS_Enable)==='1'?'開':'關'} · ${_escAttr(factoryShort)}</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E293B; line-height:1.65;">
@@ -498,13 +515,14 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div class="acc-num">02 / GLOBAL.INI ${gModCount > 0 ? `<span style="background:#FEF08A;color:#854D0E;padding:1px 6px;border-radius:999px;font-size:0.75rem;">已改 ${gModCount} 項</span>` : ''}</div>
           <div class="acc-icon">🔌</div>
-          <div class="acc-title">COM / IP / 槽位 / 版號</div>
-          <div class="acc-sub">Global.ini 治具序列埠、網卡 IP 與韌體版號</div>
+          <div class="acc-title">埠號與變數 (Global.ini)</div>
+          <div class="acc-sub">修改 COM Port、DUT/PC IP、槽位與共用變數</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(37,99,235,0.1); color:#1E3A8A; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">DUT:${dutPortShort} · 治具:${fixPortShort}</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
             <li>啟用槽位：<b>1號槽 (${gSet.LOAD_1 || 'true'})</b></li>
-            <li>序列埠號：<b class="mono">${_escAttr(gSet.DUT_UR1 || gSet.PCUART_1 || 'COM4')}</b> (待測物) ｜ <b class="mono">${_escAttr(gSet.PCUART_fixture_1 || gSet.PCUART_fixture || 'COM8')}</b> (治具)</li>
+            <li>序列埠號：<b class="mono">${dutPortShort}</b> (待測物) ｜ <b class="mono">${fixPortShort}</b> (治具)</li>
             <li>連線位址：DUT <b class="mono">${_escAttr(gSet.DUTIP_1 || '-')}</b> ｜ PC <b class="mono">${_escAttr(gSet.PCIP_1 || '-')}</b></li>
             ${gScr.FW_VERSION ? `<li>韌體版號：<b class="mono">${_escAttr(gScr.FW_VERSION)}</b></li>` : ''}
           </ul>
@@ -517,14 +535,15 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div class="acc-num">03 / FLOW SORT</div>
           <div class="acc-icon">🧩</div>
-          <div class="acc-title">調整測試流程順序</div>
-          <div class="acc-sub">拖拉 Phase 積木順序 / 複製或刪除測項</div>
+          <div class="acc-title">測項順序與停用</div>
+          <div class="acc-sub">調整 Phase 順序、一鍵順編、暫停 (-1) 或複製測項</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(217,119,6,0.12); color:#92400E; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · ${curPhases} Phase / ${curSteps.length} 步</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
             <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
             <li>包含步驟：共 <b>${curSteps.length} 步</b>（分成 <b>${curPhases} 個 Phase</b> 積木）</li>
-            <li>支援拖拉重新排序、整段複製或插入新測項</li>
+            <li>支援拖拉順編（保留既有 Phase 0）、設為 <code>-1</code> 暫停或複製</li>
           </ul>
           <button onclick="event.stopPropagation(); openBlockSorterModal();" class="btn btn-jump" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">↗ 彈窗排序測試流程</button>
         </div>
@@ -535,14 +554,15 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div class="acc-num">04 / JUMP &amp; RETRY</div>
           <div class="acc-icon">🔀</div>
-          <div class="acc-title">調整跳轉與重測</div>
-          <div class="acc-sub">設定 PASS / FAIL 跳轉目標與重測行為</div>
+          <div class="acc-title">跳轉與重試 (ExecMode)</div>
+          <div class="acc-sub">設定失敗重試 (2:0)、分支跳轉 (4:P,F) 與單步略過</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(99,102,241,0.12); color:#3730A3; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · PASS / FAIL 規則</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
             <li>目標站別：<b class="mono">${_escAttr(curStation || '未選擇')}</b></li>
-            <li>可視覺化設定每一步的 <b>PASS / FAIL</b> 跳轉規則</li>
-            <li>避免手寫 Index 錯亂導致跳錯階段或無窮迴圈</li>
+            <li>視覺化調整每步的 <b>失敗重跑</b> 與 <b>PASS / FAIL 分支目標</b></li>
+            <li>自動同步正確步驟序號，避免手寫 Index 錯亂</li>
           </ul>
           <button onclick="event.stopPropagation(); openJumpEditorModal();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#6D28D9; color:#FFFFFF; border:none; font-weight:800;">↗ 彈窗編輯跳轉規則</button>
         </div>
@@ -553,14 +573,15 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div class="acc-num">05 / STATION &amp; INST</div>
           <div class="acc-icon">📋</div>
-          <div class="acc-title">站別 ISN 與儀器掛載</div>
-          <div class="acc-sub">站別開關 / 新增站 / 條碼位數 / 外部儀器</div>
+          <div class="acc-title">站別、條碼與儀器</div>
+          <div class="acc-sub">啟閉測試站、條碼掃描規則 (ISN) 與掛載外部儀器</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(22,163,74,0.12); color:#166534; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">${stationKeys.length} 站 · ${_escAttr(curIsnBadge)} · ${activeInstCount} 台儀器</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
             <li>已定義站別：共 <b>${duts.length} 列</b>（含 ${stationKeys.length} 個 Excel 分頁）</li>
-            <li>目前條碼規則：<b class="mono">${_escAttr(curIsnBadge)}</b>（支援一鍵修改或設為免掃）</li>
-            <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（可勾選掛載測試站與連線位址）</li>
+            <li>目前條碼規則：<b class="mono">${_escAttr(curIsnBadge)}</b>（支援修改碼數或設為免掃）</li>
+            <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（設定掛載站、連線位址與 Sub/Switch）</li>
           </ul>
           <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">▼ 展開設定站別與儀器</button>
         </div>
@@ -571,14 +592,15 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div class="acc-num">06 / ERROR CODE</div>
           <div class="acc-icon">🏷️</div>
-          <div class="acc-title">Error Code / TestID</div>
-          <div class="acc-sub">5,253 筆官方測項代碼速查與一鍵回填</div>
+          <div class="acc-title">錯誤碼 / TestID</div>
+          <div class="acc-sub">查詢官方 7 碼代碼，補齊缺漏或批次修正 TestID</div>
+          <div style="margin-top:8px;"><span class="mono" style="display:inline-block; background:rgba(168,85,247,0.12); color:#6B21A8; font-size:0.76rem; font-weight:700; padding:2px 7px; border-radius:999px;">Test Item Code V2.04</span></div>
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#581C87; line-height:1.65;">
             <li>支援中英文關鍵字（如電壓、LED、UART、電流）搜代碼</li>
-            <li>直接點選「寫入現有 Excel」補齊缺漏或修正之 TestID</li>
-            <li>同步支援「雙欄複製」快速貼回測試腳本</li>
+            <li>針對目前檔案一鍵檢查空白／疑慮 TestID 並推薦候選碼</li>
+            <li>點選即可寫回 Excel 並更新 Checksum</li>
           </ul>
           <button onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">↗ 進入 TestID 查詢與回填</button>
         </div>

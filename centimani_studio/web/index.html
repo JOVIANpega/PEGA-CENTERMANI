@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.080">
+<link rel="stylesheet" href="/css/app.css?v=0.8.081">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.080</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.081</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -23,7 +23,12 @@
     </div>
   </div>
   <div style="display:flex; align-items:center; gap:8px; font-size:0.83rem; color:#E2E8F0; white-space:nowrap;">
-    <span id="topCentimaniBadge" onclick="switchTab('settings')" style="background:#1E293B; color:#93C5FD; border:1px solid #475569; padding:3px 10px; border-radius:999px; font-family:Consolas, monospace; font-size:0.78rem; font-weight:700; cursor:pointer;" title="點擊進入「05 系統與環境設定」掃描或切換 Centimani 主程式目錄">📁 未掃描主程式</span>
+    <button id="topBtnQaCheatsheet" type="button" class="btn" onclick="openQaCheatsheetModal()"
+      data-pop-tip="隨時開啟進化版 Centimani 語法寫法小抄（Phase/Title/ExecMode/Ref 欄位地圖與一鍵複製）"
+      style="background:#EEF2FF; color:#312E81; border:1px solid #818CF8; padding:3px 11px; font-size:0.8rem; font-weight:800; cursor:pointer;">
+      📖 語法小抄
+    </button>
+    <span id="topCentimaniBadge" onclick="switchTab('settings')" style="background:#1E293B; color:#93C5FD; border:1px solid #475569; padding:3px 10px; border-radius:999px; font-family:Consolas, monospace; font-size:0.78rem; font-weight:700; cursor:pointer;" title="點擊進入「06 系統與環境設定」掃描或切換 Centimani 主程式目錄">📁 未掃描主程式</span>
     <button id="btnTopRefresh" type="button" class="btn" onclick="location.reload(true)" style="background:#334155; color:#F8FAFC; border:1px solid #475569; padding:3px 10px; font-size:0.8rem; font-weight:700; cursor:pointer;" title="強制重新整理頁面（可在 05 系統與環境設定取消顯示此開發按鈕）">
       🔄 重新整理
     </button>
@@ -98,9 +103,9 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
-            <li><b>既有編修 (1→N)</b>：手風琴改版與跨檔複製</li>
-            <li><b>首次範本 (0→1)</b>：撲克牌拖曳＋群組積木</li>
-            <li><b>輔助工具</b>：儀器範例、實機驗證、寫法小抄、換碼</li>
+            <li><b>既有編修 (1→N)</b>：手風琴改版、順序跳轉與跨檔複製</li>
+            <li><b>首次範本 (0→1)</b>：撲克牌拖曳、群組與單顆 Phase 0</li>
+            <li><b>純儀器捷徑</b>：積木內建 34+ 款人機與一鍵單測骨架</li>
           </ul>
           <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
         </div>
@@ -116,8 +121,8 @@
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#78350F; line-height:1.7;">
             <li>載入 FAIL Log 或貼上錯誤片段</li>
-            <li>定位超標數值、缺驅動與耗時瓶頸</li>
-            <li>產出純文字異常結論報告</li>
+            <li>定位超標數值、Ref 解析錯與耗時瓶頸</li>
+            <li>產出異常結論與一鍵修復對策</li>
           </ul>
           <div class="acc-enter-hint" style="color:#B45309;">點擊卡片進入 ▶</div>
         </div>
@@ -140,9 +145,26 @@
         </div>
       </div>
 
+      <div id="accCard_tools" class="acc-card" data-theme="rose" onmouseenter="setActiveAccCard('tools')" onclick="switchTab('tools')">
+        <div>
+          <div class="acc-num">05 / VERIFY</div>
+          <div class="acc-icon">🛡️</div>
+          <div class="acc-title">實機測試 SFIS / DLL</div>
+          <div class="acc-sub">SFIS Online / Mock &amp; DLLtest</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#9F1239; line-height:1.7;">
+            <li>實機工廠內網 SFIS 刷卡過站與 GET/WRITE 驗證</li>
+            <li>無內網模式離線模擬測試並產生驗證 Excel</li>
+            <li>直接啟動 DLLtest.exe 單測儀器 DLL 指令</li>
+          </ul>
+          <div class="acc-enter-hint" style="color:#BE123C;">點擊卡片進入 ▶</div>
+        </div>
+      </div>
+
       <div id="accCard_settings" class="acc-card" data-theme="slate" onmouseenter="setActiveAccCard('settings')" onclick="switchTab('settings')">
         <div>
-          <div class="acc-num">05 / SETTINGS</div>
+          <div class="acc-num">06 / SETTINGS</div>
           <div class="acc-icon">⚙️</div>
           <div class="acc-title">系統與環境設定</div>
           <div class="acc-sub">Preferences &amp; Options</div>
@@ -260,6 +282,7 @@
           </tbody>
         </table>
       </div>
+      <div id="auditRecentExpandBar" style="display:none; margin-top:8px; text-align:center;"></div>
     </div>
 
     <!-- 整包資料夾批次掃描結果總表 -->
@@ -892,18 +915,12 @@
 
   <!-- ======================== 02 腳本建立與編修中心 ======================== -->
   <div id="panelGen" style="display:none;">
-    <!-- 02 入口：等寬雙大卡 (1→N 與 0→1) ＋ 右上 4 項獨立實戰工具 -->
+    <!-- 02 入口：等寬雙大卡 (1→N 與 0→1，專注腳本建立與編修) -->
     <div id="genModeHub" style="display:block; margin-bottom:14px;">
       <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px;">
         <div>
           <div style="font-weight:900; font-size:1.12rem; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
-          <div style="font-size:0.84rem; color:#64748B;">改既有選 <b>1 → N</b>、從零排積木選 <b>0 → 1</b>；右側為免進流程直開的獨立工具。</div>
-        </div>
-        <div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center;">
-          <span id="genToolShortcut_inst" role="button" tabindex="0" class="top-nav-pill gen-tool-pill" style="cursor:pointer; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; padding:5px 11px; font-size:0.82rem; font-weight:800;" onclick="switchGenSubMode('inst')" onkeydown="if(event.key==='Enter') switchGenSubMode('inst')" title="免開舊檔，單挑 1～2 台儀器直接產生測檔">🧪 生單台儀器範例 <span style="font-weight:500; font-size:0.74rem; opacity:0.82;">(直出測檔)</span></span>
-          <span id="genToolShortcut_tools" role="button" tabindex="0" class="top-nav-pill gen-tool-pill" style="cursor:pointer; border:1px solid #FB7185; background:#FFF1F2; color:#9F1239; padding:5px 11px; font-size:0.82rem; font-weight:800;" onclick="switchGenSubMode('tools')" onkeydown="if(event.key==='Enter') switchGenSubMode('tools')" title="實機測試 SFIS 刷卡過站 (GET/WRITE) 與 DLL 單步執行">🛡️ 實機測試 SFIS / DLL <span style="font-weight:500; font-size:0.74rem; opacity:0.82;">(過站驗證)</span></span>
-          <span id="genToolShortcut_qa" role="button" tabindex="0" class="top-nav-pill gen-tool-pill" style="cursor:pointer; border:1px solid #818CF8; background:#EEF2FF; color:#3730A3; padding:5px 11px; font-size:0.82rem; font-weight:800;" onclick="switchGenSubMode('qa')" onkeydown="if(event.key==='Enter') switchGenSubMode('qa')" title="查詢 Phase / 指令 / 跳轉寫法範例">📖 語法寫法小抄 <span style="font-weight:500; font-size:0.74rem; opacity:0.82;">(指令百科)</span></span>
-          <span id="genToolShortcut_tic" role="button" tabindex="0" class="top-nav-pill gen-tool-pill" style="cursor:pointer; border:1px solid #A855F7; background:#FAF5FF; color:#6B21A8; padding:5px 11px; font-size:0.82rem; font-weight:800;" onclick="openTicBatchAuditFromGen()" onkeydown="if(event.key==='Enter') openTicBatchAuditFromGen()" title="讀取 Excel 自動比對 TestID，挑出疑慮列並推薦候選錯誤碼">🏷️ 批次補換 TestID <span style="font-weight:500; font-size:0.74rem; opacity:0.82;">(Excel對照)</span></span>
+          <div style="font-size:0.84rem; color:#64748B;">改既有腳本選 <b>1 → N</b>、從零積木拖曳建母體選 <b>0 → 1</b>（如需查寫法請點右上角「📖 語法小抄」）。</div>
         </div>
       </div>
       <div class="gen-dual-grid">
@@ -1137,23 +1154,16 @@
       <div id="editorFileBar" class="action-bar" style="display:none; flex-direction:column; align-items:stretch; gap:8px;">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-primary-blue" onclick="document.getElementById('localExcelPickerInput').click()">
+            <button class="btn btn-primary-blue" data-pop-tip="選擇電腦上另一份 TestFlow.xlsx 切換為目前編修目標" onclick="document.getElementById('localExcelPickerInput').click()">
               📂 更換編修的 TestFlow.xlsx
             </button>
-            <span style="font-size:0.83rem; color:#475569;">（點擊可載入其他腳本進行編修）</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button id="btnEditorTplSkuWizard" class="btn" style="background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('edit')">
+            <button id="btnEditorTplSkuWizard" class="btn" data-pop-tip="設定多 SKU 分支條件、上下限與共用指令" style="background:#EEF2FF; color:#3730A3; border:1.5px solid #818CF8; font-weight:800;" onclick="openTemplateSkuWizard('edit')">
               🎯 多 SKU 分流設定
             </button>
-            <button class="btn" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
+            <button class="btn" data-pop-tip="保留原有欄位寬度與 Marco 子表，跨檔案複製整張站別工作表" style="background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;" onclick="openCopySheetModal()">
               📋 跨檔案複製整張 Sheet
-            </button>
-            <button id="btnEditorOpenTic" class="btn" style="background:#F3E8FF; color:#6B21A8; border:1.5px solid #C084FC; font-weight:800;" onclick="openTicFromEdit()" title="前往獨立 TestID 工具做全檔批次比對或跨檔案查詢；若僅需修改目前檔案請直接點下方 06 / ERROR CODE">
-              🏷️ 批次補換 TestID (獨立工具)
-            </button>
-            <button id="btnEditorOpenExcel" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCurrentExcelFile()">
-              📂 開啟目前原檔
             </button>
           </div>
         </div>
@@ -1162,6 +1172,9 @@
           <span id="editorPickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
             尚未載入 Excel 檔案
           </span>
+          <button id="btnEditorOpenExcel" class="btn" data-pop-tip="立即在 Microsoft Excel 開啟目前正在編修的這份原檔" style="display:none; padding:4px 11px; font-size:0.83rem; background:#E0F2FE; color:#0369A1; border-color:#38BDF8; white-space:nowrap;" onclick="openCurrentExcelFile()">
+            📂 開啟目前原檔
+          </button>
         </div>
       </div>
 
@@ -1216,19 +1229,7 @@
 
       <!-- 載入檔案後的編修工作區 -->
       <div id="editorWorkspaceBody" style="display:none;">
-        <!-- ② 目標測試站選擇列（供流程排序、跳轉編輯與站別比對使用） -->
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span style="font-size:0.88rem; font-weight:800; color:#1E293B;">🎯 目前目標測試站：</span>
-            <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:5px 10px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.88rem; font-weight:800; color:#0F172A; background:#FFFFFF;"></select>
-            <button type="button" onclick="openStationDiffModal()" class="btn" style="padding:5px 12px; font-size:0.82rem; background:#FFFFFF; color:#0F172A; border:1px solid #94A3B8; font-weight:800;" title="比對這份 Excel 內兩張測試站工作表的步驟與 Phase 差異">
-              🔍 比對兩張測試站差異
-            </button>
-            <span style="font-size:0.82rem; color:#64748B;">（點擊下方 6 格水平手風琴卡牌編修 INI、順序、跳轉或站別儀器）</span>
-          </div>
-        </div>
-
-        <!-- ③ 水平手風琴入口與全頁面設定區 -->
+        <!-- ③ 水平手風琴入口與全頁面設定區（標題右側已整合目標測試站選單與比對差異按鈕） -->
         <div id="auditGlobalEditor" style="display:block; margin-bottom:12px;"></div>
 
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
@@ -1402,71 +1403,8 @@
       </div>
     </div><!-- /genModeInst -->
 
-    <!-- 問編寫問題（白話直覺問答 + 精簡 Excel 對比引擎） -->
-    <div id="genModeQa" style="display:none;">
-      <div class="panel" style="margin-bottom:12px; border-color:#C7D2FE; background:linear-gradient(135deg, #EEF2FF 0%, #FFFFFF 100%);">
-        <div style="font-weight:900; font-size:1.06rem; color:#312E81; margin-bottom:4px;">💬 問編寫問題（用白話查怎麼填 Excel 格子）</div>
-        <div style="font-size:0.84rem; color:#475569; margin-bottom:10px;">輸入想做的事（例：<code>retry 哪裡改</code>、<code>怎麼暫停這一個 Phase</code>），底下第一眼直接告訴您要改哪一欄、填什麼值。</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-          <input type="text" id="qaSearchInput"
-            placeholder="輸入想寫或想改的問題（例：retry 哪裡改、怎麼暫停 Phase、Instrument 何時留空、同個 Phase 多個 Title）..."
-            oninput="qaHandleSearchInput()"
-            onkeydown="if (event.key === 'Enter') qaHandleSearchInput();"
-            style="flex:1; min-width:260px; padding:9px 12px; border:1.5px solid #A5B4FC; border-radius:8px; font-size:0.94rem; background:#FFFFFF;">
-          <button type="button" onclick="qaHandleSearchInput()" class="btn"
-            style="padding:9px 16px; font-weight:800; font-size:0.9rem; background:#4F46E5; color:#FFFFFF; border:none; border-radius:8px;">
-            🔍 直接看答案
-          </button>
-          <button type="button" onclick="qaAskQuick('')" class="btn"
-            style="padding:9px 12px; font-size:0.86rem; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px;">
-            ↺ 回 6 大情景
-          </button>
-        </div>
-        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-          <span style="font-size:0.8rem; font-weight:800; color:#4338CA;">快點發問：</span>
-          <div id="qaQuickChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-        </div>
-      </div>
-
-      <!-- 答案永遠置頂顯示於搜尋框正下方，絕不推到畫面外！ -->
-      <div id="qaResultsList"></div>
-
-      <!-- 空白未查詢時：只顯示 6 張簡潔「我想做什麼？」情景卡片 -->
-      <div id="qaScenarioGridWrap">
-        <div style="font-size:0.93rem; font-weight:900; color:#0F172A; margin-bottom:8px;">📌 點選您現在想寫或想改的情境，立即看改前 ➔ 改後寫法：</div>
-        <div id="qaScenarioGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-bottom:14px;"></div>
-
-        <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px;">
-          <summary style="cursor:pointer; font-weight:800; font-size:0.88rem; color:#334155;">📖 展開查看各欄位可用代碼簡表（Phase / Title / ExecMode / Ref）</summary>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; margin-top:10px; font-size:0.82rem; color:#334155; line-height:1.55;">
-            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
-              <b>Phase 欄位</b><br>
-              <code>-1</code> 整批暫停 ｜ <code>0</code> 前置準備<br>
-              <code>1~96</code> 主測試（可共掛多 Title）<br>
-              <code>97 / 97:PWROFF</code> 斷電收尾 ｜ <code>98</code> PASS ｜ <code>99</code> FAIL
-            </div>
-            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
-              <b>Title 欄位（開頭數字）</b><br>
-              <code>0,名稱,次數</code> 正常跑並設重試次數<br>
-              <code>1,名稱,1</code> 失敗仍強制跑（收尾）<br>
-              <code>2,名稱</code> 跳過這個 Title ｜ <code>3,</code> Fail才跑
-            </div>
-            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
-              <b>ExecMode 欄位</b><br>
-              <code>0</code> 正常 ｜ <code>1</code> 單步重試 ｜ <code>2:0</code> 退回步0<br>
-              <code>3</code> 必繼續（ReleaseDevice）｜ <code>6</code> 單行跳過<br>
-              <code>4:P,F</code> 往後跳 ｜ <code>8/9</code> SFIS ｜ <code>*$(AULAB)</code>
-            </div>
-            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:7px; padding:8px 10px;">
-              <b>Ref / Validation / Prompt</b><br>
-              <code>$VAR</code> 跨區全域（無 $ 換 Title 清空）<br>
-              <code>:WithinString</code> / <code>:rpString</code> / <code>:Trim</code><br>
-              <code>EndPrompt="#"</code> 秒回 ｜ <code>Prompt="!"</code> 串流
-            </div>
-          </div>
-        </details>
-      </div>
-    </div><!-- /genModeQa -->
+    <!-- 問編寫問題（已升級為頂部 Header 全域彈窗 #qaCheatsheetModal；保留掛點相容舊呼叫） -->
+    <div id="genModeQa" style="display:none;"></div>
 
     <!-- 實機驗證中心 (水平手風琴入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
     <div id="genModeTools" style="display:none;">
@@ -1912,15 +1850,74 @@
   </div>
 </div>
 
+<div id="qaCheatsheetModal" class="modal-backdrop" onclick="if(event.target===this) closeQaCheatsheetModal()">
+  <div class="modal-panel" style="max-width:960px; width:96vw; background:#F8FAFC; border:2px solid #4F46E5; padding:18px 22px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid #CBD5E1; padding-bottom:10px; margin-bottom:12px;">
+      <div>
+        <h3 style="margin:0; font-size:1.08rem; color:#312E81;">📖 語法寫法小抄（隨時叫出查詢 · 一鍵複製貼進 Excel）</h3>
+        <div style="font-size:0.83rem; color:#64748B;">直接搜尋關鍵字或點情境卡，立即看欄位對照與寫法範例，不會跳離目前編輯畫面。</div>
+      </div>
+      <button type="button" onclick="closeQaCheatsheetModal()" class="btn btn-modal-close" style="padding:5px 14px; font-size:0.86rem;">✕ 關閉</button>
+    </div>
+
+    <!-- 搜尋列 + 快速情境膠囊 -->
+    <div style="background:#FFFFFF; border:1.5px solid #C7D2FE; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+        <input type="text" id="qaSearchInput"
+          placeholder="🔍 搜寫法（例：retry、暫停 -1、Instrument 留空、$ 變數、4:P,F）..."
+          oninput="qaHandleSearchInput()"
+          onkeydown="if (event.key === 'Enter') qaHandleSearchInput();"
+          style="flex:1; min-width:240px; padding:8px 12px; border:1.5px solid #A5B4FC; border-radius:8px; font-size:0.92rem; background:#FFFFFF;">
+        <button type="button" onclick="qaHandleSearchInput()" class="btn" data-pop-tip="依關鍵字立即列出最相符的欄位寫法"
+          style="padding:8px 15px; font-weight:800; font-size:0.88rem; background:#4F46E5; color:#FFFFFF; border:none; border-radius:8px;">
+          🔍 查詢
+        </button>
+        <button type="button" onclick="qaAskQuick('')" class="btn" data-pop-tip="清除搜尋關鍵字，回到全部常見情境總覽"
+          style="padding:8px 12px; font-size:0.85rem; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:8px;">
+          ↺ 全部情境
+        </button>
+      </div>
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+        <span style="font-size:0.81rem; font-weight:800; color:#4338CA;">快點標籤：</span>
+        <div id="qaQuickChips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </div>
+    </div>
+
+    <!-- 欄位速查膠囊地圖（精簡少字、一眼對照） -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:8px; margin-bottom:12px; font-size:0.82rem; color:#334155;">
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-left:4px solid #0284C7; border-radius:7px; padding:7px 10px;">
+        <b>Phase</b>：<code>0</code> 開頭預檢 ｜ <code>-1</code> 暫停 ｜ <code>1~96</code> 主測 ｜ <code>97</code> 斷電 ｜ <code>98/99</code>
+      </div>
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-left:4px solid #7C3AED; border-radius:7px; padding:7px 10px;">
+        <b>Title</b>：<code>0,名,3</code> 正常重試3次 ｜ <code>1,</code> 收尾必跑 ｜ <code>2,</code> 跳過
+      </div>
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-left:4px solid #059669; border-radius:7px; padding:7px 10px;">
+        <b>ExecMode</b>：<code>0</code> 停 ｜ <code>1</code> 重試 ｜ <code>2:0</code> 退步0 ｜ <code>3</code> 必清 ｜ <code>4:P,F</code> ｜ <code>6</code> 略過 ｜ <code>8</code> SFIS
+      </div>
+      <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-left:4px solid #DB2777; border-radius:7px; padding:7px 10px;">
+        <b>Ref</b>：<code>$VAR</code> 全域（取用 <code>*(VAR)</code>）｜ 冒號參數寫 <code>\:</code>
+      </div>
+    </div>
+
+    <!-- 搜尋結果區 -->
+    <div id="qaResultsList"></div>
+
+    <!-- 未搜尋時的情境小卡總覽 -->
+    <div id="qaScenarioGridWrap">
+      <div id="qaScenarioGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(255px, 1fr)); gap:10px;"></div>
+    </div>
+  </div>
+</div>
+
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.080"></script>
-<script src="/js/audit_editors.js?v=0.8.080"></script>
-<script src="/js/flow_guide.js?v=0.8.080"></script>
-<script src="/js/block_sorter.js?v=0.8.080"></script>
-<script src="/js/script_qa.js?v=0.8.080"></script>
-<script src="/js/sfis_hmi.js?v=0.8.080"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.080"></script>
-<script src="/js/create_block_builder.js?v=0.8.080"></script>
+<script src="/js/inst_hmi.js?v=0.8.081"></script>
+<script src="/js/audit_editors.js?v=0.8.081"></script>
+<script src="/js/flow_guide.js?v=0.8.081"></script>
+<script src="/js/block_sorter.js?v=0.8.081"></script>
+<script src="/js/script_qa.js?v=0.8.081"></script>
+<script src="/js/sfis_hmi.js?v=0.8.081"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.081"></script>
+<script src="/js/create_block_builder.js?v=0.8.081"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2019,7 +2016,7 @@ function switchTab(tab) {
   document.getElementById('panelHome').style.display = (tab === 'home') ? 'block' : 'none';
   document.getElementById('panelAudit').style.display = (tab === 'audit') ? 'block' : 'none';
   document.getElementById('panelDiagnose').style.display = (tab === 'diagnose') ? 'block' : 'none';
-  document.getElementById('panelGen').style.display = (tab === 'gen') ? 'block' : 'none';
+  document.getElementById('panelGen').style.display = (tab === 'gen' || tab === 'tools') ? 'block' : 'none';
   document.getElementById('panelTic').style.display = (tab === 'tic') ? 'block' : 'none';
   document.getElementById('panelSettings').style.display = (tab === 'settings') ? 'block' : 'none';
   document.getElementById('panelFlowGuide').style.display = 'none';
@@ -2042,6 +2039,9 @@ function switchTab(tab) {
   }
   if (tab === 'gen' && typeof switchGenSubMode === 'function') {
     switchGenSubMode('hub');
+  }
+  if (tab === 'tools' && typeof switchGenSubMode === 'function') {
+    switchGenSubMode('tools');
   }
   if (tab === 'tic') {
     const backBar = document.getElementById('ticBackFromEditBar');
@@ -2087,8 +2087,23 @@ function returnToEditFromTic() {
   }
 }
 
+function openQaCheatsheetModal() {
+  const modal = document.getElementById('qaCheatsheetModal');
+  if (modal) modal.classList.add('open');
+  if (typeof initScriptQaPanel === 'function') initScriptQaPanel();
+  setTimeout(() => {
+    const inp = document.getElementById('qaSearchInput');
+    if (inp) inp.focus();
+  }, 50);
+}
+
+function closeQaCheatsheetModal() {
+  const modal = document.getElementById('qaCheatsheetModal');
+  if (modal) modal.classList.remove('open');
+}
+
 function setActiveAccCard(key) {
-  ['audit', 'gen', 'diagnose', 'tic', 'settings'].forEach(k => {
+  ['audit', 'gen', 'diagnose', 'tic', 'tools', 'settings'].forEach(k => {
     const el = document.getElementById('accCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
@@ -3397,20 +3412,25 @@ function switchGenSubMode(mode) {
   }
   if (topBackBtn && GEN_SUB_MODE !== 'create') {
     topBackBtn.style.display = 'inline-flex';
-    topBackBtn.textContent = '⬅ 返回模式選擇';
-    topBackBtn.onclick = () => switchGenSubMode('hub');
+    if (GEN_SUB_MODE === 'tools' && CURRENT_TAB === 'tools') {
+      topBackBtn.textContent = '🏠 返回首頁';
+      topBackBtn.onclick = () => switchTab('home');
+    } else {
+      topBackBtn.textContent = '⬅ 返回模式選擇';
+      topBackBtn.onclick = () => switchGenSubMode('hub');
+    }
   }
   if (cBox) cBox.style.display = (GEN_SUB_MODE === 'create') ? 'block' : 'none';
   if (eBox) eBox.style.display = (GEN_SUB_MODE === 'edit') ? 'block' : 'none';
   if (iBox) iBox.style.display = (GEN_SUB_MODE === 'inst') ? 'block' : 'none';
-  if (qBox) qBox.style.display = (GEN_SUB_MODE === 'qa') ? 'block' : 'none';
+  if (qBox) qBox.style.display = 'none';
   if (tBox) tBox.style.display = (GEN_SUB_MODE === 'tools') ? 'block' : 'none';
 
   const titleMap = {
     edit: '📝 既有腳本編修 (1 → N)',
     create: '🌱 產生首次範本 🃏 積木拖曳編排',
     inst: '🧪 插入儀器範本 (34+ 款人機)',
-    qa: '💬 問編寫問題（Excel 編寫邏輯與指令百科）',
+    qa: '📖 語法寫法小抄',
     tools: '🛡️ 實機驗證中心（SFIS)'
   };
   if (modeTitleEl) modeTitleEl.textContent = titleMap[GEN_SUB_MODE] || '';
@@ -3429,7 +3449,7 @@ function switchGenSubMode(mode) {
     syncEditorView();
   }
   if (GEN_SUB_MODE === 'inst') syncTab3View();
-  if (GEN_SUB_MODE === 'qa' && typeof initScriptQaPanel === 'function') initScriptQaPanel();
+  if (GEN_SUB_MODE === 'qa') openQaCheatsheetModal();
   const backToolsBtn = document.getElementById('btnToolsBackToAcc');
   if (backToolsBtn && GEN_SUB_MODE !== 'tools') backToolsBtn.style.display = 'none';
   if (GEN_SUB_MODE === 'tools') {
@@ -4121,6 +4141,7 @@ function onEditorSheetChange() {
   const sel = document.getElementById('editorSheetSel');
   if (sel && sel.value) {
     STATE.activeSheetFilter = sel.value;
+    if (typeof renderGlobalEditorPanel === 'function') renderGlobalEditorPanel();
   }
 }
 
@@ -4146,21 +4167,21 @@ function syncEditorView() {
     bodyEl.style.display = 'block';
     if (backBtn) backBtn.style.display = 'inline-flex';
     if (openBtn) openBtn.style.display = 'inline-flex';
-    const sel = document.getElementById('editorSheetSel');
-    if (sel) {
-      const prev = sel.value;
-      sel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
-      if (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' && stNames.includes(STATE.activeSheetFilter)) {
-        sel.value = STATE.activeSheetFilter;
-      } else if (prev && stNames.includes(prev)) {
-        sel.value = prev;
-      }
+    if (!STATE.activeSheetFilter || STATE.activeSheetFilter === 'ALL' || !stNames.includes(STATE.activeSheetFilter)) {
+      if (stNames.length > 0) STATE.activeSheetFilter = stNames[0];
     }
     if (typeof renderGlobalEditorPanel === 'function') {
       if (typeof AUDIT_GLOBAL_TAB === 'undefined' || !AUDIT_GLOBAL_TAB) AUDIT_GLOBAL_TAB = 'hub';
       const editorBox = document.getElementById('auditGlobalEditor');
       if (editorBox) editorBox.style.display = 'block';
       renderGlobalEditorPanel();
+    }
+    const sel = document.getElementById('editorSheetSel');
+    if (sel) {
+      sel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
+      if (STATE.activeSheetFilter && stNames.includes(STATE.activeSheetFilter)) {
+        sel.value = STATE.activeSheetFilter;
+      }
     }
   } else {
     if (fileBar) fileBar.style.display = 'none';
@@ -4230,8 +4251,14 @@ function renderRecentFilesList(files) {
   filterAuditRecentTable();
 }
 
+function toggleAuditRecentExpand() {
+  STATE.auditTableExpanded = !STATE.auditTableExpanded;
+  filterAuditRecentTable();
+}
+
 function filterAuditRecentTable() {
   const tbody = document.getElementById('auditRecentFilesList');
+  const expandBar = document.getElementById('auditRecentExpandBar');
   if (!tbody) return;
   const esc = s => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
   const files = Array.isArray(STATE.cleanRecentFiles) ? STATE.cleanRecentFiles : [];
@@ -4246,10 +4273,15 @@ function filterAuditRecentTable() {
 
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94A3B8; padding:16px;">沒有符合篩選條件的 TestFlow.xlsx 檔案</td></tr>`;
+    if (expandBar) expandBar.style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = rows.map(f => `
+  const isFiltering = Boolean(q || folderF !== 'ALL');
+  const showAll = isFiltering || Boolean(STATE.auditTableExpanded) || rows.length <= 3;
+  const visibleRows = showAll ? rows : rows.slice(0, 3);
+
+  tbody.innerHTML = visibleRows.map(f => `
     <tr class="audit-optc-row" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
       <td style="font-weight:700;">📄 ${esc(f.name)}</td>
       <td class="mono" style="color:#475569; font-size:0.82rem;">[${esc(f.folder)}]</td>
@@ -4258,6 +4290,17 @@ function filterAuditRecentTable() {
       <td style="text-align:center; color:#0369A1; font-weight:800; font-size:0.83rem;">健檢 ▶</td>
     </tr>
   `).join('');
+
+  if (expandBar) {
+    if (!isFiltering && rows.length > 3) {
+      expandBar.style.display = 'block';
+      expandBar.innerHTML = STATE.auditTableExpanded
+        ? `<button type="button" class="btn" onclick="toggleAuditRecentExpand()" data-pop-tip="摺疊清單僅顯示前 3 筆，維持畫面精簡" style="padding:5px 16px; font-size:0.84rem; font-weight:800; background:#F1F5F9; border:1px solid #CBD5E1; color:#334155;">▲ 收合僅顯示前 3 筆（共 ${rows.length} 份）</button>`
+        : `<button type="button" class="btn" onclick="toggleAuditRecentExpand()" data-pop-tip="展開顯示其餘未列出的全部 TestFlow.xlsx 清單" style="padding:5px 16px; font-size:0.84rem; font-weight:800; background:#EFF6FF; border:1px solid #93C5FD; color:#1E40AF;">▼ 展開全部 TestFlow 清單（還有 ${rows.length - 3} 份）</button>`;
+    } else {
+      expandBar.style.display = 'none';
+    }
+  }
 }
 
 async function quickLoadFileFromRecent(encPath) {

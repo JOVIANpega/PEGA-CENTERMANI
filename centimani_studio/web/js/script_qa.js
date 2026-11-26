@@ -327,6 +327,22 @@ function qaCopyTsv(id) {
   }
 }
 
+function qaCopySnippet(text, btnEl) {
+  const s = String(text || '');
+  if (!s) return;
+  const markDone = () => {
+    if (!btnEl) return;
+    const old = btnEl.textContent;
+    btnEl.textContent = '✓ 已複製';
+    setTimeout(() => { btnEl.textContent = old; }, 1400);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(s).then(markDone).catch(() => alert(s));
+  } else {
+    alert(s);
+  }
+}
+
 function qaRenderResults(rawQuery, forcedId) {
   const gridWrap = document.getElementById('qaScenarioGridWrap');
   const resBox = document.getElementById('qaResultsList');
@@ -355,9 +371,9 @@ function qaRenderResults(rawQuery, forcedId) {
 
   if (!matched.length) {
     resBox.innerHTML = `
-      <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px 16px; color:#92400E; font-size:0.9rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <span>找不到符合「<b>${qaEscapeHtml(q)}</b>」的條目，請試著輸入 <code>retry 哪裡改</code>、<code>暫停 Phase</code>、<code>Instrument</code>、<code>Title</code>、<code>$</code>，或點選下方「全部 6 大常見情境」。</span>
-        <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:6px 12px; font-size:0.84rem; background:#FFFFFF;">⬅ 回 ${QA_SCENARIOS.length} 大常見情境</button>
+      <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:12px 14px; color:#92400E; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span>查無「<b>${qaEscapeHtml(q)}</b>」相符條目，請改搜 <code>retry</code> / <code>-1</code> / <code>Instrument</code> / <code>$</code>。</span>
+        <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:5px 12px; font-size:0.84rem; background:#FFFFFF;">⬅ 回所有情境</button>
       </div>
     `;
     return;
@@ -365,42 +381,44 @@ function qaRenderResults(rawQuery, forcedId) {
 
   resBox.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-      <span style="font-weight:900; font-size:0.93rem; color:#312E81;">🎯 直接解答：${qaEscapeHtml(q)}（共 ${matched.length} 筆最相關方案，越上面越符合）</span>
-      <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:5px 12px; font-size:0.83rem; font-weight:800; background:#F1F5F9; border:1px solid #CBD5E1;">⬅ 回 ${QA_SCENARIOS.length} 大常見情境</button>
+      <span style="font-weight:900; font-size:0.9rem; color:#312E81;">🎯 找到 ${matched.length} 筆（點擊語法旁的複製鈕即可貼用）</span>
+      <button type="button" onclick="qaAskQuick('')" class="btn" style="padding:4px 11px; font-size:0.82rem; font-weight:800; background:#F1F5F9; border:1px solid #CBD5E1;">⬅ 回全部情境卡</button>
     </div>
   ` + matched.map((sc, idx) => `
-    <div style="background:#FFFFFF; border:${idx === 0 ? '2px solid ' + sc.accent : '1px solid #CBD5E1'}; border-radius:12px; padding:14px 16px; margin-bottom:12px; box-shadow:0 3px 10px rgba(15,23,42,0.06);">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span style="background:${sc.theme}; color:${sc.accent}; font-weight:800; font-size:0.8rem; padding:2px 9px; border-radius:999px;">${qaEscapeHtml(sc.badge)}</span>
-          <span style="font-weight:900; font-size:1.05rem; color:#0F172A;">${qaEscapeHtml(sc.cardTitle)}</span>
+    <div style="background:#FFFFFF; border:${idx === 0 ? '2px solid ' + sc.accent : '1px solid #CBD5E1'}; border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+          <span style="background:${sc.theme}; color:${sc.accent}; font-weight:800; font-size:0.78rem; padding:2px 8px; border-radius:999px;">${qaEscapeHtml(sc.badge)}</span>
+          <span style="font-weight:900; font-size:0.98rem; color:#0F172A;">${qaEscapeHtml(sc.cardTitle)}</span>
         </div>
         <button id="qaCopyBtn_${sc.id}" type="button" class="btn" onclick="qaCopyTsv('${sc.id}')"
-          style="padding:5px 11px; font-size:0.81rem; font-weight:800; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; border-radius:7px;">
-          📋 複製整段範例到 Excel
+          data-pop-tip="將下方示範列複製為定位格式，貼進 Excel 即自動對齊 16 欄"
+          style="padding:4px 10px; font-size:0.8rem; font-weight:800; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; border-radius:6px;">
+          📋 複製 Excel 列
         </button>
       </div>
 
-      <!-- 一眼看懂：改哪一格 -> 怎麼填 -->
-      <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:12px;">
+      <!-- 精簡規則膠囊（無冗長文字，直接給改法 + 一鍵複製語法） -->
+      <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
         ${sc.directSteps.map(st => `
-          <div style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid ${sc.accent}; border-radius:8px; padding:8px 12px;">
-            <span style="background:${sc.theme}; color:${sc.accent}; font-weight:900; font-size:0.83rem; padding:2px 8px; border-radius:6px; white-space:nowrap;">${qaEscapeHtml(st.col)}</span>
-            <div style="flex:1; min-width:220px; font-size:0.87rem; color:#1E293B; line-height:1.5;">
-              <b>${qaEscapeHtml(st.what)}</b>
-              <div style="font-family:Consolas, 'Microsoft JhengHei UI', monospace; font-size:0.83rem; color:#0F172A; margin-top:2px;">➔ ${qaEscapeHtml(st.ex)}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid ${sc.accent}; border-radius:7px; padding:6px 10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1; min-width:220px;">
+              <span style="background:${sc.theme}; color:${sc.accent}; font-weight:900; font-size:0.8rem; padding:2px 8px; border-radius:5px; white-space:nowrap;">${qaEscapeHtml(st.col)}</span>
+              <span style="font-size:0.84rem; font-weight:700; color:#1E293B;">${qaEscapeHtml(st.what)}</span>
+              <code class="mono" style="background:#FFFFFF; border:1px solid #CBD5E1; padding:1px 7px; border-radius:4px; font-size:0.81rem; color:#0F172A;">${qaEscapeHtml(st.ex)}</code>
             </div>
+            <button type="button" class="btn" onclick="qaCopySnippet(${JSON.stringify(st.ex)}, this)"
+              data-pop-tip="複製此寫法範例" style="padding:2px 8px; font-size:0.76rem; font-weight:800; background:#FFFFFF; border:1px solid #CBD5E1;">複製</button>
           </div>
         `).join('')}
       </div>
 
-      <!-- 只顯示關鍵 3~5 欄的精簡 Excel 示範表 -->
-      <div style="font-size:0.81rem; font-weight:800; color:#475569; margin-bottom:5px;">📊 Excel 對照位置（僅顯示有關的 ${sc.previewCols.length} 個欄位，黃底＝重點修改格）：</div>
-      <div style="overflow-x:auto; border:1px solid #CBD5E1; border-radius:8px; margin-bottom:8px;">
-        <table style="width:100%; border-collapse:collapse; font-size:0.82rem; font-family:Consolas, 'Microsoft JhengHei UI', monospace;">
+      <!-- 關鍵欄位實戰表格（只列相關欄位，黃底＝重點修改處） -->
+      <div style="overflow-x:auto; border:1px solid #CBD5E1; border-radius:7px; margin-bottom:6px;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.81rem; font-family:Consolas, 'Microsoft JhengHei UI', monospace;">
           <thead>
             <tr style="background:#1E293B; color:#FFFFFF;">
-              ${sc.previewCols.map(c => `<th style="padding:6px 9px; text-align:left; border-right:1px solid #334155; white-space:nowrap;">${qaEscapeHtml(c)}</th>`).join('')}
+              ${sc.previewCols.map(c => `<th style="padding:5px 8px; text-align:left; border-right:1px solid #334155; white-space:nowrap;">${qaEscapeHtml(c)}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -409,7 +427,7 @@ function qaRenderResults(rawQuery, forcedId) {
                 ${sc.previewCols.map(c => {
                   const val = String(row[c] ?? '');
                   const isHi = sc.highlightCols.includes(c) && val !== '';
-                  return `<td style="padding:6px 9px; border-right:1px solid #E2E8F0; white-space:pre-wrap; ${isHi ? 'background:#FEF9C3; color:#92400E; font-weight:900;' : 'color:#334155;'}">${val === '' ? '<span style="color:#CBD5E1;">(留空)</span>' : qaEscapeHtml(val)}</td>`;
+                  return `<td style="padding:5px 8px; border-right:1px solid #E2E8F0; white-space:pre-wrap; ${isHi ? 'background:#FEF9C3; color:#92400E; font-weight:900;' : 'color:#334155;'}">${val === '' ? '<span style="color:#CBD5E1;">(空)</span>' : qaEscapeHtml(val)}</td>`;
                 }).join('')}
               </tr>
             `).join('')}
@@ -417,8 +435,7 @@ function qaRenderResults(rawQuery, forcedId) {
         </table>
       </div>
 
-      <div style="font-size:0.82rem; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A; border-radius:7px; padding:6px 10px; margin-bottom:4px;">${qaEscapeHtml(sc.tip)}</div>
-      <div style="font-size:0.78rem; color:#64748B;">📂 來源依據：${qaEscapeHtml(sc.sourceRef)}</div>
+      <div style="font-size:0.8rem; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:5px 9px;">${qaEscapeHtml(sc.tip)}</div>
     </div>
   `).join('');
 }
