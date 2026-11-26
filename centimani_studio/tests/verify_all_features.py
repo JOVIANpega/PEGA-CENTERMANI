@@ -2567,6 +2567,46 @@ def run_all_verifications():
                   "v0.8.065 PPH1503/FeasaLED實戰指令 + SFIS SplitString + Phase=-1整合無硬體試跑 + 1目錄1Excel 0 Error 通過",
                   f"folders={len(opened_folders)}, excels={len(launched_excels)}, phases={v65_phases}, sends={v65_sends}, refs={v65_refs}, errs={v65_errs}")
 
+            # [v0.8.066] 固定「開始/結束」護欄 + 預設4塊(條碼/路由/指令/清理) + 基礎/進階切分 + 反白一鍵自動抓字串 + 獨立「上傳(:SfSaveLinkData)」積木 + 連動INI預覽徽章
+            cbb_66 = open(cbb_js_path, "r", encoding="utf-8").read()
+            check("kind: 'start'" in cbb_66 and "kind: 'end'" in cbb_66
+                  and "shortName: '清理'" in cbb_66
+                  and "shortName: '上傳'" in cbb_66
+                  and "bbToggleQaAdv" in cbb_66
+                  and "bbAutoInferExtract" in cbb_66
+                  and "_renderLinkedIniBadge" in cbb_66
+                  and "_collectPrecedingVars" in cbb_66,
+                  "v0.8.066 開始/結束護欄、預設4塊、基礎/進階切換、反白自動抓字串、獨立上傳積木與連動INI預覽檢查通過")
+
+            v66_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V66_GUARD_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 15, "isn_pattern": "[0-9A-F]"},
+                "builder_sequence": [
+                    {"uid": "g0", "kind": "start", "config": {"project": "V66_GUARD_PROJ", "station": "MB", "dut_count": 1, "debug_mode": "1", "sfis_enable": "1"}},
+                    {"uid": "g1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 15, "isn_pattern": "[0-9A-F]"}},
+                    {"uid": "g2", "kind": "sfis_route", "config": {"sfis_mode": "online", "tsp": "PEGA,2"}},
+                    {"uid": "g3", "kind": "comm_cmd", "config": {"protocol": "uart", "title": "Get IMEI", "command": "atcli at+gsn", "extract_mode": "within", "left_delim": "gsn:", "right_delim": "\\n", "var_name": "gIMEI", "val_type": "%s", "expect_min": "35001"}},
+                    {"uid": "g4", "kind": "sfis_upload", "config": {"title": "Update SFIS", "items": [{"field": "SN1", "var_name": "gIMEI"}, {"field": "FW", "var_name": "gFwVer"}]}},
+                    {"uid": "g5", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "g6", "kind": "end", "config": {"confirmed": True}},
+                ],
+            })
+            ws_v66 = _parse_v50(v66_res["excel_path"])
+            v66_sends = [str(r.get("Send") or "") for r in ws_v66["stations"]["MB"]]
+            v66_audit = post_json("/api/re_audit", {"workspace": ws_v66})
+            v66_errs = (v66_audit.get("report") or {}).get("errors") or []
+            check(v66_res.get("status") == "ok"
+                  and any(':SfSaveLinkData,"SN1","*(gIMEI)"' in s for s in v66_sends)
+                  and any(':SfSaveLinkData,"FW","*(gFwVer)"' in s for s in v66_sends)
+                  and ws_v66["system_ini"].get("DebugMode") == "1"
+                  and len(v66_errs) == 0,
+                  "v0.8.066 start/end護欄 + 獨立上傳(:SfSaveLinkData 多欄位) 產出 0 Error 測試包通過",
+                  f"sends={v66_sends}, errs={v66_errs}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

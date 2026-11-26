@@ -132,8 +132,8 @@ def build_workspace_from_sequence(
         next_phase[0] += 1
         return p
 
-    # Separate teardown items to always stay at the very end cleanly
-    normal_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") != "teardown"]
+    # Separate teardown and end guardrail items cleanly
+    normal_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") not in ("teardown", "end")]
     teardown_items = [it for it in (sequence or []) if isinstance(it, dict) and it.get("kind") == "teardown"]
 
     def _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route):
@@ -171,8 +171,19 @@ def build_workspace_from_sequence(
         kind = str(item.get("kind") or "").strip()
         cfg = item.get("config") or {}
 
-        if kind == "isn":
-            # Applied on top-level ws metadata & DUTs; no station rows needed
+        if kind == "start":
+            sys_ini = ws.setdefault("system_ini", {})
+            if cfg.get("debug_mode") is not None:
+                sys_ini["DebugMode"] = str(cfg.get("debug_mode"))
+            if cfg.get("sfis_enable") is not None:
+                sys_ini["SFIS_Enable"] = str(cfg.get("sfis_enable"))
+            continue
+
+        elif kind == "isn":
+            # Applied on top-level ws metadata & DUTs; optionally disable ScanBarcode
+            if cfg.get("enable_scan") is False:
+                for dut in (ws.get("duts") or []):
+                    dut["ScanBarcode( {Name,Lengh,Pattern} )"] = ""
             continue
 
         elif kind == "sfis_route":
@@ -603,6 +614,33 @@ def build_workspace_from_sequence(
                         test_id="OTFX085",
                     ))
 
+        elif kind == "sfis_upload":
+            title_lbl = str(cfg.get("title") or "Update SFIS").strip() or "Update SFIS"
+            upload_items = cfg.get("items")
+            if not isinstance(upload_items, list) or not upload_items:
+                upload_items = [{"field": str(cfg.get("field_name") or "SN1"), "var_name": str(cfg.get("var_name") or "gCmdOut")}]
+            ph = _alloc_phase()
+            for u_idx, u_it in enumerate(upload_items):
+                if not isinstance(u_it, dict):
+                    continue
+                u_field = str(u_it.get("field") or "SN1").strip() or "SN1"
+                raw_var = str(u_it.get("var_name") or "gCmdOut").strip()
+                if raw_var.startswith("*(") or raw_var.startswith("*$("):
+                    u_expr = raw_var
+                else:
+                    clean_v = _safe_var(raw_var.lstrip("$"), "gCmdOut")
+                    u_expr = f"*({clean_v})"
+                steps.append(_step(
+                    phase=ph if u_idx == 0 else "",
+                    title=f"0,{title_lbl}" if u_idx == 0 else "",
+                    send=f':SfSaveLinkData,"{u_field}","{u_expr}"',
+                    reply="0",
+                    waiting="2000",
+                    exec_mode="8",
+                    description=f"SFIS#-#SaveLinkData {u_field}",
+                    test_id="OTFX063",
+                ))
+
         elif kind == "python":
             _ensure_dut_connection(
                 ws, "CmdConsole", lambda _sl: '"APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"'
@@ -714,7 +752,7 @@ def build_workspace_from_sequence(
 
         # Every action block (except isn / delay / multi_sku / disabled fixture) supports optional post-block Delay row
         skip_post_delay = (
-            kind in ("isn", "delay", "inst", "multi_sku")
+            kind in ("start", "end", "isn", "delay", "inst", "multi_sku")
             or (kind == "fixture" and str(cfg.get("fixture_type") or "none").strip().lower() == "none")
         )
         if not skip_post_delay and cfg.get("post_delay_enabled"):

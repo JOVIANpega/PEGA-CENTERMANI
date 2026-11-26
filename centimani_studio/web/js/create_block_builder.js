@@ -96,6 +96,19 @@
       popExample: '例：UARTF@G 壓下治具並等待 3000ms'
     },
     {
+      kind: 'isn',
+      icon: '🔢',
+      shortName: '條碼',
+      name: '🔢 條碼',
+      tier: 'common',
+      exclusivePage: false,
+      theme: '#EFF6FF',
+      border: '#2563EB',
+      popTitle: 'ISN 條碼掃描規格（幾 Byte / 規則）',
+      popDesc: '設定掃碼位數（幾 Byte）與字元規則；若站別不需要掃條碼（例如由指令讀取序號）可關閉掃碼或移除此卡。',
+      popExample: '例：{ISN,15,[0-9A-F]}'
+    },
+    {
       kind: 'sfis_rw',
       icon: '🔐',
       shortName: '過站',
@@ -104,9 +117,35 @@
       exclusivePage: false,
       theme: '#FDF2F8',
       border: '#EC4899',
-      popTitle: 'SFIS 過站讀寫與即時連通實測',
-      popDesc: '指 SFIS 系統過站讀寫：支援 6 廠區環境快選與即時連通實測，讀取 MAC1 / 69PN / SNA、寫回 SaveLinkData 或 Ref 字串分段擷取。',
+      popTitle: 'SFIS 過站讀取與即時連通實測',
+      popDesc: '指 SFIS 系統過站讀寫：支援 6 廠區環境快選與即時連通實測，讀取 MAC1 / 69PN / SNA 或 Ref 字串分段擷取。',
       popExample: '例：:SfGetVersion,"*(ISN)","ISN_BASEINFO","2","MAC1",""'
+    },
+    {
+      kind: 'sfis_upload',
+      icon: '📤',
+      shortName: '上傳',
+      name: '📤 上傳',
+      tier: 'common',
+      exclusivePage: false,
+      theme: '#FDF2F8',
+      border: '#DB2777',
+      popTitle: '回寫測試結果至 SFIS (:SfSaveLinkData)',
+      popDesc: '將前面積木抓到的 $變數（如 IMEI / MAC / FW 版本 / HW）打包上傳至 SFIS 資料庫，支援下拉直接選取前面抓到的變數。',
+      popExample: '例：:SfSaveLinkData,"SN1","*(gIMEI)"'
+    },
+    {
+      kind: 'teardown',
+      icon: '🧹',
+      shortName: '清理',
+      name: '🧹 清理',
+      tier: 'common',
+      exclusivePage: false,
+      theme: '#FFF1F2',
+      border: '#E11D48',
+      popTitle: 'Phase 97/98/99 安全斷電與連線清理',
+      popDesc: '無論前方 PASS 或 FAIL 都必跑的安全保護區 (ExecMode=3)：斷電、治具復位、關所有 COM Port，支援加開 98/99 分支。',
+      popExample: '例：Phase 97 強制斷電 ＋ :Disconnect'
     },
     {
       kind: 'python',
@@ -229,17 +268,17 @@
   ];
 
   const META_BY_KIND = {
-    isn: {
-      kind: 'isn',
-      icon: '🔢',
-      shortName: '條碼',
-      name: '🔢 條碼',
+    start: {
+      kind: 'start',
+      icon: '🟢',
+      shortName: '開始',
+      name: '🟢 開始',
       fixed: true,
       exclusivePage: false,
-      theme: '#EFF6FF',
-      border: '#2563EB',
-      popTitle: '專案名稱、站別與 ISN 條碼規格（固定開頭）',
-      popDesc: '設定此測試包的 Project 名稱、Station 名稱、槽位數 (1/2/4 槽) 與條碼位數（幾 Byte）和字元規則。',
+      theme: '#ECFDF5',
+      border: '#10B981',
+      popTitle: '🟢 測試開始（固定起點，無法拖曳/刪除）',
+      popDesc: '設定此測試包的專案名稱 (Project)、測試站別 (Station)、並行槽位數 (1/2/4 槽) 與全域 Debug/SFIS 基礎環境。',
     },
     sfis_route: {
       kind: 'sfis_route',
@@ -253,17 +292,17 @@
       popTitle: '開局條碼顯示與 SFIS CheckRoute (Phase 0)',
       popDesc: '顯示掃入的 ISN、清空殘留 COM Port 並執行 :SfCheckRoute 確認路由。可設為離線調試或產線過站。',
     },
-    teardown: {
-      kind: 'teardown',
-      icon: '🛑',
-      shortName: '收尾',
-      name: '🛑 收尾',
+    end: {
+      kind: 'end',
+      icon: '🏁',
+      shortName: '結束',
+      name: '🏁 結束',
       fixed: true,
       exclusivePage: false,
-      theme: '#FFF1F2',
-      border: '#E11D48',
-      popTitle: 'Phase 97/98 安全斷電與資源釋放（固定壓底）',
-      popDesc: '無論前方 PASS 或 FAIL 都必跑的安全保護區 (ExecMode=3)：斷電、治具復位、關所有 COM Port。',
+      theme: '#F1F5F9',
+      border: '#475569',
+      popTitle: '🏁 測試結束（固定終點，無法拖曳/刪除）',
+      popDesc: '標記整個測試流程的終止護欄，設定啟動站別模式 (StationName) 與無硬體試跑 (Phase = -1) 並確認產出。',
     }
   };
   BUILDER_CATALOG.forEach((b) => { META_BY_KIND[b.kind] = b; });
@@ -296,8 +335,10 @@
   function _defaultConfigForKind(kind) {
     const base = { post_delay_enabled: false, post_delay_sec: '0.5' };
     switch (kind) {
+      case 'start':
+        return { project: 'PEGA_NEW', station: 'MB', dut_count: 1, debug_mode: '1', sfis_enable: '0' };
       case 'isn':
-        return { project: 'PEGA_NEW', station: 'MB', dut_count: 1, isn_len: 3, isn_pattern: '[0-9A-Z]' };
+        return { enable_scan: true, isn_len: 3, isn_pattern: '[0-9A-Z]' };
       case 'sfis_route':
         return Object.assign({}, base, { sfis_mode: 'offline', tsp: 'PEGA,2', weblink: 'http://pxd-sftsp-n3.sfis.pegatroncorp.com/SFISWebService/SFISTSPWebService.asmx', login_id: '', date_isn: '111111111111111' });
       case 'comm_cmd':
@@ -334,6 +375,8 @@
         return Object.assign({}, base, { fixture_type: 'none', com_port: 'COM8', delay_ms: '3000' });
       case 'sfis_rw':
         return Object.assign({}, base, { rw_mode: 'get_version', title: 'SFIS Get MAC', table_name: 'ISN_BASEINFO', field_name: 'MAC1', var_name: 'sfMAC', label_len: '12', save_value: '*(sfMAC)' });
+      case 'sfis_upload':
+        return Object.assign({}, base, { title: 'Update SFIS', items: [{ field: 'SN1', var_name: 'DUT_FW' }] });
       case 'python':
         return Object.assign({}, base, { python_path: 'D:\\PythonScript', script_name: 'my_test.py', result_prefix: 'RESULT=', min_val: '0.0', max_val: '100.0' });
       case 'ping':
@@ -342,6 +385,8 @@
         return Object.assign({}, base, { file_mode: 'rini', file_path: '.\\System\\config.ini', section: 'Scripts', key: 'TargetKey', var_name: 'gExtVal' });
       case 'teardown':
         return { teardown_mode: '97_only' };
+      case 'end':
+        return { confirmed: true };
       default:
         return Object.assign({}, base);
     }
@@ -350,6 +395,7 @@
   const BB_STATE = {
     view: 'stack', // 'stack' | 'qa' | 'export'
     showAdvanced: false,
+    qaShowAdv: false,
     fullscreen: false,
     splitLeftPx: 300,
     qaIdx: 0,
@@ -360,10 +406,12 @@
     instFilter: 'USABLE',
     instSearch: '',
     stack: [
+      { uid: _newUid(), kind: 'start', configured: true, config: _defaultConfigForKind('start') },
       { uid: _newUid(), kind: 'isn', configured: true, config: _defaultConfigForKind('isn') },
       { uid: _newUid(), kind: 'sfis_route', configured: false, config: _defaultConfigForKind('sfis_route') },
       { uid: _newUid(), kind: 'comm_cmd', configured: false, config: _defaultConfigForKind('comm_cmd') },
-      { uid: _newUid(), kind: 'teardown', configured: false, config: _defaultConfigForKind('teardown') }
+      { uid: _newUid(), kind: 'teardown', configured: false, config: _defaultConfigForKind('teardown') },
+      { uid: _newUid(), kind: 'end', configured: true, config: _defaultConfigForKind('end') }
     ],
     exportOpts: {
       station_name_mode: 'fixed',
@@ -376,8 +424,10 @@
     const c = item.config || {};
     const dNote = (c.post_delay_enabled && Number(c.post_delay_sec) > 0) ? ` · +${c.post_delay_sec}s` : '';
     switch (item.kind) {
+      case 'start':
+        return `${c.project || 'PEGA_NEW'}/${c.station || 'MB'} (${c.dut_count || 1}槽)`;
       case 'isn':
-        return `${c.project || 'PEGA_NEW'}/${c.station || 'MB'} · ${c.isn_len || 3}碼`;
+        return c.enable_scan === false ? '免掃條碼' : `${c.isn_len || 3}碼 ${c.isn_pattern || '[0-9A-Z]'}`;
       case 'sfis_route':
         if (c.sfis_hmi_bundle && Array.isArray(c.sfis_hmi_bundle.items) && c.sfis_hmi_bundle.items.length) {
           return `SFIS堆疊(${c.sfis_hmi_bundle.items.length}步)${dNote}`;
@@ -409,6 +459,8 @@
           return `SFIS堆疊(${c.sfis_hmi_bundle.items.length}步)${dNote}`;
         }
         return `${c.field_name || 'MAC1'}${dNote}`;
+      case 'sfis_upload':
+        return `寫回 ${(c.items || []).length || 1} 欄${dNote}`;
       case 'python':
         return `${c.script_name || 'my_test.py'}${dNote}`;
       case 'ping':
@@ -421,6 +473,8 @@
         return `${c.target || 'UART'}.${c.attr_key || 'COM'}${dNote}`;
       case 'teardown':
         return c.teardown_mode === '97_98_99' ? '97 + 98/99' : 'Phase 97';
+      case 'end':
+        return BB_STATE.exportOpts.no_hw_phase_pause ? '無硬體試跑' : '標準匯出';
       default:
         return '標準模板';
     }
@@ -551,19 +605,20 @@
   }
 
   function _syncCompatInputsFromIsnBlock() {
+    const startBlk = BB_STATE.stack.find(b => b.kind === 'start');
     const isnBlk = BB_STATE.stack.find(b => b.kind === 'isn');
-    if (!isnBlk) return;
-    const c = isnBlk.config || {};
+    const sc = (startBlk && startBlk.config) || {};
+    const ic = (isnBlk && isnBlk.config) || {};
     const elProj = document.getElementById('genProj');
     const elSt = document.getElementById('genStation');
     const elDut = document.getElementById('genDutCount');
     const elLen = document.getElementById('genIsnLen');
     const elPat = document.getElementById('genIsnPattern');
-    if (elProj) elProj.value = c.project || 'PEGA_NEW';
-    if (elSt) elSt.value = c.station || 'MB';
-    if (elDut) elDut.value = String(c.dut_count || 1);
-    if (elLen) elLen.value = String(c.isn_len || 3);
-    if (elPat) elPat.value = c.isn_pattern || '[0-9A-Z]';
+    if (elProj) elProj.value = sc.project || ic.project || 'PEGA_NEW';
+    if (elSt) elSt.value = sc.station || ic.station || 'MB';
+    if (elDut) elDut.value = String(sc.dut_count || ic.dut_count || 1);
+    if (elLen) elLen.value = String(ic.isn_len || 3);
+    if (elPat) elPat.value = ic.isn_pattern || '[0-9A-Z]';
     if (typeof window.updateIsnRulePreview === 'function') window.updateIsnRulePreview();
   }
 
@@ -571,14 +626,24 @@
     bbHidePop();
     const cfg = _defaultConfigForKind(kind);
     const newItem = { uid: _newUid(), kind, configured: false, config: cfg };
-    const maxPos = Math.max(1, BB_STATE.stack.length - 1);
-    const safePos = Math.max(1, Math.min(insertPos, maxPos));
+    // Stay strictly after `start` (idx 0) and before `end` (last idx)
+    const minPos = (BB_STATE.stack[0] && BB_STATE.stack[0].kind === 'start') ? 1 : 0;
+    const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
+      ? BB_STATE.stack.length - 1
+      : BB_STATE.stack.length;
+    const safePos = Math.max(minPos, Math.min(insertPos, endIdx));
     BB_STATE.stack.splice(safePos, 0, newItem);
     bbRender();
   }
 
   window.bbAddBlock = function (kind) {
-    _insertBlockAt(kind, BB_STATE.stack.length - 1);
+    // Insert right before `teardown` + `end` if present so actions stay cleanly ahead of cleanup
+    let targetPos = BB_STATE.stack.length - 1;
+    if (kind !== 'teardown' && kind !== 'end') {
+      const tdIdx = BB_STATE.stack.findIndex(b => b.kind === 'teardown');
+      if (tdIdx >= 1) targetPos = tdIdx;
+    }
+    _insertBlockAt(kind, targetPos);
   };
 
   window.bbRemoveStackIdx = function (idx) {
@@ -713,7 +778,7 @@
     it.config = it.config || {};
     it.config[key] = val;
     it.configured = true;
-    if (it.kind === 'isn') _syncCompatInputsFromIsnBlock();
+    if (it.kind === 'isn' || it.kind === 'start') _syncCompatInputsFromIsnBlock();
     if (it.kind === 'delay' && key === 'ms') {
       const hint = document.getElementById('bbDelayReadableHint');
       if (hint) hint.textContent = _formatMsReadable(val);
@@ -726,7 +791,16 @@
         pHint.textContent = it.config.post_delay_enabled ? `➔ 下一列自動寫入 :Delay,"${msOut}"` : '（未勾選，不加延遲列）';
       }
     }
+    if (!rerender) {
+      const iniBox = document.getElementById('bbLinkedIniBadgeBox');
+      if (iniBox) iniBox.innerHTML = _renderLinkedIniBadge(it, idx);
+    }
     if (rerender) bbRender();
+  };
+
+  window.bbToggleQaAdv = function (checked) {
+    BB_STATE.qaShowAdv = !!checked;
+    bbRender();
   };
 
   function _simulateExtract(cfg) {
@@ -857,6 +931,7 @@
   function _getBlockSortRank(item) {
     const k = item.kind;
     const c = item.config || {};
+    if (k === 'start') return -10;
     if (k === 'isn') return 0;
     if (k === 'sfis_route') return 10;
     if (k === 'sfis_rw') {
@@ -877,7 +952,9 @@
     if (k === 'var_check') return 75;
     if (k === 'python') return 80;
     if (k === 'prompt_box') return 88;
-    if (k === 'teardown') return 999;
+    if (k === 'sfis_upload') return 92;
+    if (k === 'teardown') return 950;
+    if (k === 'end') return 999;
     return 65;
   }
 
@@ -885,8 +962,318 @@
     const decorated = BB_STATE.stack.map((it, origIdx) => ({ it, origIdx, rank: _getBlockSortRank(it) }));
     decorated.sort((a, b) => (a.rank - b.rank) || (a.origIdx - b.origIdx));
     BB_STATE.stack = decorated.map(x => x.it);
-    BB_STATE.autoSortMsg = '✅ 已依標準 ATE 開機測試順序重排：條碼 ➔ 路由 ➔ SFIS讀值 ➔ SKU分流 ➔ 治具/供電量測(儀器) ➔ PING測網路 ➔ 通訊指令/腳本 ➔ 後段RF/提示/寫站 ➔ 安全收尾(Phase 97)。';
+    BB_STATE.autoSortMsg = '✅ 已依標準 ATE 開機測試順序重排：開始 ➔ 條碼 ➔ 路由 ➔ SFIS讀值 ➔ SKU ➔ 治具/量測 ➔ PING/指令 ➔ 上傳SFIS ➔ 清理(Phase 97) ➔ 結束。';
     bbRender();
+  };
+
+  function _collectPrecedingVars(beforeIdx) {
+    const vars = [];
+    const seen = new Set();
+    const addV = (vn, src) => {
+      const clean = String(vn || '').replace(/^\$|\*\(|\)$/g, '').trim();
+      if (!clean || seen.has(clean)) return;
+      seen.add(clean);
+      vars.push({ name: clean, source: src });
+    };
+    addV('ISN', '條碼掃描');
+    const limit = Math.min(beforeIdx, BB_STATE.stack.length);
+    for (let i = 0; i < limit; i++) {
+      const b = BB_STATE.stack[i];
+      const bc = (b && b.config) || {};
+      const lbl = (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind;
+      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') addV(bc.var_name || 'gCmdOut', `#${i + 1} ${lbl}`);
+      if (b.kind === 'sfis_rw' && bc.rw_mode !== 'save_link') addV(bc.var_name || 'sfMAC', `#${i + 1} ${lbl}`);
+      if (b.kind === 'prompt_box' && bc.prompt_mode === 'input') addV(bc.var_name || 'ScanSub', `#${i + 1} ${lbl}`);
+      if (b.kind === 'set_val' || b.kind === 'ext_file') addV(bc.var_name, `#${i + 1} ${lbl}`);
+      if (b.kind === 'inst') {
+        if (Array.isArray(bc.channels)) bc.channels.forEach(ch => addV(ch.name, `#${i + 1} NI6008`));
+        if (/feasa/i.test(bc.inst_name || '')) { addV('LED_Wave', `#${i + 1} FeasaLED`); addV('LED_Int', `#${i + 1} FeasaLED`); }
+        if (/pph1503|ps2005|ipower/i.test(bc.inst_name || '') && bc.pwr_action === 'mcurr') addV('gCurr', `#${i + 1} ${bc.inst_name}`);
+        if (/34401|2700|mda2700|u2004a/i.test(bc.inst_name || '')) addV('gDmmVal', `#${i + 1} ${bc.inst_name}`);
+      }
+    }
+    return vars;
+  }
+
+  function _computeLinkedIniItems(item) {
+    const c = (item && item.config) || {};
+    const out = [];
+    switch (item.kind) {
+      case 'start': {
+        const dc = Math.max(1, Math.min(4, Number(c.dut_count || 1)));
+        out.push(`System.ini: StationList=${c.station || 'MB'}, StationName=${c.station || 'MB'}`);
+        out.push(`System.ini: DebugMode=${c.debug_mode ?? '1'}, SFIS_Enable=${c.sfis_enable ?? '0'}`);
+        out.push(`Global.ini [Settings]: LOAD_1=true` + (dc > 1 ? ` ~ LOAD_${dc}=true` : ' (單槽)'));
+        break;
+      }
+      case 'isn':
+        out.push(c.enable_scan === false
+          ? 'DUTs Sheet: ScanBarcode 留空（本工站免掃條碼）'
+          : `DUTs Sheet: ScanBarcode={ISN,${c.isn_len || 3},${c.isn_pattern || '[0-9A-Z]'}}`);
+        break;
+      case 'sfis_route':
+        out.push(`System.ini [System]: SFIS_Enable=${c.sfis_mode === 'online' ? '1' : '0'}`);
+        if (c.sfis_mode === 'online') {
+          out.push(`System.ini [SFIS]: SFIS_TSP=${c.tsp || 'PEGA,2'}, SFIS_WebLink=${(c.weblink || '').slice(0, 46)}`);
+          if (c.login_id) out.push(`System.ini [SFIS]: SFIS_LoginID=${c.login_id}, SFIS_AutoLogin=1`);
+        }
+        out.push('DUTs Sheet: 確保存在 UART 連線與 *$(DUT_UR1)');
+        break;
+      case 'comm_cmd': {
+        const p = String(c.protocol || 'uart').toLowerCase();
+        if (p === 'uart') {
+          out.push(`Global.ini [Settings]: DUT_UR1=${c.port || 'COM4'}`);
+          out.push('DUTs Sheet: "Uart","UART","*$(DUT_UR1),115200..."');
+        } else if (p === 'ssh' || p === 'telnet') {
+          out.push(`Global.ini [Settings]: DUTIP_1=${c.dut_ip || '192.168.11.143'}, PCIP_1=192.168.11.3`);
+          out.push(`DUTs Sheet: "${p.toUpperCase()}","${p === 'ssh' ? 'SSH1' : 'TELNET1'}","*$(PCIP_1),*$(DUTIP_1)..."`);
+        } else {
+          out.push('DUTs Sheet: "APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"');
+        }
+        if (c.use_ini_var && c.extract_mode !== 'reply_only') {
+          const vn = c.var_name || 'DUT_FW';
+          out.push(c.val_type === '%s'
+            ? `Global.ini [Scripts]: ${vn}_SPEC=${c.expect_min || ''}`
+            : `Global.ini [Scripts]: ${vn}_DL=${c.expect_min || '0'}, ${vn}_UL=${c.expect_max || '0'}`);
+        }
+        break;
+      }
+      case 'var_check':
+        if (c.use_ini_var) {
+          const vn = c.var_name || 'gVal';
+          out.push(c.check_mode === 'string'
+            ? `Global.ini [Scripts]: ${vn}_EXPECT=${c.expect_str || 'PASS'}`
+            : `Global.ini [Scripts]: ${vn}_DL=${c.dl || '0'}, ${vn}_UL=${c.ul || '100'}`);
+        } else {
+          out.push('Station Sheet 直接比對（未抽出到 Global.ini）');
+        }
+        break;
+      case 'inst': {
+        const nm = c.inst_name || 'NI6008';
+        if (/ni6008/i.test(nm)) {
+          out.push(`Instrument Sheet: 掛載 NI6008 (${c.dev_id || 'Dev1'})`);
+          out.push(`Global.ini [Settings]: DAQ_1=${c.dev_id || 'Dev1'}`);
+        } else {
+          out.push(`Instrument Sheet: 掛載 ${nm}`);
+          out.push('Global.ini [Settings]: 依儀器設定寫入對應 GPIB / COM / IP');
+        }
+        break;
+      }
+      case 'fixture':
+        if (c.fixture_type === 'pneumatic') {
+          out.push(`Global.ini [Settings]: PCUART_fixture_1=${c.com_port || 'COM8'}`);
+          out.push('DUTs Sheet: "Uart","UARTF","*$(PCUART_fixture_1),9600..."');
+        } else if (c.fixture_type === 'ipower') {
+          out.push('Instrument / Switch: 掛載 IPOWER2401');
+        } else {
+          out.push('無治具：不修改 INI 與 DUTs');
+        }
+        break;
+      case 'ping':
+        out.push(`Global.ini [Settings]: DUTIP_1=${c.dut_ip || '192.168.11.143'}, PCIP_1=${c.pc_ip || '192.168.11.3'}`);
+        break;
+      case 'sfis_upload': {
+        const cnt = (c.items || []).length || 1;
+        out.push(`寫入 ${cnt} 筆 :SfSaveLinkData 至 SFIS（無須修改 Global.ini）`);
+        break;
+      }
+      case 'end':
+        out.push(`System.ini [System]: StationName=${BB_STATE.exportOpts.station_name_mode === 'ask' ? '(留空開機詢問)' : '鎖定目前站名'}`);
+        out.push(`System.ini [Checksum]: 匯出時由 LoadScript.dll 自動寫入 64 碼簽章`);
+        break;
+      default:
+        out.push('無須額外修改 INI（跟隨流程動態編譯寫入 Station Sheet）');
+    }
+    return out;
+  }
+
+  function _renderLinkedIniBadge(item) {
+    const lines = _computeLinkedIniItems(item);
+    if (!lines.length) return '';
+    return `
+      <div style="margin-top:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid #0EA5E9; border-radius:7px; padding:7px 11px;">
+        <div style="font-size:0.78rem; font-weight:900; color:#0369A1; margin-bottom:3px;">🔗 此積木連動的 INI / 工作表預覽：</div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          ${lines.map(ln => `<div class="mono" style="font-size:0.76rem; color:#334155;">• ${_esc(ln)}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  window.bbAutoInferExtract = function (idx) {
+    const it = BB_STATE.stack[idx];
+    if (!it) return;
+    it.config = it.config || {};
+    const ta = document.getElementById(`bbSampleLog_${idx}`);
+    const tgtInput = document.getElementById(`bbTargetTxt_${idx}`);
+    const raw = String((ta && ta.value) || it.config.sample_log || '');
+    it.config.sample_log = raw;
+
+    let selStart = -1;
+    let selEnd = -1;
+    let target = '';
+    if (ta && typeof ta.selectionStart === 'number' && ta.selectionEnd > ta.selectionStart) {
+      selStart = ta.selectionStart;
+      selEnd = ta.selectionEnd;
+      target = raw.slice(selStart, selEnd);
+      if (tgtInput) tgtInput.value = target;
+    } else if (tgtInput && tgtInput.value.trim()) {
+      target = tgtInput.value.trim();
+      selStart = raw.indexOf(target);
+      selEnd = selStart >= 0 ? selStart + target.length : -1;
+    }
+    if (!target || selStart < 0) {
+      const box = document.getElementById('bbInferResultBox');
+      if (box) {
+        box.style.display = 'block';
+        box.innerHTML = '<span style="color:#B45309; font-weight:800;">⚠️ 請先用滑鼠在上方 Log 框「反白選取」要抓取的那段字，或直接於目標輸入框貼上目標文字後再按一次！</span>';
+      }
+      return;
+    }
+
+    const candidates = [];
+    // 1. WithinString: find shortest unique left prefix back to line break / colon / '=' / space
+    const lineStart = Math.max(0, raw.lastIndexOf('\n', selStart - 1) + 1);
+    let leftFull = raw.slice(lineStart, selStart);
+    let leftChosen = leftFull;
+    // Try compact prefixes from right boundary backwards if too long
+    const sepCandidates = [':', '=', ' ', '\t'];
+    for (let cut = leftFull.length - 1; cut >= 0; cut--) {
+      const subL = leftFull.slice(cut);
+      if (subL.length >= 2 && raw.indexOf(subL) === selStart - subL.length) {
+        // Keep up to previous label word if ends with delimiter
+        if (sepCandidates.includes(subL[subL.length - 1]) && /^[A-Za-z0-9_.\-:=\s]+$/.test(subL) && subL.length >= 3) {
+          leftChosen = subL;
+          if (subL.length >= 5) break;
+        }
+      }
+    }
+    if (!leftChosen && selStart > 0) leftChosen = raw.slice(Math.max(0, selStart - 8), selStart);
+    const nextChar = raw.slice(selEnd, selEnd + 1);
+    let rightChosen = '\\n';
+    if (nextChar === '\r' || nextChar === '\n' || selEnd === raw.length) {
+      rightChosen = '\\n';
+    } else if (nextChar === ' ' || nextChar === ',' || nextChar === ';' || nextChar === ')' || nextChar === '"' || nextChar === "'") {
+      rightChosen = nextChar;
+    } else {
+      const nextNl = raw.indexOf('\n', selEnd);
+      const tailSlice = nextNl >= 0 ? raw.slice(selEnd, Math.min(selEnd + 6, nextNl)) : raw.slice(selEnd, selEnd + 6);
+      rightChosen = tailSlice ? tailSlice.replace(/\r/g, '') : '\\n';
+    }
+    const leftEsc = leftChosen.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+    const rightEsc = rightChosen.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+    candidates.push({
+      label: '方案 1 (推薦) WithinString 前後夾取',
+      mode: 'within',
+      left_delim: leftEsc,
+      right_delim: rightEsc,
+      expr: `$VAR:WithinString,"${leftEsc}","${rightEsc}",""`
+    });
+
+    // 2. SplitString check across common separators
+    const seps = ['=', ':', ',', '|', ' '];
+    for (const sp of seps) {
+      const parts = raw.split(sp);
+      const hitIdx = parts.findIndex(p => p.trim() === target.trim());
+      if (hitIdx >= 0 && parts.length > 1) {
+        candidates.push({
+          label: `方案 2 SplitString 依「${sp === ' ' ? '空白' : sp}」切第 ${hitIdx} 段`,
+          mode: 'split',
+          split_sep: sp,
+          split_idx: String(hitIdx),
+          expr: `$VAR:SplitString,"${sp}","${hitIdx}"`
+        });
+        break;
+      }
+    }
+
+    // 3. SubString exact offset fallback
+    candidates.push({
+      label: `方案 ${candidates.length + 1} SubString 固定位移 (${selStart}, 長度 ${target.length})`,
+      mode: 'sub',
+      sub_start: String(selStart),
+      sub_len: String(target.length),
+      expr: `$VAR:SubString,"${selStart}","${target.length}"`
+    });
+
+    it._extractCandidates = candidates;
+    it._lastTarget = target;
+    window.bbApplyInferCandidate(idx, 0);
+  };
+
+  window.bbApplyInferCandidate = function (idx, candIdx) {
+    const it = BB_STATE.stack[idx];
+    if (!it || !Array.isArray(it._extractCandidates) || !it._extractCandidates[candIdx]) return;
+    const cand = it._extractCandidates[candIdx];
+    const c = it.config;
+    c.extract_mode = cand.mode;
+    if (cand.mode === 'within') {
+      c.left_delim = cand.left_delim;
+      c.right_delim = cand.right_delim;
+    } else if (cand.mode === 'split') {
+      c.split_sep = cand.split_sep;
+      c.split_idx = cand.split_idx;
+    } else if (cand.mode === 'sub') {
+      c.sub_start = cand.sub_start;
+      c.sub_len = cand.sub_len;
+    }
+    const tgt = String(it._lastTarget || '').trim();
+    if (tgt) {
+      if (/^-?\d+\.\d+$/.test(tgt)) {
+        c.val_type = '%f';
+        const v = Number(tgt);
+        c.expect_min = String(Number((v * 0.9).toFixed(3)));
+        c.expect_max = String(Number((v * 1.1).toFixed(3)));
+      } else if (/^-?\d+$/.test(tgt)) {
+        c.val_type = '%d';
+        const v = parseInt(tgt, 10);
+        c.expect_min = String(Math.min(v, v - Math.max(1, Math.round(Math.abs(v) * 0.1))));
+        c.expect_max = String(Math.max(v, v + Math.max(1, Math.round(Math.abs(v) * 0.1))));
+      } else {
+        c.val_type = '%s';
+        c.expect_min = tgt;
+        c.expect_max = '';
+      }
+      // Smart variable name hint if still untouched default
+      if (!c.var_name || c.var_name === 'DUT_FW' || c.var_name === 'gCmdOut') {
+        const mLabel = String(cand.left_delim || '').match(/([A-Za-z][A-Za-z0-9_]{1,14})\s*[:=]?\s*$/);
+        if (mLabel) c.var_name = `g${mLabel[1].replace(/[^A-Za-z0-9_]/g, '')}`;
+      }
+    }
+    it._activeCandIdx = candIdx;
+    it.configured = true;
+    bbRender();
+  };
+
+  window.bbUploadAddRow = function (idx) {
+    const it = BB_STATE.stack[idx];
+    if (!it) return;
+    it.config = it.config || {};
+    it.config.items = Array.isArray(it.config.items) ? it.config.items : [];
+    const avail = _collectPrecedingVars(idx);
+    const used = new Set(it.config.items.map(r => r.var_name));
+    const nextVar = (avail.find(v => !used.has(v.name)) || avail[0] || { name: 'gCmdOut' }).name;
+    it.config.items.push({ field: `SN${it.config.items.length + 1}`, var_name: nextVar });
+    it.configured = true;
+    bbRender();
+  };
+
+  window.bbUploadDelRow = function (idx, rowIdx) {
+    const it = BB_STATE.stack[idx];
+    if (!it || !Array.isArray(it.config && it.config.items)) return;
+    if (it.config.items.length <= 1) return;
+    it.config.items.splice(rowIdx, 1);
+    bbRender();
+  };
+
+  window.bbUploadUpdateRow = function (idx, rowIdx, key, val, rerender = false) {
+    const it = BB_STATE.stack[idx];
+    if (!it || !Array.isArray(it.config && it.config.items) || !it.config.items[rowIdx]) return;
+    it.config.items[rowIdx][key] = val;
+    it.configured = true;
+    const iniBox = document.getElementById('bbLinkedIniBadgeBox');
+    if (iniBox) iniBox.innerHTML = _renderLinkedIniBadge(it, idx);
+    if (rerender) bbRender();
   };
 
   window.bbApplySfisPlantPreset = function (idx, plantId) {
@@ -1106,14 +1493,14 @@
   }
 
   function _renderPostDelayBar(item, idx) {
-    if (['isn', 'delay', 'multi_sku'].includes(item.kind)) return '';
+    if (['start', 'end', 'isn', 'delay', 'multi_sku'].includes(item.kind)) return '';
     const c = item.config || {};
     const enabled = !!c.post_delay_enabled;
     const secStr = (c.post_delay_sec !== undefined && c.post_delay_sec !== '') ? String(c.post_delay_sec) : '0.5';
     const secNum = Number(secStr);
     const msOut = Math.max(1, Math.round((Number.isFinite(secNum) && secNum > 0 ? secNum : 0.5) * 1000));
     return `
-      <div style="margin-top:14px; background:${enabled ? '#F0FDF4' : '#F8FAFC'}; border:1.5px solid ${enabled ? '#4ADE80' : '#CBD5E1'}; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="margin-top:12px; background:${enabled ? '#F0FDF4' : '#F8FAFC'}; border:1.5px solid ${enabled ? '#4ADE80' : '#CBD5E1'}; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:800; font-size:0.85rem; color:${enabled ? '#14532D' : '#334155'}; user-select:none;">
           <input type="checkbox" ${enabled ? 'checked' : ''} onchange="bbUpdateField(${idx},'post_delay_enabled',this.checked,true)" style="width:16px; height:16px; accent-color:#16A34A; cursor:pointer;">
           <span>⏳ 此積木運作完自動延遲等待</span>
@@ -1131,36 +1518,95 @@
 
   function _renderQaBody(item, idx) {
     const c = item.config || {};
+    const showAdv = !!BB_STATE.qaShowAdv;
     switch (item.kind) {
+      case 'start':
+        return `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px;">
+              <label style="font-weight:700; font-size:0.86rem;">專案名稱 (Project)
+                <input value="${_esc(c.project || 'PEGA_NEW')}" oninput="bbUpdateField(${idx},'project',this.value)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+              </label>
+              <label style="font-weight:700; font-size:0.86rem;">測試站別 (Station)
+                <input value="${_esc(c.station || 'MB')}" oninput="bbUpdateField(${idx},'station',this.value)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+              </label>
+              <label style="font-weight:700; font-size:0.86rem;">幾槽並行測試 (DUTs)
+                <select onchange="bbUpdateField(${idx},'dut_count',parseInt(this.value,10)||1,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px;">
+                  <option value="1" ${Number(c.dut_count || 1) === 1 ? 'selected' : ''}>1 槽 (單板 LOAD_1=true)</option>
+                  <option value="2" ${Number(c.dut_count) === 2 ? 'selected' : ''}>2 槽 (雙板同步)</option>
+                  <option value="4" ${Number(c.dut_count) === 4 ? 'selected' : ''}>4 槽 (四板同步)</option>
+                </select>
+              </label>
+            </div>
+            ${showAdv ? `
+              <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:10px 12px; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+                <label style="font-size:0.82rem; font-weight:800;">System.ini DebugMode
+                  <select onchange="bbUpdateField(${idx},'debug_mode',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:5px;">
+                    <option value="1" ${String(c.debug_mode ?? '1') === '1' ? 'selected' : ''}>1（工程調試免驗證簽章）</option>
+                    <option value="0" ${String(c.debug_mode) === '0' ? 'selected' : ''}>0（量產強制 Checksum 簽章）</option>
+                  </select>
+                </label>
+                <label style="font-size:0.82rem; font-weight:800;">System.ini SFIS_Enable 預設
+                  <select onchange="bbUpdateField(${idx},'sfis_enable',this.value,false)" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:5px;">
+                    <option value="0" ${String(c.sfis_enable ?? '0') === '0' ? 'selected' : ''}>0（離線單機）</option>
+                    <option value="1" ${String(c.sfis_enable) === '1' ? 'selected' : ''}>1（連線產線 SFIS）</option>
+                  </select>
+                </label>
+              </div>
+            ` : ''}
+          </div>
+        `;
+
       case 'isn':
         return `
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
-            <label style="font-weight:700; font-size:0.86rem;">專案名稱 (Project)
-              <input value="${_esc(c.project || 'PEGA_NEW')}" oninput="bbUpdateField(${idx},'project',this.value)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:800; font-size:0.88rem; color:#1E3A8A;">
+              <input type="checkbox" ${c.enable_scan !== false ? 'checked' : ''} onchange="bbUpdateField(${idx},'enable_scan',this.checked,true)" style="width:16px; height:16px; cursor:pointer;">
+              <span>啟用條碼槍掃描 ISN（若本工站無掃碼改由指令讀序號，請取消勾選）</span>
             </label>
-            <label style="font-weight:700; font-size:0.86rem;">測試站別 (Station)
-              <input value="${_esc(c.station || 'MB')}" oninput="bbUpdateField(${idx},'station',this.value)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-            </label>
-            <label style="font-weight:700; font-size:0.86rem;">幾槽並行測試 (DUTs)
-              <select onchange="bbUpdateField(${idx},'dut_count',parseInt(this.value,10)||1,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px;">
-                <option value="1" ${Number(c.dut_count || 1) === 1 ? 'selected' : ''}>1 槽 (單板 LOAD_1=true)</option>
-                <option value="2" ${Number(c.dut_count) === 2 ? 'selected' : ''}>2 槽 (雙板同步)</option>
-                <option value="4" ${Number(c.dut_count) === 4 ? 'selected' : ''}>4 槽 (四板同步)</option>
-              </select>
-            </label>
-            <label style="font-weight:700; font-size:0.86rem;">ISN 條碼位數 (幾個 Byte / 碼)
-              <input type="number" min="1" max="32" value="${_esc(c.isn_len || 3)}" oninput="bbUpdateField(${idx},'isn_len',parseInt(this.value,10)||3,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
-            </label>
-            <label style="font-weight:700; font-size:0.86rem;">條碼字元規則
-              <select onchange="bbUpdateField(${idx},'isn_pattern',this.value,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px;">
-                <option value="[0-9A-Z]" ${c.isn_pattern === '[0-9A-Z]' ? 'selected' : ''}>[0-9A-Z] 大寫英數字</option>
-                <option value="[0-9]" ${c.isn_pattern === '[0-9]' ? 'selected' : ''}>[0-9] 純數字</option>
-                <option value="[0-9A-Za-z]" ${c.isn_pattern === '[0-9A-Za-z]' ? 'selected' : ''}>[0-9A-Za-z] 大小寫英數</option>
-              </select>
-            </label>
-            <div style="display:flex; flex-direction:column; justify-content:flex-end;">
-              <div style="font-weight:700; font-size:0.86rem; margin-bottom:4px;">ScanBarcode 預覽</div>
-              <div class="mono" style="background:#EFF6FF; border:1.5px solid #3B82F6; color:#1E3A8A; font-weight:800; padding:7px 10px; border-radius:6px;">{ISN,${c.isn_len || 3},${c.isn_pattern || '[0-9A-Z]'}}</div>
+            ${c.enable_scan !== false ? `
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                <label style="font-weight:700; font-size:0.86rem;">ISN 條碼位數 (幾個 Byte / 碼)
+                  <input type="number" min="1" max="32" value="${_esc(c.isn_len || 3)}" oninput="bbUpdateField(${idx},'isn_len',parseInt(this.value,10)||3,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+                </label>
+                <label style="font-weight:700; font-size:0.86rem;">條碼字元規則
+                  <select onchange="bbUpdateField(${idx},'isn_pattern',this.value,true)" style="width:100%; margin-top:4px; padding:7px 10px; border:1.5px solid #94A3B8; border-radius:6px;">
+                    <option value="[0-9A-Z]" ${c.isn_pattern === '[0-9A-Z]' ? 'selected' : ''}>[0-9A-Z] 大寫英數字</option>
+                    <option value="[0-9]" ${c.isn_pattern === '[0-9]' ? 'selected' : ''}>[0-9] 純數字</option>
+                    <option value="[0-9A-Za-z]" ${c.isn_pattern === '[0-9A-Za-z]' ? 'selected' : ''}>[0-9A-Za-z] 大小寫英數</option>
+                  </select>
+                </label>
+                <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+                  <div style="font-weight:700; font-size:0.86rem; margin-bottom:4px;">ScanBarcode 預覽</div>
+                  <div class="mono" style="background:#EFF6FF; border:1.5px solid #3B82F6; color:#1E3A8A; font-weight:800; padding:7px 10px; border-radius:6px;">{ISN,${c.isn_len || 3},${c.isn_pattern || '[0-9A-Z]'}}</div>
+                </div>
+              </div>
+            ` : `
+              <div style="background:#FFFBEB; border:1px solid #F59E0B; border-radius:8px; padding:10px 12px; font-size:0.84rem; color:#92400E;">
+                ℹ️ 已設為<b>免掃條碼</b>（DUTs ScanBarcode 將留空），可於後續指令積木讀取產品序號後呼叫 <code>:ShowISN</code>。
+              </div>
+            `}
+          </div>
+        `;
+
+      case 'end':
+        return `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:9px; padding:12px 14px;">
+              <div style="font-weight:900; color:#0F172A; font-size:0.95rem; margin-bottom:6px;">🏁 測試流程終點與匯出選項</div>
+              <div style="font-size:0.83rem; color:#475569; margin-bottom:10px;">此護欄不可拖曳，點擊右下角「完成設定，看總覽匯出」即可檢視全部步驟並一鍵產生測試包。</div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px;">
+                <label style="font-size:0.83rem; font-weight:800; color:#1E3A8A;">啟動站別 (StationName)
+                  <select onchange="BB_STATE.exportOpts.station_name_mode=this.value; bbUpdateField(${idx},'confirmed',true,false)" style="width:100%; margin-top:4px; padding:6px; border:1px solid #93C5FD; border-radius:6px;">
+                    <option value="fixed" ${BB_STATE.exportOpts.station_name_mode !== 'ask' ? 'selected' : ''}>指定站別直接啟動 (寫入站名)</option>
+                    <option value="ask" ${BB_STATE.exportOpts.station_name_mode === 'ask' ? 'selected' : ''}>留空 (執行時彈窗選擇站別)</option>
+                  </select>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:7px; padding:8px 10px; font-size:0.82rem; font-weight:800; color:#92400E; cursor:pointer;">
+                  <input type="checkbox" ${BB_STATE.exportOpts.no_hw_phase_pause ? 'checked' : ''} onchange="BB_STATE.exportOpts.no_hw_phase_pause=this.checked; bbUpdateField(${idx},'confirmed',true,false)">
+                  <span>⏸️ 無硬體試跑版 (儀器先設為 Phase = -1)</span>
+                </label>
+              </div>
             </div>
           </div>
         `;
@@ -1272,16 +1718,23 @@
                   </div>
                 </label>
               ` : ''}
-              <label style="font-weight:700; font-size:0.84rem;">結尾提示符 (EndPrompt / 等待 ms)
-                <div style="display:flex; gap:5px; margin-top:3px;">
-                  <input value="${_esc(c.end_prompt ?? '#')}" oninput="bbUpdateField(${idx},'end_prompt',this.value)" class="mono" style="width:65px; padding:6px; border:1px solid #94A3B8; border-radius:6px;" title="如 # 或 >">
-                  <input value="${_esc(c.waiting || '5000')}" oninput="bbUpdateField(${idx},'waiting',this.value)" class="mono" style="flex:1; padding:6px; border:1px solid #94A3B8; border-radius:6px;" title="Waiting ms">
-                </div>
-              </label>
             </div>
+            ${showAdv ? `
+              <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:8px; padding:9px 12px; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;">
+                <label style="font-size:0.8rem; font-weight:700;">結尾提示符 (EndPrompt)
+                  <input value="${_esc(c.end_prompt ?? '#')}" oninput="bbUpdateField(${idx},'end_prompt',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.8rem; font-weight:700;">超時等待 Waiting (ms)
+                  <input value="${_esc(c.waiting || '5000')}" oninput="bbUpdateField(${idx},'waiting',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+                <label style="font-size:0.8rem; font-weight:700;">重試次數 (Retry)
+                  <input type="number" min="0" max="10" value="${_esc(c.retry || '3')}" oninput="bbUpdateField(${idx},'retry',this.value)" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                </label>
+              </div>
+            ` : ''}
 
             <div style="background:#EFF6FF; border:1.5px solid #60A5FA; border-radius:9px; padding:11px 13px;">
-              <div style="font-weight:900; font-size:0.89rem; color:#1E3A8A; margin-bottom:7px;">Q2. 怎麼檢查回傳內容？（直接貼上 Console 吐出的字，幫你自動撈字串）</div>
+              <div style="font-weight:900; font-size:0.89rem; color:#1E3A8A; margin-bottom:7px;">Q2. 怎麼檢查回傳內容？（貼上 Log 並用滑鼠「反白目標文字」，按下自動產生語法）</div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                 ${[
                   ['within', '✂️ 頭尾夾字串 (WithinString)'],
@@ -1300,29 +1753,29 @@
                   <input value="${_esc(c.reply_keyword || 'PASS')}" oninput="bbUpdateField(${idx},'reply_keyword',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:180px; margin-left:6px; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px;">
                 </label>
               ` : `
+                <div style="background:#FFFFFF; border:1px solid #BFDBFE; border-radius:8px; padding:9px 10px; margin-bottom:8px;">
+                  <label style="display:block; font-size:0.8rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">📋 Step 1：貼上 Console 實際吐出的整串文字，再用滑鼠「反白」想抓的那一截（例如某個 SN 或數值）：
+                    <textarea id="bbSampleLog_${idx}" rows="3" oninput="bbUpdateField(${idx},'sample_log',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:4px; padding:6px; border:1.5px solid #93C5FD; border-radius:6px; box-sizing:border-box; font-size:0.8rem;">${_esc(c.sample_log || '')}</textarea>
+                  </label>
+                  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <input id="bbTargetTxt_${idx}" value="${_esc(item._lastTarget || '')}" placeholder="或直接在此貼入欲抓取目標片段 (例 1.0.0_release)" class="mono" style="flex:1; min-width:200px; padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:0.8rem;">
+                    <button type="button" class="btn btn-primary-blue" style="padding:5px 12px; font-weight:900; font-size:0.82rem;" onclick="bbAutoInferExtract(${idx})">✨ 依反白/目標自動找擷取語法</button>
+                  </div>
+                  <div id="bbInferResultBox" style="margin-top:6px; display:${Array.isArray(item._extractCandidates) && item._extractCandidates.length ? 'block' : 'none'};">
+                    ${Array.isArray(item._extractCandidates) && item._extractCandidates.length ? `
+                      <div style="font-size:0.77rem; font-weight:800; color:#0F172A; margin-bottom:4px;">💡 已針對 <code>${_esc(item._lastTarget || '')}</code> 算出 ${item._extractCandidates.length} 種擷取方案（點選切換）：</div>
+                      <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        ${item._extractCandidates.map((cd, ci) => `
+                          <button type="button" onclick="bbApplyInferCandidate(${idx}, ${ci})" class="mono" style="cursor:pointer; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; border:1.5px solid ${item._activeCandIdx === ci ? '#2563EB' : '#CBD5E1'}; background:${item._activeCandIdx === ci ? '#DBEAFE' : '#F8FAFC'}; color:#1E293B;">
+                            ${_esc(cd.label)}
+                          </button>
+                        `).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:8px;">
-                  ${c.extract_mode === 'split' ? `
-                    <label style="font-size:0.8rem; font-weight:700;">分隔符號 (例 : 或 =)
-                      <input value="${_esc(c.split_sep || ':')}" oninput="bbUpdateField(${idx},'split_sep',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                    <label style="font-size:0.8rem; font-weight:700;">取第幾段 (0起算)
-                      <input type="number" value="${_esc(c.split_idx || '1')}" oninput="bbUpdateField(${idx},'split_idx',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                  ` : c.extract_mode === 'sub' ? `
-                    <label style="font-size:0.8rem; font-weight:700;">起始索引 (0起算)
-                      <input type="number" value="${_esc(c.sub_start || '0')}" oninput="bbUpdateField(${idx},'sub_start',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                    <label style="font-size:0.8rem; font-weight:700;">截取長度
-                      <input type="number" value="${_esc(c.sub_len || '8')}" oninput="bbUpdateField(${idx},'sub_len',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                  ` : `
-                    <label style="font-size:0.8rem; font-weight:700;">左邊界關鍵字
-                      <input value="${_esc(c.left_delim ?? '')}" oninput="bbUpdateField(${idx},'left_delim',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                    <label style="font-size:0.8rem; font-weight:700;">右邊界關鍵字 (例 \\n 或空白)
-                      <input value="${_esc(c.right_delim ?? '\\n')}" oninput="bbUpdateField(${idx},'right_delim',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
-                    </label>
-                  `}
                   <label style="font-size:0.8rem; font-weight:700;">存成變數名稱 ($)
                     <input value="${_esc(c.var_name || 'DUT_FW')}" oninput="bbUpdateField(${idx},'var_name',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
                   </label>
@@ -1338,18 +1791,43 @@
                     </div>
                   </label>
                 </div>
-                <label style="display:block; font-size:0.8rem; font-weight:700; margin-bottom:6px;">📋 貼上你 Console 實際吐出的範例文字（即時驗證有沒有撈準）：
-                  <textarea rows="2" oninput="bbUpdateField(${idx},'sample_log',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:3px; padding:6px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box; font-size:0.8rem;">${_esc(c.sample_log || '')}</textarea>
-                </label>
+                ${showAdv ? `
+                  <div style="background:#F8FAFC; border:1px dashed #94A3B8; border-radius:7px; padding:8px 10px; margin-bottom:8px;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-bottom:6px;">
+                      ${c.extract_mode === 'split' ? `
+                        <label style="font-size:0.8rem; font-weight:700;">分隔符號 (例 : 或 =)
+                          <input value="${_esc(c.split_sep || ':')}" oninput="bbUpdateField(${idx},'split_sep',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                        <label style="font-size:0.8rem; font-weight:700;">取第幾段 (0起算)
+                          <input type="number" value="${_esc(c.split_idx || '1')}" oninput="bbUpdateField(${idx},'split_idx',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                      ` : c.extract_mode === 'sub' ? `
+                        <label style="font-size:0.8rem; font-weight:700;">起始索引 (0起算)
+                          <input type="number" value="${_esc(c.sub_start || '0')}" oninput="bbUpdateField(${idx},'sub_start',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                        <label style="font-size:0.8rem; font-weight:700;">截取長度
+                          <input type="number" value="${_esc(c.sub_len || '8')}" oninput="bbUpdateField(${idx},'sub_len',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                      ` : `
+                        <label style="font-size:0.8rem; font-weight:700;">左邊界關鍵字
+                          <input value="${_esc(c.left_delim ?? '')}" oninput="bbUpdateField(${idx},'left_delim',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                        <label style="font-size:0.8rem; font-weight:700;">右邊界關鍵字 (例 \\n 或空白)
+                          <input value="${_esc(c.right_delim ?? '\\n')}" oninput="bbUpdateField(${idx},'right_delim',this.value); bbRefreshExtractPreview(${idx});" class="mono" style="width:100%; margin-top:2px; padding:5px; border:1px solid #94A3B8; border-radius:5px; box-sizing:border-box;">
+                        </label>
+                      `}
+                    </div>
+                    <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; cursor:pointer;">
+                      <input type="checkbox" ${c.use_ini_var ? 'checked' : ''} onchange="bbUpdateField(${idx},'use_ini_var',this.checked)"> 將目標值/上下限同時抽出到 Global.ini [Scripts]（日後免改 Excel）
+                    </label>
+                  </div>
+                ` : ''}
                 <div id="bbExtractSimBox" style="background:#FFFFFF; border:1px solid #93C5FD; border-radius:6px; padding:6px 10px; font-size:0.82rem;">
                   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                     <span>🔍 試算擷取結果：<b class="mono" style="background:#FEF08A; color:#854D0E; padding:1px 7px; border-radius:4px;">${_esc(sim.text)}</b></span>
                     <span class="mono" style="font-size:0.78rem; color:#1E40AF;">產生語法：${_esc(sim.expr)}</span>
                   </div>
                 </div>
-                <label style="display:inline-flex; align-items:center; gap:6px; margin-top:6px; font-size:0.8rem; font-weight:700; cursor:pointer;">
-                  <input type="checkbox" ${c.use_ini_var ? 'checked' : ''} onchange="bbUpdateField(${idx},'use_ini_var',this.checked)"> 將目標值/上下限同時抽出到 Global.ini [Scripts]（日後免改 Excel）
-                </label>
               `}
             </div>
           </div>
@@ -1922,16 +2400,48 @@
           </div>
         `;
 
+      case 'sfis_upload': {
+        const preVars = _collectPrecedingVars(idx);
+        const rows = (Array.isArray(c.items) && c.items.length) ? c.items : [{ field: 'SN1', var_name: (preVars[0] && preVars[0].name) || 'DUT_FW' }];
+        return `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <label style="font-weight:700; font-size:0.85rem; flex:1; min-width:200px;">上傳階段標題 (Title)
+                <input value="${_esc(c.title || 'Update SFIS')}" oninput="bbUpdateField(${idx},'title',this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+              </label>
+              <button type="button" class="btn btn-primary-blue" style="padding:6px 12px; font-size:0.83rem; font-weight:800; align-self:flex-end;" onclick="bbUploadAddRow(${idx})">＋ 新增一列回寫欄位</button>
+            </div>
+            <div style="background:#FDF2F8; border:1.5px solid #F472B6; border-radius:9px; padding:10px 12px; display:flex; flex-direction:column; gap:7px;">
+              <div style="font-weight:900; font-size:0.85rem; color:#831843;">📤 打包上傳 SFIS 欄位清單（自動偵測前面積木抓到的 $變數）：</div>
+              ${rows.map((rw, ri) => {
+                const matched = preVars.some(v => v.name === rw.var_name);
+                return `
+                  <div style="display:grid; grid-template-columns:150px 1fr 1fr 34px; gap:6px; align-items:center;">
+                    <input value="${_esc(rw.field || 'SN1')}" placeholder="SFIS欄位(如SN1/FW)" oninput="bbUploadUpdateRow(${idx},${ri},'field',this.value)" class="mono" style="padding:5px 8px; border:1px solid #94A3B8; border-radius:5px; font-weight:800;">
+                    <select onchange="if(this.value) bbUploadUpdateRow(${idx},${ri},'var_name',this.value,true)" style="padding:5px 7px; border:1px solid #94A3B8; border-radius:5px; font-weight:700;">
+                      <option value="">-- 從前面積木選變數 --</option>
+                      ${preVars.map(v => `<option value="${_esc(v.name)}" ${v.name === rw.var_name ? 'selected' : ''}>*(${_esc(v.name)}) 【${_esc(v.source)}】</option>`).join('')}
+                    </select>
+                    <input value="${_esc(rw.var_name || '')}" placeholder="或手輸入變數名" oninput="bbUploadUpdateRow(${idx},${ri},'var_name',this.value)" class="mono" style="padding:5px 8px; border:1px solid ${matched ? '#10B981' : '#94A3B8'}; border-radius:5px;">
+                    <button type="button" style="border:1px solid #FCA5A5; background:#FFF; color:#DC2626; font-weight:900; border-radius:5px; height:28px; cursor:pointer;" onclick="bbUploadDelRow(${idx},${ri})" ${rows.length <= 1 ? 'disabled' : ''}>✕</button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+
       case 'teardown':
         return `
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <label style="flex:1; min-width:240px; cursor:pointer; padding:12px; border-radius:8px; border:1.5px solid ${c.teardown_mode !== '97_98_99' ? '#E11D48' : '#CBD5E1'}; background:${c.teardown_mode !== '97_98_99' ? '#FFF1F2' : '#F8FAFC'}; font-weight:800;">
               <input type="radio" name="bbTd_${idx}" ${c.teardown_mode !== '97_98_99' ? 'checked' : ''} onchange="bbUpdateField(${idx},'teardown_mode','97_only',true)">
-              🛑 標準 Phase 97 強制收尾（無論 PASS/FAIL 都斷電＋關所有 COM Port）
+              🧹 標準 Phase 97 清理（無論 PASS/FAIL 都斷電＋關所有 COM Port）
             </label>
             <label style="flex:1; min-width:240px; cursor:pointer; padding:12px; border-radius:8px; border:1.5px solid ${c.teardown_mode === '97_98_99' ? '#E11D48' : '#CBD5E1'}; background:${c.teardown_mode === '97_98_99' ? '#FFF1F2' : '#F8FAFC'}; font-weight:800;">
               <input type="radio" name="bbTd_${idx}" ${c.teardown_mode === '97_98_99' ? 'checked' : ''} onchange="bbUpdateField(${idx},'teardown_mode','97_98_99',true)">
-              🔀 加開 Phase 98 (PASS 綠燈) ＋ Phase 99 (FAIL 紅燈) 雙分流收尾
+              🔀 加開 Phase 98 (PASS 綠燈) ＋ Phase 99 (FAIL 紅燈) 雙分流清理
             </label>
           </div>
         `;
@@ -1976,10 +2486,15 @@
       <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : '#3B82F6'}; border-radius:11px; padding:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
+          <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; padding:4px 10px; border-radius:999px; border:1px solid #CBD5E1; background:${BB_STATE.qaShowAdv ? '#EFF6FF' : '#F8FAFC'}; font-size:0.79rem; font-weight:800; color:#334155;">
+            <input type="checkbox" ${BB_STATE.qaShowAdv ? 'checked' : ''} onchange="bbToggleQaAdv(this.checked)" style="cursor:pointer;">
+            <span>⚙️ 顯示進階細項設定</span>
+          </label>
         </div>
         <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
           ${_renderQaBody(item, idx)}
+          <div id="bbLinkedIniBadgeBox">${_renderLinkedIniBadge(item, idx)}</div>
           ${_renderPostDelayBar(item, idx)}
         </div>
 
@@ -2003,13 +2518,16 @@
   }
 
   function _renderExportView() {
+    const startCfg = (BB_STATE.stack.find(b => b.kind === 'start') || {}).config || {};
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
+    const projName = startCfg.project || isnCfg.project || 'PEGA_NEW';
+    const stName = startCfg.station || isnCfg.station || 'MB';
     return `
       <div style="background:#FFFFFF; border:2px solid #16A34A; border-radius:11px; padding:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
           <div>
             <div style="font-weight:900; font-size:1.08rem; color:#14532D;">🎉 總覽確認與產出 Excel 測試包</div>
-            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(isnCfg.project || 'PEGA_NEW')}</code> ｜ 站別 <code>${_esc(isnCfg.station || 'MB')}</code> ｜ 共 ${BB_STATE.stack.length} 塊流程</div>
+            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(projName)}</code> ｜ 站別 <code>${_esc(stName)}</code> ｜ 共 ${BB_STATE.stack.length} 塊流程</div>
           </div>
         </div>
 
@@ -2054,14 +2572,18 @@
 
   window.bbExportExcel = async function (dryRun) {
     bbHidePop();
+    const startCfg = (BB_STATE.stack.find(b => b.kind === 'start') || {}).config || {};
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
     const skuBlk = BB_STATE.stack.find(b => b.kind === 'multi_sku');
     const skuCfg = (skuBlk && skuBlk.config && skuBlk.config.sku_wizard) || (window.STATE && window.STATE.createSkuConfig) || null;
     const isPhasePause = !!BB_STATE.exportOpts.no_hw_phase_pause;
+    const projName = (startCfg.project || isnCfg.project || 'PEGA_NEW').trim() || 'PEGA_NEW';
+    const stName = (startCfg.station || isnCfg.station || 'MB').trim() || 'MB';
+    const dutCnt = Number(startCfg.dut_count || isnCfg.dut_count || 1);
     const body = {
-      project_name: (isnCfg.project || 'PEGA_NEW').trim() || 'PEGA_NEW',
-      station_name: (isnCfg.station || 'MB').trim() || 'MB',
-      dut_count: Number(isnCfg.dut_count || 1),
+      project_name: projName,
+      station_name: stName,
+      dut_count: dutCnt,
       dry_run: false,
       no_hw_phase_pause: isPhasePause || !!dryRun,
       station_name_mode: BB_STATE.exportOpts.station_name_mode || 'fixed',
@@ -2129,7 +2651,7 @@
         const inlineHost = document.getElementById(`bbInlineSkuMount_${idx}`);
         if (inlineHost && typeof window.tswMountInline === 'function') {
           const secs = BB_STATE.stack
-            .filter(b => !['isn', 'sfis_route', 'multi_sku', 'teardown'].includes(b.kind))
+            .filter(b => !['start', 'end', 'isn', 'sfis_route', 'multi_sku', 'teardown', 'sfis_upload'].includes(b.kind))
             .map(b => ({
               section_title: (b.config && (b.config.title || b.config.title_name)) || (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind,
               badge: '目前積木'
