@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.071</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.072</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -98,10 +98,9 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
-            <li><b>既有腳本編修</b>：水平手風琴快捷編修與跨檔複製整張 Sheet</li>
+            <li><b>既有腳本編修 (1→N)</b>：水平手風琴快捷編修與跨檔複製整張 Sheet</li>
             <li><b>產生首次範本 (0→1)</b>：直立撲克牌積木拖曳編排、群組方框與逐頁設定</li>
-            <li><b>插入儀器範本</b>：撲克牌雙欄快速挑選／互動人機</li>
-            <li><b>問編寫問題 &amp; 實機驗證</b>：寫法百科、SFIS 與 DLLtest</li>
+            <li><b>右上輔助工具列</b>：單台儀器快速母體、實機驗證 (SFIS / DLL) 與寫法百科</li>
           </ul>
           <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
         </div>
@@ -893,26 +892,32 @@
 
   <!-- ======================== 02 腳本建立與編修中心 ======================== -->
   <div id="panelGen" style="display:none;">
-    <!-- 02 入口：5 大模式水平手風琴 -->
+    <!-- 02 入口：精簡 2 大主力模式 ＋ 右上 3 項獨立實戰工具 -->
     <div id="genModeHub" style="display:block; margin-bottom:14px;">
-      <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:10px 14px;">
         <div>
-          <div style="font-weight:900; font-size:1.13rem; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
-          <div style="font-size:0.87rem; color:#64748B;">滑鼠移過卡牌即可預覽適用情境，點擊卡片進入專屬全寬作業區（含第 5 張 SFIS / DLL 實機驗證工作台）。</div>
+          <div style="font-weight:900; font-size:1.12rem; color:#0F172A;">🧰 腳本建立與編修中心 — 請選擇作業模式</div>
+          <div style="font-size:0.85rem; color:#64748B;">主力流程二選一：改既有腳本選 <b>1 → N</b>、從零排積木選 <b>0 → 1</b>；右側為獨立輔助工具捷徑。</div>
+        </div>
+        <div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.78rem; font-weight:800; color:#475569;">獨立工具：</span>
+          <span id="genToolShortcut_inst" role="button" tabindex="0" class="top-nav-pill" style="cursor:pointer; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; padding:5px 11px; font-size:0.83rem; font-weight:800;" onclick="switchGenSubMode('inst')" onkeydown="if(event.key==='Enter') switchGenSubMode('inst')" title="免開舊檔、單挑 1～2 台儀器快速產出測試母體 Excel">🧪 單台儀器母體</span>
+          <span id="genToolShortcut_tools" role="button" tabindex="0" class="top-nav-pill" style="cursor:pointer; border:1px solid #FB7185; background:#FFF1F2; color:#9F1239; padding:5px 11px; font-size:0.83rem; font-weight:800;" onclick="switchGenSubMode('tools')" onkeydown="if(event.key==='Enter') switchGenSubMode('tools')" title="實機驗證 SFIS (ISN 刷過 / GET / WRITE) 與 DLLtest 單步執行">🛡️ 實機驗證 (SFIS / DLL)</span>
+          <span id="genToolShortcut_qa" role="button" tabindex="0" class="top-nav-pill" style="cursor:pointer; border:1px solid #818CF8; background:#EEF2FF; color:#3730A3; padding:5px 11px; font-size:0.83rem; font-weight:800;" onclick="switchGenSubMode('qa')" onkeydown="if(event.key==='Enter') switchGenSubMode('qa')" title="查詢 Phase / Title / ExecMode / Ref 撰寫邏輯與指令百科">💬 問編寫問題</span>
         </div>
       </div>
-      <div class="acc-row" style="min-height:310px;">
+      <div class="acc-row" style="min-height:290px;">
         <div id="genHubCard_edit" class="acc-card active" data-theme="blue" onmouseenter="setActiveGenHubCard('edit')" onclick="switchGenSubMode('edit')">
           <div>
             <div class="acc-num">01 / EDIT (1 → N)</div>
             <div class="acc-icon">📝</div>
             <div class="acc-title">既有腳本編修</div>
-            <div class="acc-sub">已有 TestFlow.xlsx 的日常改版與跨檔複製</div>
+            <div class="acc-sub">已有 TestFlow.xlsx 的日常改版、插入儀器與跨檔複製</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#1E3A8A; line-height:1.65;">
-              <li><b>快捷編修工作區</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與儀器</li>
-              <li><b>跨檔複製與匯出體檢</b>：支援完整複製整張 Sheet，匯出時檢驗缺漏 DLL 並計算 Checksum</li>
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#1E3A8A; line-height:1.7;">
+              <li><b>6 格快捷編修區</b>：System.ini、Global.ini、流程順序、跳轉重測、站別與 Error Code</li>
+              <li><b>跨檔複製與插入儀器</b>：保留格式複製整張 Sheet、直接插入實機儀器區塊並檢驗缺漏 DLL</li>
               <li>支援直接開啟既有腳本、最近紀錄或從健檢結果一鍵帶入</li>
             </ul>
             <div class="acc-enter-hint" style="color:#1D4ED8;">點擊卡片進入 ▶</div>
@@ -924,66 +929,15 @@
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
             <div class="acc-title">產生首次範本 (積木拖曳)</div>
-            <div class="acc-sub">從零以撲克牌積木與群組方框建置新母體 (0 → 1)</div>
+            <div class="acc-sub">從零以直立撲克牌積木與群組方框建置新母體 (0 → 1)</div>
           </div>
           <div class="acc-body">
-            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#14532D; line-height:1.65;">
-              <li><b>撲克牌拖曳編排</b>：支援群組方框共用 Phase、固定開始/結束護欄與一鍵排序</li>
-              <li><b>逐頁設定 ＋ 進階 TestID</b>：每頁一塊問答、反白擷取變數與 7 碼錯誤碼即時搜尋</li>
-              <li>匯出同步執行 16 欄語法體檢並回報連動寫入之 <code>Global.ini</code> / <code>System.ini</code></li>
+            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
+              <li><b>撲克牌拖曳編排</b>：支援群組方框共用 Phase、固定開始/結束護欄與一鍵最佳排序</li>
+              <li><b>逐頁設定 ＋ 進階 TestID</b>：一頁一塊問答、Log 反白擷取變數與 7 碼錯誤碼即時搜尋</li>
+              <li>匯出前預設自動執行 16 欄語法體檢並顯示連動寫入之重點 INI 設定</li>
             </ul>
             <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
-          </div>
-        </div>
-
-        <div id="genHubCard_inst" class="acc-card" data-theme="amber" onmouseenter="setActiveGenHubCard('inst')" onclick="switchGenSubMode('inst')">
-          <div>
-            <div class="acc-num">03 / INSTRUMENTS</div>
-            <div class="acc-icon">🧪</div>
-            <div class="acc-title">插入儀器範本</div>
-            <div class="acc-sub">儀器撲克牌庫（懶人快速版／互動人機）</div>
-          </div>
-          <div class="acc-body">
-            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#78350F; line-height:1.65;">
-              <li>免選既有 Excel，從撲克牌庫點擊「+」或拖曳排好測試序列</li>
-              <li>自動比對本機 <code>Device\\</code> 標示 <b>❌ 缺 DLL</b>，避免上機報錯</li>
-              <li>支援 <b>⚡ 懶人快速版</b> 自動出範例，或進入 <b>🎛️ 專業細部人機</b></li>
-            </ul>
-            <div class="acc-enter-hint" style="color:#B45309;">點擊卡片進入 ▶</div>
-          </div>
-        </div>
-
-        <div id="genHubCard_qa" class="acc-card" data-theme="indigo" onmouseenter="setActiveGenHubCard('qa')" onclick="switchGenSubMode('qa')">
-          <div>
-            <div class="acc-num">04 / Q&amp;A (寫法百科)</div>
-            <div class="acc-icon">💬</div>
-            <div class="acc-title">問編寫問題</div>
-            <div class="acc-sub">寫 Phase / Title / 儀器 / 跳轉隨查百科</div>
-          </div>
-          <div class="acc-body">
-            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#312E81; line-height:1.65;">
-              <li><b>直接發問</b>：例如「怎麼暫停這一個 Phase」、「Instrument 何時留空」</li>
-              <li><b>欄位機能矩陣</b>：一次列出 Phase / Title / ExecMode / Ref 所有可用寫法</li>
-              <li>附真實產線 <code>perter_SCRIPT_11102026</code> 範例列，支援一鍵複製貼進 Excel</li>
-            </ul>
-            <div class="acc-enter-hint" style="color:#4338CA;">點擊卡片進入 ▶</div>
-          </div>
-        </div>
-
-        <div id="genHubCard_tools" class="acc-card" data-theme="slate" onmouseenter="setActiveGenHubCard('tools')" onclick="switchGenSubMode('tools')">
-          <div>
-            <div class="acc-num">05 / VERIFY (SFIS / DLL)</div>
-            <div class="acc-icon">🛡️</div>
-            <div class="acc-title">實機驗證 (SFIS / DLL)</div>
-            <div class="acc-sub">驗證 ISN 刷過 / GET / WRITE 與 DLL 單步測試</div>
-          </div>
-          <div class="acc-body">
-            <ul style="margin:0 0 6px 16px; padding:0; font-size:0.87rem; color:#881337; line-height:1.65;">
-              <li><b>SFIS 三大關鍵實測</b>：確認 <b>ISN 刷過</b>（CheckRoute）、<b>GET</b>（撈版本/料號）與 <b>WRITE</b>（寫入過站）</li>
-              <li><b>內網連線與主程式工具</b>：先測內網 <code>SFIS_WebLink</code>，再開啟 <code>CentimaniSFISTest.exe</code></li>
-              <li><b>DLL 單步與驅動檢查</b>：開啟 <code>DLLtest.exe</code> 驗證儀器指令，檢查本機 NI-DAQmx 系統驅動是否已安裝</li>
-            </ul>
-            <div class="acc-enter-hint" style="color:#BE123C;">點擊卡片進入 ▶</div>
           </div>
         </div>
       </div>
@@ -1916,14 +1870,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.071"></script>
-<script src="/js/audit_editors.js?v=0.8.071"></script>
-<script src="/js/flow_guide.js?v=0.8.071"></script>
-<script src="/js/block_sorter.js?v=0.8.071"></script>
-<script src="/js/script_qa.js?v=0.8.071"></script>
-<script src="/js/sfis_hmi.js?v=0.8.071"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.071"></script>
-<script src="/js/create_block_builder.js?v=0.8.071"></script>
+<script src="/js/inst_hmi.js?v=0.8.072"></script>
+<script src="/js/audit_editors.js?v=0.8.072"></script>
+<script src="/js/flow_guide.js?v=0.8.072"></script>
+<script src="/js/block_sorter.js?v=0.8.072"></script>
+<script src="/js/script_qa.js?v=0.8.072"></script>
+<script src="/js/sfis_hmi.js?v=0.8.072"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.072"></script>
+<script src="/js/create_block_builder.js?v=0.8.072"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -2998,7 +2952,7 @@ async function pickTicFileNative() {
 let GEN_SUB_MODE = 'hub';
 
 function setActiveGenHubCard(key) {
-  ['edit', 'create', 'inst', 'qa', 'tools'].forEach(k => {
+  ['edit', 'create'].forEach(k => {
     const el = document.getElementById('genHubCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });

@@ -631,8 +631,8 @@ def run_all_verifications():
             rf_inst_vals = [r.get("Instrument", "") for r in pwr_rows]
             check(rf_inst_vals == ["SetON", "", ""],
                   "一鍵修復自動精簡同區塊連續重複之 Instrument 為僅首列寫入", str(rf_inst_vals))
-            check('id="genHubCard_qa"' in index_html and 'id="genModeQa"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
-                  "腳本建立與編修中心已新增『書籤四：問編寫問題』卡片與直覺置頂問答模組")
+            check('id="genToolShortcut_qa"' in index_html and 'id="genModeQa"' in index_html and 'id="qaScenarioGrid"' in index_html and 'script_qa.js' in index_html,
+                  "腳本建立與編修中心已具備『問編寫問題』快捷工具與直覺置頂問答模組")
             # 驗證 use_ini_switch=True 生成 *$(EN_xxx) 開關，以及全數匯出皆自動產出隨附 _編寫與使用說明.txt
             check('id="iiUseIniSwitch"' in index_html and 'id="tab3UseIniSwitch"' in index_html and 'openGuideTxtFile' in index_html,
                   "UI 已具備 Global.ini 一鍵開關勾選框與隨附說明 .txt 開啟鈕")
@@ -1277,15 +1277,15 @@ def run_all_verifications():
                   and "filtered.filter(i => i.dll_exists !== false)" in index_html,
                   "UI 已具備頂部主程式環境徽章、首次掃描橫幅、SFIS/DLLtest 按鈕，且 USABLE 僅列實機 DLL")
 
-            # [v0.8.025] 驗證第 5 張手風琴『實機驗證 (SFIS / DLL)』、移除書籤N 字眼、NI-DAQmx 驅動缺漏偵測與 Log 診斷
-            check('id="genHubCard_tools"' in index_html
+            # [v0.8.025] 驗證實機驗證入口 (SFIS / DLL)、移除書籤N 字眼、NI-DAQmx 驅動缺漏偵測與 Log 診斷
+            check('id="genToolShortcut_tools"' in index_html
                   and 'id="genModeTools"' in index_html
                   and 'id="btnGenModeTools"' in index_html
                   and 'toolsCheckSfisLink()' in sfis_hmi_js
                   and 'ISN 刷過' in index_html
                   and 'GET' in index_html
                   and 'WRITE' in index_html,
-                  "腳本建立與編修中心已新增第 5 張手風琴『實機驗證 (SFIS / DLL)』含 ISN/GET/WRITE 與 DLLtest 工作區")
+                  "腳本建立與編修中心已具備『實機驗證 (SFIS / DLL)』含 ISN/GET/WRITE 與 DLLtest 工作區")
 
             check("書籤" not in index_html and "書籤" not in flow_guide_js,
                   "index.html 與 flow_guide.js 內文已徹底移除所有『書籤N』字眼")
@@ -2732,6 +2732,17 @@ def run_all_verifications():
                   and (v70_ini.get("scripts") or {}).get("DUT_FW_SPEC") == "1.2.3",
                   "v0.8.070 匯出預設自動執行Excel語法檢查(0 Error) + 回傳實際寫入INI摘要(System/Settings/Scripts) 通過",
                   f"ar={v70_ar}, ini={v70_ini}")
+
+            # [v0.8.072] 方向 A：建立與編修中心精簡為 2 大主力手風琴卡 (1->N 與 0->1) + 右上 3 項獨立輔助工具捷徑
+            check('id="genHubCard_edit"' in hub_sec
+                  and 'id="genHubCard_create"' in hub_sec
+                  and 'id="genHubCard_inst"' not in hub_sec
+                  and 'id="genHubCard_qa"' not in hub_sec
+                  and 'id="genHubCard_tools"' not in hub_sec
+                  and 'id="genToolShortcut_inst"' in hub_sec
+                  and 'id="genToolShortcut_tools"' in hub_sec
+                  and 'id="genToolShortcut_qa"' in hub_sec,
+                  "v0.8.072 建立與編修中心精簡為 2 張主力手風琴卡 (1->N / 0->1) ＋ 右上 3 項獨立工具捷徑檢查通過")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
