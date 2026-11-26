@@ -2892,6 +2892,138 @@ def run_all_verifications():
                   "v0.8.075 /api/tic_apply_batch 成功批次寫回 TestID 至 *_FIXED.xlsx 並保留原始 Description",
                   f"v={row_v_after}, c={row_c_after}")
 
+            # [v0.8.076] Phase 0 / -1 / 97:PWROFF + Global.ini [Scripts] 分流 + Title RunMode + math_opr + vnxrfsw Sub=1 + DeviceSemaphore=0
+            v76_payload = {
+                "project_name": "OLYMPUS_AIR_V76",
+                "station_name": "Front_Air",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "builder_sequence": [
+                    {"kind": "start", "config": {"project": "OLYMPUS_AIR_V76", "station": "Front_Air", "dut_count": 1, "debug_mode": "1", "sfis_enable": "1"}},
+                    {"kind": "isn", "config": {"enable_scan": True, "barcode_name": "ISN", "isn_len": 15, "isn_pattern": "[0-9A-F]"}},
+                    {"kind": "group", "config": {
+                        "title": "CheckRoute", "phase_role": "0", "title_run_mode": "0", "retry": "0",
+                        "children": [
+                            {"kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "show_img", "img_file": "Loimage.gif", "test_id": "OTFX054"}},
+                        ]
+                    }},
+                    {"kind": "group", "config": {
+                        "title": "Load DLL", "phase_role": "0", "same_phase": True, "title_run_mode": "0", "retry": "0",
+                        "children": [
+                            {"kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "sf_enabled", "var_name": "gSFIS"}},
+                            {"kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "get_yr", "var_name": "currYR"}},
+                            {"kind": "dll_call", "config": {"dll_mode": "custom_dll", "dll_file": "AutLabs.dll", "dll_alias": "autLabs", "init_arg": "*$(AL_Alias),ON,ON", "send_cmd": ':autLabs.Load,"*(gSFIS)","*(currYR)","0.9"', "reply": "0", "ref": "sRet", "exec_mode": "*$(AULAB)"}},
+                            {"kind": "sfis_route", "config": {"sfis_mode": "online", "use_phase0": True, "require_uart": False, "tsp": "SUBAIR,2,TRUE", "weblink": "http://10.176.33.13/SFISWebService/SFISTSPWebService.asmx,2"}},
+                            {"kind": "dll_call", "config": {"dll_mode": "custom_dll", "dll_file": "AutLabs.dll", "dll_alias": "autLabs", "init_arg": "*$(AL_Alias),ON,ON", "send_cmd": ':autLabs.UnitIn,"*(ISN)","1","*$(PCT)"', "reply": "0", "exec_mode": "*$(AULAB)"}},
+                            {"kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "close_msg", "exec_mode": "3", "test_id": "OTFX054"}},
+                            {"kind": "comm_cmd", "config": {"protocol": "cmd", "app_conn": "cmd.exe,1,5000,", "conn_action": "connect_only", "exec_mode": "0"}},
+                        ]
+                    }},
+                    {"kind": "comm_cmd", "config": {
+                        "protocol": "uart", "title": "Init Modbus", "port": "COM3", "port_ini_key": "PCUART_", "baud_rate": "9600",
+                        "char_mode": "Hex", "skip_prompt_check": True, "command": "01 03 00 63 00 01 74 14",
+                        "reply_mode": "raw", "raw_reply": "", "waiting": "100",
+                        "extract_mode": "sub", "sub_start": "9", "sub_len": "5", "rp_space": True, "var_name": "ch1pek",
+                        "title_run_mode": "*$(TitleStatus)", "exec_mode": "1"
+                    }},
+                    {"kind": "math_opr", "config": {
+                        "opr_mode": "conversion", "title": "Convert H2D", "conv_mode": "H2D",
+                        "src_expr": "*(ch1pek)", "var_name": "ch1p", "exec_mode": "2:1"
+                    }},
+                    {"kind": "math_opr", "config": {
+                        "opr_mode": "set_opr_val", "title": "Calc Drop Pressure",
+                        "var_name": "DUT_DORP_PRESSURE", "expr": "*(DUT_FINAL_PRESSURE) - *(DUT_INITIAL_PRESSURE)",
+                        "validation_enabled": True, "val_var": "DUT_DORP_PRESSURE", "val_type": "%f", "dl": "-10", "ul": "0.6"
+                    }},
+                    {"kind": "dll_call", "config": {"dll_mode": "utility", "util_action": "chk_len", "src_expr": "*(temp)", "expect_len": "70", "waiting": "100", "exec_mode": "2:4"}},
+                    {"kind": "group", "config": {
+                        "title": "Paused SubDev Test", "phase_role": "-1", "title_run_mode": "1",
+                        "children": [
+                            {"kind": "var_check", "config": {"check_mode": "string", "var_name": "pCount", "send_expr": "*(pCount)", "expect_str": "36", "exact_match": True, "exec_mode": "2:0"}},
+                        ]
+                    }},
+                    {"kind": "group", "config": {
+                        "title": "PWROFF", "phase_role": "97:PWROFF", "title_run_mode": "none",
+                        "children": [
+                            {"kind": "delay", "config": {"ms": "200"}},
+                        ]
+                    }},
+                    {"kind": "group", "config": {
+                        "title": "Disconnection", "phase_role": "97", "title_run_mode": "none",
+                        "children": [
+                            {"kind": "dll_call", "config": {"dll_mode": "custom_dll", "dll_file": "AutLabs.dll", "dll_alias": "autLabs", "init_arg": "*$(AL_Alias),ON,ON", "send_cmd": ':autLabs.Metric2,"*(ISN)","1","*(#cfName#)","*$(stringUpload)"', "reply": "0", "waiting": "20000", "exec_mode": "*$(AULAB)"}},
+                        ]
+                    }},
+                    {"kind": "group", "config": {
+                        "title": "PASS", "phase_role": "98", "title_run_mode": "none",
+                        "children": [
+                            {"kind": "dll_call", "config": {"dll_mode": "custom_dll", "dll_file": "AutLabs.dll", "dll_alias": "autLabs", "init_arg": "*$(AL_Alias),ON,ON", "send_cmd": ':autLabs.UnitOut,"*(ISN)","1","PASS"', "reply": "0", "exec_mode": "*$(AULAB)"}},
+                        ]
+                    }},
+                    {"kind": "group", "config": {
+                        "title": "FAIL", "phase_role": "99", "title_run_mode": "none",
+                        "children": [
+                            {"kind": "dll_call", "config": {"dll_mode": "custom_dll", "dll_file": "AutLabs.dll", "dll_alias": "autLabs", "init_arg": "*$(AL_Alias),ON,ON", "send_cmd": ':autLabs.UnitOut,"*(ISN)","1","FAIL"', "reply": "0", "exec_mode": "*$(AULAB)"}},
+                        ]
+                    }},
+                    {"kind": "end", "config": {"confirmed": True}},
+                ]
+            }
+            v76_res = post_json("/api/generate_new_standalone", v76_payload)
+            ws_v76 = _parse_v50(v76_res["excel_path"])
+            v76_rows = ws_v76["stations"]["Front_Air"]
+            v76_phases = [str(r.get("Phase") or "").strip() for r in v76_rows if str(r.get("Phase") or "").strip()]
+            v76_titles = [str(r.get("Title") or "").strip() for r in v76_rows if str(r.get("Title") or "").strip()]
+            v76_sends = [str(r.get("Send") or "").strip() for r in v76_rows]
+            v76_ini_sum = (v76_res.get("ini_summary") or {})
+            v76_gset = v76_ini_sum.get("settings") or {}
+            v76_gscr = v76_ini_sum.get("scripts") or {}
+            v76_dut_str = " | ".join(str(v or "") for v in ws_v76["duts"][0].values())
+            check(v76_res.get("status") == "ok"
+                  and v76_phases.count("0") == 1 and "0,Load DLL" in v76_titles
+                  and "-1" in v76_phases and "97:PWROFF" in v76_phases and "97" in v76_phases and "98" in v76_phases and "99" in v76_phases
+                  and any(t.startswith("*$(TitleStatus),") for t in v76_titles)
+                  and any(t.startswith("1,Paused SubDev Test") for t in v76_titles)
+                  and ':Connect,"CmdConsole"' in v76_sends
+                  and ':Utility.ConVersion,"H2D","*(ch1pek)"' in v76_sends
+                  and ':SetOprVal,"DUT_DORP_PRESSURE","*(DUT_FINAL_PRESSURE) - *(DUT_INITIAL_PRESSURE)"' in v76_sends
+                  and ':Utility.ChkLEN,"*(temp)","70"' in v76_sends
+                  and "UART@01 03 00 63 00 01 74 14" in v76_sends
+                  and "9600,8,One,None,None" in v76_dut_str and "PCUART_1" in v76_dut_str
+                  and "{  ISN,15,[0-9A-F]  }" in v76_dut_str
+                  and "AULAB" in v76_gscr and "PCT" in v76_gscr and "TitleStatus" in v76_gscr
+                  and "AULAB" not in v76_gset and "AL_Alias" in v76_gset and "PCUART_1" in v76_gset
+                  and int((v76_res.get("audit_report") or {}).get("error_count", -1)) == 0,
+                  "v0.8.076 Phase0/Phase-1/97:PWROFF + [Scripts]分流 + Title前綴 + math_opr + HexUART(9600) + ChkLEN 通過",
+                  f"phases={v76_phases}, gset={list(v76_gset.keys())}, gscr={list(v76_gscr.keys())}, ar={v76_res.get('audit_report')}")
+
+            # [v0.8.076] 驗證 Multi-Slot + Sub=1 (VNXRFSW) 自動切換 DeviceSemaphore=0 與 :ObtainSubDevice 積木生成
+            v76_sub_payload = {
+                "project_name": "SUB_SEMA_V76",
+                "station_name": "RF_SUB",
+                "dut_count": 2,
+                "open_folder": False,
+                "open_excel": False,
+                "builder_sequence": [
+                    {"kind": "start", "config": {"project": "SUB_SEMA_V76", "station": "RF_SUB", "dut_count": 2, "debug_mode": "1", "sfis_enable": "0"}},
+                    {"kind": "inst", "config": {"inst_mode": "catalog", "inst_name": "VNXRFSW", "title_name": "RF Switch Path", "subdev_cmd": ':sDev.SetSwitch,"2"'}},
+                    {"kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"kind": "end", "config": {"confirmed": True}},
+                ]
+            }
+            v76_sub_res = post_json("/api/generate_new_standalone", v76_sub_payload)
+            ws_v76_sub = _parse_v50(v76_sub_res["excel_path"])
+            v76_sub_sends = [str(r.get("Send") or "").strip() for r in ws_v76_sub["stations"]["RF_SUB"]]
+            sys_sub_path = os.path.join(os.path.dirname(v76_sub_res["excel_path"]), "System.ini")
+            sys_sub_txt = open(sys_sub_path, "r", encoding="utf-8").read()
+            check(v76_sub_res.get("status") == "ok"
+                  and ':ObtainSubDevice,"VNXRFSW"' in v76_sub_sends
+                  and ':sDev.SetSwitch,"2"' in v76_sub_sends
+                  and "DeviceSemaphore=0" in sys_sub_txt,
+                  "v0.8.076 VNXRFSW Sub=1 子設備積木 + 多槽自動設定 System.ini DeviceSemaphore=0 通過",
+                  f"sends={v76_sub_sends}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

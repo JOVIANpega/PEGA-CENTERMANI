@@ -154,12 +154,29 @@ def sync_and_generate_inis(workspace, excel_filename, output_dir):
     if not has_preserved_sys:
         # Generate complete standard 9-section System.ini
         proj_name = workspace.get("project_name", "PEGA_PROJECT")
+        def _is_dut_active(dut_row):
+            raw_ld = str(dut_row.get("Load") or dut_row.get("Load (true/*$(VAR))") or "").strip()
+            m_ld = re.match(r"^\*\$\(([^)]+)\)$", raw_ld)
+            if m_ld:
+                raw_ld = str(settings_map.get(m_ld.group(1).strip(), "")).strip()
+            return raw_ld.lower() not in ("", "false", "0")
+        active_duts = [d for d in (workspace.get("duts") or []) if _is_dut_active(d)]
+        has_sub1_inst = any(
+            str(i.get("Sub") or "").strip() == "1" and str(i.get("Mount") or "").strip() != ""
+            for i in (workspace.get("instruments") or [])
+        ) or any(
+            ":ObtainSubDevice" in str(st.get("Send") or "")
+            for st_list in (workspace.get("stations") or {}).values()
+            if isinstance(st_list, list)
+            for st in st_list
+        )
+        auto_dev_sem = "0" if (len(active_duts) > 1 and has_sub1_inst) else "1"
         system_lines = [
             "[System]",
             f"LargeWindow={sys_cfg.get('LargeWindow', '0')}",
             f"DUTFlowDirection={sys_cfg.get('DUTFlowDirection', '0')}",
             f"RetryCount={sys_cfg.get('RetryCount', '3')}",
-            f"DeviceSemaphore={sys_cfg.get('DeviceSemaphore', '1')}",
+            f"DeviceSemaphore={sys_cfg.get('DeviceSemaphore', auto_dev_sem)}",
             f"DebugMode={sys_cfg.get('DebugMode', '1')}",
             f"IndividualScanBarCode={sys_cfg.get('IndividualScanBarCode', '1')}",
             f"NewFormatScriptFile={excel_filename}",

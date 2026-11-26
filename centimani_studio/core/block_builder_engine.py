@@ -55,7 +55,7 @@ def _safe_var(name, default="gVal"):
     return cleaned or default
 
 
-def _ensure_dut_connection(ws, alias, conn_str_fn):
+def _ensure_dut_connection(ws, alias, conn_str_fn, overwrite=False):
     """Ensure every DUT slot has `alias` mounted in Connection1..10 without duplicates."""
     alias_low = str(alias or "").strip().lower()
     if not alias_low:
@@ -83,6 +83,8 @@ def _ensure_dut_connection(ws, alias, conn_str_fn):
                 continue
             m = re.match(r'^"[^"]*"\s*,\s*"([^"]+)"', val)
             if m and m.group(1).strip().lower() == alias_low:
+                if overwrite:
+                    dut[col] = conn_str_fn(slot_idx)
                 already = True
                 break
         if not already and first_empty:
@@ -128,16 +130,17 @@ def _apply_custom_test_id(rows_slice, custom_tid):
         rows_slice[0]["TestID"] = tid
 
 
-def _apply_custom_exec_mode(rows_slice, custom_em, g_set=None):
+def _apply_custom_exec_mode(rows_slice, custom_em, g_scr=None, g_set=None):
     """Apply user-chosen ExecMode (e.g. '6', '2:0', '*$(AULAB)') to primary action rows."""
     em = str(custom_em or "").strip()
     if not em or not rows_slice:
         return
-    if g_set is not None:
+    ini_target = g_scr if g_scr is not None else g_set
+    if ini_target is not None:
         for m in re.finditer(r"\*\$\(([^)]+)\)", em):
             vn = m.group(1).strip()
-            if vn and vn not in g_set:
-                g_set[vn] = "1"
+            if vn and vn not in ini_target:
+                ini_target[vn] = "1"
     applied = False
     for r in rows_slice:
         s = str(r.get("Send") or "").strip()
@@ -146,6 +149,39 @@ def _apply_custom_exec_mode(rows_slice, custom_em, g_set=None):
             applied = True
     if not applied:
         rows_slice[0]["ExecMode"] = em
+
+
+def _apply_custom_title(rows_slice, title_run_mode=None, title_retry=None, g_scr=None):
+    """Apply custom Title prefix (0/1/2/*$(Var)/none) and RetryCount on the first titled row."""
+    if not rows_slice:
+        return
+    if title_run_mode is None and title_retry is None:
+        return
+    for r in rows_slice:
+        cur_t = str(r.get("Title") or "").strip()
+        if not cur_t or cur_t.startswith("__INST_SLOT_"):
+            continue
+        parts = [p.strip() for p in cur_t.split(",")]
+        cur_mode = "0"
+        cur_name = cur_t
+        cur_retry = ""
+        if len(parts) >= 2 and (parts[0] in ("0", "1", "2") or parts[0].startswith("*$(")):
+            cur_mode = parts[0]
+            cur_name = parts[1]
+            cur_retry = parts[2] if len(parts) >= 3 else ""
+        elif len(parts) >= 2 and parts[-1].isdigit():
+            cur_mode = ""
+            cur_name = ",".join(parts[:-1])
+            cur_retry = parts[-1]
+        new_mode = cur_mode if title_run_mode is None else str(title_run_mode).strip()
+        new_retry = cur_retry if title_retry is None else str(title_retry).strip()
+        if g_scr is not None and new_mode and new_mode != "none":
+            _register_ini_tokens(new_mode, g_scr, "0")
+        if new_mode.lower() == "none" or new_mode == "":
+            r["Title"] = f"{cur_name},{new_retry}" if (new_retry and new_retry != "0") else cur_name
+        else:
+            r["Title"] = f"{new_mode},{cur_name},{new_retry}" if (new_retry and new_retry != "0") else f"{new_mode},{cur_name}"
+        break
 
 
 def _build_single_ref_line(spec):
@@ -247,7 +283,7 @@ def build_workspace_from_sequence(
             teardown_items.append(it)
         elif k == "end":
             continue
-        elif k == "group" and str((it.get("config") or {}).get("phase_role") or "normal") in ("97", "98", "99"):
+        elif k == "group" and str((it.get("config") or {}).get("phase_role") or "normal").strip() in ("97", "97:PWROFF", "98", "99"):
             teardown_groups.append(it)
         else:
             normal_items.append(it)
@@ -297,18 +333,30 @@ def build_workspace_from_sequence(
             continue
 
         elif kind == "isn":
-            # Applied on top-level ws metadata & DUTs; optionally disable ScanBarcode
+            # Applied on top-level ws metadata & DUTs; optionally customize or disable ScanBarcode
             if cfg.get("enable_scan") is False:
                 for dut in (ws.get("duts") or []):
                     dut["ScanBarcode( {Name,Lengh,Pattern} )"] = ""
+            elif any(cfg.get(k) is not None for k in ("barcode_name", "barcode_len", "barcode_pattern", "isn_len", "isn_pattern")):
+                b_name = str(cfg.get("barcode_name") or "ISN").strip() or "ISN"
+                raw_len = cfg.get("barcode_len") if cfg.get("barcode_len") is not None else cfg.get("isn_len")
+                raw_pat = cfg.get("barcode_pattern") if cfg.get("barcode_pattern") is not None else cfg.get("isn_pattern")
+                b_len = "" if raw_len is None else str(raw_len).strip()
+                b_pat = "" if raw_pat is None else str(raw_pat).strip()
+                scan_expr = f"{{  {b_name},{b_len},{b_pat}  }}"
+                for dut in (ws.get("duts") or []):
+                    dut["ScanBarcode( {Name,Lengh,Pattern} )"] = scan_expr
             continue
 
         elif kind == "sfis_route":
             # Applies System.ini switches and builds Phase 0 CheckRoute (or synced SFIS HMI bundle)
+            use_ph0 = bool(cfg.get("use_phase0", True))
+            req_uart = bool(cfg.get("require_uart", True))
             hmi_bundle = cfg.get("sfis_hmi_bundle")
             if isinstance(hmi_bundle, dict) and (hmi_bundle.get("items") or []):
-                if _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route=True):
-                    has_phase0 = True
+                if _apply_sfis_hmi_bundle(hmi_bundle, cfg, is_route=use_ph0):
+                    if use_ph0:
+                        has_phase0 = True
             else:
                 mode = str(cfg.get("sfis_mode") or "offline").strip().lower()
                 sys_ini = ws.setdefault("system_ini", {})
@@ -327,18 +375,25 @@ def build_workspace_from_sequence(
                     sys_ini["SFIS_AutoLogin"] = "1"
                 if cfg.get("date_isn"):
                     sys_ini["SFIS_GetDateISN"] = str(cfg["date_isn"]).strip()
-                _ensure_dut_connection(
-                    ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
-                )
-                steps.extend([
-                    _step(phase="0", title="0,CheckRoute", send=':ShowISN,"*(ISN)"', reply="0", exec_mode="1",
-                          description="PC#-#Display ISN", test_id="B7PL025"),
-                    _step(send=':Disconnect,"UART"', reply="0", exec_mode="3",
-                          description="PC#-#Ensure UART Closed Before Route", test_id="OTFX082"),
-                    _step(send=":SfCheckRoute", reply="0", waiting="2000", exec_mode="8",
-                          description="SFIS#-#Check Station Route", test_id="OTFX085"),
-                ])
-                has_phase0 = True
+                route_ph = "0" if use_ph0 else _alloc_phase()
+                steps.append(_step(
+                    phase=route_ph, title="0,CheckRoute", send=':ShowISN,"*(ISN)"', reply="0", exec_mode="1",
+                    description="PC#-#Display ISN", test_id="B7PL025",
+                ))
+                if req_uart:
+                    _ensure_dut_connection(
+                        ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
+                    )
+                    steps.append(_step(
+                        send=':Disconnect,"UART"', reply="0", exec_mode="3",
+                        description="PC#-#Ensure UART Closed Before Route", test_id="OTFX082",
+                    ))
+                steps.append(_step(
+                    send=":SfCheckRoute", reply="0", waiting="2000", exec_mode="8",
+                    description="SFIS#-#Check Station Route", test_id="OTFX085",
+                ))
+                if use_ph0:
+                    has_phase0 = True
 
         elif kind == "fixture":
             fx_type = str(cfg.get("fixture_type") or "none").strip().lower()
@@ -383,7 +438,19 @@ def build_workspace_from_sequence(
             wait_ms = str(cfg.get("waiting") or "5000").strip() or "5000"
             retry = str(cfg.get("retry") or "3").strip() or "3"
             extract_mode = str(cfg.get("extract_mode") or "reply_only").strip().lower()
-            reply_kw = str(cfg.get("reply_keyword") or "PASS").strip()
+            reply_kw = str(cfg.get("reply_keyword") if cfg.get("reply_keyword") is not None else "PASS").strip()
+            reply_mode = str(cfg.get("reply_mode") or "contains").strip().lower()
+            prompt_col = str(cfg.get("prompt") or "").strip()
+            baud_rate = str(cfg.get("baud_rate") or "115200").strip() or "115200"
+            char_mode = str(cfg.get("char_mode") or "").strip()
+            skip_connect = bool(cfg.get("skip_connect", False))
+            skip_prompt_check = bool(cfg.get("skip_prompt_check", False))
+            append_nl = cfg.get("append_newline")
+            if append_nl is None:
+                append_nl = (char_mode.lower() != "hex")
+            else:
+                append_nl = bool(append_nl)
+            nl_suffix = "\\r\\n" if append_nl else ""
             var_name = _safe_var(cfg.get("var_name") or "gCmdOut", "gCmdOut")
             val_type = str(cfg.get("val_type") or "%s").strip()
             if val_type not in ("%s", "%f", "%d", "%x"):
@@ -395,28 +462,43 @@ def build_workspace_from_sequence(
             ph = _alloc_phase()
             t_str = f"0,{title_lbl},{retry}" if retry and retry != "0" else f"0,{title_lbl}"
 
+            connect_step = None
+            prompt_step = None
+            char_mode_step = None
+            close_step = None
+
             # Determine connection alias & prefix
             if proto == "uart":
                 raw_alias = str(cfg.get("alias") or "UART").strip()
                 alias = _safe_var(raw_alias, "UART") if raw_alias else "UART"
                 port_val = str(cfg.get("port") or g_set.get("DUT_UR1") or "COM4").strip()
                 if alias == "UART":
-                    g_set["DUT_UR1"] = port_val
+                    ur_key = str(cfg.get("port_ini_key") or "DUT_UR").strip() or "DUT_UR"
+                    g_set[f"{ur_key}1"] = port_val
+                    want_ow = bool(cfg.get("port_ini_key") or (baud_rate != "115200"))
                     _ensure_dut_connection(
-                        ws, "UART", lambda sl: f'"Uart","UART","*$(DUT_UR{sl}),115200,8,One,None,None,10000,5000"'
+                        ws, "UART", lambda sl, uk=ur_key, br=baud_rate: f'"Uart","UART","*$({uk}{sl}),{br},8,One,None,None,10000,5000"',
+                        overwrite=want_ow,
                     )
                 else:
                     ini_ur_key = f"{alias}_UR"
                     g_set[f"{ini_ur_key}1"] = port_val
                     _ensure_dut_connection(
-                        ws, alias, lambda sl, a=alias, k=ini_ur_key: f'"Uart","{a}","*$({k}{sl}),115200,8,One,None,None,10000,5000"'
+                        ws, alias, lambda sl, a=alias, k=ini_ur_key, br=baud_rate: f'"Uart","{a}","*$({k}{sl}),{br},8,One,None,None,10000,5000"'
                     )
-                connect_step = _step(phase=ph, title=t_str, send=f':Connect,"{alias}"', reply="0",
-                                     exec_mode="1", description=f"PC#-#Connect {alias} Port", test_id="OTFX082")
-                prompt_step = _step(send=f"{alias}@\\r\\n", reply=f"@{endp}" if endp else "@#", end_prompt=endp or "#",
-                                    waiting="5000", exec_mode="1", description=f"DUT#-#Check {alias} Prompt", test_id="OTFX079")
-                send_str = f"{alias}@{cmd}\\r\\n"
-                close_step = None
+                if not skip_connect:
+                    connect_step = _step(phase=ph, title=t_str, send=f':Connect,"{alias}"', reply="0",
+                                         exec_mode="1", description=f"PC#-#Connect {alias} Port", test_id="OTFX082")
+                    if char_mode:
+                        char_mode_step = _step(send=f':AddAttribute,"{alias}","CharMode","{char_mode}"', reply="0",
+                                               exec_mode="1", description=f"PC#-#Set {alias} CharMode {char_mode}", test_id="OTFX082")
+                    elif not skip_prompt_check:
+                        prompt_step = _step(send=f"{alias}@\\r\\n", reply=f"@{endp}" if endp else "@#", end_prompt=endp or "#",
+                                            waiting="5000", exec_mode="1", description=f"DUT#-#Check {alias} Prompt", test_id="OTFX079")
+                send_str = f"{alias}@{cmd}{nl_suffix}"
+                if bool(cfg.get("close_after", False)):
+                    close_step = _step(send=f':Disconnect,"{alias}"', reply="0", exec_mode="3",
+                                       description=f"PC#-#Disconnect {alias}", test_id="OTFX082")
             elif proto == "ssh":
                 alias = "SSH1"
                 ssh_user = str(cfg.get("ssh_user") or "root").strip() or "root"
@@ -426,12 +508,14 @@ def build_workspace_from_sequence(
                 _ensure_dut_connection(
                     ws, "SSH1", lambda sl: f'"SSH","SSH1","*$(PCIP_{sl}),*$(DUTIP_{sl}),22,{ssh_user},{ssh_pass},5000,1000"'
                 )
-                connect_step = _step(phase=ph, title=t_str, send=':Connect,"SSH1"', reply="0",
-                                     exec_mode="1", description="PC#-#Connect SSH Console", test_id="OTFX082")
-                prompt_step = None
-                send_str = f"SSH1@{cmd}\\n"
-                close_step = _step(send=':Disconnect,"SSH1"', reply="0", exec_mode="3",
-                                   description="PC#-#Disconnect SSH Console", test_id="OTFX082")
+                if not skip_connect:
+                    connect_step = _step(phase=ph, title=t_str, send=':Connect,"SSH1"', reply="0",
+                                         exec_mode="1", description="PC#-#Connect SSH Console", test_id="OTFX082")
+                ssh_nl = "\\n" if cfg.get("append_newline") is None else nl_suffix
+                send_str = f"SSH1@{cmd}{ssh_nl}"
+                if not bool(cfg.get("keep_open", False)):
+                    close_step = _step(send=':Disconnect,"SSH1"', reply="0", exec_mode="3",
+                                       description="PC#-#Disconnect SSH Console", test_id="OTFX082")
             elif proto == "telnet":
                 alias = "TELNET1"
                 t_user = str(cfg.get("ssh_user") or "root").strip() or "root"
@@ -441,38 +525,45 @@ def build_workspace_from_sequence(
                 _ensure_dut_connection(
                     ws, "TELNET1", lambda sl: f'"Telnet","TELNET1","*$(PCIP_{sl}),*$(DUTIP_{sl}),23,{t_user},{t_pass},5000,1000"'
                 )
-                connect_step = _step(phase=ph, title=t_str, send=':Connect,"TELNET1"', reply="0",
-                                     exec_mode="1", description="PC#-#Connect Telnet Console", test_id="OTFX082")
-                prompt_step = None
-                send_str = f"TELNET1@{cmd}\\r\\n"
-                close_step = _step(send=':Disconnect,"TELNET1"', reply="0", exec_mode="3",
-                                   description="PC#-#Disconnect Telnet Console", test_id="OTFX082")
+                if not skip_connect:
+                    connect_step = _step(phase=ph, title=t_str, send=':Connect,"TELNET1"', reply="0",
+                                         exec_mode="1", description="PC#-#Connect Telnet Console", test_id="OTFX082")
+                send_str = f"TELNET1@{cmd}{nl_suffix}"
+                if not bool(cfg.get("keep_open", False)):
+                    close_step = _step(send=':Disconnect,"TELNET1"', reply="0", exec_mode="3",
+                                       description="PC#-#Disconnect Telnet Console", test_id="OTFX082")
             else:
                 # adb or cmd (Windows CmdConsole)
                 alias = "CmdConsole"
+                cmd_conn = str(cfg.get("app_conn") or "C:\\Windows\\System32\\cmd.exe,0,5000,").strip()
                 _ensure_dut_connection(
-                    ws, "CmdConsole", lambda _sl: '"APP","CmdConsole","C:\\Windows\\System32\\cmd.exe,0,5000,"'
+                    ws, "CmdConsole", lambda _sl, cc=cmd_conn: f'"APP","CmdConsole","{cc}"',
+                    overwrite=bool(cfg.get("app_conn")),
                 )
                 full_cmd = cmd
                 if proto == "adb" and not cmd.lower().startswith("adb"):
                     full_cmd = f"adb {cmd}"
-                connect_step = _step(phase=ph, title=t_str, send=':Connect,"CmdConsole"', reply="0",
-                                     exec_mode="1", description=f"PC#-#Open Console ({proto.upper()})", test_id="B7PL025")
-                prompt_step = None
-                send_str = f"CmdConsole@{full_cmd}\\r\\n"
-                close_step = _step(send=':Disconnect,"CmdConsole"', reply="0", exec_mode="3",
-                                   description="PC#-#Close Console", test_id="B7PL025")
+                if not skip_connect:
+                    connect_step = _step(phase=ph, title=t_str, send=':Connect,"CmdConsole"', reply="0",
+                                         exec_mode="1", description=f"PC#-#Open Console ({proto.upper()})", test_id="B7PL025")
+                send_str = f"CmdConsole@{full_cmd}{nl_suffix}"
+                if not bool(cfg.get("keep_open", False)):
+                    close_step = _step(send=':Disconnect,"CmdConsole"', reply="0", exec_mode="3",
+                                       description="PC#-#Close Console", test_id="B7PL025")
 
-            _register_ini_tokens(cmd, g_set, "1")
-            _register_ini_tokens(reply_kw, g_set, "1")
+            _register_ini_tokens(cmd, g_scr, "1")
+            _register_ini_tokens(reply_kw, g_scr, "1")
             ref_expr = ""
             val_expr = ""
             multi_refs = [mr for mr in (cfg.get("multi_refs") or []) if isinstance(mr, dict) and str(mr.get("var_name") or "").strip()]
-            step_reply = f"@{reply_kw}" if (extract_mode == "reply_only" and reply_kw) else "@"
+            if reply_mode in ("exact", "raw"):
+                step_reply = str(cfg.get("raw_reply") if (reply_mode == "raw" and cfg.get("raw_reply") is not None) else reply_kw)
+            else:
+                step_reply = f"@{reply_kw}" if (extract_mode == "reply_only" and reply_kw) else "@"
             if multi_refs:
                 ref_lines = [_build_single_ref_line(mr) for mr in multi_refs]
                 ref_expr = ";\n".join(ref_lines) + ";"
-                if reply_kw:
+                if reply_mode not in ("exact", "raw") and reply_kw:
                     step_reply = f"@{reply_kw}"
             elif extract_mode != "reply_only":
                 ref_expr = _build_single_ref_line(cfg)
@@ -499,22 +590,40 @@ def build_workspace_from_sequence(
                             lo_tok, hi_tok = lo_val, hi_val
                         val_expr = f"({var_name},{val_type},{lo_tok},{hi_tok})"
 
-            steps.append(connect_step)
-            if prompt_step:
-                steps.append(prompt_step)
-            steps.append(_step(
-                send=send_str,
-                reply=step_reply,
-                end_prompt=endp,
-                ref=ref_expr,
-                validation=val_expr,
-                waiting=wait_ms,
-                exec_mode="1",
-                description=f"DUT#-#{title_lbl} ({alias})",
-                test_id="VSCH026" if val_expr else "OTFX054",
-            ))
-            if close_step:
-                steps.append(close_step)
+            conn_action = str(cfg.get("conn_action") or "send").strip().lower()
+            if conn_action == "connect_only":
+                if connect_step:
+                    steps.append(connect_step)
+                if char_mode_step:
+                    steps.append(char_mode_step)
+            elif conn_action == "disconnect_only":
+                steps.append(_step(
+                    phase=ph, title=t_str, send=f':Disconnect,"{alias}"', reply="0",
+                    exec_mode="3", description=f"PC#-#Disconnect {alias}", test_id="OTFX082",
+                ))
+            else:
+                if connect_step:
+                    steps.append(connect_step)
+                if char_mode_step:
+                    steps.append(char_mode_step)
+                if prompt_step:
+                    steps.append(prompt_step)
+                steps.append(_step(
+                    phase="" if connect_step else ph,
+                    title="" if connect_step else t_str,
+                    send=send_str,
+                    reply=step_reply,
+                    end_prompt=endp,
+                    ref=ref_expr,
+                    validation=val_expr,
+                    prompt=prompt_col,
+                    waiting=wait_ms,
+                    exec_mode="1",
+                    description=f"DUT#-#{title_lbl} ({alias})",
+                    test_id="VSCH026" if val_expr else "OTFX054",
+                ))
+                if close_step:
+                    steps.append(close_step)
 
         elif kind == "delay":
             ms = str(cfg.get("ms") or "1000").strip() or "1000"
@@ -598,19 +707,57 @@ def build_workspace_from_sequence(
             title_lbl = str(cfg.get("title") or f"Check {var_nm}").strip()
             use_ini = bool(cfg.get("use_ini_var", False))
             ph = _alloc_phase()
-            if chk_mode == "string":
-                expect_s = str(cfg.get("expect_str") or "PASS").strip() or "PASS"
+            if chk_mode == "validation":
+                dl = str(cfg.get("dl") if cfg.get("dl") is not None else "0").strip()
+                ul = str(cfg.get("ul") if cfg.get("ul") is not None else "100").strip()
+                vtype = str(cfg.get("val_type") or "%f").strip()
+                if vtype not in ("%f", "%d", "%s", "%SELF"):
+                    vtype = "%f"
+                if cfg.get("skip_validation") or (dl == "" and ul == "" and vtype != "%SELF"):
+                    val_out = ""
+                elif vtype == "%s":
+                    exp_s = str(cfg.get("expect_str") or dl or "1").strip()
+                    val_out = f"({var_nm},%s,{exp_s},{exp_s});"
+                else:
+                    if use_ini:
+                        g_scr[f"{var_nm}_DL"] = dl
+                        g_scr[f"{var_nm}_UL"] = ul
+                        dl_tok = f"*$({var_nm}_DL)"
+                        ul_tok = f"*$({var_nm}_UL)"
+                    else:
+                        _register_ini_tokens(dl, g_scr, "0")
+                        _register_ini_tokens(ul, g_scr, "0")
+                        dl_tok, ul_tok = dl, ul
+                    val_out = f"({var_nm},{vtype},{dl_tok},{ul_tok});"
+                steps.append(_step(
+                    phase=ph,
+                    title=f"0,{title_lbl}",
+                    send=str(cfg.get("send") or ':Delay,"0"').strip() or ':Delay,"0"',
+                    reply=str(cfg.get("reply") if cfg.get("reply") is not None else "0").strip(),
+                    ref=str(cfg.get("ref_expr") or "").strip(),
+                    validation=val_out,
+                    waiting=str(cfg.get("waiting") or "").strip(),
+                    exec_mode="0",
+                    description=f"PC#-#Validate {var_nm}",
+                    test_id="CACK182",
+                ))
+            elif chk_mode == "string":
+                expect_s = str(cfg.get("expect_str") if cfg.get("expect_str") is not None else "PASS").strip()
+                exact_m = bool(cfg.get("exact_match", False))
                 if use_ini:
                     ini_k = f"{var_nm}_EXPECT"
                     g_scr[ini_k] = expect_s
                     tok = f"*$({ini_k})"
                 else:
+                    _register_ini_tokens(expect_s, g_scr, "0")
                     tok = expect_s
+                send_v = str(cfg.get("send_expr") or f"${var_nm}").strip()
                 steps.append(_step(
                     phase=ph,
                     title=f"0,{title_lbl}",
-                    send=f':GetVal,"${var_nm}"',
-                    reply=f"@{tok}",
+                    send=f':GetVal,"{send_v}"',
+                    reply=tok if exact_m else f"@{tok}",
+                    waiting=str(cfg.get("waiting") or "").strip(),
                     exec_mode="0",
                     description=f"PC#-#Compare {var_nm} == {expect_s}",
                     test_id="CACK182",
@@ -636,6 +783,74 @@ def build_workspace_from_sequence(
                     exec_mode="0",
                     description=f"PC#-#Check {var_nm} ({dl}~{ul})",
                     test_id="CACK182",
+                ))
+
+        elif kind == "math_opr":
+            opr_mode = str(cfg.get("opr_mode") or "set_opr_val").strip().lower()
+            title_lbl = str(cfg.get("title") or "Math / Variable Operation").strip() or "Math / Variable Operation"
+            var_nm = _safe_var(cfg.get("var_name") or "gCalc", "gCalc")
+            val_expr = ""
+            if cfg.get("validation_enabled"):
+                v_var = _safe_var(cfg.get("val_var") or var_nm, var_nm)
+                vtype = str(cfg.get("val_type") or "%f").strip()
+                if vtype not in ("%f", "%d", "%s", "%SELF"):
+                    vtype = "%f"
+                dl = str(cfg.get("dl") if cfg.get("dl") is not None else "0").strip()
+                ul = str(cfg.get("ul") if cfg.get("ul") is not None else dl).strip()
+                if bool(cfg.get("use_ini_var", False)) and vtype in ("%f", "%d"):
+                    g_scr[f"{v_var}_DL"] = dl
+                    g_scr[f"{v_var}_UL"] = ul
+                    dl, ul = f"*$({v_var}_DL)", f"*$({v_var}_UL)"
+                else:
+                    _register_ini_tokens(dl, g_scr, "0")
+                    _register_ini_tokens(ul, g_scr, "0")
+                val_expr = f"({v_var},{vtype},{dl},{ul});"
+            ph = _alloc_phase()
+            if opr_mode == "conversion":
+                conv_type = str(cfg.get("conv_mode") or "H2D").strip() or "H2D"
+                src_expr = str(cfg.get("src_expr") or "*(rawHex)").strip() or "*(rawHex)"
+                _register_ini_tokens(src_expr, g_scr, "0")
+                steps.append(_step(
+                    phase=ph, title=f"0,{title_lbl}",
+                    send=f':Utility.ConVersion,"{conv_type}","{src_expr}"',
+                    reply="0", ref=f"${var_nm};", validation=val_expr,
+                    exec_mode="0", description=f"PC#-#Convert {conv_type} -> {var_nm}", test_id="B7PL025",
+                ))
+            elif opr_mode == "set_cdti_val":
+                lhs = str(cfg.get("var1") or f"*({var_nm})").strip()
+                op = str(cfg.get("op") or ">").strip() or ">"
+                rhs = str(cfg.get("var2") or "0").strip()
+                tval = str(cfg.get("true_val") if cfg.get("true_val") is not None else "1").strip()
+                _register_ini_tokens(lhs, g_scr, "0")
+                _register_ini_tokens(rhs, g_scr, "0")
+                steps.append(_step(
+                    phase=ph, title=f"0,{title_lbl}",
+                    send=f':SetCdtiVal,"{lhs}","{op}","{rhs}","{var_nm}","{tval}"',
+                    reply=str(cfg.get("reply") if cfg.get("reply") is not None else "").strip(),
+                    validation=val_expr, exec_mode="0",
+                    description=f"PC#-#Condition {var_nm} = ({lhs} {op} {rhs} ? {tval})", test_id="B7PL025",
+                ))
+            elif opr_mode == "math":
+                v1 = str(cfg.get("var1") or f"*({var_nm})").strip()
+                op = str(cfg.get("op") or "+").strip() or "+"
+                v2 = str(cfg.get("var2") or "1").strip()
+                _register_ini_tokens(v1, g_scr, "0")
+                _register_ini_tokens(v2, g_scr, "0")
+                steps.append(_step(
+                    phase=ph, title=f"0,{title_lbl}",
+                    send=f':Utility.MATH,"{v1}","{op}","{v2}"',
+                    reply="0", ref=f"${var_nm};", validation=val_expr,
+                    exec_mode="0", description=f"PC#-#MATH {v1} {op} {v2} -> {var_nm}", test_id="B7PL025",
+                ))
+            else:
+                expr = str(cfg.get("expr") or "*(A)-*(B)").strip() or "0"
+                _register_ini_tokens(expr, g_scr, "0")
+                var_target = f"${var_nm}" if cfg.get("prefix_dollar") else var_nm
+                steps.append(_step(
+                    phase=ph, title=f"0,{title_lbl}",
+                    send=f':SetOprVal,"{var_target}","{expr}"',
+                    reply="0", validation=val_expr,
+                    exec_mode="0", description=f"PC#-#SetOprVal {var_target} = {expr}", test_id="B7PL025",
                 ))
 
         elif kind == "inst":
@@ -880,7 +1095,7 @@ def build_workspace_from_sequence(
                 uact = str(cfg.get("util_action") or "gen_dt").strip().lower()
                 if uact == "get_com":
                     port_id = str(cfg.get("port_id") or "*$(PortID)").strip() or "*$(PortID)"
-                    _register_ini_tokens(port_id, g_set, "Port_#0001.Hub_#0001")
+                    _register_ini_tokens(port_id, g_scr, "Port_#0001.Hub_#0001")
                     com_idx = str(cfg.get("com_idx") or "1").strip() or "1"
                     tgt_alias = _safe_var(cfg.get("target_alias") or "UART", "UART")
                     if tgt_alias != "UART":
@@ -897,6 +1112,17 @@ def build_workspace_from_sequence(
                         _step(send=f':Connect,"{tgt_alias}"', reply="0", waiting="500", exec_mode="2:1",
                               description=f"PC#-#Open {tgt_alias}", test_id="OTFX117"),
                     ])
+                elif uact == "get_chain_com":
+                    port_id = str(cfg.get("port_id") or "*$(PortID)").strip() or "*$(PortID)"
+                    _register_ini_tokens(port_id, g_scr, "Port_#0001.Hub_#0001")
+                    com_idx = str(cfg.get("com_idx") or "1").strip() or "1"
+                    out_v = _safe_var(cfg.get("var_name") or "comPort", "comPort")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}",
+                        send=f':Utility.GetChainCOM,"{port_id}","{com_idx}"',
+                        reply="0", ref=f"${out_v}", exec_mode="0",
+                        description="PC#-#Get Chain COM Port", test_id="NBOT043",
+                    ))
                 elif uact == "cfile":
                     src_p = str(cfg.get("src_path") or ".\\capture\\shot.bmp").strip()
                     dst_p = str(cfg.get("dst_path") or ".\\Record\\shot.bmp").strip()
@@ -916,9 +1142,95 @@ def build_workspace_from_sequence(
                     ))
                 elif uact == "show_img":
                     img_f = str(cfg.get("img_file") or "Loimage.gif").strip()
+                    wait_ms = str(cfg.get("waiting") or "").strip()
                     steps.append(_step(
                         phase=ph, title=f"0,{title_lbl}", send=f':ShowImageMessage,"{img_f}","0"',
-                        reply="0", exec_mode="1", description=f"PC#-#Show Image ({img_f})", test_id="B7PL025",
+                        reply="0", waiting=wait_ms, exec_mode="1",
+                        description=f"PC#-#Show Image ({img_f})", test_id="B7PL025",
+                    ))
+                elif uact == "close_msg":
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=":CloseMessage",
+                        reply="0", exec_mode="0", description="PC#-#Close Prompt / Image Message", test_id="B7PL025",
+                    ))
+                elif uact == "chk_len":
+                    src_var = str(cfg.get("src_expr") or "*(rawData)").strip() or "*(rawData)"
+                    exp_len = str(cfg.get("expect_len") if cfg.get("expect_len") is not None else "70").strip()
+                    wait_ms = str(cfg.get("waiting") or "").strip()
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.ChkLEN,"{src_var}","{exp_len}"',
+                        reply="0", waiting=wait_ms, exec_mode="0",
+                        description=f"PC#-#Check String Length == {exp_len}", test_id="OTKS001",
+                    ))
+                elif uact == "sf_enabled":
+                    out_v = _safe_var(cfg.get("var_name") or "gSFIS", "gSFIS")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=":SfEnabled",
+                        reply="@", ref=out_v, exec_mode="0",
+                        description="PC#-#Check SFIS Enabled Status", test_id="B7PL025",
+                    ))
+                elif uact == "kill_pro":
+                    proc_nm = str(cfg.get("proc_name") or "adb.exe").strip() or "adb.exe"
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.KillPro,"{proc_nm}"',
+                        reply="0", exec_mode="0", description=f"PC#-#Kill Process ({proc_nm})", test_id="B7PL025",
+                    ))
+                elif uact == "string_scan":
+                    src_p = str(cfg.get("src_path") or ".\\log.txt").strip()
+                    s_key = str(cfg.get("scan_key") or "PASS").strip()
+                    out_v = _safe_var(cfg.get("var_name") or "sScanOut", "sScanOut")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.StringScan,"{src_p}","{s_key}"',
+                        reply="0", ref=f"${out_v}", exec_mode="1", description=f"PC#-#StringScan ({s_key})", test_id="B7PL025",
+                    ))
+                elif uact == "wini":
+                    ini_p = str(cfg.get("ini_file") or ".\\Config\\custom.ini").strip()
+                    sec_n = str(cfg.get("ini_section") or "Settings").strip()
+                    key_n = str(cfg.get("ini_key") or "Key1").strip()
+                    val_n = str(cfg.get("ini_val") or "1").strip()
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.wIni,"{ini_p}","{sec_n}","{key_n}","{val_n}"',
+                        reply="0", exec_mode="0", description=f"PC#-#Write INI {sec_n}/{key_n}", test_id="B7PL025",
+                    ))
+                elif uact == "conversion":
+                    conv_mode = str(cfg.get("conv_mode") or "H2D").strip() or "H2D"
+                    src_expr = str(cfg.get("src_expr") or "*(rawHex)").strip() or "*(rawHex)"
+                    out_v = _safe_var(cfg.get("var_name") or "gDecVal", "gDecVal")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.ConVersion,"{conv_mode}","{src_expr}"',
+                        reply="0", ref=f"${out_v}", validation=str(cfg.get("validation") or "").strip(),
+                        exec_mode="0", description=f"PC#-#ConVersion {conv_mode} -> {out_v}", test_id="B7PL025",
+                    ))
+                elif uact == "set_opr_val":
+                    out_v = _safe_var(cfg.get("var_name") or "gCalc", "gCalc")
+                    expr = str(cfg.get("expr") or "*(A)-*(B)").strip() or "0"
+                    _register_ini_tokens(expr, g_scr, "0")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':SetOprVal,"{out_v}","{expr}"',
+                        reply="0", validation=str(cfg.get("validation") or "").strip(),
+                        exec_mode="0", description=f"PC#-#SetOprVal {out_v}={expr}", test_id="B7PL025",
+                    ))
+                elif uact == "set_cdti_val":
+                    lhs = str(cfg.get("var1") or "*(A)").strip()
+                    op = str(cfg.get("op") or ">").strip()
+                    rhs = str(cfg.get("var2") or "0").strip()
+                    dst_v = _safe_var(cfg.get("var_name") or "gCond", "gCond")
+                    tval = str(cfg.get("true_val") if cfg.get("true_val") is not None else "1").strip()
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':SetCdtiVal,"{lhs}","{op}","{rhs}","{dst_v}","{tval}"',
+                        reply=str(cfg.get("reply") if cfg.get("reply") is not None else "").strip(),
+                        validation=str(cfg.get("validation") or "").strip(),
+                        exec_mode="0", description=f"PC#-#SetCdtiVal {dst_v}", test_id="B7PL025",
+                    ))
+                elif uact == "util_math":
+                    v1 = str(cfg.get("var1") or "*(A)").strip()
+                    op = str(cfg.get("op") or "+").strip()
+                    v2 = str(cfg.get("var2") or "1").strip()
+                    out_v = _safe_var(cfg.get("var_name") or "gMath", "gMath")
+                    steps.append(_step(
+                        phase=ph, title=f"0,{title_lbl}", send=f':Utility.MATH,"{v1}","{op}","{v2}"',
+                        reply="0", ref=f"${out_v}", validation=str(cfg.get("validation") or "").strip(),
+                        exec_mode="0", description=f"PC#-#MATH {v1} {op} {v2}", test_id="B7PL025",
                     ))
                 elif uact == "get_yr":
                     out_v = _safe_var(cfg.get("var_name") or "currYR", "currYR")
@@ -944,8 +1256,8 @@ def build_workspace_from_sequence(
                 val_s = str(cfg.get("validation") or "").strip()
                 wait_s = str(cfg.get("waiting") or "").strip()
                 _register_ini_tokens(init_arg, g_set, "1")
-                _register_ini_tokens(send_cmd, g_set, "1")
-                _register_ini_tokens(reply_s, g_set, "1")
+                _register_ini_tokens(send_cmd, g_scr, "1")
+                _register_ini_tokens(reply_s, g_scr, "1")
                 _ensure_dut_connection(
                     ws, dll_alias, lambda _sl, df=dll_file, da=dll_alias, ia=init_arg: f'"DLL:{df}","{da}","{ia}"'
                 )
@@ -975,10 +1287,25 @@ def build_workspace_from_sequence(
                     extracted_sku_cfg = grp_sku
                 raw_grp_steps = _dedup_group_steps(tmp_ws.get("stations", {}).get(station_name) or [])
                 if raw_grp_steps:
+                    g_role = str(cfg.get("phase_role") or "normal").strip()
+                    same_phase = bool(cfg.get("same_phase", False))
                     g_title = str(cfg.get("title") or "Custom Group").strip() or "Custom Group"
+                    g_t_mode = str(cfg.get("title_run_mode") if cfg.get("title_run_mode") is not None else "0").strip() or "0"
                     g_retry = str(cfg.get("retry") or "0").strip()
-                    g_title_str = f"0,{g_title},{g_retry}" if g_retry and g_retry != "0" else f"0,{g_title}"
-                    g_ph = _alloc_phase()
+                    if g_t_mode != "none":
+                        _register_ini_tokens(g_t_mode, g_scr, "0")
+                        g_title_str = f"{g_t_mode},{g_title},{g_retry}" if g_retry and g_retry != "0" else f"{g_t_mode},{g_title}"
+                    else:
+                        g_title_str = f"{g_title},{g_retry}" if g_retry and g_retry != "0" else g_title
+                    if same_phase:
+                        g_ph = ""
+                    elif g_role == "0":
+                        g_ph = "0"
+                        has_phase0 = True
+                    elif g_role == "-1":
+                        g_ph = "-1"
+                    else:
+                        g_ph = _alloc_phase()
                     for g_i, gr in enumerate(raw_grp_steps):
                         gr["Phase"] = g_ph if g_i == 0 else ""
                         gr["Title"] = g_title_str if g_i == 0 else ""
@@ -992,7 +1319,9 @@ def build_workspace_from_sequence(
         if kind != "inst" and cfg.get("test_id"):
             _apply_custom_test_id(steps[step_start_idx:], cfg.get("test_id"))
         if kind != "inst" and cfg.get("exec_mode"):
-            _apply_custom_exec_mode(steps[step_start_idx:], cfg.get("exec_mode"), g_set=g_set)
+            _apply_custom_exec_mode(steps[step_start_idx:], cfg.get("exec_mode"), g_scr=g_scr, g_set=g_set)
+        if kind not in ("inst", "group") and (cfg.get("title_run_mode") is not None or cfg.get("title_retry") is not None):
+            _apply_custom_title(steps[step_start_idx:], cfg.get("title_run_mode"), cfg.get("title_retry"), g_scr=g_scr)
         if not skip_post_delay and cfg.get("post_delay_enabled"):
             try:
                 sec = float(cfg.get("post_delay_sec") if cfg.get("post_delay_sec") is not None else 0.5)
@@ -1008,7 +1337,7 @@ def build_workspace_from_sequence(
                     test_id="B7PL025",
                 ))
 
-    # Append Teardown block(s) + custom Phase 97/98/99 groups at the end unless running inside a group box
+    # Append Teardown block(s) + custom Phase 97 / 97:PWROFF / 98 / 99 groups at the end unless running inside a group box
     if not skip_teardown:
         td_by_role = {}
         for tg in teardown_groups:
@@ -1029,15 +1358,24 @@ def build_workspace_from_sequence(
                 build_workspace_from_sequence(tmp_td, station_name, tchs, wizard_config, build_wizard_block_steps_fn, skip_teardown=True)
                 raw_td = _dedup_group_steps(tmp_td.get("stations", {}).get(station_name) or [])
                 if raw_td:
-                    def_t = {"97": "DISCONNECTION", "98": "PASS_DISCONNECTION", "99": "FAIL_DISCONNECTION"}.get(role, "DISCONNECTION")
+                    def_t = {"97:PWROFF": "PWROFF", "97": "DISCONNECTION", "98": "PASS_DISCONNECTION", "99": "FAIL_DISCONNECTION"}.get(role, "DISCONNECTION")
                     g_t = str(tcfg.get("title") or def_t).strip() or def_t
+                    t_mode = str(tcfg.get("title_run_mode") if tcfg.get("title_run_mode") is not None else "none").strip()
+                    t_retry = str(tcfg.get("retry") or "").strip()
+                    if t_mode and t_mode != "none":
+                        _register_ini_tokens(t_mode, g_scr, "0")
+                        g_title_s = f"{t_mode},{g_t},{t_retry}" if (t_retry and t_retry != "0") else f"{t_mode},{g_t}"
+                    else:
+                        g_title_s = f"{g_t},{t_retry}" if (t_retry and t_retry != "0") else g_t
                     for gi, gr in enumerate(raw_td):
                         gr["Phase"] = role if gi == 0 else ""
-                        gr["Title"] = g_t if gi == 0 else ""
+                        gr["Title"] = g_title_s if gi == 0 else ""
                     td_by_role.setdefault(role, []).extend(raw_td)
 
         td_cfg = (teardown_items[-1].get("config") or {}) if teardown_items else {}
         td_mode = str(td_cfg.get("teardown_mode") or "97_only").strip().lower()
+        if "97:PWROFF" in td_by_role:
+            steps.extend(td_by_role["97:PWROFF"])
         if "97" in td_by_role:
             steps.extend(td_by_role["97"])
         else:
@@ -1209,12 +1547,26 @@ def build_workspace_from_sequence(
                             {"Send": f':Dev.Measure,"{d_ch}"', "Ref": "$gDmmVal", "Validation": f"(gDmmVal,%f,{d_dl},{d_ul})", "ExecMode": "2:0", "Description": f"DMM#-#Ch{d_ch} ({d_dl}~{d_ul})"},
                             {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
                         ]
-                elif any(k in low_nm for k in ("devuart", "scpicontroller", "transmitter")):
-                    s_cmd = str(icfg.get("subdev_cmd") or (':sDev.Announce,"SAT{1},start"' if "devuart" in low_nm else ':sDev.OnOff,"ON"')).strip()
+                elif any(k in low_nm for k in ("devuart", "scpicontroller", "transmitter", "vnxrfsw")):
+                    s_cmd = str(icfg.get("subdev_cmd") or (':sDev.Announce,"SAT{1},start"' if "devuart" in low_nm else (':sDev.SetSwitch,"1"' if "vnxrfsw" in low_nm else ':sDev.OnOff,"ON"'))).strip()
                     c_steps = [
                         {"Send": f':ObtainSubDevice,"{inst_nm}"', "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
                         {"Send": s_cmd, "ExecMode": "1", "Description": f"SubDev#-#{inst_nm} Command"},
                         {"Send": ":ReleaseSubDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
+                    ]
+                elif "fc6000" in low_nm:
+                    f_dl = dl_s or "10"
+                    f_ul = ul_s or "100"
+                    c_steps = [
+                        {"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
+                        {"Send": ':Dev.ReadFlow', "Ref": "$gFlow", "Validation": f"(gFlow,%f,{f_dl},{f_ul})", "ExecMode": "2:0", "Description": f"Flow#-#Check Flow ({f_dl}~{f_ul})"},
+                        {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
+                    ]
+                elif low_nm == "rst" or low_nm.startswith("rst"):
+                    c_steps = [
+                        {"Send": ":ObtainDevice", "ExecMode": "1", "Description": f"PC#-#Obtain {inst_nm}"},
+                        {"Send": ':Dev.Read', "Ref": "$gRstVal", "ExecMode": "2:0", "Description": f"Inst#-#Read {inst_nm}"},
+                        {"Send": ":ReleaseDevice", "ExecMode": "3", "Description": f"PC#-#Release {inst_nm}"},
                     ]
             insert_instrument_title_block(
                 ws, station_name, inst_nm,
@@ -1237,7 +1589,7 @@ def build_workspace_from_sequence(
             added_n = len(after_steps) - before_inst_len
             base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
             if added_n > 0:
-                _apply_custom_exec_mode(after_steps[base_pos:base_pos + added_n], icfg.get("exec_mode"), g_set=g_set)
+                _apply_custom_exec_mode(after_steps[base_pos:base_pos + added_n], icfg.get("exec_mode"), g_scr=g_scr, g_set=g_set)
 
         if icfg.get("post_delay_enabled"):
             try:
@@ -1258,7 +1610,7 @@ def build_workspace_from_sequence(
                     test_id="B7PL025",
                 ))
 
-    # Re-sequence contiguous Phases (0, 1, 2... up to 96) preserving 97/98/99
+    # Re-sequence contiguous Phases (preserving 0, -1, 97:PWROFF, 97, 98, 99)
     final_steps = ws["stations"][station_name]
     cur_p = 0
     seen_zero = False
@@ -1266,17 +1618,19 @@ def build_workspace_from_sequence(
         p_raw = str(st_row.get("Phase") or "").strip()
         if p_raw == "":
             continue
+        p_head = p_raw.split(":")[0].strip()
         try:
-            p_int = int(p_raw)
-            if p_int >= 95 or p_int == -1:
+            p_int = int(p_head)
+            if p_int >= 95 or p_int < 0:
                 continue
-            if p_int == 0 and not seen_zero:
+            if p_int == 0:
                 seen_zero = True
-                cur_p = 1
+                if cur_p == 0:
+                    cur_p = 1
                 continue
             if not seen_zero:
                 seen_zero = True
-                if p_int >= 1:
+                if cur_p == 0:
                     cur_p = 1
             st_row["Phase"] = str(cur_p)
             cur_p += 1

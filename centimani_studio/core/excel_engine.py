@@ -7,7 +7,10 @@ Supports both:
    PathLoss, and Connection1..10 columns while highlighting repaired cells in yellow with notes).
 """
 import os
+import io
+import re
 import shutil
+import zipfile
 import datetime
 from copy import copy as _copy_style
 import openpyxl
@@ -104,7 +107,7 @@ def compute_station_row_visuals(steps):
             v["fill_hex"] = "F2F2F2"
             v["font_hex"] = "7F7F7F"
             v["role_label"] = "暫停 (Phase -1)"
-        elif curr_phase == "97":
+        elif curr_phase.split(":")[0].strip() == "97":
             v["fill_hex"] = "FFF2CC"
             v["role_label"] = "Phase 97 必跑收尾"
         elif curr_phase == "98":
@@ -511,6 +514,24 @@ def _set_active_worksheet(wb, workspace, active_sheet=None):
             pass
 
 
+def _safe_load_workbook(path, data_only=False):
+    """Load workbook safely; strip out-of-range row style indices if legacy XML causes IndexError."""
+    try:
+        return openpyxl.load_workbook(path, data_only=data_only)
+    except IndexError:
+        tmp_buf = io.BytesIO()
+        with zipfile.ZipFile(path, "r") as zin, zipfile.ZipFile(tmp_buf, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
+                    text = data.decode("utf-8", errors="ignore")
+                    text = re.sub(r'(<row\b[^>]*?)\s+s="\d+"([^>]*>)', r"\1\2", text)
+                    data = text.encode("utf-8")
+                zout.writestr(item, data)
+        tmp_buf.seek(0)
+        return openpyxl.load_workbook(tmp_buf, data_only=data_only)
+
+
 def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
     """
     Exports the workspace JSON into a standard 16-column Centimani .xlsx workbook.
@@ -552,7 +573,7 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
 
     if source_file and os.path.exists(source_file):
         # IN-PLACE NON-DESTRUCTIVE PATCH MODE
-        wb = openpyxl.load_workbook(source_file)
+        wb = _safe_load_workbook(source_file)
 
         # Update Instrument sheet if workspace has updated instrument rows (Version, Mount, Settings, or newly added rows)
         if "Instrument" in wb.sheetnames and workspace.get("instruments"):
@@ -571,9 +592,16 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
                     inst_map[key.lower()] = item
 
             seen_keys = set()
+            empty_streak = 0
             for r in range(2, ws_inst.max_row + 1):
                 n_val = str(ws_inst.cell(row=r, column=name_col).value or "").strip().lower() if name_col else ""
                 d_val = str(ws_inst.cell(row=r, column=dll_col).value or "").strip().lower() if dll_col else ""
+                if not n_val and not d_val:
+                    empty_streak += 1
+                    if empty_streak >= 50:
+                        break
+                    continue
+                empty_streak = 0
                 match_item = inst_map.get(n_val) or inst_map.get(d_val)
                 if match_item:
                     if n_val:
@@ -610,9 +638,16 @@ def export_workspace_to_excel(workspace, output_excel_path, active_sheet=None):
                     key = item.get("Name", "").strip() or item.get("ControlDLL", "").strip()
                     if key:
                         sw_map[key.lower()] = item.get("Version", "")
+                empty_streak = 0
                 for r in range(2, ws_sw.max_row + 1):
                     n_val = str(ws_sw.cell(row=r, column=name_col).value or "").strip().lower() if name_col else ""
                     d_val = str(ws_sw.cell(row=r, column=dll_col).value or "").strip().lower() if dll_col else ""
+                    if not n_val and not d_val:
+                        empty_streak += 1
+                        if empty_streak >= 50:
+                            break
+                        continue
+                    empty_streak = 0
                     match_ver = sw_map.get(n_val) or sw_map.get(d_val)
                     if match_ver:
                         ws_sw.cell(row=r, column=ver_col, value=match_ver)
@@ -761,7 +796,7 @@ def import_excel_to_workspace(xlsx_path):
     ws_data["marcos"] = {}
 
     try:
-        wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+        wb = _safe_load_workbook(xlsx_path, data_only=True)
     except Exception:
         wb = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True)
 
