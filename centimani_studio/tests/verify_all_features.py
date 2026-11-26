@@ -2619,6 +2619,69 @@ def run_all_verifications():
                   and "產生首次範本 🃏 積木拖曳編排" in index_html,
                   "v0.8.067 開始/結束灰階、chkRoute進階積木與積木庫改名、卡片直接拖曳重排、貪食蛇轉折箭頭與單行標題列整合檢查通過")
 
+            # [v0.8.068] 群組方框 (group 共用單一 Phase + 子頁 #3.1/#3.2 設定)、進階 TestID 即時搜尋寫入、Error Code 頁嵌入既有腳本編修 (1 -> N)
+            aud_68 = open(os.path.join(os.path.dirname(cbb_js_path), "audit_editors.js"), "r", encoding="utf-8").read()
+            check("kind: 'group'" in cbb_66
+                  and "bbGroupAddChild" in cbb_66
+                  and "_getQaNavList" in cbb_66
+                  and "_renderTestIdAdvPicker" in cbb_66
+                  and "bbSearchTestIdAdv" in cbb_66
+                  and "bbGroupSetField" in cbb_66
+                  and "globalHubCard_tic" in aud_68
+                  and "openTicFromEdit" in aud_68
+                  and "ticBackFromEditBar" in index_html
+                  and "btnEditorOpenTic" in index_html
+                  and "returnToEditFromTic" in index_html,
+                  "v0.8.068 群組方框UI、進階TestID即時搜尋、Error Code嵌入式頁籤與手風琴卡檢查通過")
+
+            v68_res = post_json("/api/generate_new_standalone", {
+                "project_name": "V68_GRP_PROJ",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "wizard_config": {"isn_length": 12, "isn_pattern": "[0-9A-Z]"},
+                "builder_sequence": [
+                    {"uid": "p0", "kind": "start", "config": {"project": "V68_GRP_PROJ", "station": "MB", "dut_count": 1}},
+                    {"uid": "p1", "kind": "isn", "config": {"enable_scan": True, "isn_len": 12, "isn_pattern": "[0-9A-Z]"}},
+                    {"uid": "p2", "kind": "group", "config": {
+                        "title": "Power & Volt Group",
+                        "collapsed": False,
+                        "children": [
+                            {"uid": "c1", "kind": "comm_cmd", "config": {"protocol": "uart", "title": "Pwr On", "command": "power_on", "extract_mode": "raw", "var_name": "gPwrAck", "test_id": "BR00001"}},
+                            {"uid": "c2", "kind": "delay", "config": {"delay_ms": "200"}},
+                            {"uid": "c3", "kind": "inst", "config": {"inst_mode": "catalog", "inst_name": "NI6008", "title_name": "Volt Check", "ni_rails_count": 1, "ni_ch0": "0", "ni_dl0": "4.8", "ni_ul0": "5.2", "test_id": "BRME027"}},
+                            {"uid": "c4", "kind": "comm_cmd", "config": {"protocol": "uart", "title": "Read FW", "command": "ver", "extract_mode": "raw", "var_name": "gFwVer", "test_id": "BR00002"}},
+                        ],
+                    }},
+                    {"uid": "p3", "kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"uid": "p4", "kind": "end", "config": {"confirmed": True}},
+                ],
+            })
+            ws_v68 = _parse_v50(v68_res["excel_path"])
+            v68_rows = ws_v68["stations"]["MB"]
+            grp_start = next((idx for idx, r in enumerate(v68_rows) if "Power & Volt Group" in str(r.get("Title") or "")), -1)
+            grp_rows = []
+            if grp_start >= 0:
+                grp_rows.append(v68_rows[grp_start])
+                for r in v68_rows[grp_start + 1:]:
+                    if str(r.get("Phase") or "").strip():
+                        break
+                    grp_rows.append(r)
+            grp_phases = set(str(r.get("Phase") or "").strip() for r in grp_rows if str(r.get("Phase") or "").strip())
+            grp_tids = set(str(r.get("TestID") or "").strip() for r in grp_rows if str(r.get("TestID") or "").strip())
+            grp_uart_connects = [r for r in grp_rows if ':Connect,"UART"' in str(r.get("Send") or "")]
+            v68_audit = post_json("/api/re_audit", {"workspace": ws_v68})
+            v68_errs = (v68_audit.get("report") or {}).get("errors") or []
+            check(v68_res.get("status") == "ok"
+                  and len(grp_rows) >= 4
+                  and len(grp_phases) == 1
+                  and len(grp_uart_connects) <= 1
+                  and {"BR00001", "BRME027", "BR00002"}.issubset(grp_tids)
+                  and len(v68_errs) == 0,
+                  "v0.8.068 群組方框共用單一Phase + UART自動去重 + 子積木各自指定TestID + 0 Error 通過",
+                  f"grp_rows={len(grp_rows)}, phases={grp_phases}, tids={grp_tids}, uart_conns={len(grp_uart_connects)}, errs={v68_errs}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

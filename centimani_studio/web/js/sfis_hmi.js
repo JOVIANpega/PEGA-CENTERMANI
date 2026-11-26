@@ -1674,8 +1674,10 @@ function sfisSyncToBuilderAndReturn() {
     return;
   }
   const bIdx = SFIS_HMI_STATE.openedFromBuilderIdx;
-  if (bIdx >= 0 && window.BB_STATE && window.BB_STATE.stack[bIdx]) {
-    const blk = window.BB_STATE.stack[bIdx];
+  const blk = (typeof window.bbGetBlockByNavIdx === 'function')
+    ? window.bbGetBlockByNavIdx(bIdx)
+    : ((bIdx >= 0 && window.BB_STATE && window.BB_STATE.stack[bIdx]) ? window.BB_STATE.stack[bIdx] : null);
+  if (blk) {
     blk.config = blk.config || {};
     blk.config.sfis_hmi_bundle = bundle;
     if (bundle.config) {

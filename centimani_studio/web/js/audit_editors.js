@@ -359,7 +359,7 @@ function _renderIniStage1EditHtml(ws, usedVars) { return _renderSystemIniFullPag
 function _renderIniStage2ReviewHtml(ws) { return _renderSystemIniFullPageHtml(ws); }
 
 function _setActiveHubCard(key) {
-  ['system', 'global', 'flow', 'jump', 'station_isn'].forEach(k => {
+  ['system', 'global', 'flow', 'jump', 'station_isn', 'tic'].forEach(k => {
     const el = document.getElementById('globalHubCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
@@ -549,6 +549,24 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
             <li>使用中外部儀器：共 <b>${activeInstCount} 台</b>（可勾選掛載測試站與連線位址）</li>
           </ul>
           <button onclick="event.stopPropagation(); switchGlobalEditorTab('station_isn');" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; font-weight:800;">📋 進入設定站別與儀器 ▶</button>
+        </div>
+      </div>
+
+      <!-- 06 Error Code / TestID 速查 -->
+      <div id="globalHubCard_tic" class="acc-card" data-theme="purple" onmouseenter="_setActiveHubCard('tic')" onclick="if(typeof openTicFromEdit==='function') openTicFromEdit();">
+        <div>
+          <div class="acc-num">06 / ERROR CODE</div>
+          <div class="acc-icon">🏷️</div>
+          <div class="acc-title">Error Code / TestID</div>
+          <div class="acc-sub">5,253 筆官方測項代碼速查與一鍵回填</div>
+        </div>
+        <div class="acc-body">
+          <ul style="margin:0 0 12px 16px; padding:0; font-size:0.87rem; color:#581C87; line-height:1.65;">
+            <li>支援中英文關鍵字（如電壓、LED、UART、電流）搜代碼</li>
+            <li>直接點選「寫入現有 Excel」補齊缺漏或修正之 TestID</li>
+            <li>同步支援「雙欄複製」快速貼回測試腳本</li>
+          </ul>
+          <button onclick="event.stopPropagation(); if(typeof openTicFromEdit==='function') openTicFromEdit();" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#7C3AED; color:#FFFFFF; border:none; font-weight:800;">🏷️ 開啟 Error Code / TestID 速查 ▶</button>
         </div>
       </div>
     </div>

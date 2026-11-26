@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.067</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.068</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1205,6 +1205,9 @@
             <button id="btnTab1LaunchDll" class="btn" style="background:#F0FDF4; color:#166534; border-color:#86EFAC; font-weight:800;" onclick="openCentimaniAuxTool('DLLtest.exe')" title="開啟官方 DLL 單步測試工具">
               🧪 單測 DLL 指令
             </button>
+            <button id="btnEditorOpenTic" class="btn" style="background:#F3E8FF; color:#6B21A8; border:1.5px solid #C084FC; font-weight:800;" onclick="openTicFromEdit()">
+              🏷️ Error Code / TestID 速查
+            </button>
             <button id="btnEditorOpenExcel" class="btn" style="display:none; background:#E0F2FE; color:#0369A1; border-color:#38BDF8;" onclick="openCurrentExcelFile()">
               📂 開啟目前原檔
             </button>
@@ -1239,6 +1242,9 @@
           </button>
           <button class="btn" style="padding:10px 14px; font-size:0.88rem; font-weight:800; background:#F0FDF4; color:#166534; border:1px solid #86EFAC;" onclick="openCentimaniAuxTool('DLLtest.exe')">
             🧪 單測 DLL 指令
+          </button>
+          <button class="btn" style="padding:10px 16px; font-size:0.9rem; font-weight:800; background:#F3E8FF; color:#6B21A8; border:1.5px solid #C084FC;" onclick="openTicFromEdit()">
+            🏷️ Error Code / TestID 速查
           </button>
         </div>
 
@@ -1601,6 +1607,14 @@
 
   <!-- ======================== 04 TestID / Error Code 速查與精準套用 ======================== -->
   <div id="panelTic" style="display:none;">
+    <div id="ticBackFromEditBar" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#F3E8FF; border:1.5px solid #A855F7; border-radius:9px; padding:8px 14px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn" style="padding:6px 14px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900;" onclick="returnToEditFromTic()">
+          ⬅ 返回既有腳本編修 (1 → N)
+        </button>
+        <span style="font-weight:900; color:#581C87; font-size:0.96rem;">🏷️ Error Code / TestID 速查與現有 Excel 一鍵回填</span>
+      </div>
+    </div>
     <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <span style="font-weight:700; color:var(--slate-900); font-size:0.97rem; white-space:nowrap;">🏷️ TestID / Error Code 查詢：</span>
@@ -1902,14 +1916,14 @@
   </div>
 </div>
 
-<script src="/js/inst_hmi.js?v=0.8.067"></script>
-<script src="/js/audit_editors.js?v=0.8.067"></script>
-<script src="/js/flow_guide.js?v=0.8.067"></script>
-<script src="/js/block_sorter.js?v=0.8.067"></script>
-<script src="/js/script_qa.js?v=0.8.067"></script>
-<script src="/js/sfis_hmi.js?v=0.8.067"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.067"></script>
-<script src="/js/create_block_builder.js?v=0.8.067"></script>
+<script src="/js/inst_hmi.js?v=0.8.068"></script>
+<script src="/js/audit_editors.js?v=0.8.068"></script>
+<script src="/js/flow_guide.js?v=0.8.068"></script>
+<script src="/js/block_sorter.js?v=0.8.068"></script>
+<script src="/js/script_qa.js?v=0.8.068"></script>
+<script src="/js/sfis_hmi.js?v=0.8.068"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.068"></script>
+<script src="/js/create_block_builder.js?v=0.8.068"></script>
 <script>
 let CURRENT_TAB = 'audit';
 var STATE = window.STATE = {
@@ -1958,6 +1972,7 @@ function switchTab(tab) {
     if (el) el.className = 'top-nav-pill' + (tab === k ? ' active' : '');
   });
 
+  if (tab !== 'tic') window._TIC_FROM_EDIT = false;
   if (tab === 'settings' && typeof renderSettingsPanel === 'function') {
     renderSettingsPanel();
   }
@@ -1965,9 +1980,25 @@ function switchTab(tab) {
     switchGenSubMode('hub');
   }
   if (tab === 'tic') {
+    const backBar = document.getElementById('ticBackFromEditBar');
+    if (backBar) backBar.style.display = window._TIC_FROM_EDIT ? 'flex' : 'none';
     renderTicTargetList();
     setTimeout(() => document.getElementById('ticSearchInput').focus(), 50);
   }
+}
+
+function openTicFromEdit() {
+  window._TIC_FROM_EDIT = true;
+  switchTab('tic');
+  if (typeof switchTicTargetMode === 'function') {
+    switchTicTargetMode(STATE && STATE.workspace ? 'excel' : 'mother');
+  }
+}
+
+function returnToEditFromTic() {
+  window._TIC_FROM_EDIT = false;
+  switchTab('gen');
+  if (typeof switchGenSubMode === 'function') switchGenSubMode('edit');
 }
 
 function setActiveAccCard(key) {
@@ -5610,8 +5641,11 @@ function openNi6009Hmi(targetMode, editGenIdx = -1, explicitInstName = '') {
       const pk = (nom === 1.8) ? '1.8V' : ((nom === 3.3) ? '3.3V' : ((nom === 5) ? '5V' : ((nom === 12) ? '12V' : 'custom')));
       return { ch: chNum, name: r.name || `VCC_AI${chNum}`, dl: String(r.min || '3.15'), ul: String(r.max || '3.45'), preset: pk };
     });
-  } else if (targetMode === 'builder' && editGenIdx >= 0 && window.BB_STATE && window.BB_STATE.stack[editGenIdx]) {
-    const blkCfg = window.BB_STATE.stack[editGenIdx].config || {};
+  } else if (targetMode === 'builder' && editGenIdx >= 0 && window.BB_STATE) {
+    const bbTarget = (typeof window.bbGetBlockByNavIdx === 'function')
+      ? window.bbGetBlockByNavIdx(editGenIdx)
+      : window.BB_STATE.stack[editGenIdx];
+    const blkCfg = (bbTarget && bbTarget.config) || {};
     NI6_STATE.mode = blkCfg.mode || 'RSE';
     NI6_STATE.channels = (Array.isArray(blkCfg.channels) && blkCfg.channels.length)
       ? blkCfg.channels.map(c => ({ ...c, preset: c.preset || 'custom' }))
@@ -5881,8 +5915,10 @@ async function ni6ConfirmSubmit() {
   }
 
   if (NI6_STATE.targetMode === 'builder') {
-    if (window.BB_STATE && window.BB_STATE.stack[NI6_STATE.editGenIdx]) {
-      const targetBlk = window.BB_STATE.stack[NI6_STATE.editGenIdx];
+    const targetBlk = (typeof window.bbGetBlockByNavIdx === 'function')
+      ? window.bbGetBlockByNavIdx(NI6_STATE.editGenIdx)
+      : (window.BB_STATE && window.BB_STATE.stack[NI6_STATE.editGenIdx]);
+    if (targetBlk) {
       targetBlk.config = Object.assign({}, targetBlk.config || {}, {
         inst_mode: 'ni6009',
         inst_name: NI6_STATE.instName || 'NI6008',

@@ -105,12 +105,57 @@ def _append_standard_block_steps(bid, blk_map, wizard_config, ws, steps, next_ph
         steps.append(r)
 
 
+_UTILITY_SENDS = (":Delay", ":Connect", ":Disconnect", ":ObtainDevice", ":ReleaseDevice", ":ObtainSubDevice", ":ReleaseSubDevice", ":CloseMessage")
+
+
+def _apply_custom_test_id(rows_slice, custom_tid):
+    """Apply user-chosen 7-char TestID from Advanced Q&A to primary action rows."""
+    tid = str(custom_tid or "").strip()
+    if not tid or not rows_slice:
+        return
+    applied = False
+    for r in rows_slice:
+        s = str(r.get("Send") or "").strip()
+        if not any(s.startswith(p) for p in _UTILITY_SENDS):
+            r["TestID"] = tid
+            applied = True
+    if not applied:
+        rows_slice[0]["TestID"] = tid
+
+
+def _dedup_group_steps(grp_steps):
+    """Keep one shared Phase/Title for a group box and strip redundant mid-group UART connects."""
+    opened_uart = set()
+    cleaned = []
+    skip_next_prompt = False
+    for r in grp_steps:
+        s = str(r.get("Send") or "").strip()
+        if skip_next_prompt and s == "UART@\\r\\n":
+            skip_next_prompt = False
+            continue
+        skip_next_prompt = False
+        m_conn = re.match(r'^:Connect,"([^"]+)"$', s)
+        if m_conn:
+            alias = m_conn.group(1)
+            if alias in opened_uart:
+                if alias == "UART":
+                    skip_next_prompt = True
+                continue
+            opened_uart.add(alias)
+        m_disc = re.match(r'^:Disconnect,"([^"]+)"$', s)
+        if m_disc:
+            opened_uart.discard(m_disc.group(1))
+        cleaned.append(r)
+    return cleaned
+
+
 def build_workspace_from_sequence(
     ws,
     station_name,
     sequence,
     wizard_config,
     build_wizard_block_steps_fn,
+    skip_teardown=False,
 ):
     """
     Build ordered station steps + DUT connections + instruments + INIs from `builder_sequence`.
@@ -170,6 +215,7 @@ def build_workspace_from_sequence(
     for item in normal_items:
         kind = str(item.get("kind") or "").strip()
         cfg = item.get("config") or {}
+        step_start_idx = len(steps)
 
         if kind == "start":
             sys_ini = ws.setdefault("system_ini", {})
@@ -750,11 +796,42 @@ def build_workspace_from_sequence(
                 )
             _append_standard_block_steps(bid_map[kind], blk_map, wizard_config, ws, steps, next_phase)
 
-        # Every action block (except isn / delay / multi_sku / disabled fixture) supports optional post-block Delay row
+        elif kind == "group":
+            children = [c for c in (cfg.get("children") or []) if isinstance(c, dict)]
+            if children:
+                tmp_ws = {
+                    "project_name": ws.get("project_name"),
+                    "duts": ws.setdefault("duts", []),
+                    "instruments": ws.setdefault("instruments", []),
+                    "switches": ws.setdefault("switches", []),
+                    "marcos": ws.setdefault("marcos", {}),
+                    "global_ini": ws.setdefault("global_ini", {}),
+                    "system_ini": ws.setdefault("system_ini", {}),
+                    "stations": {},
+                }
+                _, grp_sku = build_workspace_from_sequence(
+                    tmp_ws, station_name, children, wizard_config, build_wizard_block_steps_fn, skip_teardown=True
+                )
+                if grp_sku and not extracted_sku_cfg:
+                    extracted_sku_cfg = grp_sku
+                raw_grp_steps = _dedup_group_steps(tmp_ws.get("stations", {}).get(station_name) or [])
+                if raw_grp_steps:
+                    g_title = str(cfg.get("title") or "Custom Group").strip() or "Custom Group"
+                    g_retry = str(cfg.get("retry") or "0").strip()
+                    g_title_str = f"0,{g_title},{g_retry}" if g_retry and g_retry != "0" else f"0,{g_title}"
+                    g_ph = _alloc_phase()
+                    for g_i, gr in enumerate(raw_grp_steps):
+                        gr["Phase"] = g_ph if g_i == 0 else ""
+                        gr["Title"] = g_title_str if g_i == 0 else ""
+                    steps.extend(raw_grp_steps)
+
+        # Every action block (except start / end / isn / delay / inst / multi_sku / disabled fixture) supports optional post-block Delay row
         skip_post_delay = (
             kind in ("start", "end", "isn", "delay", "inst", "multi_sku")
             or (kind == "fixture" and str(cfg.get("fixture_type") or "none").strip().lower() == "none")
         )
+        if kind != "inst" and cfg.get("test_id"):
+            _apply_custom_test_id(steps[step_start_idx:], cfg.get("test_id"))
         if not skip_post_delay and cfg.get("post_delay_enabled"):
             try:
                 sec = float(cfg.get("post_delay_sec") if cfg.get("post_delay_sec") is not None else 0.5)
@@ -770,18 +847,19 @@ def build_workspace_from_sequence(
                     test_id="B7PL025",
                 ))
 
-    # Append Teardown block(s) at the end (always 97, optionally 98/99)
-    if teardown_items:
-        td_cfg = teardown_items[-1].get("config") or {}
-        td_mode = str(td_cfg.get("teardown_mode") or "97_only").strip().lower()
-        for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
-            steps.append(dict(r))
-        if td_mode == "97_98_99":
-            for r in (blk_map.get("BLK_PHASE98_99_BRANCH_TEARDOWN", {}).get("steps") or []):
+    # Append Teardown block(s) at the end unless running inside a group box
+    if not skip_teardown:
+        if teardown_items:
+            td_cfg = teardown_items[-1].get("config") or {}
+            td_mode = str(td_cfg.get("teardown_mode") or "97_only").strip().lower()
+            for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
                 steps.append(dict(r))
-    else:
-        for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
-            steps.append(dict(r))
+            if td_mode == "97_98_99":
+                for r in (blk_map.get("BLK_PHASE98_99_BRANCH_TEARDOWN", {}).get("steps") or []):
+                    steps.append(dict(r))
+        else:
+            for r in (blk_map.get("BLK_PHASE97_TEARDOWN", {}).get("steps") or []):
+                steps.append(dict(r))
 
     ws["stations"] = {station_name: steps}
 
@@ -953,6 +1031,13 @@ def build_workspace_from_sequence(
                 globals_patch=g_patch,
             )
 
+        if icfg.get("test_id"):
+            after_steps = ws["stations"][station_name]
+            added_n = len(after_steps) - before_inst_len
+            base_pos = 0 if after_blk < 0 else (blks[after_blk]["steps"][-1]["global_idx"] + 1)
+            if added_n > 0:
+                _apply_custom_test_id(after_steps[base_pos:base_pos + added_n], icfg.get("test_id"))
+
         if icfg.get("post_delay_enabled"):
             try:
                 sec = float(icfg.get("post_delay_sec") if icfg.get("post_delay_sec") is not None else 0.5)
@@ -990,6 +1075,8 @@ def build_workspace_from_sequence(
                 continue
             if not seen_zero:
                 seen_zero = True
+                if p_int >= 1:
+                    cur_p = 1
             st_row["Phase"] = str(cur_p)
             cur_p += 1
         except ValueError:

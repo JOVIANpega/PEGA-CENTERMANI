@@ -5,6 +5,19 @@
   // 所有積木皆為極簡「圖示 + 最多 2 字中文」，詳細用途於滑鼠移入 Pop 視窗顯示
   const BUILDER_CATALOG = [
     {
+      kind: 'group',
+      icon: '📦',
+      shortName: '群組',
+      name: '📦 群組',
+      tier: 'common',
+      exclusivePage: false,
+      theme: '#FEF3C7',
+      border: '#D97706',
+      popTitle: '📦 機能群組方框（同一個 Phase 內混排多塊積木）',
+      popDesc: '展開後可把 指令 / 等待 / 儀器 / 治具 / 比對 拖進同一個框內共用 1 個 Phase；收合時只佔一格撲克牌。設定時自動依 #3.1、#3.2 逐頁一塊填寫。',
+      popExample: '例：[ 📦 開機與電流檢查 ] ➔ (指令 + 等待 + PPH1503)'
+    },
+    {
       kind: 'comm_cmd',
       icon: '💬',
       shortName: '指令',
@@ -384,6 +397,16 @@
         return Object.assign({}, base, { dut_ip: '192.168.11.143', pc_ip: '192.168.11.3', timeout_ms: '5000' });
       case 'ext_file':
         return Object.assign({}, base, { file_mode: 'rini', file_path: '.\\System\\config.ini', section: 'Scripts', key: 'TargetKey', var_name: 'gExtVal' });
+      case 'group':
+        return {
+          title: '自訂機能群組',
+          collapsed: false,
+          retry: '0',
+          children: [
+            { uid: _newUid(), kind: 'comm_cmd', configured: false, config: _defaultConfigForKind('comm_cmd') },
+            { uid: _newUid(), kind: 'delay', configured: true, config: _defaultConfigForKind('delay') }
+          ]
+        };
       case 'teardown':
         return { teardown_mode: '97_only' };
       case 'end':
@@ -403,6 +426,8 @@
     dragSrcType: null,
     dragKind: null,
     dragStackIdx: -1,
+    dragGroupIdx: -1,
+    dragChildIdx: -1,
     catalogInsts: null,
     instFilter: 'USABLE',
     instSearch: '',
@@ -472,6 +497,10 @@
         return `$${c.var_name || 'gTag'}=${(c.value_expr || '').slice(0, 12)}${dNote}`;
       case 'add_attr':
         return `${c.target || 'UART'}.${c.attr_key || 'COM'}${dNote}`;
+      case 'group': {
+        const chs = Array.isArray(c.children) ? c.children : [];
+        return `${c.title || '機能群組'} (${chs.length}塊共用Phase)`;
+      }
       case 'teardown':
         return c.teardown_mode === '97_98_99' ? '97 + 98/99' : 'Phase 97';
       case 'end':
@@ -515,6 +544,10 @@
         .bb-snake-grid-row { display:grid; align-items:center; gap:4px; }
         .bb-drop-slot-turn { width:82px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:1rem; border:1.5px dashed transparent; transition:all 0.14s ease; }
         .bb-drop-slot-turn.drag-over { height:32px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
+        .bb-group-collapsed-card { box-shadow:3px 3px 0 #FDE68A, 5px 5px 0 #D97706 !important; background:#FFFBEB !important; border-color:#D97706 !important; }
+        .bb-group-box { width:100%; box-sizing:border-box; border:2px dashed #D97706; background:rgba(254, 243, 199, 0.42); border-radius:11px; padding:9px 11px; margin:4px 0; transition:all 0.15s ease; }
+        .bb-group-box.drag-over-card { background:#FEF3C7 !important; border-color:#2563EB !important; box-shadow:0 0 0 3px rgba(37,99,235,0.18); }
+        .bb-group-inner-track { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:98px; padding:4px 0; }
         .bb-bottom-dock { margin-top:14px; padding-top:12px; border-top:1.5px solid #CBD5E1; display:flex; flex-direction:column; gap:10px; }
         .bb-progress-strip { display:flex; align-items:stretch; gap:6px; overflow-x:auto; padding:8px 10px; background:#F1F5F9; border:1.5px solid #CBD5E1; border-radius:10px; }
         .bb-step-pill { min-width:82px; max-width:118px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
@@ -703,15 +736,155 @@
     }
   };
 
+  const _GROUP_FORBIDDEN = new Set(['start', 'end', 'isn', 'multi_sku', 'teardown', 'group']);
+
+  function _getQaNavList() {
+    const nav = [];
+    BB_STATE.stack.forEach((it, sIdx) => {
+      if (it.kind === 'group') {
+        const chs = Array.isArray(it.config && it.config.children) ? it.config.children : [];
+        if (chs.length > 0) {
+          chs.forEach((ch, cIdx) => {
+            nav.push({ stackIdx: sIdx, subIdx: cIdx, numLabel: `#${sIdx + 1}.${cIdx + 1}`, item: ch, parentGroup: it });
+          });
+        } else {
+          nav.push({ stackIdx: sIdx, subIdx: -2, numLabel: `#${sIdx + 1}`, item: it, parentGroup: null });
+        }
+      } else {
+        nav.push({ stackIdx: sIdx, subIdx: -1, numLabel: `#${sIdx + 1}`, item: it, parentGroup: null });
+      }
+    });
+    return nav;
+  }
+
+  function _resolveNavEntry(navIdx) {
+    const nav = _getQaNavList();
+    if (!nav.length) return null;
+    const clamped = Math.max(0, Math.min(Number(navIdx) || 0, nav.length - 1));
+    return nav[clamped] || null;
+  }
+
+  window.bbGetBlockByNavIdx = function (navIdx) {
+    const ent = _resolveNavEntry(navIdx);
+    return ent ? ent.item : null;
+  };
+
+  window.bbToggleGroupCollapse = function (stackIdx) {
+    const it = BB_STATE.stack[stackIdx];
+    if (!it || it.kind !== 'group') return;
+    it.config = it.config || {};
+    it.config.collapsed = !it.config.collapsed;
+    bbRender();
+  };
+
+  window.bbGroupSetField = function (stackIdx, key, val) {
+    const it = BB_STATE.stack[stackIdx];
+    if (!it || it.kind !== 'group') return;
+    it.config = it.config || {};
+    it.config[key] = val;
+    it.configured = true;
+  };
+
+  window.bbGroupAddChild = function (groupIdx, kind) {
+    if (!kind || _GROUP_FORBIDDEN.has(kind)) return;
+    const grp = BB_STATE.stack[groupIdx];
+    if (!grp || grp.kind !== 'group') return;
+    grp.config = grp.config || {};
+    grp.config.children = Array.isArray(grp.config.children) ? grp.config.children : [];
+    grp.config.children.push({ uid: _newUid(), kind, configured: false, config: _defaultConfigForKind(kind) });
+    grp.config.collapsed = false;
+    grp.configured = true;
+    bbRender();
+  };
+
+  window.bbGroupRemoveChild = function (groupIdx, childIdx) {
+    const grp = BB_STATE.stack[groupIdx];
+    if (!grp || grp.kind !== 'group' || !Array.isArray(grp.config && grp.config.children)) return;
+    grp.config.children.splice(childIdx, 1);
+    bbRender();
+  };
+
+  window.bbGroupMoveChild = function (groupIdx, childIdx, delta) {
+    const grp = BB_STATE.stack[groupIdx];
+    const chs = grp && grp.config && grp.config.children;
+    if (!Array.isArray(chs)) return;
+    const tgt = childIdx + delta;
+    if (tgt < 0 || tgt >= chs.length) return;
+    const item = chs.splice(childIdx, 1)[0];
+    chs.splice(tgt, 0, item);
+    bbRender();
+  };
+
+  window.bbDragStartGroupChild = function (ev, groupIdx, childIdx) {
+    ev.stopPropagation();
+    bbHidePop();
+    const grp = BB_STATE.stack[groupIdx];
+    const ch = grp && grp.config && grp.config.children && grp.config.children[childIdx];
+    if (!ch) {
+      ev.preventDefault();
+      return;
+    }
+    BB_STATE.dragSrcType = 'group_child';
+    BB_STATE.dragGroupIdx = groupIdx;
+    BB_STATE.dragChildIdx = childIdx;
+    BB_STATE.dragKind = ch.kind;
+    if (ev.dataTransfer) {
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', `${groupIdx}:${childIdx}`);
+    }
+  };
+
+  window.bbDropInGroup = function (ev, groupIdx, childSlotIdx = -1) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    bbHidePop();
+    document.querySelectorAll('.drag-over, .drag-over-card').forEach(el => { el.classList.remove('drag-over'); el.classList.remove('drag-over-card'); });
+    const grp = BB_STATE.stack[groupIdx];
+    if (!grp || grp.kind !== 'group') return;
+    grp.config = grp.config || {};
+    grp.config.children = Array.isArray(grp.config.children) ? grp.config.children : [];
+    const chs = grp.config.children;
+
+    if (BB_STATE.dragSrcType === 'palette' && BB_STATE.dragKind) {
+      if (_GROUP_FORBIDDEN.has(BB_STATE.dragKind)) return;
+      const newChild = { uid: _newUid(), kind: BB_STATE.dragKind, configured: false, config: _defaultConfigForKind(BB_STATE.dragKind) };
+      const pos = (childSlotIdx >= 0 && childSlotIdx <= chs.length) ? childSlotIdx : chs.length;
+      chs.splice(pos, 0, newChild);
+      grp.config.collapsed = false;
+      bbRender();
+    } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= 1) {
+      const from = BB_STATE.dragStackIdx;
+      if (from === groupIdx) return;
+      const item = BB_STATE.stack[from];
+      if (!item || (META_BY_KIND[item.kind] && META_BY_KIND[item.kind].fixed) || _GROUP_FORBIDDEN.has(item.kind)) return;
+      BB_STATE.stack.splice(from, 1);
+      const pos = (childSlotIdx >= 0 && childSlotIdx <= chs.length) ? childSlotIdx : chs.length;
+      chs.splice(pos, 0, item);
+      grp.config.collapsed = false;
+      bbRender();
+    } else if (BB_STATE.dragSrcType === 'group_child' && BB_STATE.dragGroupIdx >= 0 && BB_STATE.dragChildIdx >= 0) {
+      const srcGrp = BB_STATE.stack[BB_STATE.dragGroupIdx];
+      const srcChs = srcGrp && srcGrp.config && srcGrp.config.children;
+      if (!Array.isArray(srcChs) || !srcChs[BB_STATE.dragChildIdx]) return;
+      const moved = srcChs.splice(BB_STATE.dragChildIdx, 1)[0];
+      let pos = (childSlotIdx >= 0 && childSlotIdx <= chs.length) ? childSlotIdx : chs.length;
+      if (BB_STATE.dragGroupIdx === groupIdx && childSlotIdx > BB_STATE.dragChildIdx) pos = Math.max(0, pos - 1);
+      chs.splice(pos, 0, moved);
+      bbRender();
+    }
+    BB_STATE.dragSrcType = null;
+    BB_STATE.dragKind = null;
+    BB_STATE.dragStackIdx = -1;
+    BB_STATE.dragGroupIdx = -1;
+    BB_STATE.dragChildIdx = -1;
+  };
+
   window.bbDropAtSlot = function (ev, slotIdx) {
     ev.preventDefault();
     ev.stopPropagation();
     bbHidePop();
     document.querySelectorAll('.drag-over, .drag-over-card').forEach(el => { el.classList.remove('drag-over'); el.classList.remove('drag-over-card'); });
     const minPos = (BB_STATE.stack[0] && BB_STATE.stack[0].kind === 'start') ? 1 : 0;
-    const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
-      ? BB_STATE.stack.length - 1
-      : BB_STATE.stack.length;
     if (BB_STATE.dragSrcType === 'palette' && BB_STATE.dragKind) {
       _insertBlockAt(BB_STATE.dragKind, slotIdx);
     } else if (BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx >= minPos) {
@@ -726,10 +899,21 @@
       ins = Math.max(minPos, Math.min(ins, maxAfterRemove));
       BB_STATE.stack.splice(ins, 0, item);
       bbRender();
+    } else if (BB_STATE.dragSrcType === 'group_child' && BB_STATE.dragGroupIdx >= 0 && BB_STATE.dragChildIdx >= 0) {
+      const srcGrp = BB_STATE.stack[BB_STATE.dragGroupIdx];
+      const srcChs = srcGrp && srcGrp.config && srcGrp.config.children;
+      if (!Array.isArray(srcChs) || !srcChs[BB_STATE.dragChildIdx]) return;
+      const moved = srcChs.splice(BB_STATE.dragChildIdx, 1)[0];
+      const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end') ? BB_STATE.stack.length - 1 : BB_STATE.stack.length;
+      const ins = Math.max(minPos, Math.min(slotIdx, endIdx));
+      BB_STATE.stack.splice(ins, 0, moved);
+      bbRender();
     }
     BB_STATE.dragSrcType = null;
     BB_STATE.dragKind = null;
     BB_STATE.dragStackIdx = -1;
+    BB_STATE.dragGroupIdx = -1;
+    BB_STATE.dragChildIdx = -1;
   };
 
   window.bbCardDragOver = function (ev, targetIdx) {
@@ -747,6 +931,16 @@
     ev.stopPropagation();
     bbHidePop();
     document.querySelectorAll('.drag-over, .drag-over-card').forEach(el => { el.classList.remove('drag-over'); el.classList.remove('drag-over-card'); });
+    const targetItem = BB_STATE.stack[targetIdx];
+    if (targetItem && targetItem.kind === 'group' && BB_STATE.dragSrcType !== 'stack') {
+      return window.bbDropInGroup(ev, targetIdx, -1);
+    }
+    if (targetItem && targetItem.kind === 'group' && BB_STATE.dragSrcType === 'stack' && BB_STATE.dragStackIdx !== targetIdx) {
+      const dragged = BB_STATE.stack[BB_STATE.dragStackIdx];
+      if (dragged && !_GROUP_FORBIDDEN.has(dragged.kind) && !(META_BY_KIND[dragged.kind] && META_BY_KIND[dragged.kind].fixed)) {
+        return window.bbDropInGroup(ev, targetIdx, -1);
+      }
+    }
     const minPos = (BB_STATE.stack[0] && BB_STATE.stack[0].kind === 'start') ? 1 : 0;
     const endIdx = (BB_STATE.stack.length && BB_STATE.stack[BB_STATE.stack.length - 1].kind === 'end')
       ? BB_STATE.stack.length - 1
@@ -769,10 +963,20 @@
       const dest = Math.max(minPos, Math.min(targetIdx, maxAfterRemove));
       BB_STATE.stack.splice(dest, 0, item);
       bbRender();
+    } else if (BB_STATE.dragSrcType === 'group_child' && BB_STATE.dragGroupIdx >= 0 && BB_STATE.dragChildIdx >= 0) {
+      const srcGrp = BB_STATE.stack[BB_STATE.dragGroupIdx];
+      const srcChs = srcGrp && srcGrp.config && srcGrp.config.children;
+      if (!Array.isArray(srcChs) || !srcChs[BB_STATE.dragChildIdx]) return;
+      const moved = srcChs.splice(BB_STATE.dragChildIdx, 1)[0];
+      const dest = Math.max(minPos, Math.min(targetIdx, endIdx));
+      BB_STATE.stack.splice(dest, 0, moved);
+      bbRender();
     }
     BB_STATE.dragSrcType = null;
     BB_STATE.dragKind = null;
     BB_STATE.dragStackIdx = -1;
+    BB_STATE.dragGroupIdx = -1;
+    BB_STATE.dragChildIdx = -1;
   };
 
   window.bbToggleFullscreen = function () {
@@ -787,52 +991,65 @@
     bbRender();
   };
 
-  window.bbStartQa = async function (startIdx = 0) {
+  window.bbStartQa = async function (startStackIdx = 0) {
     bbHidePop();
     await _ensureCatalogLoaded();
+    const nav = _getQaNavList();
+    let navIdx = nav.findIndex(e => e.stackIdx === startStackIdx);
+    if (navIdx < 0) navIdx = 0;
     BB_STATE.view = 'qa';
-    BB_STATE.qaIdx = Math.max(0, Math.min(startIdx, BB_STATE.stack.length - 1));
-    if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
+    BB_STATE.qaIdx = navIdx;
+    const it = window.bbGetBlockByNavIdx(navIdx);
+    if (it) it.configured = true;
     bbRender();
   };
 
   window.bbGoView = function (viewName) {
     bbHidePop();
     BB_STATE.view = viewName;
-    if (viewName === 'qa' && BB_STATE.stack[BB_STATE.qaIdx]) {
-      BB_STATE.stack[BB_STATE.qaIdx].configured = true;
-    }
+    const it = window.bbGetBlockByNavIdx(BB_STATE.qaIdx);
+    if (viewName === 'qa' && it) it.configured = true;
     bbRender();
   };
 
   window.bbQaStep = function (delta) {
     bbHidePop();
+    const nav = _getQaNavList();
+    const curIt = window.bbGetBlockByNavIdx(BB_STATE.qaIdx);
+    if (curIt) curIt.configured = true;
     const nxt = BB_STATE.qaIdx + delta;
     if (nxt < 0) {
       BB_STATE.view = 'stack';
-    } else if (nxt >= BB_STATE.stack.length) {
-      if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
+    } else if (nxt >= nav.length) {
       BB_STATE.view = 'export';
     } else {
-      if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
       BB_STATE.qaIdx = nxt;
-      if (BB_STATE.stack[nxt]) BB_STATE.stack[nxt].configured = true;
+      if (nav[nxt] && nav[nxt].item) nav[nxt].item.configured = true;
     }
     bbRender();
   };
 
-  window.bbJumpQa = async function (idx) {
+  window.bbJumpQa = async function (stackOrNavIdx, subIdx = -1, isNavIndex = false) {
     bbHidePop();
     await _ensureCatalogLoaded();
-    if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
+    const curIt = window.bbGetBlockByNavIdx(BB_STATE.qaIdx);
+    if (curIt) curIt.configured = true;
+    const nav = _getQaNavList();
+    let targetNavIdx = 0;
+    if (isNavIndex) {
+      targetNavIdx = Math.max(0, Math.min(Number(stackOrNavIdx) || 0, Math.max(0, nav.length - 1)));
+    } else {
+      const hit = nav.findIndex(e => e.stackIdx === stackOrNavIdx && (subIdx < 0 || e.subIdx === subIdx));
+      targetNavIdx = hit >= 0 ? hit : 0;
+    }
     BB_STATE.view = 'qa';
-    BB_STATE.qaIdx = Math.max(0, Math.min(idx, BB_STATE.stack.length - 1));
-    if (BB_STATE.stack[BB_STATE.qaIdx]) BB_STATE.stack[BB_STATE.qaIdx].configured = true;
+    BB_STATE.qaIdx = targetNavIdx;
+    if (nav[targetNavIdx] && nav[targetNavIdx].item) nav[targetNavIdx].item.configured = true;
     bbRender();
   };
 
   window.bbUpdateField = function (idx, key, val, rerender = false) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     it.config = it.config || {};
     it.config[key] = val;
@@ -900,7 +1117,7 @@
   }
 
   window.bbRefreshExtractPreview = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     const box = document.getElementById('bbExtractSimBox');
     if (!it || !box) return;
     const res = _simulateExtract(it.config || {});
@@ -918,7 +1135,7 @@
   };
 
   window.bbSelectBuilderInst = function (idx, instName) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     it.config = it.config || {};
     const nm = String(instName || 'NI6008').trim();
@@ -971,7 +1188,7 @@
   };
 
   window.bbSetLedPreset = function (idx, preset) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     const map = {
       green: { dl: '515', ul: '535', title: 'Feasa Green LED Check' },
@@ -1008,6 +1225,7 @@
     if (k === 'delay') return 55;
     if (k === 'ping') return 60;
     if (k === 'comm_cmd') return 70;
+    if (k === 'group') return 68;
     if (k === 'var_check') return 75;
     if (k === 'python') return 80;
     if (k === 'prompt_box') return 88;
@@ -1025,7 +1243,7 @@
     bbRender();
   };
 
-  function _collectPrecedingVars(beforeIdx) {
+  function _collectPrecedingVars(beforeNavIdx) {
     const vars = [];
     const seen = new Set();
     const addV = (vn, src) => {
@@ -1035,20 +1253,23 @@
       vars.push({ name: clean, source: src });
     };
     addV('ISN', '條碼掃描');
-    const limit = Math.min(beforeIdx, BB_STATE.stack.length);
+    const nav = _getQaNavList();
+    const limit = Math.min(Number(beforeNavIdx) || 0, nav.length);
     for (let i = 0; i < limit; i++) {
-      const b = BB_STATE.stack[i];
+      const b = nav[i] && nav[i].item;
+      if (!b) continue;
       const bc = (b && b.config) || {};
+      const numL = nav[i].numLabel || `#${i + 1}`;
       const lbl = (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind;
-      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') addV(bc.var_name || 'gCmdOut', `#${i + 1} ${lbl}`);
-      if (b.kind === 'sfis_rw' && bc.rw_mode !== 'save_link') addV(bc.var_name || 'sfMAC', `#${i + 1} ${lbl}`);
-      if (b.kind === 'prompt_box' && bc.prompt_mode === 'input') addV(bc.var_name || 'ScanSub', `#${i + 1} ${lbl}`);
-      if (b.kind === 'set_val' || b.kind === 'ext_file') addV(bc.var_name, `#${i + 1} ${lbl}`);
+      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') addV(bc.var_name || 'gCmdOut', `${numL} ${lbl}`);
+      if (b.kind === 'sfis_rw' && bc.rw_mode !== 'save_link') addV(bc.var_name || 'sfMAC', `${numL} ${lbl}`);
+      if (b.kind === 'prompt_box' && bc.prompt_mode === 'input') addV(bc.var_name || 'ScanSub', `${numL} ${lbl}`);
+      if (b.kind === 'set_val' || b.kind === 'ext_file') addV(bc.var_name, `${numL} ${lbl}`);
       if (b.kind === 'inst') {
-        if (Array.isArray(bc.channels)) bc.channels.forEach(ch => addV(ch.name, `#${i + 1} NI6008`));
-        if (/feasa/i.test(bc.inst_name || '')) { addV('LED_Wave', `#${i + 1} FeasaLED`); addV('LED_Int', `#${i + 1} FeasaLED`); }
-        if (/pph1503|ps2005|ipower/i.test(bc.inst_name || '') && bc.pwr_action === 'mcurr') addV('gCurr', `#${i + 1} ${bc.inst_name}`);
-        if (/34401|2700|mda2700|u2004a/i.test(bc.inst_name || '')) addV('gDmmVal', `#${i + 1} ${bc.inst_name}`);
+        if (Array.isArray(bc.channels)) bc.channels.forEach(ch => addV(ch.name, `${numL} NI6008`));
+        if (/feasa/i.test(bc.inst_name || '')) { addV('LED_Wave', `${numL} FeasaLED`); addV('LED_Int', `${numL} FeasaLED`); }
+        if (/pph1503|ps2005|ipower/i.test(bc.inst_name || '') && bc.pwr_action === 'mcurr') addV('gCurr', `${numL} ${bc.inst_name}`);
+        if (/34401|2700|mda2700|u2004a/i.test(bc.inst_name || '')) addV('gDmmVal', `${numL} ${bc.inst_name}`);
       }
     }
     return vars;
@@ -1140,6 +1361,9 @@
         out.push(`System.ini [System]: StationName=${BB_STATE.exportOpts.station_name_mode === 'ask' ? '(留空開機詢問)' : '鎖定目前站名'}`);
         out.push(`System.ini [Checksum]: 匯出時由 LoadScript.dll 自動寫入 64 碼簽章`);
         break;
+      case 'group':
+        out.push('此群組內之所有子積木共用單一 Phase；INI 連動依各自子積木預覽顯示');
+        break;
       default:
         out.push('無須額外修改 INI（跟隨流程動態編譯寫入 Station Sheet）');
     }
@@ -1160,7 +1384,7 @@
   }
 
   window.bbAutoInferExtract = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     it.config = it.config || {};
     const ta = document.getElementById(`bbSampleLog_${idx}`);
@@ -1261,7 +1485,7 @@
   };
 
   window.bbApplyInferCandidate = function (idx, candIdx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it || !Array.isArray(it._extractCandidates) || !it._extractCandidates[candIdx]) return;
     const cand = it._extractCandidates[candIdx];
     const c = it.config;
@@ -1305,7 +1529,7 @@
   };
 
   window.bbUploadAddRow = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     it.config = it.config || {};
     it.config.items = Array.isArray(it.config.items) ? it.config.items : [];
@@ -1318,7 +1542,7 @@
   };
 
   window.bbUploadDelRow = function (idx, rowIdx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it || !Array.isArray(it.config && it.config.items)) return;
     if (it.config.items.length <= 1) return;
     it.config.items.splice(rowIdx, 1);
@@ -1326,7 +1550,7 @@
   };
 
   window.bbUploadUpdateRow = function (idx, rowIdx, key, val, rerender = false) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it || !Array.isArray(it.config && it.config.items) || !it.config.items[rowIdx]) return;
     it.config.items[rowIdx][key] = val;
     it.configured = true;
@@ -1336,7 +1560,7 @@
   };
 
   window.bbApplySfisPlantPreset = function (idx, plantId) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it || typeof SFIS_PLANT_PRESETS === 'undefined') return;
     const found = SFIS_PLANT_PRESETS.find(p => p.id === plantId);
     if (!found) return;
@@ -1348,7 +1572,7 @@
   };
 
   window.bbTestSfisLink = async function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     const box = document.getElementById(`bbSfisLinkResult_${idx}`);
     if (box) {
@@ -1375,7 +1599,7 @@
   };
 
   window.bbSetInstNiPreset = function (idx, count) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (!it) return;
     const presets = [
       { ch: 0, name: 'VCC_5V', dl: '4.75', ul: '5.25' },
@@ -1395,7 +1619,7 @@
   };
 
   window.bbOpenNi6DiagramFromBuilder = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     const instNm = (it && it.config && it.config.inst_name) || 'NI6008';
     if (typeof window.openNi6009Hmi === 'function') {
       window.openNi6009Hmi('builder', idx, instNm);
@@ -1405,7 +1629,7 @@
   };
 
   window.bbOpenFullSfisWorkspace = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     const isnBlk = BB_STATE.stack.find(b => b.kind === 'isn');
     if (typeof window.openSfisWorkspaceForBuilder === 'function') {
       window.openSfisWorkspaceForBuilder(idx, isnBlk ? isnBlk.config : {}, it ? it.config : {});
@@ -1413,20 +1637,80 @@
   };
 
   window.bbClearSfisBundle = function (idx) {
-    const it = BB_STATE.stack[idx];
+    const it = window.bbGetBlockByNavIdx(idx);
     if (it && it.config) {
       delete it.config.sfis_hmi_bundle;
       bbRender();
     }
   };
 
+  let _bbTidTimer = null;
+  window.bbSearchTestIdAdv = function (idx, q) {
+    const it = window.bbGetBlockByNavIdx(idx);
+    if (it) {
+      it._tidQuery = q;
+    }
+    clearTimeout(_bbTidTimer);
+    _bbTidTimer = setTimeout(async () => {
+      const box = document.getElementById(`bbTidAdvRes_${idx}`);
+      if (!box) return;
+      const kw = String(q || '').trim();
+      if (!kw) {
+        box.innerHTML = '<span style="color:#64748B;">輸入關鍵字（例如：電流、電壓、LED、UART、Ping）即列出推薦 7 碼 TestID</span>';
+        return;
+      }
+      try {
+        const res = await fetch('/api/search_test_id?limit=12&generic_only=0&q=' + encodeURIComponent(kw));
+        const d = await res.json();
+        const items = (d && d.items) || [];
+        if (!items.length) {
+          box.innerHTML = '<span style="color:#B45309;">無完全相符代碼，請改試英文關鍵字（如 Current, Volt, UART）。</span>';
+          return;
+        }
+        box.innerHTML = items.map(x => `
+          <button type="button" onclick="bbPickTestIdAdv(${idx}, '${_esc(x.test_id)}')" class="mono"
+            style="cursor:pointer; padding:3px 8px; border-radius:6px; border:1px solid #A855F7; background:#FFFFFF; color:#581C87; font-size:0.75rem; font-weight:800; text-align:left;"
+            title="${_esc((x.desc_en || '') + ' ' + (x.desc_cn || ''))}">
+            <b>${_esc(x.test_id)}</b> · ${_esc((x.desc_cn || x.desc_en || '').slice(0, 18))}
+          </button>
+        `).join('');
+      } catch (_e) {
+        box.innerHTML = '<span style="color:#B91C1C;">查詢失敗</span>';
+      }
+    }, 180);
+  };
+
+  window.bbPickTestIdAdv = function (idx, tid) {
+    window.bbUpdateField(idx, 'test_id', tid, true);
+  };
+
+  function _renderTestIdAdvPicker(item, idx) {
+    if (!BB_STATE.qaShowAdv) return '';
+    if (['start', 'end', 'isn', 'multi_sku', 'group'].includes(item.kind)) return '';
+    const c = item.config || {};
+    return `
+      <div style="margin-top:10px; background:#FAF5FF; border:1.5px dashed #A855F7; border-radius:8px; padding:8px 11px;">
+        <div style="font-size:0.8rem; font-weight:900; color:#581C87; margin-bottom:5px;">🏷️ TestID（7 碼錯誤碼即時搜尋套用 — 進階設定）：</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <input value="${_esc(c.test_id || '')}" placeholder="預設自動（例 BRME027）" oninput="bbUpdateField(${idx},'test_id',this.value,false)" class="mono" style="width:140px; padding:4px 8px; border:1.5px solid #A855F7; border-radius:5px; font-weight:800; color:#4C1D95;">
+          <input value="${_esc(item._tidQuery || '')}" placeholder="輸入關鍵字搜代碼，例：電流 / 電壓 / LED" oninput="bbSearchTestIdAdv(${idx}, this.value)" style="flex:1; min-width:190px; padding:4px 8px; border:1px solid #C084FC; border-radius:5px; font-size:0.8rem;">
+          ${c.test_id ? `<button type="button" class="btn" style="padding:3px 8px; font-size:0.75rem;" onclick="bbUpdateField(${idx},'test_id','',true)">清除改自動</button>` : ''}
+        </div>
+        <div id="bbTidAdvRes_${idx}" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; font-size:0.76rem; color:#64748B;">
+          <span>輸入關鍵字即列出官方 TestID，點一下自動寫入本積木</span>
+        </div>
+      </div>
+    `;
+  }
+
   function _buildTopActionButtonsHtml() {
+    const totalPages = _getQaNavList().length;
     return `
       <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:${BB_STATE.fullscreen ? '#1E293B' : '#F8FAFC'}; color:${BB_STATE.fullscreen ? '#FFFFFF' : '#0F172A'}; border:1.5px solid #94A3B8; font-weight:800;" onclick="bbToggleFullscreen()">
         ${BB_STATE.fullscreen ? '🗗 退出全螢幕' : '⛶ 全螢幕編排'}
       </button>
       <button type="button" class="btn btn-primary-blue" style="padding:6px 15px; font-size:0.88rem; font-weight:900;" onclick="bbStartQa(0)">
-        🚀 開始逐塊設定 (${BB_STATE.stack.length} 塊) ▶
+        🚀 開始逐塊設定 (${totalPages} 頁) ▶
       </button>
     `;
   }
@@ -1459,10 +1743,12 @@
       const meta = META_BY_KIND[item.kind] || {};
       const isFixed = !!meta.fixed;
       const isRed = !!meta.exclusivePage;
-      const sn = String(meta.shortName || item.kind);
-      const fSize = sn.length >= 5 ? '0.76rem' : '0.86rem';
+      const isGrp = item.kind === 'group';
+      const chs = isGrp && item.config && Array.isArray(item.config.children) ? item.config.children : [];
+      const sn = isGrp ? `群組 (${chs.length}塊)` : String(meta.shortName || item.kind);
+      const fSize = sn.length >= 5 ? '0.73rem' : '0.86rem';
       return `
-        <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''}"
+        <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''} ${isGrp ? 'bb-group-collapsed-card' : ''}"
           style="cursor:pointer; border-top-color:${meta.border || '#3B82F6'};"
           data-bb-pop="${item.kind}"
           draggable="${isFixed ? 'false' : 'true'}"
@@ -1475,19 +1761,21 @@
           onmouseleave="bbHidePop()"
           onclick="bbJumpQa(${idx})">
           <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
-            <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isRed ? '#FEE2E2' : '#E2E8F0'}; color:${isRed ? '#991B1B' : '#334155'};">#${idx + 1}</span>
+            <span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>
             ${!isFixed
               ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
               : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">固定</span>`}
           </div>
           <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
             <span style="font-size:1.15rem; line-height:1;">${meta.icon || '🧩'}</span>
-            <span style="font-weight:900; font-size:${fSize}; color:${isRed ? '#991B1B' : '#0F172A'}; white-space:nowrap;">${_esc(sn)}</span>
+            <span style="font-weight:900; font-size:${fSize}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#0F172A')}; white-space:nowrap;">${_esc(sn)}</span>
           </div>
           <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
             ${!isFixed ? `
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
-              <span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>
+              ${isGrp
+                ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:3px; padding:0 5px; font-size:0.66rem; font-weight:900; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▸ 展開</button>`
+                : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
               <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
             ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`}
           </div>
@@ -1495,49 +1783,163 @@
       `;
     };
 
-    // 貪食蛇 (S-curve Snake) 跨行箭頭排版：偶數列 左➔右，行尾 ⬇ 轉下一列，奇數列 右⬅左 整齊對齊
+    const mkExpandedGroupBox = (grp, gIdx) => {
+      const gc = grp.config || {};
+      const chs = Array.isArray(gc.children) ? gc.children : [];
+      const childOptions = BUILDER_CATALOG.filter(b => !_GROUP_FORBIDDEN.has(b.kind));
+      const innerHtml = chs.map((ch, cIdx) => {
+        const cm = META_BY_KIND[ch.kind] || {};
+        const cRed = !!cm.exclusivePage;
+        const cSn = String(cm.shortName || ch.kind);
+        const cfSize = cSn.length >= 5 ? '0.74rem' : '0.84rem';
+        return `
+          <div class="bb-drop-slot-v"
+            ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
+            ondragleave="this.classList.remove('drag-over');"
+            ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})">${cIdx === 0 ? '▸' : '➔'}</div>
+          <div class="bb-poker-card ${cRed ? 'is-red' : ''}"
+            style="cursor:pointer; border-top-color:${cm.border || '#D97706'};"
+            data-bb-pop="${ch.kind}"
+            draggable="true"
+            ondragstart="bbDragStartGroupChild(event, ${gIdx}, ${cIdx})"
+            ondragend="bbHidePop()"
+            ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
+            ondragleave="this.classList.remove('drag-over-card');"
+            ondrop="bbDropInGroup(event, ${gIdx}, ${cIdx})"
+            onmousemove="bbShowPop(event, '${ch.kind}')"
+            onmouseleave="bbHidePop()"
+            onclick="bbJumpQa(${gIdx}, ${cIdx})">
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
+              <span class="mono" style="font-weight:900; font-size:0.65rem; padding:1px 4px; border-radius:4px; background:#FEF3C7; color:#92400E;">#${gIdx + 1}.${cIdx + 1}</span>
+              <button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="從群組移除" onclick="bbGroupRemoveChild(${gIdx}, ${cIdx})">✕</button>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+              <span style="font-size:1.1rem; line-height:1;">${cm.icon || '🧩'}</span>
+              <span style="font-weight:900; font-size:${cfSize}; color:${cRed ? '#991B1B' : '#0F172A'}; white-space:nowrap;">${_esc(cSn)}</span>
+            </div>
+            <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
+              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往前" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, -1)">◀</button>
+              <span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>
+              <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往後" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, 1)">▶</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="bb-group-box"
+          draggable="true"
+          ondragstart="bbDragStartStack(event, ${gIdx})"
+          ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over-card');"
+          ondragleave="this.classList.remove('drag-over-card');"
+          ondrop="bbDropInGroup(event, ${gIdx}, -1)">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;" onclick="event.stopPropagation();">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span class="mono" style="background:#D97706; color:#FFFFFF; font-weight:900; font-size:0.75rem; padding:2px 7px; border-radius:999px;">#${gIdx + 1} 📦 群組 (${chs.length}塊共用 1 Phase)</span>
+              <input value="${_esc(gc.title || '自訂機能群組')}" placeholder="群組共同 Title" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="padding:3px 8px; border:1px solid #F59E0B; border-radius:6px; font-size:0.8rem; font-weight:800; color:#78350F; background:#FFFFFF; width:170px;">
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+              <select onchange="if(this.value){ bbGroupAddChild(${gIdx}, this.value); this.value=''; }" style="padding:3px 7px; border:1px solid #D97706; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF; color:#92400E; cursor:pointer;">
+                <option value="">＋ 加入子積木</option>
+                ${childOptions.map(b => `<option value="${b.kind}">${b.icon} ${_esc(b.shortName)}</option>`).join('')}
+              </select>
+              <button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:5px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer;" onclick="bbToggleGroupCollapse(${gIdx})">▾ 收合</button>
+              <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往前" onclick="bbMoveStackIdx(${gIdx}, -1)">◀</button>
+              <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往後" onclick="bbMoveStackIdx(${gIdx}, 1)">▶</button>
+              <button type="button" style="border:1px solid #FCA5A5; background:#FFFFFF; color:#DC2626; border-radius:4px; padding:2px 7px; font-size:0.74rem; font-weight:900; cursor:pointer;" title="移除群組" onclick="bbRemoveStackIdx(${gIdx})">✕</button>
+            </div>
+          </div>
+          <div class="bb-group-inner-track">
+            ${chs.length ? innerHtml : `<span style="font-size:0.8rem; font-weight:700; color:#92400E; padding:8px;">將左側「指令 / 等待 / 儀器 / 治具 / 比對」拖進此黃框，或點右上角「＋ 加入子積木」</span>`}
+            <div class="bb-drop-slot-v" style="width:auto; min-width:58px; padding:0 8px; font-size:0.76rem; border-color:#F59E0B; background:rgba(255,255,255,0.6);"
+              ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
+              ondragleave="this.classList.remove('drag-over');"
+              ondrop="bbDropInGroup(event, ${gIdx}, ${chs.length})">➔ +拖入</div>
+          </div>
+        </div>
+      `;
+    };
+
+    // 貪食蛇 (S-curve Snake) 跨行箭頭排版：偶數列 左➔右，行尾 ⬇ 轉下一列，奇數列 右⬅左 整齊對齊；展開群組獨立成全寬方框
     const paneEl = document.getElementById('bbRightPane');
     const availW = BB_STATE.fullscreen
       ? Math.max(420, (window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 95)
       : Math.max(420, (paneEl ? paneEl.clientWidth : ((window.innerWidth || 1200) - (BB_STATE.splitLeftPx || 300) - 130)));
     const cols = Math.max(3, Math.min(7, Math.floor((availW - 18) / 106)));
     const gridTemplate = Array.from({ length: cols * 2 - 1 }, (_, k) => (k % 2 === 0 ? '82px' : '20px')).join(' ');
-    const rows = [];
-    for (let i = 0; i < BB_STATE.stack.length; i += cols) {
-      rows.push({ start: i, items: BB_STATE.stack.slice(i, i + cols) });
-    }
+
+    const segments = [];
+    let curRun = [];
+    BB_STATE.stack.forEach((it, idx) => {
+      if (it.kind === 'group' && !(it.config && it.config.collapsed)) {
+        if (curRun.length) {
+          segments.push({ type: 'snake', entries: curRun });
+          curRun = [];
+        }
+        segments.push({ type: 'expanded_group', item: it, absIdx: idx });
+      } else {
+        curRun.push({ item: it, absIdx: idx });
+      }
+    });
+    if (curRun.length) segments.push({ type: 'snake', entries: curRun });
+
+    const renderSnakeSegment = (entries, hasNextSeg, nextSegStartIdx) => {
+      const rows = [];
+      for (let i = 0; i < entries.length; i += cols) {
+        rows.push({ items: entries.slice(i, i + cols) });
+      }
+      return rows.map((rowObj, rIdx) => {
+        const isRtl = (rIdx % 2 === 1);
+        const cells = [];
+        rowObj.items.forEach((ent, k) => {
+          const gridCol = isRtl ? ((cols - 1 - k) * 2 + 1) : (k * 2 + 1);
+          cells.push(`<div style="grid-column:${gridCol}; grid-row:1;">${mkStackCard(ent.item, ent.absIdx)}</div>`);
+          if (k < rowObj.items.length - 1) {
+            const arrowCol = isRtl ? ((cols - 1 - k) * 2) : (k * 2 + 2);
+            const nextIdx = ent.absIdx + 1;
+            cells.push(`
+              <div class="bb-drop-slot-v" style="grid-column:${arrowCol}; grid-row:1;"
+                ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                ondragleave="this.classList.remove('drag-over');"
+                ondrop="bbDropAtSlot(event, ${nextIdx})">${isRtl ? '⬅' : '➔'}</div>
+            `);
+          }
+        });
+        const hasNextRow = (rIdx < rows.length - 1) || hasNextSeg;
+        const turnCol = isRtl ? 1 : (cols * 2 - 1);
+        const lastEnt = rowObj.items[rowObj.items.length - 1];
+        const turnSlotIdx = (rIdx < rows.length - 1) ? (lastEnt.absIdx + 1) : nextSegStartIdx;
+        return `
+          <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">${cells.join('')}</div>
+          ${hasNextRow ? `
+            <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">
+              <div class="bb-drop-slot-turn" style="grid-column:${turnCol};"
+                ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                ondragleave="this.classList.remove('drag-over');"
+                ondrop="bbDropAtSlot(event, ${turnSlotIdx})">⬇</div>
+            </div>
+          ` : ''}
+        `;
+      }).join('');
+    };
+
     const stackHtml = `
-      <div class="bb-snake-wrap">
-        ${rows.map((rowObj, rIdx) => {
-          const isRtl = (rIdx % 2 === 1);
-          const cells = [];
-          rowObj.items.forEach((it, k) => {
-            const absIdx = rowObj.start + k;
-            const gridCol = isRtl ? ((cols - 1 - k) * 2 + 1) : (k * 2 + 1);
-            cells.push(`<div style="grid-column:${gridCol}; grid-row:1;">${mkStackCard(it, absIdx)}</div>`);
-            if (k < rowObj.items.length - 1) {
-              const arrowCol = isRtl ? ((cols - 1 - k) * 2) : (k * 2 + 2);
-              const nextIdx = absIdx + 1;
-              cells.push(`
-                <div class="bb-drop-slot-v" style="grid-column:${arrowCol}; grid-row:1;"
-                  ondragover="event.preventDefault(); this.classList.add('drag-over');"
-                  ondragleave="this.classList.remove('drag-over');"
-                  ondrop="bbDropAtSlot(event, ${nextIdx})">${isRtl ? '⬅' : '➔'}</div>
-              `);
-            }
-          });
-          const hasNextRow = (rIdx < rows.length - 1);
-          const turnCol = isRtl ? 1 : (cols * 2 - 1);
-          const turnSlotIdx = rowObj.start + rowObj.items.length;
+      <div class="bb-snake-wrap" style="width:100%;">
+        ${segments.map((seg, sIdx) => {
+          const hasNextSeg = (sIdx < segments.length - 1);
+          const nextSegStartIdx = hasNextSeg
+            ? (segments[sIdx + 1].type === 'snake' ? segments[sIdx + 1].entries[0].absIdx : segments[sIdx + 1].absIdx)
+            : BB_STATE.stack.length;
+          if (seg.type === 'snake') {
+            return renderSnakeSegment(seg.entries, hasNextSeg, nextSegStartIdx);
+          }
           return `
-            <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">${cells.join('')}</div>
-            ${hasNextRow ? `
-              <div class="bb-snake-grid-row" style="grid-template-columns:${gridTemplate};">
-                <div class="bb-drop-slot-turn" style="grid-column:${turnCol};"
-                  ondragover="event.preventDefault(); this.classList.add('drag-over');"
-                  ondragleave="this.classList.remove('drag-over');"
-                  ondrop="bbDropAtSlot(event, ${turnSlotIdx})">⬇</div>
-              </div>
+            ${mkExpandedGroupBox(seg.item, seg.absIdx)}
+            ${hasNextSeg ? `
+              <div class="bb-drop-slot-turn" style="margin:0 auto;"
+                ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                ondragleave="this.classList.remove('drag-over');"
+                ondrop="bbDropAtSlot(event, ${nextSegStartIdx})">⬇</div>
             ` : ''}
           `;
         }).join('')}
@@ -2561,6 +2963,35 @@
           </div>
         `;
 
+      case 'group': {
+        const gIdx = BB_STATE.stack.indexOf(item);
+        const quickChoices = [
+          ['comm_cmd', '💬 加入指令'],
+          ['delay', '⏳ 加入等待'],
+          ['inst', '🧪 加入儀器'],
+          ['fixture', '🤖 加入治具'],
+          ['var_check', '🔍 加入比對'],
+          ['ping', '🌐 加入網路'],
+        ];
+        return `
+          <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:10px; padding:14px;">
+            <div style="font-weight:900; color:#92400E; font-size:0.95rem; margin-bottom:6px;">📦 此「群組方框」目前尚未放入子積木</div>
+            <div style="font-size:0.83rem; color:#78350F; margin-bottom:10px;">
+              您可以直接點擊下方按鈕加入子積木（例如：先下 <b>💬 指令</b> 上電 ➔ 再呼叫 <b>🧪 儀器</b> 量測），設定頁面會自動展開為 <code>#${gIdx + 1}.1</code>、<code>#${gIdx + 1}.2</code> 逐頁設定，產出時共用同一個 <b>Phase</b> 與 <b>Title</b>！
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+              ${quickChoices.map(([k, lbl]) => `
+                <button type="button" class="btn" style="padding:5px 11px; font-size:0.82rem; font-weight:800; background:#FFFFFF; border:1.5px solid #D97706; color:#92400E;"
+                  onclick="bbGroupAddChild(${gIdx}, '${k}'); bbJumpQa(${gIdx}, 0);">${lbl}</button>
+              `).join('')}
+            </div>
+            <label style="font-weight:700; font-size:0.84rem;">群組共用標題 (Phase Title)
+              <input value="${_esc(c.title || '自訂機能群組')}" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="width:100%; max-width:340px; display:block; margin-top:4px; padding:6px 9px; border:1px solid #F59E0B; border-radius:6px;">
+            </label>
+          </div>
+        `;
+      }
+
       default:
         return `
           <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px; font-size:0.86rem; color:#334155;">
@@ -2570,17 +3001,22 @@
     }
   }
 
-  function _renderProgressStrip(activeIdx) {
+  function _renderProgressStrip(activeNavIdx) {
+    const nav = _getQaNavList();
     return `
       <div class="bb-progress-strip">
-        ${BB_STATE.stack.map((it, i) => {
+        ${nav.map((ent, ni) => {
+          const it = ent.item;
           const meta = META_BY_KIND[it.kind] || {};
-          const isAct = (i === activeIdx);
+          const isAct = (ni === activeNavIdx);
           const isRed = !!meta.exclusivePage;
+          const isChild = (ent.subIdx >= 0);
           return `
-            <button type="button" onclick="bbJumpQa(${i})" class="bb-step-pill ${isAct ? 'active' : ''} ${isRed ? 'is-red' : ''}">
+            <button type="button" onclick="bbJumpQa(${ni}, -1, true)" class="bb-step-pill ${isAct ? 'active' : ''} ${isRed ? 'is-red' : ''}"
+              style="${isChild ? 'border-left:3.5px solid #D97706;' : ''}"
+              title="${ent.parentGroup ? _esc('所屬群組：' + ((ent.parentGroup.config && ent.parentGroup.config.title) || '群組')) : ''}">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:2px;">
-                <span class="mono" style="font-weight:900; font-size:0.74rem; color:${isAct ? (isRed ? '#991B1B' : '#1E3A8A') : '#475569'};">#${i + 1}</span>
+                <span class="mono" style="font-weight:900; font-size:0.74rem; color:${isChild ? '#B45309' : (isAct ? (isRed ? '#991B1B' : '#1E3A8A') : '#475569')};">${_esc(ent.numLabel)}</span>
                 ${isAct ? `<span style="font-size:0.68rem; font-weight:900; color:${isRed ? '#DC2626' : '#2563EB'};">● 設定中</span>` : (it.configured ? `<span style="font-size:0.72rem; color:#15803D;">✓</span>` : '')}
               </div>
               <div style="font-weight:800; font-size:0.8rem; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${meta.icon || ''} ${_esc(meta.shortName || it.kind)}</div>
@@ -2592,13 +3028,28 @@
   }
 
   function _renderQaView() {
-    const idx = Math.max(0, Math.min(BB_STATE.qaIdx, BB_STATE.stack.length - 1));
-    const item = BB_STATE.stack[idx];
+    const nav = _getQaNavList();
+    const navIdx = Math.max(0, Math.min(BB_STATE.qaIdx, Math.max(0, nav.length - 1)));
+    const entry = nav[navIdx] || { stackIdx: 0, subIdx: -1, numLabel: '#1', item: BB_STATE.stack[0], parentGroup: null };
+    const item = entry.item;
     const meta = META_BY_KIND[item.kind] || {};
-    const isLast = (idx === BB_STATE.stack.length - 1);
+    const isLast = (navIdx === nav.length - 1);
+    const parentGrp = entry.parentGroup;
 
     return `
-      <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : '#3B82F6'}; border-radius:11px; padding:16px;">
+      <div style="background:#FFFFFF; border:2px solid ${meta.exclusivePage ? '#EF4444' : (parentGrp ? '#D97706' : '#3B82F6')}; border-radius:11px; padding:16px;">
+        ${parentGrp ? `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:6px 11px;">
+            <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:0.82rem; font-weight:900; color:#92400E;">
+              <span class="mono" style="background:#D97706; color:#FFF; padding:1px 7px; border-radius:999px;">${_esc(entry.numLabel)}</span>
+              <span>📦 所屬群組方框 · 此群組內所有積木將合併寫入同一個 Phase</span>
+            </div>
+            <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:800; color:#78350F;">
+              <span>共用 Title：</span>
+              <input value="${_esc((parentGrp.config && parentGrp.config.title) || '自訂機能群組')}" oninput="bbGroupSetField(${entry.stackIdx},'title',this.value)" style="padding:2px 7px; border:1px solid #F59E0B; border-radius:5px; font-size:0.78rem; font-weight:800; width:150px;">
+            </label>
+          </div>
+        ` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <span style="font-weight:900; font-size:1.1rem; color:${meta.exclusivePage ? '#991B1B' : '#0F172A'};">${_esc(meta.popTitle || meta.name || item.kind)}</span>
           <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; padding:4px 10px; border-radius:999px; border:1px solid #CBD5E1; background:${BB_STATE.qaShowAdv ? '#EFF6FF' : '#F8FAFC'}; font-size:0.79rem; font-weight:800; color:#334155;">
@@ -2608,22 +3059,23 @@
         </div>
         <div style="font-size:0.84rem; color:#475569; margin-bottom:14px;">💡 ${_esc(meta.popDesc || '')}</div>
         <div style="min-height:175px;">
-          ${_renderQaBody(item, idx)}
-          <div id="bbLinkedIniBadgeBox">${_renderLinkedIniBadge(item, idx)}</div>
-          ${_renderPostDelayBar(item, idx)}
+          ${_renderQaBody(item, navIdx)}
+          ${_renderTestIdAdvPicker(item, navIdx)}
+          <div id="bbLinkedIniBadgeBox">${_renderLinkedIniBadge(item, navIdx)}</div>
+          ${_renderPostDelayBar(item, navIdx)}
         </div>
 
         <!-- 最底部：固定整排彩/灰積木進度條 ＋ 導覽操作列 -->
         <div class="bb-bottom-dock">
-          ${_renderProgressStrip(idx)}
+          ${_renderProgressStrip(navIdx)}
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <button type="button" class="btn" style="padding:6px 13px; font-size:0.84rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木編排</button>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="mono" style="background:${meta.exclusivePage ? '#FEE2E2' : '#DBEAFE'}; color:${meta.exclusivePage ? '#991B1B' : '#1E3A8A'}; padding:3px 10px; border-radius:999px; font-weight:900; font-size:0.83rem;">第 ${idx + 1} / ${BB_STATE.stack.length} 塊</span>
+              <span class="mono" style="background:${meta.exclusivePage ? '#FEE2E2' : '#DBEAFE'}; color:${meta.exclusivePage ? '#991B1B' : '#1E3A8A'}; padding:3px 10px; border-radius:999px; font-weight:900; font-size:0.83rem;">第 ${navIdx + 1} / ${nav.length} 頁 (${_esc(entry.numLabel)})</span>
               <span style="font-weight:800; font-size:0.9rem; color:#334155;">${meta.icon || ''} ${_esc(meta.shortName || item.kind)}</span>
             </div>
             <div style="display:flex; gap:8px;">
-              <button type="button" class="btn" style="padding:6px 14px; font-size:0.85rem; font-weight:800;" onclick="bbQaStep(-1)">${idx === 0 ? '◀ 回排順序' : '◀ 上一塊'}</button>
+              <button type="button" class="btn" style="padding:6px 14px; font-size:0.85rem; font-weight:800;" onclick="bbQaStep(-1)">${navIdx === 0 ? '◀ 回排順序' : '◀ 上一塊'}</button>
               <button type="button" class="btn ${isLast ? 'btn-primary-green' : 'btn-primary-blue'}" style="padding:6px 18px; font-size:0.88rem; font-weight:900;" onclick="bbQaStep(1)">${isLast ? '✅ 完成設定，看總覽匯出 ▶' : '下一塊 ▶'}</button>
             </div>
           </div>
@@ -2637,18 +3089,45 @@
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
     const projName = startCfg.project || isnCfg.project || 'PEGA_NEW';
     const stName = startCfg.station || isnCfg.station || 'MB';
+    const totalPages = _getQaNavList().length;
     return `
       <div style="background:#FFFFFF; border:2px solid #16A34A; border-radius:11px; padding:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
           <div>
             <div style="font-weight:900; font-size:1.08rem; color:#14532D;">🎉 總覽確認與產出 Excel 測試包</div>
-            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(projName)}</code> ｜ 站別 <code>${_esc(stName)}</code> ｜ 共 ${BB_STATE.stack.length} 塊流程</div>
+            <div style="font-size:0.83rem; color:#475569;">專案 <code>${_esc(projName)}</code> ｜ 站別 <code>${_esc(stName)}</code> ｜ 共 ${BB_STATE.stack.length} 塊主積木 (${totalPages} 設定頁)</div>
           </div>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px;">
           ${BB_STATE.stack.map((it, i) => {
             const meta = META_BY_KIND[it.kind] || {};
+            if (it.kind === 'group') {
+              const chs = (it.config && Array.isArray(it.config.children)) ? it.config.children : [];
+              return `
+                <div style="display:flex; flex-direction:column; gap:4px; padding:6px 8px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:6px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="font-size:0.84rem; color:#92400E;">
+                      <b class="mono">#${i + 1}</b> <b>📦 群組方框</b>
+                      <span style="margin-left:6px;">${_esc(_summarizeBlock(it))}</span>
+                    </div>
+                    <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem;" onclick="bbJumpQa(${i}, 0)">設定</button>
+                  </div>
+                  ${chs.map((ch, j) => {
+                    const cm = META_BY_KIND[ch.kind] || {};
+                    return `
+                      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:3px 8px; margin-left:18px; background:#FFFFFF; border:1px solid #FDE68A; border-radius:5px;">
+                        <div style="font-size:0.8rem;">
+                          <b class="mono" style="color:#B45309;">#${i + 1}.${j + 1}</b> <b>${cm.icon || ''} ${_esc(cm.shortName || ch.kind)}</b>
+                          <span style="color:#475569; margin-left:6px;">${_esc(_summarizeBlock(ch))}</span>
+                        </div>
+                        <button type="button" class="btn" style="padding:1px 7px; font-size:0.73rem;" onclick="bbJumpQa(${i}, ${j})">修改</button>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `;
+            }
             return `
               <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 8px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:6px;">
                 <div style="font-size:0.84rem;">
@@ -2770,16 +3249,17 @@
     host.classList.toggle('bb-fullscreen-shell', !!BB_STATE.fullscreen);
     if (BB_STATE.view === 'qa') {
       host.innerHTML = _renderQaView();
-      const idx = Math.max(0, Math.min(BB_STATE.qaIdx, BB_STATE.stack.length - 1));
-      const curItem = BB_STATE.stack[idx];
+      const nav = _getQaNavList();
+      const navIdx = Math.max(0, Math.min(BB_STATE.qaIdx, Math.max(0, nav.length - 1)));
+      const curItem = (nav[navIdx] && nav[navIdx].item) || null;
       if (curItem && curItem.kind === 'multi_sku') {
-        const inlineHost = document.getElementById(`bbInlineSkuMount_${idx}`);
+        const inlineHost = document.getElementById(`bbInlineSkuMount_${navIdx}`);
         if (inlineHost && typeof window.tswMountInline === 'function') {
           const secs = BB_STATE.stack
             .filter(b => !['start', 'end', 'isn', 'sfis_route', 'multi_sku', 'teardown', 'sfis_upload'].includes(b.kind))
             .map(b => ({
               section_title: (b.config && (b.config.title || b.config.title_name)) || (META_BY_KIND[b.kind] && META_BY_KIND[b.kind].shortName) || b.kind,
-              badge: '目前積木'
+              badge: b.kind === 'group' ? '群組Phase' : '目前積木'
             }));
           window.tswMountInline(inlineHost, curItem.config && curItem.config.sku_wizard, secs, function (updatedSku) {
             curItem.config = curItem.config || {};
