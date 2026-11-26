@@ -1986,33 +1986,6 @@
     `;
   }
 
-  function _collectAllLinkedIniPreviews() {
-    const seen = new Set();
-    const rows = [];
-    const pushItem = (lbl, lines) => {
-      (lines || []).forEach(ln => {
-        if (!ln || ln.includes('無須') || ln.includes('未抽出') || ln.includes('此群組內')) return;
-        const key = `${lbl}::${ln}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          rows.push({ label: lbl, line: ln });
-        }
-      });
-    };
-    BB_STATE.stack.forEach((it, idx) => {
-      const sn = (META_BY_KIND[it.kind] && META_BY_KIND[it.kind].shortName) || it.kind;
-      if (it.kind === 'group') {
-        ((it.config && it.config.children) || []).forEach((ch, ci) => {
-          const csn = (META_BY_KIND[ch.kind] && META_BY_KIND[ch.kind].shortName) || ch.kind;
-          pushItem(`#${idx + 1}.${ci + 1} ${csn}`, _computeLinkedIniItems(ch));
-        });
-      } else {
-        pushItem(`#${idx + 1} ${sn}`, _computeLinkedIniItems(it));
-      }
-    });
-    return rows;
-  }
-
   function _renderStackView() {
     const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
     const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
@@ -3178,13 +3151,124 @@
     `;
   }
 
+  function _allFlatBlocksInOrder() {
+    const out = [];
+    BB_STATE.stack.forEach((it) => {
+      if (it.kind === 'group') {
+        ((it.config && it.config.children) || []).forEach(ch => out.push(ch));
+      } else {
+        out.push(it);
+      }
+    });
+    return out;
+  }
+
+  window.bbExportSetIniParam = function (paramKey, val) {
+    const all = _allFlatBlocksInOrder();
+    const startBlk = BB_STATE.stack.find(b => b.kind === 'start');
+    const routeBlk = all.find(b => b.kind === 'sfis_route');
+    if (paramKey === 'debug_mode') {
+      if (startBlk) { startBlk.config = startBlk.config || {}; startBlk.config.debug_mode = String(val); }
+      if (routeBlk) { routeBlk.config = routeBlk.config || {}; routeBlk.config.debug_mode = String(val); }
+    } else if (paramKey === 'sfis_enable') {
+      if (startBlk) { startBlk.config = startBlk.config || {}; startBlk.config.sfis_enable = String(val); }
+      if (routeBlk) { routeBlk.config = routeBlk.config || {}; routeBlk.config.sfis_mode = (String(val) === '1' ? 'online' : 'offline'); }
+    } else if (paramKey === 'DUT_UR1') {
+      all.filter(b => b.kind === 'comm_cmd' && String((b.config && b.config.protocol) || 'uart').toLowerCase() === 'uart')
+        .forEach(b => { b.config.port = val; b.configured = true; });
+    } else if (paramKey === 'DAQ_1') {
+      all.filter(b => b.kind === 'inst' && (b.config && (b.config.inst_mode === 'ni6009' || /ni6008/i.test(b.config.inst_name || ''))))
+        .forEach(b => { b.config.dev_id = val; b.configured = true; });
+    } else if (paramKey === 'PCUART_fixture_1') {
+      all.filter(b => b.kind === 'fixture' && b.config && b.config.fixture_type === 'pneumatic')
+        .forEach(b => { b.config.com_port = val; b.configured = true; });
+    } else if (paramKey === 'DUTIP_1' || paramKey === 'PCIP_1') {
+      const fKey = (paramKey === 'DUTIP_1') ? 'dut_ip' : 'pc_ip';
+      all.filter(b => b.kind === 'ping' || (b.kind === 'comm_cmd' && ['ssh', 'telnet'].includes(String((b.config && b.config.protocol) || '').toLowerCase())))
+        .forEach(b => { b.config[fKey] = val; b.configured = true; });
+    }
+  };
+
+  function _renderExportIniQuickEditor() {
+    const all = _allFlatBlocksInOrder();
+    const startCfg = (BB_STATE.stack.find(b => b.kind === 'start') || {}).config || {};
+    const routeBlk = all.find(b => b.kind === 'sfis_route');
+    const dbgVal = String(startCfg.debug_mode ?? '1');
+    const sfEnableVal = routeBlk
+      ? (routeBlk.config && routeBlk.config.sfis_mode === 'online' ? '1' : '0')
+      : String(startCfg.sfis_enable ?? '0');
+
+    const uartBlk = all.find(b => b.kind === 'comm_cmd' && String((b.config && b.config.protocol) || 'uart').toLowerCase() === 'uart');
+    const daqBlk = all.find(b => b.kind === 'inst' && (b.config && (b.config.inst_mode === 'ni6009' || /ni6008/i.test(b.config.inst_name || ''))));
+    const fxBlk = all.find(b => b.kind === 'fixture' && b.config && b.config.fixture_type === 'pneumatic');
+    const netBlk = all.find(b => b.kind === 'ping' || (b.kind === 'comm_cmd' && ['ssh', 'telnet'].includes(String((b.config && b.config.protocol) || '').toLowerCase())));
+    const scriptVars = [];
+    all.forEach(b => {
+      const bc = b.config || {};
+      if (!bc.use_ini_var) return;
+      if (b.kind === 'comm_cmd' && bc.extract_mode !== 'reply_only') {
+        const vn = bc.var_name || 'DUT_FW';
+        scriptVars.push(bc.val_type === '%s' ? `${vn}_SPEC=${bc.expect_min || ''}` : `${vn}_DL/UL=${bc.expect_min || 0}~${bc.expect_max || 0}`);
+      } else if (b.kind === 'var_check') {
+        const vn = bc.var_name || 'gVal';
+        scriptVars.push(bc.check_mode === 'string' ? `${vn}_EXPECT=${bc.expect_str || 'PASS'}` : `${vn}_DL/UL=${bc.dl || 0}~${bc.ul || 100}`);
+      }
+    });
+
+    return `
+      <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:9px; padding:8px 12px; margin-bottom:12px;">
+        <div style="font-weight:900; font-size:0.82rem; color:#92400E; margin-bottom:6px;">⚙️ 重點 INI 設定（僅列關鍵參數，可直接於此修改後一併寫入）</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:0.8rem; color:#78350F;">
+          <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+            <span>DebugMode</span>
+            <select onchange="bbExportSetIniParam('debug_mode', this.value)" style="padding:3px 7px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:700;">
+              <option value="1" ${dbgVal === '1' ? 'selected' : ''}>1 (工程調試)</option>
+              <option value="0" ${dbgVal === '0' ? 'selected' : ''}>0 (產線量產)</option>
+            </select>
+          </label>
+          <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+            <span>SFIS_Enable</span>
+            <select onchange="bbExportSetIniParam('sfis_enable', this.value)" style="padding:3px 7px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:700;">
+              <option value="0" ${sfEnableVal === '0' ? 'selected' : ''}>0 (離線免連)</option>
+              <option value="1" ${sfEnableVal === '1' ? 'selected' : ''}>1 (產線連線)</option>
+            </select>
+          </label>
+          ${uartBlk ? `
+            <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+              <span class="mono">DUT_UR1</span>
+              <input value="${_esc((uartBlk.config && uartBlk.config.port) || 'COM4')}" oninput="bbExportSetIniParam('DUT_UR1', this.value)" class="mono" style="width:74px; padding:3px 6px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:800;">
+            </label>
+          ` : ''}
+          ${daqBlk ? `
+            <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+              <span class="mono">DAQ_1</span>
+              <input value="${_esc((daqBlk.config && daqBlk.config.dev_id) || 'Dev1')}" oninput="bbExportSetIniParam('DAQ_1', this.value)" class="mono" style="width:70px; padding:3px 6px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:800;">
+            </label>
+          ` : ''}
+          ${fxBlk ? `
+            <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+              <span class="mono">PCUART_fixture_1</span>
+              <input value="${_esc((fxBlk.config && fxBlk.config.com_port) || 'COM8')}" oninput="bbExportSetIniParam('PCUART_fixture_1', this.value)" class="mono" style="width:74px; padding:3px 6px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:800;">
+            </label>
+          ` : ''}
+          ${netBlk ? `
+            <label style="display:inline-flex; align-items:center; gap:5px; font-weight:800;">
+              <span class="mono">DUTIP_1</span>
+              <input value="${_esc((netBlk.config && netBlk.config.dut_ip) || '192.168.11.143')}" oninput="bbExportSetIniParam('DUTIP_1', this.value)" class="mono" style="width:120px; padding:3px 6px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:800;">
+            </label>
+          ` : ''}
+          ${scriptVars.map(sv => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:5px; padding:2px 7px; font-size:0.75rem;">[Scripts] ${_esc(sv)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function _renderExportView() {
     const startCfg = (BB_STATE.stack.find(b => b.kind === 'start') || {}).config || {};
     const isnCfg = (BB_STATE.stack.find(b => b.kind === 'isn') || {}).config || {};
     const projName = startCfg.project || isnCfg.project || 'PEGA_NEW';
     const stName = startCfg.station || isnCfg.station || 'MB';
     const totalPages = _getQaNavList().length;
-    const iniPreviews = _collectAllLinkedIniPreviews();
     const checkSyntax = (BB_STATE.exportOpts.run_syntax_check !== false);
 
     return `
@@ -3202,14 +3286,7 @@
           ${_renderSnakeCardsHtml(true)}
         </div>
 
-        ${iniPreviews.length ? `
-          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:9px; padding:8px 12px; margin-bottom:12px;">
-            <div style="font-weight:900; font-size:0.82rem; color:#92400E; margin-bottom:4px;">🔗 本次有連動寫入 INI / 環境表之設定預覽（產出時會自動寫入並再次條列實際值）：</div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              ${iniPreviews.map(p => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:5px; padding:2px 7px; font-size:0.75rem; color:#78350F;"><b>${_esc(p.label)}</b> · ${_esc(p.line)}</span>`).join('')}
-            </div>
-          </div>
-        ` : ''}
+        ${_renderExportIniQuickEditor()}
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:8px; margin-bottom:12px;">
           <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:7px 12px; font-size:0.83rem; color:#1E3A8A; font-weight:700;">
@@ -3231,9 +3308,6 @@
 
         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
           <button type="button" class="btn btn-primary-green" style="padding:10px 24px; font-size:0.97rem; font-weight:900;" onclick="bbExportExcel(false)">💾 匯出 16 欄測試包 + INI + Checksum（自動語法檢查並開啟 Excel 與目錄）</button>
-        </div>
-        <div class="bb-bottom-dock">
-          ${_renderProgressStrip(-1)}
         </div>
       </div>
     `;

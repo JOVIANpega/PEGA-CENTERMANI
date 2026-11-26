@@ -2697,12 +2697,14 @@ def run_all_verifications():
             check("_renderSnakeCardsHtml(true)" in cbb_69
                   and "bbResetDefaultStack" in cbb_69
                   and "_renderAuditAndIniHtml" in cbb_69
-                  and "_collectAllLinkedIniPreviews" in cbb_69
+                  and "_renderExportIniQuickEditor" in cbb_69
+                  and "bbExportSetIniParam" in cbb_69
+                  and "${_renderProgressStrip(-1)}" not in cbb_69
                   and "run_syntax_check: true" in cbb_69
                   and "switchGenSubMode('hub')" in cbb_69
                   and "產生首次範本 (積木拖曳)" in index_html
                   and "sfisSyncToBuilderAutoAdd" in sfis_70,
-                  "v0.8.070 方案1撲克牌總覽匯出、恢復預設6塊、返回模式按鈕、舊文案清理與語法/INI通知UI檢查通過")
+                  "v0.8.071 方案1撲克牌總覽匯出(去重底部積木+重點可編輯INI)、恢復預設6塊、返回模式與語法/INI通知UI檢查通過")
 
             v70_res = post_json("/api/generate_new_standalone", {
                 "project_name": "V70_AUDIT_INI_PROJ",
