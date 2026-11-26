@@ -117,7 +117,9 @@ DEFAULT_SETTINGS = {
     "tic_generic_only": False,
     "intro_font_size": 15,
     "skip_guides": {},
-    "centimani_dir": ""
+    "centimani_dir": "",
+    "recent_opened_files": [],
+    "last_opened_file": ""
 }
 
 
@@ -159,9 +161,78 @@ def set_last_opened_dir(folder_path):
     save_app_settings({"last_dir": folder_path})
 
 
+def record_recent_file(file_path):
+    """記錄使用者剛健檢或編修過的檔案路徑至 config.json，使其顯示於 Top 3 剛檢視清單"""
+    if not file_path:
+        return
+    try:
+        abs_p = os.path.abspath(str(file_path))
+        if not os.path.isfile(abs_p) or "uploaded_temp" in abs_p:
+            return
+        fname = os.path.basename(abs_p)
+        low = fname.lower()
+        if not low.endswith((".xlsx", ".xlsm")) or fname.startswith("~$") or "test item code" in low:
+            return
+        cur = get_app_settings()
+        prev_list = cur.get("recent_opened_files") or []
+        norm_target = os.path.normcase(abs_p)
+        merged = [abs_p]
+        for p in prev_list:
+            if isinstance(p, str) and p.strip():
+                ap = os.path.abspath(p)
+                if os.path.normcase(ap) != norm_target and os.path.isfile(ap):
+                    merged.append(ap)
+            if len(merged) >= 12:
+                break
+        save_app_settings({
+            "recent_opened_files": merged,
+            "last_opened_file": abs_p,
+            "last_dir": os.path.dirname(abs_p)
+        })
+    except Exception:
+        pass
+
+
 def get_recent_excel_files(limit=24):
-    """取得最近目錄與預設專案資料夾內的 TestFlow Excel 檔案列表，自動排除代碼表與暫存檔"""
+    """取得最近檢視/開啟與預設專案資料夾內的 TestFlow Excel 檔案列表，自動排除代碼表與暫存檔"""
     import datetime
+    settings = get_app_settings()
+    files_list = []
+    seen_paths = set()
+
+    # 1. 優先置頂使用者最近實際點選/檢查/編修過的檔案 (讓剛檢視過的舊檔也會出現在 Top 3 #1)
+    for idx_rec, rec_p in enumerate(settings.get("recent_opened_files") or []):
+        if not isinstance(rec_p, str) or not rec_p.strip():
+            continue
+        abs_p = os.path.abspath(rec_p)
+        if not os.path.isfile(abs_p) or "uploaded_temp" in abs_p:
+            continue
+        fname = os.path.basename(abs_p)
+        low_name = fname.lower()
+        if not low_name.endswith(".xlsx") or fname.startswith("~") or "test item code" in low_name or ".bak" in low_name:
+            continue
+        norm_p = os.path.normcase(abs_p)
+        if norm_p in seen_paths:
+            continue
+        seen_paths.add(norm_p)
+        try:
+            mtime = os.path.getmtime(abs_p)
+            mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%m/%d %H:%M")
+            size_kb = round(os.path.getsize(abs_p) / 1024, 1)
+            files_list.append({
+                "name": fname,
+                "path": abs_p,
+                "folder": os.path.basename(os.path.dirname(abs_p)),
+                "size_kb": size_kb,
+                "mtime": mtime,
+                "mtime_str": mtime_str,
+                "recently_viewed": True,
+                "is_last_opened": (idx_rec == 0)
+            })
+        except Exception:
+            pass
+
+    # 2. 其餘搜尋目錄內檔案依 mtime 新到舊排列
     search_dirs = []
     last_d = get_last_opened_dir()
     if last_d and os.path.exists(last_d):
@@ -173,8 +244,7 @@ def get_recent_excel_files(limit=24):
     if os.path.exists(SCRIPTS_ROOT) and SCRIPTS_ROOT not in search_dirs:
         search_dirs.append(SCRIPTS_ROOT)
 
-    files_list = []
-    seen_paths = set()
+    disk_files = []
     for d in search_dirs:
         try:
             for fname in os.listdir(d):
@@ -191,21 +261,23 @@ def get_recent_excel_files(limit=24):
                         mtime = os.path.getmtime(full_p)
                         mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%m/%d %H:%M")
                         size_kb = round(os.path.getsize(full_p) / 1024, 1)
-                        files_list.append({
+                        disk_files.append({
                             "name": fname,
                             "path": full_p,
                             "folder": os.path.basename(d),
                             "size_kb": size_kb,
                             "mtime": mtime,
-                            "mtime_str": mtime_str
+                            "mtime_str": mtime_str,
+                            "recently_viewed": False,
+                            "is_last_opened": False
                         })
                     except Exception:
                         pass
         except Exception:
             pass
 
-    files_list.sort(key=lambda x: x["mtime"], reverse=True)
-    return files_list[:limit]
+    disk_files.sort(key=lambda x: x["mtime"], reverse=True)
+    return (files_list + disk_files)[:limit]
 
 
 import threading
@@ -1036,13 +1108,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(data)
         elif parsed.path == "/api/init":
             from core.golden_data import scan_centimani_environment
+            cfg_now = get_app_settings()
+            last_f = cfg_now.get("last_opened_file", "")
+            if last_f and not os.path.isfile(last_f):
+                last_f = ""
             self._send_json({
-                "server_build": "Build v0.8.081",
+                "server_build": "Build v0.8.082",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
+                "last_opened_file": last_f,
                 "recent_files": get_recent_excel_files(),
                 "tic_info": get_active_tic_info(),
-                "settings": get_app_settings(),
+                "settings": cfg_now,
                 "centimani_profile": scan_centimani_environment(persist=False)
             })
         elif parsed.path == "/api/template_bundle/catalog":
@@ -1132,6 +1209,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             if path_only:
                 self._send_json({"status": "ok", "file_path": selected_path})
                 return
+            record_recent_file(selected_path)
             ws = import_excel_to_workspace(selected_path)
             rep = audit_workspace(ws)
             self._send_json({
@@ -1148,7 +1226,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             if not selected_path or not os.path.exists(selected_path):
                 self._send_json({"status": "error", "message": "找不到指定檔案"}, 404)
                 return
-            set_last_opened_dir(os.path.dirname(os.path.abspath(selected_path)))
+            record_recent_file(selected_path)
             ws = import_excel_to_workspace(selected_path)
             rep = audit_workspace(ws)
             self._send_json({
@@ -1333,6 +1411,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                         with open(temp_path, "wb") as f:
                             f.write(file_bytes)
 
+                record_recent_file(temp_path)
                 ws = import_excel_to_workspace(temp_path)
                 rep = audit_workspace(ws)
                 self._send_json({
@@ -1831,6 +1910,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                     prod_st = active_sheet if (active_sheet and not active_sheet.endswith("_TAIPEI")) else (st_keys_exp[0] if st_keys_exp else "MB")
                     switch_bats = write_env_switch_bats(orig_dir, prod_st, taipei_sheet, xlsx_filename=actual_xlsx_name)
 
+                record_recent_file(src_file)
+                record_recent_file(actual_xlsx_path)
                 # Re-import and audit BEFORE launching Excel so openpyxl closes the file before Excel locks it!
                 ws_re = import_excel_to_workspace(actual_xlsx_path)
                 rep_re = audit_workspace(ws_re)
@@ -1842,7 +1923,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.081")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.082")
 
                 self._send_json({
                     "status": "ok",
@@ -2222,7 +2303,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.081")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.082")
 
                 self._send_json({
                     "status": "ok",
@@ -2476,7 +2557,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.081")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.082")
 
                 self._send_json({
                     "status": "ok",
@@ -2584,6 +2665,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 if path_only:
                     self._send_json({"status": "ok", "file_path": selected_path})
                     return
+                record_recent_file(selected_path)
                 ws = import_excel_to_workspace(selected_path)
                 rep = audit_workspace(ws)
                 self._send_json({
@@ -2846,7 +2928,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.081")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.082")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -3017,7 +3099,7 @@ def run_server(port=8765):
         # Port already in use (e.g. already running); open existing studio window instead of silent exit
         launch_fullscreen_browser(url)
         return
-    print(f"Centimani Studio V2.4 (Build v0.8.081) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.082) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

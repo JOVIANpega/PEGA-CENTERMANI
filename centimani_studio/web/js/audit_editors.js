@@ -423,7 +423,7 @@ function _buildChangeConfirmBoxHtml(entries, ws) {
 }
 
 // =========================================================================
-// 第一層：【5 張水平手風琴卡牌入口頁】（完全仿照首頁 .acc-row / .acc-card）
+// 第一層：【6 張水平功能卡片入口頁】（完全仿照首頁 .acc-row / .acc-card）
 // =========================================================================
 function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   const sys = ws.system_ini || {};
@@ -476,7 +476,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
   return `
     <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
-        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（點擊下方 6 格水平手風琴卡牌修改 INI、順序、跳轉與錯誤碼）</div>
+        <div style="font-weight:900; font-size:1.05rem; color:#0F172A;">🧭 腳本編修主入口（點擊下方 6 項功能卡片修改 INI、順序、跳轉與錯誤碼）</div>
         <div style="font-size:0.84rem; color:#64748B;">滑鼠移過可預覽各項目詳細設定；右側選擇要調整流程與跳轉的目標測試站。</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:5px 10px;">
@@ -1216,9 +1216,14 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
         <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回編修主入口</button>
-        <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
-          💾 寫入並匯出 Excel (*_FIXED.xlsx)
-        </button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="applyFixAndExport(true)" class="btn btn-dry" style="padding:9px 18px; font-size:0.92rem; font-weight:800;" data-pop-tip="立即輸出無儀器試跑版 (*_DryRun.xlsx)：自動停用實機儀器掛載並切換單 DUT">
+            🧪 無儀器試跑匯出 (*_DryRun.xlsx)
+          </button>
+          <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
+            💾 寫入並匯出 Excel (*_FIXED.xlsx)
+          </button>
+        </div>
       </div>
     </div>
   `;

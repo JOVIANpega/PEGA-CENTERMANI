@@ -125,7 +125,7 @@ function bsToggleRightPane() {
     if (rightPane) rightPane.style.display = 'flex';
     if (leftPane) leftPane.style.flex = '1 1 50%';
     if (btn) {
-      btn.innerHTML = '⛶ 全螢幕大牌桌';
+      btn.innerHTML = '⛶ 全螢幕檢視';
       btn.style.background = '#0F172A';
     }
   }
@@ -542,7 +542,7 @@ function bsComputeLiveInspection() {
   return { depWarnings, orderWarnings, rowStates };
 }
 
-// ----------------- 渲染極簡撲克牌桌 (網格排開) -----------------
+// ----------------- 渲染測試積木流程網格 (網格排開) -----------------
 function bsRenderBlocks() {
   const listEl = document.getElementById('bsBlockList');
   const badgeEl = document.getElementById('bsCardCountBadge');
@@ -682,7 +682,7 @@ function bsRenderRightInspector() {
       issuesEl.innerHTML = `
         <div style="background:#450A0A; border:1px solid #DC2626; border-radius:6px; padding:7px 10px; color:#FECACA;">
           <div style="font-weight:800; font-size:0.8rem; color:#FCA5A5; margin-bottom:3px; display:flex; justify-content:space-between; align-items:center;">
-            <span>⚠️ 偵測到 ${allWarns.length} 項問題（請調整卡牌前後順序）：</span>
+            <span>⚠️ 偵測到 ${allWarns.length} 項問題（請調整積木前後順序）：</span>
           </div>
           <ul style="margin:0 0 0 16px; padding:0; font-size:0.77rem; line-height:1.45;">
             ${allWarns.map(w => `<li>${w}</li>`).join('')}
@@ -694,7 +694,7 @@ function bsRenderRightInspector() {
 
   const b = BS_STATE.currentBlocks[BS_STATE.selectedIdx];
   if (!b) {
-    headerEl.innerHTML = `<span style="color:#94A3B8; font-size:0.87rem;">請從左側點選任一張卡牌以檢視內部指令</span>`;
+    headerEl.innerHTML = `<span style="color:#94A3B8; font-size:0.87rem;">請從左側點選任一項積木以檢視內部指令</span>`;
     tableEl.innerHTML = '';
     return;
   }
@@ -704,13 +704,13 @@ function bsRenderRightInspector() {
   const prodChips = (b.produced_vars || []).map(v => `<span class="mono" style="background:#14532D; color:#86EFAC; border:1px solid #166534; font-size:0.73rem; padding:1px 6px; border-radius:4px; font-weight:700;">🏷️ 產出變數: $${v}</span>`).join(' ');
   const usedChips = (b.used_vars || []).map(v => `<span class="mono" style="background:#1E3A8A; color:#93C5FD; border:1px solid #1D4ED8; font-size:0.73rem; padding:1px 6px; border-radius:4px; font-weight:700;">📥 引用變數: $${v}</span>`).join(' ');
 
-  // 當前選取卡牌若有警告，顯示專屬提示與「⚡ 一鍵前置產出積木」按鈕
+  // 當前選取積木若有警告，顯示專屬提示與「⚡ 一鍵前置產出積木」按鈕
   let conflictAlertHtml = '';
   if (st.hasConflict && st.reason) {
     conflictAlertHtml = `
       <div style="width:100%; background:#7F1D1D; border:1px solid #EF4444; border-radius:6px; padding:5px 10px; margin-top:5px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
         <span style="color:#FEE2E2; font-size:0.77rem; font-weight:700;">⚠️ ${st.reason}</span>
-        <button type="button" class="btn" onclick="bsResolveCardConflict(${BS_STATE.selectedIdx})" style="padding:2px 8px; font-size:0.73rem; background:#F59E0B; color:#0F172A; font-weight:800; border:none; border-radius:3px; cursor:pointer;" title="一鍵將產出該變數的積木移至本卡牌前方">
+        <button type="button" class="btn" onclick="bsResolveCardConflict(${BS_STATE.selectedIdx})" style="padding:2px 8px; font-size:0.73rem; background:#F59E0B; color:#0F172A; font-weight:800; border:none; border-radius:3px; cursor:pointer;" title="一鍵將產出該變數的積木移至本步驟前方">
           ⚡ 一鍵前置產出積木
         </button>
       </div>

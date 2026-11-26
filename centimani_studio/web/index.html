@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.081">
+<link rel="stylesheet" href="/css/app.css?v=0.8.082">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.081</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.082</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -71,11 +71,16 @@
     <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
         <h2 style="margin:0; font-size:1.33rem; color:#0F172A;">歡迎使用 Centimani 自動化腳本工作台</h2>
-        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">滑鼠移過卡牌即可即時展開功能說明並點亮主題色，點擊進入對應工作區</div>
+        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">滑鼠移過功能卡片即可預覽詳細說明，點擊進入對應工作區</div>
       </div>
+      <button id="btnHomeSettings" type="button" class="btn btn-primary-green" onclick="switchTab('settings')"
+        data-pop-tip="開啟系統與環境設定：調整視窗模式、操作教學開關、全域字體大小與掃描本機 Centimani 目錄"
+        style="padding:8px 16px; font-size:0.9rem; font-weight:800; white-space:nowrap; border-width:1.5px;">
+        ⚙️ 系統與環境設定
+      </button>
     </div>
 
-    <!-- 橫向手風琴展開卡 (5 張：去按鈕清爽版，點擊卡片直接進入工作區) -->
+    <!-- 橫向功能卡片展開區 (5 張主要工作卡片：點擊直接進入對應工作區) -->
     <div id="homeScheme2" class="acc-row">
       <div id="accCard_audit" class="acc-card active" data-theme="blue" onmouseenter="setActiveAccCard('audit')" onclick="enterModule('audit')">
         <div>
@@ -103,8 +108,8 @@
         </div>
         <div class="acc-body">
           <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
-            <li><b>既有編修 (1→N)</b>：手風琴改版、順序跳轉與跨檔複製</li>
-            <li><b>首次範本 (0→1)</b>：撲克牌拖曳、群組與單顆 Phase 0</li>
+            <li><b>既有編修 (1→N)</b>：分區設定、順序跳轉與跨檔複製</li>
+            <li><b>首次範本 (0→1)</b>：積木拖曳排程、群組與單顆 Phase 0</li>
             <li><b>純儀器捷徑</b>：積木內建 34+ 款人機與一鍵單測骨架</li>
           </ul>
           <div class="acc-enter-hint" style="color:#15803D;">點擊卡片進入 ▶</div>
@@ -161,23 +166,6 @@
           <div class="acc-enter-hint" style="color:#BE123C;">點擊卡片進入 ▶</div>
         </div>
       </div>
-
-      <div id="accCard_settings" class="acc-card" data-theme="slate" onmouseenter="setActiveAccCard('settings')" onclick="switchTab('settings')">
-        <div>
-          <div class="acc-num">06 / SETTINGS</div>
-          <div class="acc-icon">⚙️</div>
-          <div class="acc-title">系統與環境設定</div>
-          <div class="acc-sub">Preferences &amp; Options</div>
-        </div>
-        <div class="acc-body">
-          <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#334155; line-height:1.7;">
-            <li>視窗模式與操作導覽顯示開關</li>
-            <li>自動開啟目錄與全域字體調整</li>
-            <li>記憶本機 Centimani 主程式與 DLL 路徑</li>
-          </ul>
-          <div class="acc-enter-hint" style="color:#9F1239;">點擊卡片進入 ▶</div>
-        </div>
-      </div>
     </div>
 
     <div id="homeStatusFooter" style="margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:9px 14px; font-size:0.87rem; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -208,8 +196,15 @@
           </button>
         </div>
 
-        <!-- 健檢右側動作：一鍵修好並匯出（不混入 02 編修功能） -->
+        <!-- 健檢右側動作：一鍵修好並匯出（含無儀器設 Phase=-1 與無儀器試跑版匯出） -->
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label id="lblAuditPanelNoHw" style="display:none; align-items:center; gap:6px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:5px 10px; font-size:0.82rem; color:#92400E; font-weight:700; cursor:pointer;" data-pop-tip="勾選後匯出 *_FIXED.xlsx 時維持單一工作表，但自動把儀器測項改寫為 Phase = -1 並停用 Mount，方便無儀器電腦直接開啟試跑">
+            <input id="auditPanelNoHwPhaseChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;" onchange="syncNoHwCheckboxes(this.checked)">
+            <span>⏸️ 無儀器設 <code>Phase = -1</code></span>
+          </label>
+          <button id="btnExportAuditDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)" data-pop-tip="立即輸出無儀器試跑版 (*_DryRun.xlsx)：自動停用實機儀器掛載並切換單 DUT，適合無儀器環境先行試跑流程">
+            🧪 無儀器試跑匯出
+          </button>
           <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)" title="依下方對策自動修補異常項目，輸出 *_FIXED.xlsx 並重算 Checksum">
             💾 一鍵修好並匯出 (*_FIXED.xlsx)
           </button>
@@ -222,6 +217,9 @@
         <span id="pickedPathText" class="mono" style="color:#0F172A; font-weight:700; flex:1; word-break:break-all;">
           尚未選擇檔案（點擊上方「📂 選擇 Excel 檔案」、拖曳檔案或從下方清單點選）
         </span>
+        <button id="btnAuditResetPicker" class="btn" style="display:none; padding:4px 10px; font-size:0.83rem; background:#FFFFFF; color:#334155; border-color:#CBD5E1; white-space:nowrap;" onclick="resetAuditToPicker()" data-pop-tip="回到檔案清單重新挑選另一份 TestFlow.xlsx">
+          📋 更換 / 回清單
+        </button>
         <button id="btnRefreshCurrentExcel" class="btn" style="display:none; padding:4px 10px; font-size:0.83rem; background:#F1F5F9; color:#334155; border-color:#94A3B8; white-space:nowrap;" onclick="refreshCurrentExcelFile()" title="Excel 手動微調存檔後，點此重新讀取體檢">
           🔄 重新檢視
         </button>
@@ -231,8 +229,9 @@
       </div>
     </div>
 
-    <!-- 尚未載入檔案時的選項 C 進場工作台（拖放橫幅 ＋ Top 3 快選 ＋ 全寬可搜尋 TestFlow 清單） -->
+    <!-- 尚未載入檔案時的進場工作台（接續上次 ＋ 拖放橫幅 ＋ Top 3 快選 ＋ 可搜尋 TestFlow 清單） -->
     <div id="auditEmptyRecentBox" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:16px 18px; margin-bottom:12px;">
+      <div id="auditResumeLastBox" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:#EFF6FF; border:1.5px solid #60A5FA; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
       <div id="auditDropZoneStrip" class="audit-drop-strip"
            ondragover="event.preventDefault(); this.classList.add('drag-over');"
            ondragleave="this.classList.remove('drag-over');"
@@ -944,7 +943,7 @@
             <div class="acc-num">02 / CREATE (0 → 1)</div>
             <div class="acc-icon">🌱</div>
             <div class="acc-title">產生首次範本 (積木拖曳)</div>
-            <div class="acc-sub">從零以直立撲克牌積木建置新母體 (0 → 1)</div>
+            <div class="acc-sub">從零以測試積木拖曳建置新母體 (0 → 1)</div>
             <ul style="margin:0 0 6px 16px; padding:0; font-size:0.88rem; color:#14532D; line-height:1.7;">
               <li><b>拖曳編排</b>：支援群組共用 Phase、多別名與自訂收尾</li>
               <li><b>逐頁設定</b>：一頁一塊問答、Log 擷取與即時搜 TestID</li>
@@ -963,7 +962,7 @@
           ⬅ 返回模式選擇
         </button>
         <button id="btnToolsBackToAcc" onclick="switchToolsVerifyTab('hub')" class="btn" style="display:none; padding:6px 13px; font-size:0.85rem; background:#0F766E; color:#FFFFFF; border:none; border-radius:7px; font-weight:800; box-shadow:0 2px 5px rgba(15,118,110,0.18);">
-          🃏 重選驗證卡牌 (實機 / 模擬 / DLL)
+          🛡️ 重選驗證項目 (實機 / 模擬 / DLL)
         </button>
         <span id="genCurrentModeTitle" style="font-weight:900; font-size:0.97rem; color:#0F172A;"></span>
       </div>
@@ -1188,7 +1187,7 @@
             <span style="font-size:1.25rem;">📥</span>
             <div>
               <div style="font-weight:800; font-size:0.93rem; color:#0F172A;">支援將 <code>TestFlow.xlsx</code> 直接拖曳到此區塊載入編修</div>
-              <div style="font-size:0.8rem; color:#64748B;">載入後即可透過下方 6 格卡牌修改 System.ini / Global.ini、拖拉流程順序、調整跳轉與站別儀器</div>
+              <div style="font-size:0.8rem; color:#64748B;">載入後即可透過下方 6 項功能卡片修改 System.ini / Global.ini、拖拉流程順序、調整跳轉與站別儀器</div>
             </div>
           </div>
           <span style="font-size:0.78rem; color:#475569; font-weight:700;">保留原工作表格式與公式</span>
@@ -1229,7 +1228,7 @@
 
       <!-- 載入檔案後的編修工作區 -->
       <div id="editorWorkspaceBody" style="display:none;">
-        <!-- ③ 水平手風琴入口與全頁面設定區（標題右側已整合目標測試站選單與比對差異按鈕） -->
+        <!-- ③ 功能卡片入口與全頁面設定區（標題右側已整合目標測試站選單與比對差異按鈕） -->
         <div id="auditGlobalEditor" style="display:block; margin-bottom:12px;"></div>
 
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
@@ -1267,7 +1266,7 @@
       </div>
     </div><!-- /genModeEdit -->
 
-    <!-- 插入儀器範本與互動人機 (34+ 款人機 - 撲克牌庫 + 細部規格兩步驟生成) -->
+    <!-- 插入儀器範本與互動人機 (34+ 款人機 - 儀器清單 + 細部規格兩步驟生成) -->
     <div id="genModeInst" style="display:none;">
       <div id="tab3BuilderReturnBar" style="display:none; margin-bottom:10px; background:linear-gradient(90deg,#EEF2FF 0%,#F5F3FF 100%); border:2px solid #6366F1; border-radius:10px; padding:10px 16px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="font-size:0.9rem; font-weight:800; color:#312E81;">
@@ -1282,7 +1281,7 @@
         <!-- 頂部標題與步驟指示 -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
           <div>
-            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 插入儀器範本（撲克牌雙欄單畫面工作區）</h3>
+            <h3 style="margin:0 0 3px 0; color:#4C1D95; font-size:1.13rem;">🧪 插入儀器範本（雙欄單畫面工作區）</h3>
             <div style="font-size:0.87rem; color:#64748B;">① 左欄挑選儀器加入右側序列 → ② 直接在右欄下方勾選環境與產出方式，無需跳頁或捲動。</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -1301,13 +1300,13 @@
           <input id="tab3UlInput" type="text">
         </div>
 
-        <!-- ==================== STEP 1：左撲克牌庫 + 右完整測試工作區（單視窗免捲動） ==================== -->
+        <!-- ==================== STEP 1：左可用儀器庫 + 右完整測試工作區（單視窗免捲動） ==================== -->
         <div id="tab3Step1Box">
           <div class="tab3-split-layout" style="margin-bottom:8px;">
-            <!-- 左欄：儀器撲克牌庫 (點擊 ＋ 加入 或直接拖往右側) -->
+            <!-- 左欄：可用儀器庫 (點擊 ＋ 加入 或直接拖往右側) -->
             <div style="background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:12px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                <div style="font-weight:900; font-size:0.95rem; color:#1E293B;">🃏 左欄：儀器撲克牌庫（點 ＋ 加入 或拖往右側）</div>
+                <div style="font-weight:900; font-size:0.95rem; color:#1E293B;">🔌 左欄：可用儀器庫（點 ＋ 加入 或拖往右側）</div>
                 <div id="tab3AuxToolsBar" style="display:flex; gap:5px; flex-wrap:wrap;">
                   <button type="button" onclick="openCentimaniAuxTool('DLLtest.exe')" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#F0FDF4; color:#166534; border:1px solid #86EFAC; font-weight:800;" title="開啟官方 DLLtest.exe 單測儀器 DLL 指令">🧪 單測 DLL</button>
                   <button type="button" onclick="openCentimaniAuxTool('CentimaniSFISTest.exe')" class="btn" style="padding:3px 9px; font-size:0.78rem; background:#EEF2FF; color:#3730A3; border:1px solid #A5B4FC; font-weight:800;" title="開啟官方 CentimaniSFISTest.exe 測試內網 SFIS 連線">🌐 測 SFIS</button>
@@ -1333,7 +1332,7 @@
               </div>
               <div id="tab3QueueList" style="display:flex; flex-wrap:wrap; align-items:center; align-content:flex-start; gap:10px; flex:1; min-height:220px;">
                 <div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:24px 14px;">
-                  👈 請從左側撲克牌庫點擊「+ 加入」或拖曳儀器卡片至此處<br>
+                  👈 請從左側儀器清單點擊「+ 加入」或拖曳儀器卡片至此處<br>
                   <span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span>
                 </div>
               </div>
@@ -1406,11 +1405,11 @@
     <!-- 問編寫問題（已升級為頂部 Header 全域彈窗 #qaCheatsheetModal；保留掛點相容舊呼叫） -->
     <div id="genModeQa" style="display:none;"></div>
 
-    <!-- 實機驗證中心 (水平手風琴入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
+    <!-- 實機驗證中心 (3 項驗證功能卡片入口：實機 SFIS / 模擬 SFIS / 儀器 DLL 檢查；選入後隱藏頂部分頁列、全畫面作業) -->
     <div id="genModeTools" style="display:none;">
       <div id="toolsVerifyHub" style="display:block; margin-bottom:12px;">
         <div style="margin-bottom:8px; font-size:0.87rem; color:#475569; font-weight:700;">
-          🛡️ 滑鼠移過卡牌檢視適用場景，點擊直接進入全畫面工作區（已精簡頂部分頁列，最大化操作面積）：
+          🛡️ 滑鼠移過功能卡片檢視適用場景，點擊直接進入全畫面工作區（已精簡頂部分頁列，最大化操作面積）：
         </div>
         <div class="acc-row" style="min-height:300px;">
           <div id="toolsHubCard_real" class="acc-card active" data-theme="blue" onmouseenter="setActiveToolsHubCard('real')" onclick="switchToolsVerifyTab('real')">
@@ -1636,13 +1635,13 @@
 </div>
 </div> <!-- 關閉 app-body 容器 -->
 
-<!-- ======================== 共用 Modal：🧱 積木式 Phase 抽卡牌桌工作台 (左右雙欄 ｜ 支援折疊全景大牌桌) ======================== -->
+<!-- ======================== 共用 Modal：🧱 積木式 Phase 流程編排工作台 (左右雙欄 ｜ 支援全螢幕檢視) ======================== -->
 <div id="modalBlockSorter" class="modal-backdrop">
   <div class="modal-panel" style="max-width:1260px; width:95vw; max-height:92vh; border:2px solid #16A34A; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden; display:flex; flex-direction:column; padding:0; background:#FFFFFF;">
     <div style="background:#0F172A; color:#FFFFFF; padding:11px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; flex-shrink:0;">
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:1.33rem;">🧱</span>
-        <div style="font-weight:800; font-size:1.03rem; letter-spacing:0.3px;">Phase 積木流程編排工作台（左欄：極簡抽卡牌桌 ｜ 右欄：指令與參數檢視終端）</div>
+        <div style="font-weight:800; font-size:1.03rem; letter-spacing:0.3px;">Phase 積木流程編排工作台（左欄：積木順序區 ｜ 右欄：指令與參數檢視終端）</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <button type="button" id="btnBsApplyAndOpenTop" class="btn btn-primary-green" style="padding:6px 18px; font-size:0.9rem; font-weight:800; cursor:pointer;" onclick="bsApplyAndOpenExcel()" title="將新排序寫入 Excel 並自動開啟檢視">
@@ -1674,17 +1673,17 @@
         <input type="checkbox" id="chkBsAutoRenumber" checked style="display:none;">
       </div>
 
-      <!-- 左右雙欄工作台 (支援折疊切換全景大牌桌或全景指令終端，高度充實彈性撐滿) -->
+      <!-- 左右雙欄工作台 (支援折疊切換全螢幕流程圖或全景指令終端，高度充實彈性撐滿) -->
       <div id="bsSplitWorkbench" style="display:flex; gap:12px; flex:1; min-height:480px; overflow:hidden; position:relative;">
         
-        <!-- 左欄：極簡抽卡牌桌區 (可折疊) -->
+        <!-- 左欄：測試積木編排區 (可折疊) -->
         <div id="bsDeckPane" style="flex:1 1 50%; min-width:320px; display:flex; flex-direction:column; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:10px; overflow:hidden; transition:all 0.2s ease;">
           <div style="padding:7px 12px; background:#E2E8F0; font-size:0.83rem; font-weight:800; color:#1E293B; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;">
             <div style="display:flex; align-items:center; gap:6px;">
-              <span>🃏 流程抽卡牌桌</span>
+              <span>🧱 流程積木順序</span>
               <span id="bsCardCountBadge" style="font-size:0.77rem; font-weight:700; color:#475569;"></span>
             </div>
-            <!-- 縮放密度切換、拖曳模式切換與全景大牌桌開關 -->
+            <!-- 縮放密度切換、拖曳模式切換與全螢幕開關 -->
             <div style="display:inline-flex; align-items:center; gap:3px;">
               <span style="font-size:0.73rem; color:#64748B; font-weight:700;">密度:</span>
               <button type="button" class="btn" id="bsZoomAuto" onclick="bsSetCardZoom('auto')" style="padding:1px 6px; font-size:0.73rem; background:#16A34A; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;">自動</button>
@@ -1693,14 +1692,14 @@
               
               <div style="display:inline-flex; align-items:center; gap:2px; margin-left:6px; border-left:1px solid #94A3B8; padding-left:6px;">
                 <span style="font-size:0.73rem; color:#64748B; font-weight:700;">拖曳:</span>
-                <button type="button" class="btn" id="bsDragModeSwap" onclick="bsSetDragMode('swap')" style="padding:1px 6px; font-size:0.73rem; background:#2563EB; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;" title="碰牌直接對調：拖拉碰到目標卡片立即交換順序">🔀 碰牌對調</button>
-                <button type="button" class="btn" id="bsDragModeInsert" onclick="bsSetDragMode('insert')" style="padding:1px 6px; font-size:0.73rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="插牌移位：插入目標卡片前方或後方">📌 插牌移位</button>
+                <button type="button" class="btn" id="bsDragModeSwap" onclick="bsSetDragMode('swap')" style="padding:1px 6px; font-size:0.73rem; background:#2563EB; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;" title="對調順序：拖拉碰到目標積木立即交換順序">🔀 拖拉對調</button>
+                <button type="button" class="btn" id="bsDragModeInsert" onclick="bsSetDragMode('insert')" style="padding:1px 6px; font-size:0.73rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="插入移位：插入目標積木前方或後方">📌 插入移位</button>
               </div>
 
-              <button type="button" class="btn" id="bsBtnCollapseRight" onclick="bsToggleRightPane()" style="padding:1px 8px; font-size:0.73rem; background:#0F172A; color:#F8FAFC; border:none; border-radius:3px; font-weight:800; margin-left:6px;" title="折疊右欄，全景展開大牌桌">⛶ 全螢幕大牌桌</button>
+              <button type="button" class="btn" id="bsBtnCollapseRight" onclick="bsToggleRightPane()" style="padding:1px 8px; font-size:0.73rem; background:#0F172A; color:#F8FAFC; border:none; border-radius:3px; font-weight:800; margin-left:6px;" title="折疊右欄，展開全螢幕流程圖">⛶ 全螢幕檢視</button>
             </div>
           </div>
-          <!-- 抽卡牌桌容器 (網格排列，滑鼠移入自動浮出放大) -->
+          <!-- 積木容器 (網格排列，滑鼠移入微幅浮起) -->
           <div id="bsBlockList" class="bs-deck-container" style="flex:1; overflow-y:auto;"></div>
         </div>
 
@@ -1718,7 +1717,7 @@
     </div>
 
     <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; flex-shrink:0;">
-      <span style="font-size:0.8rem; color:#64748B;">💡 提示：可直接修改卡片上的 Phase 數字插隊；滑鼠碰觸卡片下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕大牌桌」可折疊右欄。</span>
+      <span style="font-size:0.8rem; color:#64748B;">💡 提示：可直接修改積木上的 Phase 數字插隊；滑鼠碰觸積木下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕檢視」可折疊右欄。</span>
     </div>
   </div>
 </div>
@@ -1910,14 +1909,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.081"></script>
-<script src="/js/audit_editors.js?v=0.8.081"></script>
-<script src="/js/flow_guide.js?v=0.8.081"></script>
-<script src="/js/block_sorter.js?v=0.8.081"></script>
-<script src="/js/script_qa.js?v=0.8.081"></script>
-<script src="/js/sfis_hmi.js?v=0.8.081"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.081"></script>
-<script src="/js/create_block_builder.js?v=0.8.081"></script>
+<script src="/js/inst_hmi.js?v=0.8.082"></script>
+<script src="/js/audit_editors.js?v=0.8.082"></script>
+<script src="/js/flow_guide.js?v=0.8.082"></script>
+<script src="/js/block_sorter.js?v=0.8.082"></script>
+<script src="/js/script_qa.js?v=0.8.082"></script>
+<script src="/js/sfis_hmi.js?v=0.8.082"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.082"></script>
+<script src="/js/create_block_builder.js?v=0.8.082"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2037,6 +2036,13 @@ function switchTab(tab) {
   if (tab === 'settings' && typeof renderSettingsPanel === 'function') {
     renderSettingsPanel();
   }
+  if (tab === 'audit') {
+    if (STATE.workspace && STATE.report) {
+      if (typeof renderAuditResults === 'function') renderAuditResults();
+    } else if (typeof renderAuditResumeLastBox === 'function') {
+      renderAuditResumeLastBox();
+    }
+  }
   if (tab === 'gen' && typeof switchGenSubMode === 'function') {
     switchGenSubMode('hub');
   }
@@ -2103,7 +2109,7 @@ function closeQaCheatsheetModal() {
 }
 
 function setActiveAccCard(key) {
-  ['audit', 'gen', 'diagnose', 'tic', 'tools', 'settings'].forEach(k => {
+  ['audit', 'gen', 'diagnose', 'tic', 'tools'].forEach(k => {
     const el = document.getElementById('accCard_' + k);
     if (el) el.classList.toggle('active', k === key);
   });
@@ -3740,7 +3746,7 @@ window.tab3FinishToBuilder = function () {
 
 function tab3OpenStep2Checked() {
   if (TAB3_QUEUE.length === 0) {
-    alert('請先從左側撲克牌庫點擊「＋ 加入」或拖曳至少 1 台儀器至右側序列！');
+    alert('請先從左側儀器清單點擊「＋ 加入」或拖曳至少 1 台儀器至右側序列！');
     return;
   }
   tab3GoStep(2);
@@ -3759,7 +3765,7 @@ function renderTab3Queue() {
   if (TAB3_QUEUE.length === 0) {
     const choiceBox = document.getElementById('tab3ModeChoiceBox');
     if (choiceBox) choiceBox.style.display = 'none';
-    l.innerHTML = `<div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">👈 請從左側撲克牌庫點擊「+ 加入」或拖曳儀器卡片至此處<br><span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span></div>`;
+    l.innerHTML = `<div style="color:#7C3AED; font-size:0.9rem; font-weight:700; opacity:0.85; margin:auto; text-align:center; padding:30px 14px;">👈 請從左側儀器清單點擊「+ 加入」或拖曳儀器卡片至此處<br><span style="font-size:0.82rem; color:#64748B; font-weight:500;">加入後依序編號排列，拖拉卡片可自由調換測試順序</span></div>`;
     return;
   }
   l.innerHTML = TAB3_QUEUE.map((it, idx) => {
@@ -4228,7 +4234,10 @@ function renderRecentFilesList(files) {
     } else {
       top3El.innerHTML = cleanFiles.slice(0, 3).map(f => `
         <div class="audit-top3-card" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
-          <div style="font-weight:800; font-size:0.9rem; color:#0F172A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${esc(f.name)}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+            <div style="font-weight:800; font-size:0.9rem; color:#0F172A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${esc(f.name)}</div>
+            ${f.recently_viewed ? `<span style="flex-shrink:0; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.72rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}
+          </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:#475569; font-family:Consolas,monospace;">
             <span>[${esc(f.folder)}] · ${f.size_kb} KB</span>
             <span style="color:#0369A1; font-weight:800;">健檢 ▶</span>
@@ -4249,6 +4258,57 @@ function renderRecentFilesList(files) {
 
   STATE.cleanRecentFiles = cleanFiles;
   filterAuditRecentTable();
+  if (typeof renderAuditResumeLastBox === 'function') renderAuditResumeLastBox();
+}
+
+function renderAuditResumeLastBox() {
+  const box = document.getElementById('auditResumeLastBox');
+  if (!box) return;
+  const lastP = (STATE && STATE.lastOpenedFile) ? String(STATE.lastOpenedFile).trim() : '';
+  if (!lastP) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const esc = s => String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const fname = lastP.split(/[\\/]/).pop() || lastP;
+  box.style.display = 'flex';
+  box.innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;">
+      <span style="background:#2563EB; color:#FFFFFF; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:999px;">📌 剛檢查過</span>
+      <span style="font-weight:800; color:#0F172A; font-size:0.9rem;">${esc(fname)}</span>
+      <span class="mono" style="font-size:0.78rem; color:#475569; word-break:break-all;">${esc(lastP)}</span>
+    </div>
+    <button type="button" class="btn btn-primary-blue" style="padding:5px 14px; font-size:0.84rem; font-weight:800; white-space:nowrap;"
+      onclick="loadSpecificFile('${encodeURIComponent(lastP)}')" data-pop-tip="直接重新載入這份剛剛檢查過的腳本與報告">
+      ⚡ 接續剛剛檢查
+    </button>
+  `;
+}
+
+function resetAuditToPicker() {
+  STATE.selectedPath = '';
+  STATE.workspace = null;
+  STATE.report = null;
+  STATE.pendingInserts = [];
+  STATE.activeSheetFilter = 'ALL';
+  const pText = document.getElementById('pickedPathText');
+  if (pText) pText.textContent = '尚未選擇檔案（點擊上方「📂 選擇 Excel 檔案」、拖曳檔案或從下方清單點選）';
+  ['btnAuditResetPicker', 'btnRefreshCurrentExcel', 'btnOpenCurrentExcel', 'btnExportFixed', 'btnExportAuditDry', 'lblAuditPanelNoHw', 'toggleDetailBar', 'auditAlertBox', 'auditResultsGrid', 'batchFolderBox'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const emptyBox = document.getElementById('auditEmptyRecentBox');
+  if (emptyBox) emptyBox.style.display = 'block';
+  renderAuditResumeLastBox();
+  if (typeof syncEditorView === 'function') syncEditorView();
+}
+
+function syncNoHwCheckboxes(checkedVal) {
+  const c1 = document.getElementById('auditPanelNoHwPhaseChk');
+  const c2 = document.getElementById('auditNoHwPhaseChk');
+  if (c1) c1.checked = !!checkedVal;
+  if (c2) c2.checked = !!checkedVal;
 }
 
 function toggleAuditRecentExpand() {
@@ -4283,7 +4343,7 @@ function filterAuditRecentTable() {
 
   tbody.innerHTML = visibleRows.map(f => `
     <tr class="audit-optc-row" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
-      <td style="font-weight:700;">📄 ${esc(f.name)}</td>
+      <td style="font-weight:700;">📄 ${esc(f.name)} ${f.recently_viewed ? `<span style="margin-left:6px; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.71rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}</td>
       <td class="mono" style="color:#475569; font-size:0.82rem;">[${esc(f.folder)}]</td>
       <td class="mono" style="text-align:right; color:#475569; font-size:0.82rem;">${f.size_kb} KB</td>
       <td class="mono" style="text-align:center; color:#64748B; font-size:0.8rem;">${esc(f.mtime_str || '-')}</td>
@@ -4511,10 +4571,12 @@ async function initPage() {
   const data = await res.json();
   window.__SERVER_BUILD__ = data.server_build || '';
   STATE.blocks = data.blocks || [];
+  STATE.lastOpenedFile = data.last_opened_file || '';
   if (data.recent_files) {
     STATE.recentFiles = data.recent_files;
     renderRecentFilesList(data.recent_files);
   }
+  if (typeof renderAuditResumeLastBox === 'function') renderAuditResumeLastBox();
   if (data.settings && typeof applyLoadedSettings === 'function') {
     applyLoadedSettings(data.settings);
   }
@@ -4681,6 +4743,7 @@ async function withLoadingTimer(label, asyncFn, minDurationMs = 0, subText = '')
 
 function _applyAuditLoadedPayload(data) {
   STATE.selectedPath = data.file_path;
+  STATE.lastOpenedFile = data.file_path || STATE.lastOpenedFile || '';
   STATE.workspace = data.workspace;
   if (typeof snapshotOriginalInis === 'function') snapshotOriginalInis(data.workspace);
   STATE.report = data.report;
@@ -4699,8 +4762,14 @@ function _applyAuditLoadedPayload(data) {
   const batchBox = document.getElementById('batchFolderBox');
   if (batchBox) batchBox.style.display = 'none';
   document.getElementById('pickedPathText').textContent = data.file_path;
+  const bResetPick = document.getElementById('btnAuditResetPicker');
+  if (bResetPick) bResetPick.style.display = 'inline-flex';
   document.getElementById('btnRefreshCurrentExcel').style.display = 'inline-flex';
   document.getElementById('btnOpenCurrentExcel').style.display = 'inline-flex';
+  const lblNoHw = document.getElementById('lblAuditPanelNoHw');
+  if (lblNoHw) lblNoHw.style.display = 'inline-flex';
+  const bAuditDry = document.getElementById('btnExportAuditDry');
+  if (bAuditDry) bAuditDry.style.display = 'inline-flex';
   document.getElementById('btnExportFixed').style.display = 'inline-flex';
   const bEdDry = document.getElementById('btnEditorExportDry');
   if (bEdDry) bEdDry.style.display = 'inline-flex';
@@ -6433,7 +6502,10 @@ async function applyFixAndExport(dryRun) {
     || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
     || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
-  const noHwPhasePause = !!(document.getElementById('auditNoHwPhaseChk') && document.getElementById('auditNoHwPhaseChk').checked);
+  const noHwPhasePause = Boolean(
+    (document.getElementById('auditNoHwPhaseChk') && document.getElementById('auditNoHwPhaseChk').checked) ||
+    (document.getElementById('auditPanelNoHwPhaseChk') && document.getElementById('auditPanelNoHwPhaseChk').checked)
+  );
   const stationNameMode = (document.getElementById('auditStationPromptSel') && document.getElementById('auditStationPromptSel').value) || 'fixed';
   const data = await withLoadingTimer(
     dryRun ? '正在匯出「無硬體試跑版」Excel 並喚醒視窗' : '正在寫入匯出 *_FIXED.xlsx、簽章並喚醒開啟 Excel',
@@ -6939,7 +7011,7 @@ function renderWizStep3() {
           if (c.kind === 'rw') return `<li><code>Phase +${ci+1}</code> 🔄 <b>R/W</b> <code>${c.save_key}</code> = <code>${c.save_val}</code></li>`;
           return `<li><code>Phase +${ci+1}</code> 🔹 ${c.kind}</li>`;
         }).join('')
-      : '<li style="color:#64748B;">（牌桌目前只有 CheckRoute；請點右側按鈕開啟 SFIS 人機加入 GET / WRITE / iMAC 測項）</li>';
+      : '<li style="color:#64748B;">（流程目前只有 CheckRoute；請點右側按鈕開啟 SFIS 人機加入 GET / WRITE / iMAC 測項）</li>';
     let sRows = WIZ_SFIS.fields.map((f, i) => `
       <tr>
         <td><input type="text" value="${f.field_name}" onchange="WIZ_SFIS.fields[${i}].field_name=this.value" style="width:110px; padding:4px;" class="mono"></td>
@@ -6960,7 +7032,7 @@ function renderWizStep3() {
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding:7px 10px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0; font-size:0.84rem;">
           <label style="cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
-            <input type="radio" name="wizSfisMode" ${useHmi ? 'checked' : ''} onchange="WIZ_SFIS.use_hmi_items=true;renderWizStep3();"> 🃏 使用 SFIS 人機牌桌步驟（支援 0~7 選格 / GetiMAC / SaveLinkData / Ref 切片）
+            <input type="radio" name="wizSfisMode" ${useHmi ? 'checked' : ''} onchange="WIZ_SFIS.use_hmi_items=true;renderWizStep3();"> 🛡️ 使用 SFIS 人機流程步驟（支援 0~7 選格 / GetiMAC / SaveLinkData / Ref 切片）
           </label>
           <label style="cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
             <input type="radio" name="wizSfisMode" ${!useHmi ? 'checked' : ''} onchange="WIZ_SFIS.use_hmi_items=false;renderWizStep3();"> 📝 簡易快速欄位表

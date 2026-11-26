@@ -14,7 +14,7 @@
       theme: '#FEF3C7',
       border: '#D97706',
       popTitle: '📦 機能群組方框（同一個 Phase 內混排多塊積木）',
-      popDesc: '展開後可把 指令 / 等待 / 儀器 / 治具 / 比對 拖進同一個框內共用 1 個 Phase；收合時只佔一格撲克牌。設定時自動依 #3.1、#3.2 逐頁一塊填寫。',
+      popDesc: '展開後可把 指令 / 等待 / 儀器 / 治具 / 比對 拖進同一個框內共用 1 個 Phase；收合時僅佔單一積木格。設定時自動依 #3.1、#3.2 逐頁一塊填寫。',
       popExample: '例：[ 📦 開機與電流檢查 ] ➔ (指令 + 等待 + PPH1503)'
     },
     {
@@ -575,7 +575,7 @@
         .bb-splitter:hover, .bb-splitter.dragging { background:#BAE6FD; }
         .bb-splitter-bar { width:3px; height:44px; border-radius:999px; background:#94A3B8; }
         .bb-right-pane { flex:1 1 0%; min-width:260px; background:#FAF5FF; border:1.5px dashed #C084FC; border-radius:10px; padding:12px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
-        /* 直立撲克牌方格（左欄 3 列網格 & 右欄橫向串接共用完全相同尺寸） */
+        /* 直立積木方格（左欄 3 列網格 & 右欄橫向串接共用完全相同尺寸） */
         .bb-poker-grid { display:grid; grid-template-columns:repeat(auto-fill, 82px); gap:7px; justify-content:start; }
         .bb-poker-track { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
         .bb-poker-card { width:82px; height:96px; min-width:82px; min-height:96px; box-sizing:border-box; border-radius:9px; padding:6px 6px 5px 6px; border:1.5px solid #CBD5E1; border-top:4px solid #3B82F6; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; transition:all 0.14s ease; user-select:none; position:relative; }
@@ -2180,7 +2180,7 @@
     const commonCards = BUILDER_CATALOG.filter(b => b.tier === 'common');
     const advCards = BUILDER_CATALOG.filter(b => b.tier === 'advanced');
 
-    // 直立撲克牌（82x96px），簡潔 Icon + 名稱 + 下方 [+]
+    // 直立積木方格（82x96px），簡潔 Icon + 名稱 + 下方 [+]
     const mkPaletteCard = (b) => {
       const sn = String(b.shortName || '');
       const fSize = sn.length >= 5 ? '0.76rem' : '0.88rem';
@@ -2211,10 +2211,10 @@
       ` : ''}
 
       <div id="bbSplitContainer" class="bb-split-container">
-        <!-- 左欄：直立撲克牌庫 -->
+        <!-- 左欄：可用積木庫 -->
         <div id="bbLeftPane" class="bb-left-pane" style="width:${Number(BB_STATE.splitLeftPx || 300)}px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:8px;">
-            <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🃏 積木庫</span>
+            <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🧱 積木庫</span>
             <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.77rem; font-weight:700; color:#334155;">
               <input type="checkbox" ${BB_STATE.showAdvanced ? 'checked' : ''} onchange="bbToggleAdvanced(this.checked)" style="cursor:pointer;">
               <span>進階 (${advCards.length})</span>
@@ -2238,7 +2238,7 @@
           <div class="bb-splitter-bar"></div>
         </div>
 
-        <!-- 右欄：貪食蛇等大直立撲克牌順序 -->
+        <!-- 右欄：等大直立積木流程序列 -->
         <div id="bbRightPane" class="bb-right-pane"
           ondragover="event.preventDefault();"
           ondrop="if(!event.target.classList.contains('bb-drop-slot-v') && !event.target.classList.contains('bb-drop-slot-turn')){ if(BB_STATE.dragSrcType==='palette' && BB_STATE.dragKind){ bbAddBlock(BB_STATE.dragKind); BB_STATE.dragSrcType=null; } else if(BB_STATE.dragSrcType==='group_child'){ const td=BB_STATE.stack.findIndex(b=>b.kind==='teardown'); bbDropAtSlot(event, td>=1?td:BB_STATE.stack.length-1); } }">
@@ -2405,10 +2405,10 @@
             <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div>
                 <div style="font-weight:900; color:#1E3A8A; font-size:0.9rem;">🛡️ SFIS 開局過站 / 實機模擬與完整動畫測試頁</div>
-                <div style="font-size:0.78rem; color:#475569;">可在此直接快選廠區並實測連通性，或呼叫完整「SFIS 撲克牌積木堆疊頁」多步驟動畫驗證！</div>
+                <div style="font-size:0.78rem; color:#475569;">可在此直接快選廠區並實測連通性，或呼叫完整「SFIS 流程積木編輯頁」多步驟動畫驗證！</div>
               </div>
               <button type="button" class="btn btn-primary-blue" style="padding:7px 14px; font-weight:900; font-size:0.85rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
-                🃏 呼叫 SFIS 撲克牌積木堆疊頁 ▶
+                🛡️ 呼叫 SFIS 流程積木編輯頁 ▶
               </button>
             </div>
             ${hasBundle ? `
@@ -2913,7 +2913,7 @@
         return `
           <div style="background:#FEF2F2; border:1.5px solid #EF4444; border-radius:10px; padding:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-              <span style="font-weight:900; color:#991B1B;">🔴 專屬設定頁｜點選儀器撲克牌卡牌（自動套用該機種專屬實戰命令）：</span>
+              <span style="font-weight:900; color:#991B1B;">🔴 專屬設定頁｜點選儀器型號（自動套用該機種專屬實戰命令）：</span>
               <button type="button" class="btn" style="padding:4px 10px; font-size:0.78rem; font-weight:800; background:#FFFFFF; border:1px solid #FCA5A5; color:#7F1D1D;"
                 onclick="if(typeof openInstIntroPage==='function') openInstIntroPage('gen','${_esc(selectedName)}',${idx});">📖 查看 ${_esc(selectedName)} 簡介</button>
             </div>
@@ -3153,10 +3153,10 @@
             <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div>
                 <div style="font-weight:900; color:#1E3A8A; font-size:0.89rem;">🛡️ 需要多種 SFIS 讀寫組合或實測 GET / WRITE 回傳字串？</div>
-                <div style="font-size:0.77rem; color:#475569;">可呼叫原本的「SFIS 撲克牌積木堆疊頁」一次串好並實測帶回！</div>
+                <div style="font-size:0.77rem; color:#475569;">可呼叫完整「SFIS 流程積木編輯頁」一次串好並實測帶回！</div>
               </div>
               <button type="button" class="btn btn-primary-blue" style="padding:6px 13px; font-weight:900; font-size:0.84rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
-                🃏 呼叫 SFIS 撲克牌積木堆疊頁 ▶
+                🛡️ 呼叫 SFIS 流程積木編輯頁 ▶
               </button>
             </div>
             ${hasBundle ? `
@@ -3798,7 +3798,7 @@
           <button type="button" class="btn" style="padding:5px 12px; font-size:0.82rem; font-weight:800;" onclick="bbGoView('stack')">◀ 回積木拖曳編排</button>
         </div>
 
-        <!-- 方案 1：與空範本拖曳相同的直立撲克牌貪食蛇流程總覽 -->
+        <!-- 方案 1：與空範本拖曳相同的積木流程序列總覽 -->
         <div style="background:#FAF5FF; border:1.5px dashed #C084FC; border-radius:10px; padding:12px; margin-bottom:12px;">
           ${_renderSnakeCardsHtml(true)}
         </div>

@@ -438,7 +438,7 @@ function switchToolsVerifyTab(subTab) {
   if (backAccBtn) backAccBtn.style.display = (target === 'hub') ? 'none' : 'inline-flex';
   if (modeTitleEl) {
     const tMap = {
-      hub: '🛡️ 實機驗證中心（SFIS) — 請選擇驗證卡牌',
+      hub: '🛡️ 實機驗證中心（SFIS) — 請選擇驗證項目',
       real: '🛡️ 實機驗證中心（SFIS) — 🌐 實機工廠內網 (OA / 產線)',
       mock: '🛡️ 實機驗證中心（SFIS) — 🧪 本機模擬內網 (無網全測)',
       dll: '🛡️ 實機驗證中心（SFIS) — 🔩 儀器 DLL 與系統驅動檢查'
@@ -1981,7 +1981,7 @@ function renderSfisHmiWorkspace() {
       <div class="mono" style="font-size:0.74rem; color:#94A3B8; margin-top:2px;">&gt;&gt; ${_escH(l.sent)}</div>
       <pre class="mono" style="margin:2px 0 0 0; font-size:0.76rem; color:#E2E8F0; white-space:pre-wrap; word-break:break-all;">${_escH(l.recv)}</pre>
     </div>`).join('')
-    : `<div class="mono" style="font-size:0.79rem; color:#94A3B8; padding:6px 0;">${a.responseViewMode === 'selected' ? '此卡片尚無實測紀錄，請按上方「⚡ 實測這步」或左側「▶ 依序實測全部」。' : '尚無實測輸出。點左邊任張撲克牌按「⚡ 實測這步」或「▶ 依序實測全部步驟」，結果都會即時顯示在這裡。'}</div>`;
+    : `<div class="mono" style="font-size:0.79rem; color:#94A3B8; padding:6px 0;">${a.responseViewMode === 'selected' ? '此步驟尚無實測紀錄，請按上方「⚡ 實測這步」或左側「▶ 依序實測全部」。' : '尚無實測輸出。點左邊任一步驟按「⚡ 實測這步」或「▶ 依序實測全部步驟」，結果都會即時顯示在這裡。'}</div>`;
 
   const curMo = s.virtualMos[s.selectedMoIdx] || s.virtualMos[0];
   const expandedMoIsns = sfisExpandMoIsns(curMo);
@@ -2114,7 +2114,7 @@ function renderSfisHmiWorkspace() {
   const builderBannerHtml = (s.openedFromBuilderIdx >= 0) ? `
     <div id="sfisBuilderReturnBar" style="margin-bottom:10px; background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:2px solid #2563EB; border-radius:10px; padding:9px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div style="font-size:0.88rem; font-weight:800; color:#1E3A8A;">
-        🔗 正從「<b>0 → 1 積木流程 #${s.openedFromBuilderIdx + 1}</b>」呼叫 SFIS 積木堆疊頁 — 調整或實測好過站／GET／WRITE 卡牌後，點右側按鈕帶回流程！
+        🔗 正從「<b>0 → 1 積木流程 #${s.openedFromBuilderIdx + 1}</b>」呼叫 SFIS 流程編輯頁 — 調整或實測好過站／GET／WRITE 步驟後，點右側按鈕帶回流程！
       </div>
       <div style="display:flex; gap:7px; flex-wrap:wrap;">
         <button type="button" onclick="sfisCancelBuilderReturn()" class="btn" style="padding:5px 12px; font-size:0.82rem; font-weight:800; background:#FFFFFF; color:#475569; border:1px solid #CBD5E1;">◀ 取消返回積木頁</button>
@@ -2283,10 +2283,10 @@ function renderSfisHmiWorkspace() {
                ondrop="sfisDropOnDeckContainer(event)"
                style="background:${trackBg}; border:2px dashed ${trackBorder}; border-radius:9px; padding:9px 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-              <span style="font-size:0.79rem; font-weight:900; color:#334155;">🃏 流程抽卡牌桌（共 ${s.items.length} 步・點任一卡片即於右側設定與檢視回傳）</span>
+              <span style="font-size:0.79rem; font-weight:900; color:#334155;">🧱 流程步驟順序（共 ${s.items.length} 步・點任一步驟即於右側設定與檢視回傳）</span>
               <div style="display:inline-flex; gap:4px;">
-                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 碰牌對調</button>
-                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插牌移位</button>
+                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 拖拉對調</button>
+                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插入移位</button>
               </div>
             </div>
             <div id="sfisPokerDeckGrid" class="sfis-deck-grid">${deckCardsHtml}</div>
@@ -2346,7 +2346,7 @@ function renderSfisHmiWorkspace() {
             <button type="button" onclick="sfisHmiExport('insert_current')" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#FFFFFF; color:#15803D; border:1.5px solid #16A34A; border-radius:6px; font-weight:800;">➕ 插入現開腳本開頭</button>
             ${s.openedFromBuilderIdx >= 0
               ? `<button type="button" onclick="sfisSyncToBuilderAndReturn()" class="btn btn-primary-green" style="padding:5px 14px; font-size:0.84rem; font-weight:900;">✅ 帶回「0 → 1 積木流程」 ▶</button>`
-              : `<button type="button" onclick="sfisSyncToBuilderAutoAdd()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#EFF6FF; color:#1E40AF; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 牌桌步驟與帳號/廠區連線設定帶回『0 → 1 積木流程』">🃏 套用至「0 → 1 積木流程」</button>`}
+              : `<button type="button" onclick="sfisSyncToBuilderAutoAdd()" class="btn" style="padding:5px 11px; font-size:0.81rem; background:#EFF6FF; color:#1E40AF; border:1.5px solid #3B82F6; border-radius:6px; font-weight:800;" title="將此 SFIS 流程步驟與帳號/廠區連線設定帶回『0 → 1 積木流程』">🛡️ 套用至「0 → 1 積木流程」</button>`}
           </div>
         </div>
         <details>

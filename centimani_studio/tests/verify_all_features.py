@@ -406,8 +406,8 @@ def run_all_verifications():
         audit_editors_js = open(os.path.join(STUDIO_DIR, "web", "js", "audit_editors.js"), "r", encoding="utf-8").read()
         check(".acc-card .acc-title" in app_css and "rem" in app_css.split(".acc-card .acc-title")[1][:120],
               "手風琴標題/內文改用 rem 單位，隨系統字體設定 (13/15/17/19px) 等比縮放")
-        check("儀器範本" in index_html and "左側撲克牌庫" in index_html and "既有腳本編修" in flow_guide_js,
-              "首頁手風琴、流程導覽 (flow_guide.js) 與儀器撲克牌說明文已全面與新版 UI 同步")
+        check("儀器範本" in index_html and "可用儀器庫" in index_html and "既有腳本編修" in flow_guide_js,
+              "首頁功能卡、流程導覽 (flow_guide.js) 與可用儀器庫說明文已全面與新版 UI 同步")
         check("比照首頁手風琴式導覽" not in audit_editors_js and "儀器長積木" not in index_html,
               "已移除舊版『比照首頁…』『儀器長積木』等過時說明文字")
         check("renderTab3Queue()" in index_html and "catInst.dll_exists === false" in index_html,
@@ -2693,7 +2693,7 @@ def run_all_verifications():
                   and "BB_STATE.dragSrcType==='group_child'" in cbb_69
                   and "const navLen = _getQaNavList().length;" in cbb_69
                   and "if (viewName !== 'export')" in cbb_69
-                  and "點擊下方 6 格水平手風琴卡牌" in (index_html + aud_68),
+                  and "點擊下方 6 項功能卡片" in (index_html + aud_68),
                   "v0.8.069 群組收合卡純向下箭頭(▼)、群組拖出至右側空白區與qaIdx/舊橫幅清理檢查通過")
 
             # [v0.8.070] 方案1撲克牌總覽匯出頁 + 恢復預設6塊 + 返回模式選擇入口 + 舊4步驟文案更新 + 匯出預設自動語法檢查與INI設定摘要通知
@@ -3105,7 +3105,7 @@ def run_all_verifications():
                   and "DeviceSemaphore" in ae78_src
                   and "RobotMode" in ae78_src
                   and "PCUART_1" in ae78_src
-                  and ("5～6 格" in ae78_src or "6 格水平手風琴" in ae78_src)
+                  and ("5～6 格" in ae78_src or "6 項功能卡片" in ae78_src)
                   and "返回 6 格設定入口" in ae78_src
                   and "['Switch']" in ae78_src and "['Sub']" in ae78_src,
                   "v0.8.078 audit_editors.js 具備免掃條碼保護、*$(var)/空規則支援、DeviceSemaphore/RobotMode、Inst Sub/Switch 與 PCUART_1",
@@ -3383,6 +3383,47 @@ def run_all_verifications():
                   and "('IMAGES', 'IMAGES')" in spec81_src,
                   "v0.8.081 3筆清單摺疊、首頁05實機測試卡、全域語法小抄、1->N排版整併與方案A文案、純儀器骨架與EXE打包相容檢查通過",
                   "missing expected v0.8.081 markers")
+
+            # [v0.8.082] 系統設定移至首頁右上綠色按鈕、移除手風琴/撲克牌文字、最近健檢檔案記憶、健檢無儀器匯出選項
+            bs82_src = open(os.path.join(STUDIO_DIR, "web", "js", "block_sorter.js"), "r", encoding="utf-8").read()
+            sf82_src = open(os.path.join(STUDIO_DIR, "web", "js", "sfis_hmi.js"), "r", encoding="utf-8").read()
+            fg82_src = open(os.path.join(STUDIO_DIR, "web", "js", "flow_guide.js"), "r", encoding="utf-8").read()
+            ui_combined82 = idx81_src + ae81_src + bb81_src + bs82_src + sf82_src + fg82_src
+            check('id="btnHomeSettings"' in idx81_src
+                  and 'btn-primary-green' in idx81_src.split('id="btnHomeSettings"')[1][:120]
+                  and 'id="accCard_settings"' not in idx81_src
+                  and 'id="btnExportAuditDry"' in idx81_src
+                  and 'id="auditPanelNoHwPhaseChk"' in idx81_src
+                  and 'id="btnAuditResetPicker"' in idx81_src
+                  and 'id="auditResumeLastBox"' in idx81_src
+                  and 'record_recent_file' in open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
+                  and '手風琴' not in ui_combined82
+                  and '撲克牌' not in ui_combined82,
+                  "v0.8.082 首頁右上綠色系統設定鈕、移除手風琴/撲克牌字眼、健檢記憶與無儀器匯出選項全部檢查通過",
+                  f"has_home_btn={'btnHomeSettings' in idx81_src}, no_acc_set={'accCard_settings' not in idx81_src}, dry_btn={'btnExportAuditDry' in idx81_src}")
+
+            # 實際測試：呼叫 /api/load_specific_file 載入舊檔後，該檔案必須置頂於 /api/recent_files #1 且標示 recently_viewed=True
+            _orig_cfg_bak = None
+            if os.path.exists(app_server.CONFIG_FILE):
+                with open(app_server.CONFIG_FILE, "r", encoding="utf-8") as _fcfg:
+                    _orig_cfg_bak = _fcfg.read()
+            try:
+                _cands82 = [x for x in (get_json("/api/recent_files").get("recent_files") or []) if os.path.isfile(x.get("path", ""))]
+                if len(_cands82) >= 2:
+                    _target_old = _cands82[-1]["path"]
+                    _load82 = get_json("/api/load_specific_file?path=" + urllib.parse.quote(_target_old))
+                    _rec82 = _load82.get("recent_files") or []
+                    _init82 = get_json("/api/init")
+                    check(len(_rec82) > 0
+                          and os.path.normcase(os.path.abspath(_rec82[0].get("path", ""))) == os.path.normcase(os.path.abspath(_target_old))
+                          and bool(_rec82[0].get("recently_viewed"))
+                          and os.path.normcase(os.path.abspath(_init82.get("last_opened_file", ""))) == os.path.normcase(os.path.abspath(_target_old)),
+                          "v0.8.082 健檢選檔後立即記憶並置頂於 recent_files #1 (recently_viewed=True) 與 /api/init last_opened_file",
+                          f"target={_target_old}, top={_rec82[0].get('path') if _rec82 else None}")
+            finally:
+                if _orig_cfg_bak is not None:
+                    with open(app_server.CONFIG_FILE, "w", encoding="utf-8") as _fcfg:
+                        _fcfg.write(_orig_cfg_bak)
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

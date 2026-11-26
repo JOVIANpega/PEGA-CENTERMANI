@@ -74,10 +74,10 @@ const FLOW_GUIDE_DATA = {
     btnClass: 'btn-primary-green',
     btnLabel: '開始使用：建立與編修中心 ▶',
     steps: [
-      { num: '①', title: '選 2 主模式＋4 工具', jumpIdx: 0, items: ['既有編修(1→N) / 首次範本(0→1)', '工具：儀器範例/實機測試/寫法小抄/換碼'] },
-      { num: '②', title: '既有腳本：手風琴編修', jumpIdx: 1, items: ['INI 獨立存檔 / 流程大牌桌 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
-      { num: '③', title: '首次範本：積木拖曳建母體', jumpIdx: 6, items: ['撲克牌拖曳 & 📦群組方框', '逐頁設定 + TestID + 語法體檢'] },
-      { num: '④', title: '儀器撲克牌庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
+      { num: '①', title: '選 2 主模式＋獨立工具', jumpIdx: 0, items: ['既有編修(1→N) / 首次範本(0→1)', '實機測試 SFIS/DLL 已獨立至首頁'] },
+      { num: '②', title: '既有腳本：分區編修', jumpIdx: 1, items: ['INI 獨立存檔 / 積木排序 / 跳轉', '新增測試站與跨檔複製 Sheet'] },
+      { num: '③', title: '首次範本：積木拖曳建母體', jumpIdx: 6, items: ['積木拖曳 & 📦群組方框', '逐頁設定 + TestID + 語法體檢'] },
+      { num: '④', title: '可用儀器庫 & 實機驗證', jumpIdx: 10, items: ['搜尋/規格/缺 DLL/人機與 MCS', 'SFIS (ISN/GET/WRITE) 與 DLLtest'] },
       { num: '⑤', title: '匯出與實機 DLL 檢查', jumpIdx: 12, items: ['必開目錄＋缺 DLL/驅動提醒', '對齊 DLL 版號與詢問開 Excel'] }
     ],
     detailedSteps: [
@@ -101,8 +101,8 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 1,
-        step: 'Step 4｜既有腳本編修（03 Flow Sort）：大牌桌排序、淡藍標記與指令預覽',
-        desc: '點選第 3 格開啟積木排序器：可直接修改 Phase 數字插隊或拖拉對調，支援「📋 複製整段 / 🧹 刪除 / ＋ 插入新測項」與「⛶ 全螢幕大牌桌」，右側即時預覽 Command │ Send 指令與變數相依診斷；匯出時修改過順序的區塊標上柔和淡藍色 (#E8F4FD) 且開啟 Excel 自動鎖定該測試站 Sheet。',
+        step: 'Step 4｜既有腳本編修（03 Flow Sort）：積木順序排序、淡藍標記與指令預覽',
+        desc: '點選第 3 格開啟積木排序器：可直接修改 Phase 數字插隊或拖拉對調，支援「📋 複製整段 / 🧹 刪除 / ＋ 插入新測項」與「⛶ 全螢幕檢視」，右側即時預覽 Command │ Send 指令與變數相依診斷；匯出時修改過順序的區塊標上柔和淡藍色 (#E8F4FD) 且開啟 Excel 自動鎖定該測試站 Sheet。',
         img: '/images/guide_audit_6.png'
       },
       {
@@ -119,8 +119,8 @@ const FLOW_GUIDE_DATA = {
       },
       {
         stageIdx: 2,
-        step: 'Step 7｜產生首次範本：左右分欄直立撲克牌庫拖曳排順序（支援 📦 群組方框）',
-        desc: '進入「產生首次範本 🃏 積木拖曳編排」後，預設帶入 開始/條碼/chkRoute/指令/清理/結束 6 塊骨架。從左欄將 指令/等待/儀器/SKU/SFIS 拖進右欄貪食蛇序列；需要同一 Phase 混排多塊時可拖入 📦 群組方框並展開置入子積木，亦可點擊「🪄 一鍵自動排最佳順序」或「🔄 恢復預設 6 塊」。',
+        step: 'Step 7｜產生首次範本：左右分欄測試積木庫拖曳排順序（支援 📦 群組方框）',
+        desc: '進入「產生首次範本 🧱 積木拖曳編排」後，預設帶入 開始/條碼/chkRoute/指令/清理/結束 6 塊骨架。從左欄將 指令/等待/儀器/SKU/SFIS 拖進右欄測試序列；需要同一 Phase 混排多塊時可拖入 📦 群組方框並展開置入子積木，亦可點擊「🪄 一鍵自動排最佳順序」或「🔄 恢復預設 6 塊」。',
         img: '/images/guide_gen_1a.png'
       },
       {
@@ -132,19 +132,19 @@ const FLOW_GUIDE_DATA = {
       {
         stageIdx: 2,
         step: 'Step 9｜專屬互動積木（外接儀器 / 多 SKU 分流 / SFIS 讀寫）',
-        desc: '紅標「🧪 儀器」與「🎯 SKU」可直接嵌入同頁切換實機儀器卡牌（NI-6008 / FeasaLED / PPH1503 / IQxel RF）與多品種 4:P,F 分流設定；SFIS 積木可雙向呼叫「SFIS 撲克牌牌桌」實測後帶回。',
+        desc: '紅標「🧪 儀器」與「🎯 SKU」可直接嵌入同頁切換實機儀器型號（NI-6008 / FeasaLED / PPH1503 / IQxel RF）與多品種 4:P,F 分流設定；SFIS 積木可雙向呼叫「SFIS 流程積木編輯頁」實測後帶回。',
         img: '/images/guide_gen_3.png'
       },
       {
         stageIdx: 2,
-        step: 'Step 10｜總覽確認（撲克牌流）與自動語法體檢產出',
-        desc: '總覽頁採用與拖曳畫面相同的撲克牌流程檢視（點擊任張卡片立即修改，群組點 ▼ 展開），匯出前預設自動執行 16 欄語法與結構體檢，完成後立即開啟 Excel 並條列實際寫入之 INI 設定摘要。',
+        step: 'Step 10｜流程總覽確認與自動語法體檢產出',
+        desc: '總覽頁採用與拖曳畫面相同的積木流程檢視（點擊任一積木立即修改，群組點 ▼ 展開），匯出前預設自動執行 16 欄語法與結構體檢，完成後立即開啟 Excel 並條列實際寫入之 INI 設定摘要。',
         img: '/images/guide_gen_4b.png'
       },
       {
         stageIdx: 3,
-        step: 'Step 11｜插入儀器範本 Step 1：左欄儀器撲克牌庫 ＋ 右欄測試序列',
-        desc: '左欄支援關鍵字搜尋、分類篩選與「📖 查看儀器規格/接線簡介」；左右兩欄皆即時以紅框標示本機 Device\\ 缺少的「❌ 缺 DLL」。點擊「＋ 加入」或拖曳卡片至右欄排列順序，再點「✅ 確認以上儀器清單」。需要驗證 SFIS（ISN 刷過／GET／WRITE）或單測 DLL 時可切到第 5 張「實機驗證 (SFIS / DLL)」。',
+        step: 'Step 11｜插入儀器範本 Step 1：左欄可用儀器庫 ＋ 右欄測試序列',
+        desc: '左欄支援關鍵字搜尋、分類篩選與「📖 查看儀器規格/接線簡介」；左右兩欄皆即時以紅框標示本機 Device\\ 缺少的「❌ 缺 DLL」。點擊「＋ 加入」或拖曳儀器至右欄排列順序，再點「✅ 確認以上儀器清單」。需要驗證 SFIS（ISN 刷過／GET／WRITE）或單測 DLL 時可切到首頁「🛡️ 實機測試 SFIS / DLL」。',
         img: '/images/guide_gen_2d.png'
       },
       {
@@ -160,7 +160,7 @@ const FLOW_GUIDE_DATA = {
         img: '/images/guide_audit_5b.png'
       }
     ],
-    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；支援既有腳本快捷編修、從 0 建新母體、儀器撲克牌庫、寫法百科與 SFIS/DLL 實機驗證'
+    tip: '點擊上方「①～⑤ 五大階段卡片」即可篩選對應步驟；支援既有腳本快捷編修、從 0 建新母體、可用儀器庫、語法小抄與 SFIS/DLL 實機驗證'
   },
   diagnose: {
     icon: '🩺',
@@ -484,7 +484,7 @@ function renderFlowGuidePage(tab) {
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:12px; border-top:1px solid #E2E8F0;">
         <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.9rem; color:#475569; user-select:none;">
           <input type="checkbox" id="chkSkipThisFlowGuide" style="width:17px; height:17px; cursor:pointer;">
-          下次不再顯示此流程說明（可在首頁「⚙️ 系統與環境設定」重新開啟）
+          下次不再顯示此流程說明（可在首頁右上角「⚙️ 系統與環境設定」重新開啟）
         </label>
         <button onclick="confirmFlowGuideProceed()" class="btn ${d.btnClass}" style="padding:9px 22px; font-size:0.97rem;">
           ${d.btnLabel}
@@ -582,7 +582,7 @@ function renderSettingsPanel() {
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px;">
           <div>
             <div style="font-weight:700; color:#0F172A; font-size:0.97rem;">全站介面與教學說明預設字體大小</div>
-            <div style="font-size:0.85rem; color:#64748B;">切換後立即等比放大 / 縮小全站文字、手風琴說明、流程教學與儀器介紹頁</div>
+            <div style="font-size:0.85rem; color:#64748B;">切換後立即等比放大 / 縮小全站文字、功能說明、流程教學與儀器介紹頁</div>
           </div>
           <div style="display:inline-flex; gap:6px;">
             <button onclick="saveAppSettings({intro_font_size:13}); applyLoadedSettings({intro_font_size:13}); renderSettingsPanel();" class="btn" style="padding:4px 12px; font-size:0.85rem; ${fs===13?'background:#2563EB;color:#fff;border-color:#1D4ED8;':''}">小 (13px)</button>
