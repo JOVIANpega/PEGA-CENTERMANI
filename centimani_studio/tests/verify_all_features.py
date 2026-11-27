@@ -3631,6 +3631,39 @@ def run_all_verifications():
                   "v0.8.091 排除跨領域與短詞誤配 (UFS ID≠EDID / Power≠MOCA)、:ShowImageMessage 豁免、開啟Excel鈕與版本警告通過",
                   f"msg={iss91_msg}, ufs_tids={ufs_tids}, pwr_tids={pwr_tids}")
 
+            # [v0.8.092] 逐行完整比對回傳 all_rows + station_summary + 進度 Modal / Sheet 分頁總結 / 存檔原檔名_Fixed_errorcode.xlsx
+            all_rows_91 = tic_v91.get("all_rows") or []
+            st_sum_91 = (tic_v91.get("station_summary") or {}).get("MB") or {}
+            row91_msg = next((x for x in all_rows_91 if x.get("description") == "Show EnterTest Box"), None)
+            row91_ufs = next((x for x in all_rows_91 if x.get("description") == "UFS ID"), None)
+            tic92_fixed = post_json("/api/tic_apply_batch", {
+                "workspace": tic_aud["workspace"],
+                "excel_path": v74_res["excel_path"],
+                "updates": [
+                    {"station": "FATP_OPT", "row_idx": iss_volt["row_idx"], "test_id": cand_v, "description": iss_volt["candidates"][0].get("desc_en", "")},
+                ],
+                "update_description": False,
+                "output_suffix": "_Fixed_errorcode",
+                "open_folder": False,
+                "open_excel": False,
+            })
+            check(tic_v91.get("status") == "ok"
+                  and len(all_rows_91) == 3
+                  and row91_msg is not None and row91_msg.get("row_status") == "control_skip"
+                  and row91_ufs is not None and row91_ufs.get("row_status") in ("auto_suggested", "needs_pick")
+                  and st_sum_91.get("total") == 3
+                  and tic92_fixed.get("status") == "ok"
+                  and str(tic92_fixed.get("excel_path") or "").endswith("_Fixed_errorcode.xlsx")
+                  and "ticAuditProgressModal" in idx81_src
+                  and "ticBatchSheetTabs" in idx81_src
+                  and "ticScopeAll" in idx81_src
+                  and "ticScopeSingle" in idx81_src
+                  and "btnTicBatchFilterChanges" in idx81_src
+                  and "ticSetSheetTab" in idx81_src
+                  and "_Fixed_errorcode" in idx81_src,
+                  "v0.8.092 逐行完整比對 (all_rows + station_summary) + 進度視窗/工作表分頁總結 + 原檔名_Fixed_errorcode.xlsx 匯出通過",
+                  f"rows={len(all_rows_91)}, st_sum={st_sum_91}, out={tic92_fixed.get('excel_path')}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

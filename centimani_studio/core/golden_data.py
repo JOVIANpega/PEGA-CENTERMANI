@@ -1288,12 +1288,15 @@ def analyze_workspace_test_ids(workspace, target_station=""):
     stations = (workspace or {}).get("stations") or {}
 
     issues = []
+    all_rows = []
+    station_summary = {}
     total_checked = 0
     ok_count = 0
 
     for st_name, rows in stations.items():
         if target_station and st_name != target_station:
             continue
+        st_stat = {"total": 0, "ok": 0, "control": 0, "suggested": 0, "needs_pick": 0}
         cur_eff_phase = ""
         cur_eff_title = ""
         for row_idx, r in enumerate(rows or []):
@@ -1318,13 +1321,46 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 continue
 
             total_checked += 1
+            st_stat["total"] += 1
             is_ctrl = _is_control_send(send)
             import re
             tid_valid_fmt = bool(re.match(r"^[A-Z0-9]{7}$", tid))
             cur_item = cat_map.get(tid) if tid_valid_fmt else None
+            cur_err_code = cur_item.get("error_code", "") if cur_item else ""
 
             if is_ctrl and cur_item is not None:
                 ok_count += 1
+                st_stat["ok"] += 1
+                st_stat["control"] += 1
+                all_rows.append({
+                    "station": st_name,
+                    "row_idx": row_idx,
+                    "excel_row": row_idx + 2,
+                    "index": index_val,
+                    "phase": phase,
+                    "effective_phase": eff_phase,
+                    "effective_title": eff_title,
+                    "item_category": _classify_step_category(eff_title, desc, send, inst, sw),
+                    "title": title,
+                    "description": desc,
+                    "send": send,
+                    "current_test_id": tid,
+                    "current_error_code": cur_err_code,
+                    "current_desc_en": cur_item.get("desc_en", ""),
+                    "current_desc_cn": cur_item.get("desc_cn", ""),
+                    "cur_match_score": 100,
+                    "reason_code": "",
+                    "reason_label": "控制 / 提示步驟保留原碼",
+                    "row_status": "control_skip",
+                    "query_keywords": [],
+                    "candidates": [],
+                    "best_score": 100,
+                    "match_tier": "high",
+                    "auto_confirmed": False,
+                    "needs_review": False,
+                    "suggest_new_item": False,
+                    "proposed_new_desc": "",
+                })
                 continue
 
             kw_tokens = _extract_row_keywords(title, desc, send)
@@ -1354,6 +1390,37 @@ def analyze_workspace_test_ids(workspace, target_station=""):
 
             if not reason_code:
                 ok_count += 1
+                st_stat["ok"] += 1
+                cur_sc = _score_candidate_confidence(kw_tokens, title, desc, send, cur_item, is_ctrl=is_ctrl) if cur_item else 0
+                all_rows.append({
+                    "station": st_name,
+                    "row_idx": row_idx,
+                    "excel_row": row_idx + 2,
+                    "index": index_val,
+                    "phase": phase,
+                    "effective_phase": eff_phase,
+                    "effective_title": eff_title,
+                    "item_category": _classify_step_category(eff_title, desc, send, inst, sw),
+                    "title": title,
+                    "description": desc,
+                    "send": send,
+                    "current_test_id": tid,
+                    "current_error_code": cur_err_code,
+                    "current_desc_en": cur_item.get("desc_en", "") if cur_item else "",
+                    "current_desc_cn": cur_item.get("desc_cn", "") if cur_item else "",
+                    "cur_match_score": cur_sc,
+                    "reason_code": "",
+                    "reason_label": "原碼與描述相符",
+                    "row_status": "matched_ok",
+                    "query_keywords": kw_tokens[:6],
+                    "candidates": [],
+                    "best_score": cur_sc,
+                    "match_tier": "high",
+                    "auto_confirmed": False,
+                    "needs_review": False,
+                    "suggest_new_item": False,
+                    "proposed_new_desc": "",
+                })
                 continue
 
             # Gather up to 5 deduplicated candidate TestIDs with confidence scores
@@ -1389,6 +1456,37 @@ def analyze_workspace_test_ids(workspace, target_station=""):
             # Do not flag semantic_mismatch on an already-filled non-placeholder TestID unless a much stronger (>=72%) match exists
             if reason_code == "semantic_mismatch" and (not candidates or int(candidates[0].get("confidence_score", 0)) < 72):
                 ok_count += 1
+                st_stat["ok"] += 1
+                cur_sc = _score_candidate_confidence(kw_tokens, title, desc, send, cur_item, is_ctrl=is_ctrl) if cur_item else 0
+                all_rows.append({
+                    "station": st_name,
+                    "row_idx": row_idx,
+                    "excel_row": row_idx + 2,
+                    "index": index_val,
+                    "phase": phase,
+                    "effective_phase": eff_phase,
+                    "effective_title": eff_title,
+                    "item_category": _classify_step_category(eff_title, desc, send, inst, sw),
+                    "title": title,
+                    "description": desc,
+                    "send": send,
+                    "current_test_id": tid,
+                    "current_error_code": cur_err_code,
+                    "current_desc_en": cur_item.get("desc_en", "") if cur_item else "",
+                    "current_desc_cn": cur_item.get("desc_cn", "") if cur_item else "",
+                    "cur_match_score": cur_sc,
+                    "reason_code": "",
+                    "reason_label": "原碼尚可接受（無顯著更優替代碼）",
+                    "row_status": "matched_ok",
+                    "query_keywords": kw_tokens[:6],
+                    "candidates": candidates,
+                    "best_score": cur_sc,
+                    "match_tier": "high",
+                    "auto_confirmed": False,
+                    "needs_review": False,
+                    "suggest_new_item": False,
+                    "proposed_new_desc": "",
+                })
                 continue
 
             best_score = int(candidates[0].get("confidence_score", 0)) if candidates else 0
@@ -1401,8 +1499,13 @@ def analyze_workspace_test_ids(workspace, target_station=""):
 
             # Auto-confirmed when high similarity (>=72%), or placeholder with a close-enough alternative (>=55%)
             auto_confirmed = (match_tier == "high") or (reason_code == "generic_placeholder" and best_score >= 55)
+            row_status = "auto_suggested" if auto_confirmed else "needs_pick"
+            if auto_confirmed:
+                st_stat["suggested"] += 1
+            else:
+                st_stat["needs_pick"] += 1
 
-            issues.append({
+            issue_item = {
                 "station": st_name,
                 "row_idx": row_idx,
                 "excel_row": row_idx + 2,
@@ -1415,10 +1518,13 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "description": desc,
                 "send": send,
                 "current_test_id": tid,
+                "current_error_code": cur_err_code,
                 "current_desc_en": cur_item.get("desc_en", "") if cur_item else "",
                 "current_desc_cn": cur_item.get("desc_cn", "") if cur_item else "",
+                "cur_match_score": _score_candidate_confidence(kw_tokens, title, desc, send, cur_item, is_ctrl=is_ctrl) if cur_item else 0,
                 "reason_code": reason_code,
                 "reason_label": reason_label,
+                "row_status": row_status,
                 "query_keywords": kw_tokens[:6],
                 "candidates": candidates,
                 "best_score": best_score,
@@ -1427,7 +1533,11 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "needs_review": not auto_confirmed,
                 "suggest_new_item": (match_tier == "low_gap"),
                 "proposed_new_desc": _clean_proposed_item_name(title, desc, send),
-            })
+            }
+            issues.append(issue_item)
+            all_rows.append(issue_item)
+
+        station_summary[st_name] = st_stat
 
     summary = {
         "total_checked": total_checked,
@@ -1442,5 +1552,11 @@ def analyze_workspace_test_ids(workspace, target_station=""):
         "auto_confirmed_count": sum(1 for x in issues if x.get("auto_confirmed")),
         "needs_review_count": sum(1 for x in issues if x.get("needs_review")),
     }
-    return {"issues": issues, "summary": summary, "stations": list(stations.keys())}
+    return {
+        "issues": issues,
+        "all_rows": all_rows,
+        "station_summary": station_summary,
+        "summary": summary,
+        "stations": list(stations.keys()),
+    }
 

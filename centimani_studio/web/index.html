@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.091">
+<link rel="stylesheet" href="/css/app.css?v=0.8.092">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.091</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.092</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1584,58 +1584,93 @@
       </div>
     </div>
 
-    <!-- 子分頁 1（預設主畫面）：整份 Excel 自動比對＆推薦 TestID -->
+    <!-- 子分頁 1（預設主畫面）：整份 / 指定工作表逐行完整比對＆補齊 TestID -->
     <div id="ticBatchWrap" style="display:block;">
       <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:9px;">
         <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
           <button id="btnTicBatchPickExcel" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem;" onclick="ticBatchPickAndAudit()">
-            📂 選擇 TestFlow Excel 開始掃描
+            📂 選擇 TestFlow Excel
           </button>
-          <button id="btnTicBatchRescan" class="btn btn-slate" style="padding:7px 12px; font-size:0.86rem;" onclick="ticAuditExcel()">
-            🔄 掃描目前已載入 Excel
+          <div style="display:inline-flex; align-items:center; gap:8px; padding:4px 10px; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:7px;">
+            <span style="font-size:0.82rem; font-weight:800; color:#475569;">比對範圍：</span>
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.84rem; font-weight:700; color:#1E293B; cursor:pointer;">
+              <input type="radio" id="ticScopeAll" name="ticAuditScope" value="all" checked onchange="ticOnScopeRadioChange()"> 全部 Sheet 逐站比對
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.84rem; font-weight:700; color:#1E293B; cursor:pointer;">
+              <input type="radio" id="ticScopeSingle" name="ticAuditScope" value="single" onchange="ticOnScopeRadioChange()"> 指定單一 Sheet：
+            </label>
+            <select id="ticBatchStationSelect" onchange="ticOnStationDropdownChange()" style="padding:4px 8px; border:1px solid #94A3B8; border-radius:6px; font-size:0.84rem; background:#FFFFFF;">
+              <option value="">全部測試站 (All Stations)</option>
+            </select>
+          </div>
+          <button id="btnTicBatchRescan" class="btn" style="padding:7px 14px; font-size:0.88rem; background:#2563EB; color:#FFFFFF; border:1px solid #1D4ED8; font-weight:800;" onclick="ticAuditExcel()">
+            ▶ 開始逐行完整比對
           </button>
-          <select id="ticBatchStationSelect" onchange="ticAuditExcel()" style="padding:6px 10px; border:1px solid #94A3B8; border-radius:6px; font-size:0.85rem; background:#FFFFFF;">
-            <option value="">全部測試站 (All Stations)</option>
-          </select>
-          <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.84rem; font-weight:700; color:#334155; cursor:pointer; margin-left:4px;">
-            <input type="checkbox" id="chkTicBatchUpdateDesc"> 套用時順便補齊推薦 Description
+          <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.84rem; font-weight:700; color:#334155; cursor:pointer; margin-left:2px;">
+            <input type="checkbox" id="chkTicBatchUpdateDesc"> 套用時同步更新英文 Description
           </label>
           <span style="flex:1;"></span>
-          <button id="btnTicExportGapNew" class="btn" style="padding:7px 13px; font-size:0.85rem; background:#FFF1F2; color:#9F1239; border:1.5px solid #FDA4AF; font-weight:800; display:none;" onclick="ticExportNewItemRequests()">
-            📋 複製「申請新 Error Code」清單
+          <button id="btnTicExportGapNew" class="btn" style="padding:7px 12px; font-size:0.84rem; background:#FFF1F2; color:#9F1239; border:1.5px solid #FDA4AF; font-weight:800; display:none;" onclick="ticExportNewItemRequests()">
+            📋 複製「申請新碼」清單
           </button>
-          <button id="btnTicBatchApply" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; display:none;" onclick="ticApplyBatchToExcel()">
-            💾 套用已選修正並匯出 *_FIXED.xlsx + 簽章
+          <button id="btnTicBatchApplySaveFixed" class="btn" style="padding:7px 13px; font-size:0.86rem; background:#0F766E; color:#FFFFFF; border:1px solid #115E59; font-weight:800; display:none;" onclick="ticApplyBatchToExcel(true)">
+            💾 另存原檔名_Fixed_errorcode.xlsx
+          </button>
+          <button id="btnTicBatchApply" class="btn btn-primary-green" style="padding:7px 14px; font-size:0.88rem; display:none;" onclick="ticApplyBatchToExcel(false)">
+            💾 存檔為 *_Fixed_errorcode.xlsx
           </button>
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">顯示：</span>
-            <button id="btnTicBatchFilterNeedsReview" class="filter-pill active" onclick="ticSetBatchFilter('needs_review')">❓ 只看無法自動確認</button>
-            <button id="btnTicBatchFilterAutoOk" class="filter-pill" onclick="ticSetBatchFilter('auto_confirmed')">🟢 已自動配對</button>
-            <button id="btnTicBatchFilterAll" class="filter-pill" onclick="ticSetBatchFilter('all')">全部項目</button>
-            <button id="btnTicBatchFilterTierGap" class="filter-pill" onclick="ticSetBatchFilter('tier_gap')">📝 找不到相近</button>
-            <button id="btnTicBatchFilterMissing" class="filter-pill" onclick="ticSetBatchFilter('missing')">缺漏</button>
-            <button id="btnTicBatchFilterPlaceholder" class="filter-pill" onclick="ticSetBatchFilter('generic_placeholder')">通用佔位碼</button>
+            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">檢視：</span>
+            <button id="btnTicBatchFilterChanges" class="filter-pill active" onclick="ticSetBatchFilter('changes')">🔍 只看建議修改與待選</button>
+            <button id="btnTicBatchFilterAll" class="filter-pill" onclick="ticSetBatchFilter('all')">📋 查看本頁全部步驟</button>
+            <button id="btnTicBatchFilterNeedsReview" class="filter-pill" onclick="ticSetBatchFilter('needs_review')">🟠 只看待手選</button>
+            <button id="btnTicGroupPhase" class="filter-pill active" onclick="ticSetBatchGroupBy(TIC_BATCH_STATE.groupBy === 'phase' ? 'flat' : 'phase')" style="margin-left:6px;">🧱 依 Phase 分段</button>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">分組：</span>
-            <button id="btnTicGroupPhase" class="filter-pill active" onclick="ticSetBatchGroupBy('phase')">🧱 依 Phase 分組</button>
-            <button id="btnTicGroupCat" class="filter-pill" onclick="ticSetBatchGroupBy('category')">🏷️ 依測項分類</button>
-            <button id="btnTicGroupFlat" class="filter-pill" onclick="ticSetBatchGroupBy('flat')">📋 清單</button>
-            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800; margin-left:4px;" onclick="ticAutoSelectTier('auto')">✨ 重新自動配對</button>
+            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800;" onclick="ticAutoSelectTier('auto', false, true)">✔ 本頁自動配對全部打勾</button>
             <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#F8FAFC; color:#475569; border:1px solid #CBD5E1; font-weight:700;" onclick="ticClearAllBatchSelections()">🧹 清空已選</button>
           </div>
         </div>
       </div>
 
       <div id="ticBatchSummaryBanner" style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px; margin-bottom:10px; font-size:0.86rem; color:#334155;">
-        尚未掃描 TestFlow Excel：請點擊上方「📂 選擇 TestFlow Excel 開始掃描」，系統將自動挑出缺漏、通用佔位碼或語意不符之測試步驟並推薦 Top 5 TestID。
+        尚未進行逐行比對：請選擇上方的 TestFlow Excel 與比對範圍（全部 Sheet 或指定單一 Sheet），再點擊「▶ 開始逐行完整比對」。
       </div>
+      <div id="ticBatchSheetTabs" style="display:none; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:10px; padding:6px 10px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:8px;"></div>
       <div id="ticBatchApplyAlert" class="alert-banner" style="display:none; font-size:0.85rem; padding:10px 12px; margin-bottom:10px;"></div>
       <div id="ticBatchIssueList"></div>
     </div>
   </div>
+
+<!-- 逐行比對進行中進度 Modal -->
+<div id="ticAuditProgressModal" class="modal-backdrop" style="display:none; z-index:9990;">
+  <div class="modal-panel" style="max-width:620px; width:92vw; border:2px solid #2563EB; border-radius:12px; box-shadow:0 20px 55px rgba(15,23,42,0.45); overflow:hidden; padding:0; background:#FFFFFF;">
+    <div style="background:#0F172A; color:#FFFFFF; padding:12px 18px; display:flex; align-items:center; justify-content:space-between;">
+      <div id="ticProgStatusTitle" style="font-weight:800; font-size:0.98rem;">🔍 正在逐行完整比對 Error Code / TestID...</div>
+      <span id="ticProgPct" class="mono" style="font-weight:900; font-size:0.95rem; color:#38BDF8;">0%</span>
+    </div>
+    <div style="padding:16px 20px; display:flex; flex-direction:column; gap:12px;">
+      <div id="ticProgSheetInfo" style="font-weight:800; font-size:0.9rem; color:#1E293B;">準備讀取工作表...</div>
+      <div style="width:100%; height:14px; background:#E2E8F0; border-radius:999px; overflow:hidden; border:1px solid #CBD5E1;">
+        <div id="ticProgBarFill" style="width:0%; height:100%; background:linear-gradient(90deg, #2563EB, #10B981); transition:width 0.12s ease;"></div>
+      </div>
+      <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; font-size:0.84rem; color:#334155; display:flex; flex-direction:column; gap:5px;">
+        <div>正在比對：<span id="ticProgCurrentStep" class="mono" style="font-weight:700; color:#0F172A;">—</span></div>
+        <div>對照結果：<span id="ticProgCurrentMatch" class="mono" style="font-weight:700; color:#1D4ED8;">—</span></div>
+      </div>
+      <div id="ticProgStats" style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.84rem; font-weight:800;">
+        <span style="color:#15803D;">🟢 原碼吻合：0</span>
+        <span style="color:#1D4ED8;">🔵 自動配對替代：0</span>
+        <span style="color:#B45309;">🟠 需手動確認：0</span>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+        <button type="button" class="btn btn-slate" style="padding:6px 16px; font-size:0.85rem;" onclick="ticCancelAudit()">✕ 取消比對</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div>
 </div> <!-- 關閉 app-body 容器 -->
@@ -1917,14 +1952,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.091"></script>
-<script src="/js/audit_editors.js?v=0.8.091"></script>
-<script src="/js/flow_guide.js?v=0.8.091"></script>
-<script src="/js/block_sorter.js?v=0.8.091"></script>
-<script src="/js/script_qa.js?v=0.8.091"></script>
-<script src="/js/sfis_hmi.js?v=0.8.091"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.091"></script>
-<script src="/js/create_block_builder.js?v=0.8.091"></script>
+<script src="/js/inst_hmi.js?v=0.8.092"></script>
+<script src="/js/audit_editors.js?v=0.8.092"></script>
+<script src="/js/flow_guide.js?v=0.8.092"></script>
+<script src="/js/block_sorter.js?v=0.8.092"></script>
+<script src="/js/script_qa.js?v=0.8.092"></script>
+<script src="/js/sfis_hmi.js?v=0.8.092"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.092"></script>
+<script src="/js/create_block_builder.js?v=0.8.092"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2116,11 +2151,17 @@ function openTicFromEdit() {
   if (hasWs) {
     const edSel = document.getElementById('editorSheetSel');
     const stBatchSel = document.getElementById('ticBatchStationSelect');
+    const targetSt = (edSel && edSel.value && STATE.workspace.stations[edSel.value]) ? edSel.value : '';
     if (stBatchSel) {
-      const targetSt = (edSel && edSel.value && STATE.workspace.stations[edSel.value]) ? edSel.value : '';
       stBatchSel.innerHTML = '<option value="">全部測試站 (All Stations)</option>' +
         Object.keys(STATE.workspace.stations).map(s => `<option value="${_ticEsc(s)}"${s === targetSt ? ' selected' : ''}>${_ticEsc(s)}</option>`).join('');
       stBatchSel.value = targetSt;
+    }
+    const rAll = document.getElementById('ticScopeAll');
+    const rSingle = document.getElementById('ticScopeSingle');
+    if (rAll && rSingle) {
+      rSingle.checked = !!targetSt;
+      rAll.checked = !targetSt;
     }
     TIC_BATCH_STATE.summary = null;
     if (typeof switchTicSubTab === 'function') switchTicSubTab('batch');
@@ -3165,13 +3206,18 @@ const TIC_BATCH_STATE = {
   workspace: null,
   excelPath: '',
   issues: [],
+  allRows: [],
+  stationSummary: {},
   summary: null,
   stations: [],
+  activeSheetTab: '__ALL__',
   filter: 'needs_review',
   groupBy: 'phase',
   collapsedGroups: {},
+  expandedRows: {},
   selections: {},
   keptRows: {},
+  _scanToken: 0,
 };
 
 function _ticEsc(s) {
@@ -3187,6 +3233,13 @@ function _ticKey(it) {
   return `${it.station}::${it.row_idx}`;
 }
 
+function _ticFindRowObj(station, rowIdx) {
+  const rIdx = Number(rowIdx);
+  return (TIC_BATCH_STATE.allRows || []).find(x => x.station === station && Number(x.row_idx) === rIdx)
+    || (TIC_BATCH_STATE.issues || []).find(x => x.station === station && Number(x.row_idx) === rIdx)
+    || null;
+}
+
 function switchTicSubTab(sub) {
   TIC_BATCH_STATE.subTab = (sub === 'batch') ? 'batch' : 'single';
   const singleWrap = document.getElementById('ticSingleWrap');
@@ -3199,6 +3252,7 @@ function switchTicSubTab(sub) {
   if (btnB) btnB.classList.toggle('active', TIC_BATCH_STATE.subTab === 'batch');
 
   if (TIC_BATCH_STATE.subTab === 'batch' && STATE && STATE.workspace) {
+    _ticSyncStationOptions(Object.keys(STATE.workspace.stations || {}));
     if (!TIC_BATCH_STATE.summary || window._TIC_FROM_EDIT) {
       ticAuditExcel();
     }
@@ -3209,89 +3263,301 @@ function switchTicSubTab(sub) {
   }
 }
 
+function _ticSyncStationOptions(stationsList, keepVal) {
+  const selEl = document.getElementById('ticBatchStationSelect');
+  if (!selEl) return;
+  const prev = (keepVal !== undefined) ? keepVal : selEl.value;
+  selEl.innerHTML = '<option value="">全部測試站 (All Stations)</option>' +
+    (stationsList || []).map(s => `<option value="${_ticEsc(s)}"${s === prev ? ' selected' : ''}>${_ticEsc(s)}</option>`).join('');
+  if (prev && (stationsList || []).includes(prev)) {
+    selEl.value = prev;
+  }
+}
+
+function ticOnScopeRadioChange() {
+  const rSingle = document.getElementById('ticScopeSingle');
+  const selEl = document.getElementById('ticBatchStationSelect');
+  if (rSingle && rSingle.checked && selEl && !selEl.value && selEl.options.length > 1) {
+    selEl.selectedIndex = 1;
+  }
+  if (!rSingle || !rSingle.checked) {
+    if (selEl) selEl.value = '';
+  }
+}
+
+function ticOnStationDropdownChange() {
+  const selEl = document.getElementById('ticBatchStationSelect');
+  const rAll = document.getElementById('ticScopeAll');
+  const rSingle = document.getElementById('ticScopeSingle');
+  if (selEl && selEl.value) {
+    if (rSingle) rSingle.checked = true;
+    if (rAll) rAll.checked = false;
+  } else {
+    if (rAll) rAll.checked = true;
+    if (rSingle) rSingle.checked = false;
+  }
+}
+
 async function ticBatchPickAndAudit() {
   await pickExcelNative();
   if (STATE && STATE.workspace) {
     TIC_BATCH_STATE.selections = {};
+    TIC_BATCH_STATE.keptRows = {};
+    TIC_BATCH_STATE.expandedRows = {};
+    _ticSyncStationOptions(Object.keys(STATE.workspace.stations || {}), '');
+    const rAll = document.getElementById('ticScopeAll');
+    const rSingle = document.getElementById('ticScopeSingle');
+    if (rAll) rAll.checked = true;
+    if (rSingle) rSingle.checked = false;
     await ticAuditExcel(STATE.workspace.source_file || '');
   }
 }
 
+function ticCancelAudit() {
+  TIC_BATCH_STATE._scanToken++;
+  const modal = document.getElementById('ticAuditProgressModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function _ticUpdateProgressModal(pct, sheetInfo, stepText, matchText, statsObj) {
+  const bar = document.getElementById('ticProgBarFill');
+  const pctEl = document.getElementById('ticProgPct');
+  const shEl = document.getElementById('ticProgSheetInfo');
+  const stEl = document.getElementById('ticProgCurrentStep');
+  const mtEl = document.getElementById('ticProgCurrentMatch');
+  const statEl = document.getElementById('ticProgStats');
+  if (bar) bar.style.width = `${Math.max(2, Math.min(100, Math.round(pct)))}%`;
+  if (pctEl) pctEl.textContent = `${Math.max(0, Math.min(100, Math.round(pct)))}%`;
+  if (shEl && sheetInfo) shEl.textContent = sheetInfo;
+  if (stEl && stepText !== undefined) stEl.textContent = stepText;
+  if (mtEl && matchText !== undefined) mtEl.textContent = matchText;
+  if (statEl && statsObj) {
+    statEl.innerHTML = `
+      <span style="color:#15803D;">🟢 原碼吻合：${statsObj.ok || 0}</span>
+      <span style="color:#1D4ED8;">🔵 自動配對替代：${statsObj.suggested || 0}</span>
+      <span style="color:#B45309;">🟠 需手動確認：${statsObj.needs_pick || 0}</span>
+    `;
+  }
+}
+
+async function _ticAnimateRowsProgress(token, sheetName, sheetIdx, totalSheets, rowsList, baseStats, globalDoneBefore, globalTotalEst) {
+  const list = rowsList || [];
+  const stepStride = Math.max(1, Math.ceil(list.length / 8));
+  for (let i = 0; i < list.length; i += stepStride) {
+    if (TIC_BATCH_STATE._scanToken !== token) return false;
+    const r = list[i];
+    const doneNow = globalDoneBefore + Math.min(i + stepStride, list.length);
+    const pct = globalTotalEst > 0 ? Math.min(99, (doneNow / globalTotalEst) * 100) : 50;
+    const descTxt = r.description || r.title || '(無描述)';
+    const curTid = r.current_test_id || '(空白)';
+    let mTxt = '⚪ 控制/提示步驟保留原碼';
+    if (r.row_status === 'matched_ok') {
+      mTxt = `🟢 ${r.current_test_id} 原碼吻合 (${r.cur_match_score || 0}%)`;
+    } else if (r.row_status === 'auto_suggested') {
+      const top = (r.candidates && r.candidates[0]) || {};
+      mTxt = `🔵 自動配對 -> ${top.test_id || ''} (${top.desc_en || ''}) ${r.best_score || 0}%`;
+    } else if (r.row_status === 'needs_pick') {
+      mTxt = `🟠 待確認（目前僅 ${r.best_score || 0}%）`;
+    }
+    _ticUpdateProgressModal(
+      pct,
+      `正在比對工作表：${sheetName}（第 ${sheetIdx + 1} / ${totalSheets} 張 ｜ Excel R${r.excel_row}）`,
+      `O 欄「${descTxt}」 ｜ 原 TestID：${curTid}`,
+      mTxt,
+      baseStats
+    );
+    await new Promise(res => setTimeout(res, 18));
+  }
+  return TIC_BATCH_STATE._scanToken === token;
+}
+
 async function ticAuditExcel(explicitPath) {
   const selEl = document.getElementById('ticBatchStationSelect');
-  const stFilter = selEl ? selEl.value : '';
+  const rSingle = document.getElementById('ticScopeSingle');
+  const isSingleScope = Boolean(rSingle && rSingle.checked && selEl && selEl.value);
+  const stFilter = isSingleScope ? selEl.value : '';
   const ws = (!explicitPath && (TIC_BATCH_STATE.workspace || (STATE && STATE.workspace))) || null;
   const excelPath = explicitPath || (ws && ws.source_file) || TIC_BATCH_STATE.excelPath || '';
 
   if (!excelPath && (!ws || !ws.stations)) {
     const sumEl = document.getElementById('ticBatchSummaryBanner');
     if (sumEl) {
-      sumEl.innerHTML = '尚未載入 TestFlow Excel：請先點擊「📂 選擇 TestFlow Excel 開始掃描」。';
+      sumEl.innerHTML = '尚未載入 TestFlow Excel：請先點擊「📂 選擇 TestFlow Excel」。';
     }
     return;
   }
 
-  const res = await fetch('/api/tic_audit_excel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      excel_path: excelPath,
-      workspace: ws,
-      station: stFilter,
-    }),
-  });
-  const data = await res.json();
-  if (data.status !== 'ok') {
-    alert('Excel TestID 比對失敗：' + (data.message || ''));
-    return;
+  const scanToken = ++TIC_BATCH_STATE._scanToken;
+  const modal = document.getElementById('ticAuditProgressModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    _ticUpdateProgressModal(4, '準備連線進行逐行完整比對...', '載入 TestFlow 與官方 Error Code 對照表', '比對中...', { ok: 0, suggested: 0, needs_pick: 0 });
   }
 
-  TIC_BATCH_STATE.workspace = data.workspace;
-  TIC_BATCH_STATE.excelPath = data.excel_path || excelPath;
-  TIC_BATCH_STATE.issues = (data.issues || []).map(it => {
-    const isAuto = (it.auto_confirmed !== undefined) ? !!it.auto_confirmed : (it.match_tier === 'high');
-    const isNeeds = (it.needs_review !== undefined) ? !!it.needs_review : !isAuto;
-    return Object.assign({}, it, { auto_confirmed: isAuto, needs_review: isNeeds });
-  });
-  TIC_BATCH_STATE.summary = data.summary || {};
-  TIC_BATCH_STATE.stations = data.stations || [];
-  if (STATE && !STATE.workspace) {
-    STATE.workspace = data.workspace;
-  }
+  try {
+    let finalWs = ws;
+    let finalExcelPath = excelPath;
+    let combinedIssues = [];
+    let combinedAllRows = [];
+    let combinedStationSummary = {};
+    let allStations = (ws && ws.stations) ? Object.keys(ws.stations) : [];
 
-  if (selEl) {
-    const prev = stFilter;
-    selEl.innerHTML = '<option value="">全部測試站 (All Stations)</option>' +
-      TIC_BATCH_STATE.stations.map(s => `<option value="${_ticEsc(s)}"${s === prev ? ' selected' : ''}>${_ticEsc(s)}</option>`).join('');
-  }
+    // 若工作區已在記憶體中且選擇全部掃描多張 Sheet，採逐張工作表分批比對呈現真實進度
+    const targetStations = (finalWs && finalWs.stations && !explicitPath)
+      ? (stFilter ? [stFilter] : Object.keys(finalWs.stations))
+      : null;
 
-  const alertBox = document.getElementById('ticBatchApplyAlert');
-  if (alertBox) alertBox.style.display = 'none';
-  TIC_BATCH_STATE.keptRows = {};
-  // 自動預選所有可自動配對項目 (auto_confirmed)，主畫面預設僅顯示無法確認項目
-  ticAutoSelectTier('auto', true);
-  ticSetBatchFilter('needs_review');
+    if (targetStations && targetStations.length > 0) {
+      const estTotal = targetStations.reduce((acc, s) => acc + ((finalWs.stations[s] || []).length || 1), 0);
+      let doneEst = 0;
+      const runStats = { ok: 0, suggested: 0, needs_pick: 0 };
+
+      for (let si = 0; si < targetStations.length; si++) {
+        if (TIC_BATCH_STATE._scanToken !== scanToken) return;
+        const stName = targetStations[si];
+        _ticUpdateProgressModal(
+          (doneEst / Math.max(1, estTotal)) * 100,
+          `正在比對工作表：${stName}（第 ${si + 1} / ${targetStations.length} 張）`,
+          `讀取 ${stName} 測試步驟中...`,
+          '對照官方代碼庫中...',
+          runStats
+        );
+        const res = await fetch('/api/tic_audit_excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ excel_path: finalExcelPath, workspace: finalWs, station: stName }),
+        });
+        const data = await res.json();
+        if (TIC_BATCH_STATE._scanToken !== scanToken) return;
+        if (data.status !== 'ok') {
+          if (modal) modal.style.display = 'none';
+          alert('Excel TestID 比對失敗：' + (data.message || ''));
+          return;
+        }
+        finalWs = data.workspace || finalWs;
+        finalExcelPath = data.excel_path || finalExcelPath;
+        allStations = data.stations || allStations;
+        const stIssues = (data.issues || []).map(it => {
+          const isAuto = (it.auto_confirmed !== undefined) ? !!it.auto_confirmed : (it.match_tier === 'high');
+          const isNeeds = (it.needs_review !== undefined) ? !!it.needs_review : !isAuto;
+          return Object.assign({}, it, { auto_confirmed: isAuto, needs_review: isNeeds });
+        });
+        const stRows = data.all_rows || stIssues;
+        combinedIssues.push(...stIssues);
+        combinedAllRows.push(...stRows);
+        Object.assign(combinedStationSummary, data.station_summary || {});
+        const stSum = (data.station_summary && data.station_summary[stName]) || {};
+        runStats.ok += Number(stSum.ok || (data.summary && data.summary.ok_count) || 0);
+        runStats.suggested += Number(stSum.suggested || (data.summary && data.summary.auto_confirmed_count) || 0);
+        runStats.needs_pick += Number(stSum.needs_pick || (data.summary && data.summary.needs_review_count) || 0);
+
+        const cont = await _ticAnimateRowsProgress(scanToken, stName, si, targetStations.length, stRows, runStats, doneEst, estTotal);
+        if (!cont) return;
+        doneEst += (finalWs.stations[stName] || []).length || 1;
+      }
+    } else {
+      // 直接從路徑掃描（例如初次選擇檔案或帶入 explicitPath）
+      const res = await fetch('/api/tic_audit_excel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excel_path: excelPath, workspace: ws, station: stFilter }),
+      });
+      const data = await res.json();
+      if (TIC_BATCH_STATE._scanToken !== scanToken) return;
+      if (data.status !== 'ok') {
+        if (modal) modal.style.display = 'none';
+        alert('Excel TestID 比對失敗：' + (data.message || ''));
+        return;
+      }
+      finalWs = data.workspace;
+      finalExcelPath = data.excel_path || excelPath;
+      allStations = data.stations || [];
+      combinedIssues = (data.issues || []).map(it => {
+        const isAuto = (it.auto_confirmed !== undefined) ? !!it.auto_confirmed : (it.match_tier === 'high');
+        const isNeeds = (it.needs_review !== undefined) ? !!it.needs_review : !isAuto;
+        return Object.assign({}, it, { auto_confirmed: isAuto, needs_review: isNeeds });
+      });
+      combinedAllRows = data.all_rows || combinedIssues;
+      combinedStationSummary = data.station_summary || {};
+      const stKeys = Object.keys(combinedStationSummary);
+      const totRows = combinedAllRows.length || 1;
+      let doneNow = 0;
+      const runStats = { ok: 0, suggested: 0, needs_pick: 0 };
+      for (let si = 0; si < stKeys.length; si++) {
+        const sName = stKeys[si];
+        const sRows = combinedAllRows.filter(x => x.station === sName);
+        const sStat = combinedStationSummary[sName] || {};
+        runStats.ok += Number(sStat.ok || 0);
+        runStats.suggested += Number(sStat.suggested || 0);
+        runStats.needs_pick += Number(sStat.needs_pick || 0);
+        const cont = await _ticAnimateRowsProgress(scanToken, sName, si, stKeys.length, sRows, runStats, doneNow, totRows);
+        if (!cont) return;
+        doneNow += sRows.length;
+      }
+    }
+
+    if (TIC_BATCH_STATE._scanToken !== scanToken) return;
+    _ticUpdateProgressModal(100, '比對完成！正在整理各 Sheet 總結畫面...', '全部步驟已逐行檢查完畢', '✅ 準備顯示各 Sheet 總結表');
+    await new Promise(res => setTimeout(res, 120));
+    if (modal) modal.style.display = 'none';
+
+    const okSum = Object.values(combinedStationSummary).reduce((a, s) => a + Number(s.ok || 0), 0);
+    const totalSum = combinedAllRows.length || (okSum + combinedIssues.length);
+    TIC_BATCH_STATE.workspace = finalWs;
+    TIC_BATCH_STATE.excelPath = finalExcelPath;
+    TIC_BATCH_STATE.issues = combinedIssues;
+    TIC_BATCH_STATE.allRows = combinedAllRows;
+    TIC_BATCH_STATE.stationSummary = combinedStationSummary;
+    TIC_BATCH_STATE.stations = allStations;
+    TIC_BATCH_STATE.activeSheetTab = stFilter || '__ALL__';
+    TIC_BATCH_STATE.summary = {
+      total_checked: totalSum,
+      ok_count: okSum,
+      flagged_count: combinedIssues.length,
+      auto_confirmed_count: combinedIssues.filter(x => x.auto_confirmed).length,
+      needs_review_count: combinedIssues.filter(x => x.needs_review).length,
+    };
+    if (STATE && !STATE.workspace) {
+      STATE.workspace = finalWs;
+    }
+    _ticSyncStationOptions(allStations, stFilter);
+
+    const alertBox = document.getElementById('ticBatchApplyAlert');
+    if (alertBox) alertBox.style.display = 'none';
+    TIC_BATCH_STATE.keptRows = {};
+    TIC_BATCH_STATE.expandedRows = {};
+    // 自動預選所有可自動配對項目，進入「只看建議修改與待選」清晰對照表
+    ticAutoSelectTier('auto', true);
+    ticSetBatchFilter('changes');
+  } catch (err) {
+    if (modal) modal.style.display = 'none';
+    alert('逐行比對發生錯誤：' + (err && err.message ? err.message : err));
+  }
+}
+
+function ticSetSheetTab(stKey) {
+  TIC_BATCH_STATE.activeSheetTab = stKey || '__ALL__';
+  renderTicBatchIssues();
 }
 
 function ticSetBatchFilter(mode) {
-  TIC_BATCH_STATE.filter = mode;
+  TIC_BATCH_STATE.filter = mode || 'changes';
   const map = {
-    needs_review: 'btnTicBatchFilterNeedsReview',
-    auto_confirmed: 'btnTicBatchFilterAutoOk',
+    changes: 'btnTicBatchFilterChanges',
     all: 'btnTicBatchFilterAll',
-    tier_gap: 'btnTicBatchFilterTierGap',
-    missing: 'btnTicBatchFilterMissing',
-    generic_placeholder: 'btnTicBatchFilterPlaceholder',
+    needs_review: 'btnTicBatchFilterNeedsReview',
   };
   Object.entries(map).forEach(([k, id]) => {
     const el = document.getElementById(id);
-    if (el) el.classList.toggle('active', k === mode);
+    if (el) el.classList.toggle('active', k === TIC_BATCH_STATE.filter);
   });
   renderTicBatchIssues();
 }
 
-function ticAutoSelectTier(mode = 'auto', silent = false) {
+function ticAutoSelectTier(mode = 'auto', silent = false, curSheetOnly = false) {
+  const activeTab = TIC_BATCH_STATE.activeSheetTab || '__ALL__';
   (TIC_BATCH_STATE.issues || []).forEach(it => {
+    if (curSheetOnly && activeTab !== '__ALL__' && it.station !== activeTab) return;
     if (!it.candidates || !it.candidates.length) return;
     if (mode === 'auto' || mode === 'high') {
       if (!it.auto_confirmed && it.match_tier !== 'high') return;
@@ -3307,6 +3573,9 @@ function ticAutoSelectTier(mode = 'auto', silent = false) {
       row_idx: it.row_idx,
       test_id: top.test_id,
       description: top.desc_en || '',
+      error_code: top.error_code || '',
+      desc_cn: top.desc_cn || '',
+      score: top.confidence_score || it.best_score || 0,
     };
   });
   if (!silent) renderTicBatchIssues();
@@ -3314,15 +3583,8 @@ function ticAutoSelectTier(mode = 'auto', silent = false) {
 
 function ticSetBatchGroupBy(mode) {
   TIC_BATCH_STATE.groupBy = ['phase', 'category', 'flat'].includes(mode) ? mode : 'phase';
-  const map = {
-    phase: 'btnTicGroupPhase',
-    category: 'btnTicGroupCat',
-    flat: 'btnTicGroupFlat',
-  };
-  Object.entries(map).forEach(([k, id]) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('active', k === TIC_BATCH_STATE.groupBy);
-  });
+  const btnPh = document.getElementById('btnTicGroupPhase');
+  if (btnPh) btnPh.classList.toggle('active', TIC_BATCH_STATE.groupBy === 'phase');
   renderTicBatchIssues();
 }
 
@@ -3332,11 +3594,62 @@ function ticToggleBatchGroup(gKey) {
   renderTicBatchIssues();
 }
 
+async function ticToggleRowDrawer(station, rowIdx) {
+  const key = `${station}::${rowIdx}`;
+  TIC_BATCH_STATE.expandedRows = TIC_BATCH_STATE.expandedRows || {};
+  const nextOpen = !TIC_BATCH_STATE.expandedRows[key];
+  TIC_BATCH_STATE.expandedRows[key] = nextOpen;
+  if (nextOpen) {
+    const it = _ticFindRowObj(station, rowIdx);
+    if (it && (!it.candidates || !it.candidates.length)) {
+      const qRaw = String(it.description || it.title || '').replace(/PC#-#/gi, '').trim();
+      if (qRaw) {
+        try {
+          const res = await fetch(`/api/search_test_id?q=${encodeURIComponent(qRaw)}&limit=5`);
+          const data = await res.json();
+          if (data.status === 'ok' && Array.isArray(data.items)) {
+            it.candidates = data.items;
+          }
+        } catch (e) {}
+      }
+    }
+  }
+  renderTicBatchIssues();
+}
+
+function ticToggleRowCheckbox(station, rowIdx) {
+  const key = `${station}::${rowIdx}`;
+  const it = _ticFindRowObj(station, rowIdx);
+  if (TIC_BATCH_STATE.selections[key]) {
+    delete TIC_BATCH_STATE.selections[key];
+    renderTicBatchIssues();
+    return;
+  }
+  if (it && it.candidates && it.candidates.length) {
+    delete (TIC_BATCH_STATE.keptRows || {})[key];
+    const top = it.candidates[0];
+    TIC_BATCH_STATE.selections[key] = {
+      station: it.station,
+      row_idx: it.row_idx,
+      test_id: top.test_id,
+      description: top.desc_en || '',
+      error_code: top.error_code || '',
+      desc_cn: top.desc_cn || '',
+      score: top.confidence_score || it.best_score || 0,
+    };
+    renderTicBatchIssues();
+  } else {
+    TIC_BATCH_STATE.expandedRows[key] = true;
+    renderTicBatchIssues();
+  }
+}
+
 function ticKeepOriginalRow(station, rowIdx) {
   const key = `${station}::${rowIdx}`;
   delete TIC_BATCH_STATE.selections[key];
   TIC_BATCH_STATE.keptRows = TIC_BATCH_STATE.keptRows || {};
   TIC_BATCH_STATE.keptRows[key] = true;
+  TIC_BATCH_STATE.expandedRows[key] = false;
   renderTicBatchIssues();
 }
 
@@ -3367,7 +3680,7 @@ function _ticCountSimilarRows(srcIssue) {
 }
 
 function ticApplyToSimilarRows(station, rowIdx) {
-  const srcIssue = (TIC_BATCH_STATE.issues || []).find(x => x.station === station && x.row_idx === rowIdx);
+  const srcIssue = _ticFindRowObj(station, rowIdx);
   const picked = TIC_BATCH_STATE.selections[`${station}::${rowIdx}`];
   if (!srcIssue || !picked) return;
   const pfx = _ticCmdPrefix(srcIssue.send);
@@ -3383,6 +3696,9 @@ function ticApplyToSimilarRows(station, rowIdx) {
         row_idx: other.row_idx,
         test_id: picked.test_id,
         description: picked.description || '',
+        error_code: picked.error_code || '',
+        desc_cn: picked.desc_cn || '',
+        score: picked.score || 0,
       };
       cnt++;
     }
@@ -3394,7 +3710,7 @@ function ticApplyToSimilarRows(station, rowIdx) {
 }
 
 function ticCopySingleNewItem(station, rowIdx) {
-  const it = (TIC_BATCH_STATE.issues || []).find(x => x.station === station && x.row_idx === rowIdx);
+  const it = _ticFindRowObj(station, rowIdx);
   if (!it) return;
   const line = `${it.station}\tR${it.excel_row}\tPhase ${it.phase || '-'}\t${it.title || ''}\t${it.proposed_new_desc || ''}\t${it.send || ''}\t${it.current_test_id || '(空白)'}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -3426,14 +3742,19 @@ function ticExportNewItemRequests() {
   }
 }
 
-function ticPickRowCandidate(station, rowIdx, testId, descEn) {
+function ticPickRowCandidate(station, rowIdx, testId, descEn, errorCode = '', descCn = '', score = 0) {
   const key = `${station}::${rowIdx}`;
+  delete (TIC_BATCH_STATE.keptRows || {})[key];
   TIC_BATCH_STATE.selections[key] = {
     station,
     row_idx: rowIdx,
     test_id: testId,
     description: descEn || '',
+    error_code: errorCode || '',
+    desc_cn: descCn || '',
+    score: Number(score || 0),
   };
+  TIC_BATCH_STATE.expandedRows[key] = false;
   renderTicBatchIssues();
 }
 
@@ -3466,31 +3787,79 @@ async function ticSearchRowCustom(station, rowIdx) {
   const res = await fetch(`/api/search_test_id?q=${encodeURIComponent(q)}&limit=6`);
   const data = await res.json();
   if (data.status !== 'ok') return;
-  const issue = TIC_BATCH_STATE.issues.find(x => x.station === station && x.row_idx === rowIdx);
-  if (issue) {
-    issue.candidates = data.items || [];
+  const rowObj = _ticFindRowObj(station, rowIdx);
+  if (rowObj) {
+    rowObj.candidates = data.items || [];
+    TIC_BATCH_STATE.expandedRows[`${station}::${rowIdx}`] = true;
     renderTicBatchIssues();
   }
 }
 
+function _ticRenderRowDrawer(it, picked, canKeepOld) {
+  const simCount = picked ? _ticCountSimilarRows(it) : 0;
+  const candsHtml = (it.candidates && it.candidates.length)
+    ? it.candidates.map(c => {
+        const isSel = picked && picked.test_id === c.test_id;
+        const pct = Number(c.confidence_score || 0);
+        const pctColor = pct >= 72 ? '#15803D' : (pct >= 42 ? '#B45309' : '#64748B');
+        return `
+          <button type="button" class="tic-cand-pill${isSel ? ' selected' : ''}"
+            onclick="ticPickRowCandidate('${_ticEsc(it.station)}', ${it.row_idx}, '${_ticEsc(c.test_id)}', '${_ticEsc(c.desc_en || '')}', '${_ticEsc(c.error_code || '')}', '${_ticEsc(c.desc_cn || '')}', ${pct})">
+            <div style="font-weight:800; font-family:Consolas, monospace; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+              <span>${_ticEsc(c.test_id)} <span style="font-weight:500; color:#64748B;">(${_ticEsc(c.error_code || '')})</span></span>
+              ${pct > 0 ? `<span style="font-size:0.78rem; font-weight:900; color:${pctColor};">${pct}%</span>` : ''}
+            </div>
+            <div style="font-size:0.83rem; color:#334155;">${_ticEsc(c.desc_en || '')}${c.desc_cn ? ' ｜ ' + _ticEsc(c.desc_cn) : ''}</div>
+          </button>
+        `;
+      }).join('')
+    : `<span style="font-size:0.83rem; color:#475569; font-weight:700;">無高相似度自動命中；請在右側輸入關鍵字搜尋相近 TestID${canKeepOld ? '，或選擇沿用原碼' : ''}。</span>`;
+
+  return `
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+      <div style="font-size:0.82rem; color:#475569; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span>${it.send ? `Send：<code>${_ticEsc(it.send)}</code>` : ''}</span>
+        <span style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${picked && simCount > 0 ? `<button type="button" class="filter-pill" style="font-size:0.79rem; background:#EFF6FF; border-color:#60A5FA; color:#1D4ED8;" onclick="ticApplyToSimilarRows('${_ticEsc(it.station)}', ${it.row_idx})">🔗 套用至同類 ${simCount} 列</button>` : ''}
+          ${picked ? `<button type="button" class="filter-pill" style="font-size:0.79rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除選取</button>` : ''}
+          ${canKeepOld ? `<button type="button" class="filter-pill" style="font-size:0.79rem;" onclick="ticKeepOriginalRow('${_ticEsc(it.station)}', ${it.row_idx})">👌 沿用原碼 (${_ticEsc(it.current_test_id)})</button>` : ''}
+        </span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        ${candsHtml}
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="ticBatchRowSearch_${_ticEsc(it.station)}_${it.row_idx}" placeholder="輸入英文/中文關鍵字搜其他 TestID..."
+          onkeydown="if(event.key==='Enter') ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})"
+          style="padding:5px 9px; border:1px solid #94A3B8; border-radius:6px; font-size:0.82rem; width:240px; background:#FFFFFF;">
+        <button type="button" class="btn btn-slate" style="padding:5px 12px; font-size:0.82rem;"
+          onclick="ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})">搜</button>
+        ${(!it.candidates || !it.candidates.length) ? `<button type="button" class="btn" style="padding:5px 10px; font-size:0.8rem; background:#FFF1F2; color:#9F1239; border:1px solid #FDA4AF;" onclick="ticCopySingleNewItem('${_ticEsc(it.station)}', ${it.row_idx})">📝 複製申請新碼</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
 function renderTicBatchIssues() {
-  const sum = TIC_BATCH_STATE.summary || { total_checked: 0, ok_count: 0, flagged_count: 0, missing_count: 0, placeholder_count: 0, mismatch_count: 0, high_match_count: 0, medium_match_count: 0, gap_new_item_count: 0, auto_confirmed_count: 0, needs_review_count: 0 };
+  const allRows = (TIC_BATCH_STATE.allRows && TIC_BATCH_STATE.allRows.length) ? TIC_BATCH_STATE.allRows : (TIC_BATCH_STATE.issues || []);
+  const issuesAll = TIC_BATCH_STATE.issues || [];
   const selectedCount = Object.keys(TIC_BATCH_STATE.selections).length;
   const sumEl = document.getElementById('ticBatchSummaryBanner');
+  const tabsEl = document.getElementById('ticBatchSheetTabs');
   const applyBtn = document.getElementById('btnTicBatchApply');
+  const applyFixedBtn = document.getElementById('btnTicBatchApplySaveFixed');
   const gapBtn = document.getElementById('btnTicExportGapNew');
-  const issuesAll = TIC_BATCH_STATE.issues || [];
-  const gapCount = issuesAll.filter(x => x.match_tier === 'low_gap' || !x.candidates || !x.candidates.length).length;
+
+  const okTotalCount = allRows.filter(x => x.row_status === 'matched_ok' || x.row_status === 'control_skip').length || Number((TIC_BATCH_STATE.summary || {}).ok_count || 0);
   const autoIssuesCount = issuesAll.filter(x => x.auto_confirmed).length;
   const pendingReviewCount = issuesAll.filter(x => {
     const k = _ticKey(x);
     return x.needs_review && !TIC_BATCH_STATE.selections[k] && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
   }).length;
+  const gapCount = issuesAll.filter(x => x.match_tier === 'low_gap' || !x.candidates || !x.candidates.length).length;
 
   const nrBtn = document.getElementById('btnTicBatchFilterNeedsReview');
-  const autoBtn = document.getElementById('btnTicBatchFilterAutoOk');
-  if (nrBtn) nrBtn.textContent = `❓ 只看無法自動確認 (${pendingReviewCount})`;
-  if (autoBtn) autoBtn.textContent = `🟢 已自動配對 (${autoIssuesCount})`;
+  if (nrBtn) nrBtn.textContent = `🟠 只看待手選 (${pendingReviewCount})`;
 
   if (gapBtn) {
     gapBtn.style.display = gapCount > 0 ? 'inline-flex' : 'none';
@@ -3501,226 +3870,279 @@ function renderTicBatchIssues() {
     applyBtn.style.display = selectedCount > 0 ? 'inline-flex' : 'none';
     applyBtn.textContent = window._TIC_FROM_EDIT
       ? `✅ 套用 ${selectedCount} 筆修正並返回編修主入口`
-      : `💾 套用 ${selectedCount} 筆修正並匯出 *_FIXED.xlsx + 簽章`;
+      : `💾 存檔 ${selectedCount} 筆至 *_Fixed_errorcode.xlsx`;
+  }
+  if (applyFixedBtn) {
+    applyFixedBtn.style.display = (selectedCount > 0 && window._TIC_FROM_EDIT) ? 'inline-flex' : 'none';
+    applyFixedBtn.textContent = `💾 直接另存 *_Fixed_errorcode.xlsx (${selectedCount})`;
   }
 
   if (sumEl) {
     const fileLabel = TIC_BATCH_STATE.excelPath ? _ticEsc(TIC_BATCH_STATE.excelPath) : '目前載入之工作區';
     const hasPath = Boolean(TIC_BATCH_STATE.excelPath || (STATE && STATE.workspace && STATE.workspace.source_file));
+    const totalShown = allRows.length || Number((TIC_BATCH_STATE.summary || {}).total_checked || 0);
     sumEl.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <span style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span>📄 掃描目標：<span class="mono" style="font-weight:700; color:#0F172A;">${fileLabel}</span></span>
           ${hasPath ? `<button id="btnTicOpenTargetExcel" type="button" class="btn" onclick="ticOpenTargetExcel()" style="padding:2px 10px; font-size:0.82rem; background:#E0F2FE; color:#0369A1; border:1px solid #38BDF8; font-weight:800;">📂 開啟 Excel</button>` : ''}
         </span>
-        <span>
-          共 <b>${sum.total_checked}</b> 步 ｜
-          <span style="color:#15803D; font-weight:700;">原已合格 ${sum.ok_count}</span> ｜
-          <span style="color:#15803D; font-weight:800;">🤖 自動配對完成 ${autoIssuesCount} 筆</span> ｜
-          <span style="color:${pendingReviewCount > 0 ? '#B91C1C' : '#15803D'}; font-weight:800;">❓ 無法確認待選 ${pendingReviewCount} 筆</span> ｜
-          準備套用：<b style="color:#1D4ED8;">${selectedCount}</b> 筆
+        <span style="font-size:0.86rem;">
+          已逐行檢查 <b>${totalShown}</b> 步 ｜
+          <span style="color:#15803D; font-weight:800;">🟢 原碼吻合 ${okTotalCount}</span> ｜
+          <span style="color:#1D4ED8; font-weight:800;">🔵 自動配對 ${autoIssuesCount}</span> ｜
+          <span style="color:${pendingReviewCount > 0 ? '#B45309' : '#15803D'}; font-weight:800;">🟠 待確認 ${pendingReviewCount}</span> ｜
+          準備寫入：<b style="color:#0F766E;">${selectedCount}</b> 筆
         </span>
       </div>
-      ${autoIssuesCount > 0 && TIC_BATCH_STATE.filter === 'needs_review' ? `
-        <div style="margin-top:8px; background:#DCFCE7; border:1px solid #86EFAC; border-radius:6px; padding:7px 12px; color:#14532D; font-size:0.84rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <span>✅ 系統已自動從代碼庫幫您配對 <b>${autoIssuesCount}</b> 筆 TestID並預選完成，下方只列出「無法自動確認」的項目讓您挑選。</span>
-          <button type="button" class="btn" style="padding:2px 9px; font-size:0.8rem; background:#FFFFFF; color:#14532D; border:1px solid #4ADE80; font-weight:800;" onclick="ticSetBatchFilter('auto_confirmed')">👁️ 查看已自動配對明細</button>
-        </div>
-      ` : ''}
     `;
+  }
+
+  // Sheet 分頁切換列（依實際有比對的工作表顯示）
+  const stSummary = TIC_BATCH_STATE.stationSummary || {};
+  const auditedStations = Object.keys(stSummary);
+  if (tabsEl) {
+    if (auditedStations.length > 0) {
+      tabsEl.style.display = 'flex';
+      const activeTab = TIC_BATCH_STATE.activeSheetTab || '__ALL__';
+      const allPending = issuesAll.filter(x => {
+        const k = _ticKey(x);
+        return x.needs_review && !TIC_BATCH_STATE.selections[k] && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
+      }).length;
+      const tabBtnStyle = (isAct) => isAct
+        ? 'padding:4px 11px; border-radius:6px; font-size:0.82rem; font-weight:800; cursor:pointer; background:#1E293B; color:#FFFFFF; border:1.5px solid #0F172A;'
+        : 'padding:4px 11px; border-radius:6px; font-size:0.82rem; font-weight:700; cursor:pointer; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1;';
+      const stTabsHtml = auditedStations.map(stName => {
+        const stRows = allRows.filter(x => x.station === stName);
+        const stNeed = stRows.filter(x => {
+          const k = _ticKey(x);
+          return x.needs_review && !TIC_BATCH_STATE.selections[k] && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
+        }).length;
+        const stSugg = stRows.filter(x => x.row_status === 'auto_suggested').length;
+        let badge = '';
+        if (stNeed > 0) badge = `<span style="color:#D97706; font-weight:900;"> (待選${stNeed})</span>`;
+        else if (stSugg > 0) badge = `<span style="color:#2563EB; font-weight:800;"> (配對${stSugg})</span>`;
+        else badge = `<span style="color:#16A34A; font-weight:800;"> (✔全對)</span>`;
+        return `<button type="button" style="${tabBtnStyle(activeTab === stName)}" onclick="ticSetSheetTab('${_ticEsc(stName)}')">${_ticEsc(stName)}${badge}</button>`;
+      }).join('');
+      tabsEl.innerHTML = `
+        <span style="font-size:0.81rem; font-weight:800; color:#475569;">工作表總結：</span>
+        ${auditedStations.length > 1 ? `<button type="button" style="${tabBtnStyle(activeTab === '__ALL__')}" onclick="ticSetSheetTab('__ALL__')">全部總覽 (${allPending > 0 ? '待選' + allPending : '✔'})</button>` : ''}
+        ${stTabsHtml}
+      `;
+    } else {
+      tabsEl.style.display = 'none';
+    }
   }
 
   const listEl = document.getElementById('ticBatchIssueList');
   if (!listEl) return;
 
-  const filtered = issuesAll.filter(it => {
-    const f = TIC_BATCH_STATE.filter;
+  const activeTab = TIC_BATCH_STATE.activeSheetTab || '__ALL__';
+  const rowsInSheet = (activeTab === '__ALL__')
+    ? allRows
+    : allRows.filter(x => x.station === activeTab);
+
+  const filtered = rowsInSheet.filter(it => {
+    const f = TIC_BATCH_STATE.filter || 'changes';
     const k = _ticKey(it);
+    if (f === 'all') return true;
     if (f === 'needs_review') {
       return it.needs_review && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
     }
-    if (f === 'auto_confirmed') return !!it.auto_confirmed;
-    if (f === 'all') return true;
-    if (f === 'tier_gap') return it.match_tier === 'low_gap' || !it.candidates || !it.candidates.length;
-    return it.reason_code === f;
+    // 'changes': 只看有建議修改 (auto_suggested) 或待手選 (needs_pick) 或已被使用者挑選改碼的步驟
+    return it.row_status === 'auto_suggested' || it.row_status === 'needs_pick' || !!TIC_BATCH_STATE.selections[k];
   });
+
   if (!filtered.length) {
-    listEl.innerHTML = (TIC_BATCH_STATE.filter === 'needs_review')
-      ? `
-        <div style="background:#ECFDF5; border:1.5px solid #4ADE80; border-radius:8px; padding:18px; color:#14532D; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <span>🎉 目前沒有無法確認的步驟！所有可自動配對項目已為您準備就緒（共預選 ${selectedCount} 筆），直接點擊右上角綠色按鈕套用即可。</span>
-        </div>
-      `
-      : `
-        <div style="background:#ECFDF5; border:1px solid #86EFAC; border-radius:8px; padding:16px; color:#14532D; font-weight:700;">
-          目前篩選條件下沒有項目。
-        </div>
-      `;
+    listEl.innerHTML = `
+      <div style="background:#ECFDF5; border:1.5px solid #4ADE80; border-radius:8px; padding:16px 18px; color:#14532D; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span>✅ 此工作表（${activeTab === '__ALL__' ? '全部總覽' : _ticEsc(activeTab)}）目前沒有待修改或異常步驟！可點擊上方「📋 查看本頁全部步驟」逐行核對原碼與代碼庫描述。</span>
+        <button type="button" class="btn" style="padding:5px 12px; font-size:0.83rem; background:#FFFFFF; color:#14532D; border:1px solid #4ADE80; font-weight:800;" onclick="ticSetBatchFilter('all')">📋 查看本頁全部步驟 (${rowsInSheet.length})</button>
+      </div>
+    `;
     return;
   }
 
-  const reasonBadgeMap = {
-    missing: { label: '缺漏 / 格式異常', bg: '#FEE2E2', bd: '#FCA5A5', fg: '#991B1B' },
-    generic_placeholder: { label: '通用佔位碼', bg: '#FEF3C7', bd: '#FCD34D', fg: '#92400E' },
-    semantic_mismatch: { label: '語意可升級', bg: '#DBEAFE', bd: '#93C5FD', fg: '#1E40AF' },
-  };
-  const tierBadgeMap = {
-    high: { label: '🟢 已自動配對', bg: '#DCFCE7', bd: '#4ADE80', fg: '#14532D' },
-    medium: { label: '🟡 請挑選相近碼', bg: '#FEF3C7', bd: '#FBBF24', fg: '#92400E' },
-    low_gap: { label: '❓ 找不到相近・請自搜或沿用原碼', bg: '#F1F5F9', bd: '#CBD5E1', fg: '#334155' },
-  };
-
-  const _renderIssueCardHtml = (it) => {
-    const rb = reasonBadgeMap[it.reason_code] || reasonBadgeMap.missing;
-    const tb = tierBadgeMap[it.match_tier] || tierBadgeMap.low_gap;
+  const _renderRowHtml = (it) => {
     const key = _ticKey(it);
     const picked = TIC_BATCH_STATE.selections[key] || null;
-    const simCount = picked ? _ticCountSimilarRows(it) : 0;
-    const curDesc = it.current_desc_cn || it.current_desc_en;
+    const isKept = Boolean(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[key]);
+    const isExpanded = Boolean(TIC_BATCH_STATE.expandedRows && TIC_BATCH_STATE.expandedRows[key]);
+    const topCand = (it.candidates && it.candidates[0]) || null;
     const canKeepOld = Boolean(it.current_test_id && /^[A-Z0-9]{7}$/.test(it.current_test_id));
-    const candsHtml = (it.candidates && it.candidates.length)
-      ? it.candidates.map(c => {
-          const isSel = picked && picked.test_id === c.test_id;
-          const pct = Number(c.confidence_score || 0);
-          const pctColor = pct >= 72 ? '#15803D' : (pct >= 42 ? '#B45309' : '#64748B');
-          return `
-            <button type="button" class="tic-cand-pill${isSel ? ' selected' : ''}"
-              onclick="ticPickRowCandidate('${_ticEsc(it.station)}', ${it.row_idx}, '${_ticEsc(c.test_id)}', '${_ticEsc(c.desc_en || '')}')">
-              <div style="font-weight:800; font-family:Consolas, monospace; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                <span>${_ticEsc(c.test_id)} <span style="font-weight:500; color:#64748B;">(${_ticEsc(c.error_code || '')})</span></span>
-                <span style="font-size:0.78rem; font-weight:900; color:${pctColor};">${pct}%</span>
-              </div>
-              <div style="font-size:0.84rem; color:#334155;">${_ticEsc(c.desc_en || '')}${c.desc_cn ? ' ｜ ' + _ticEsc(c.desc_cn) : ''}</div>
-            </button>
-          `;
-        }).join('')
-      : `<span style="font-size:0.84rem; color:#475569; font-weight:700;">無高相似度自動命中（已隱藏無關選項）；請在右側輸入關鍵字搜相近碼${canKeepOld ? '，或選擇沿用原碼' : ''}。</span>`;
+
+    let rowBg = '#FFFFFF';
+    let statusHtml = '';
+    if (picked) {
+      rowBg = '#F0FDF4';
+      const sc = picked.score || it.best_score || '';
+      const descPair = `${_ticEsc(picked.description || '')}${picked.desc_cn ? ' ｜ ' + _ticEsc(picked.desc_cn) : ''}`;
+      statusHtml = `
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="padding:1px 7px; border-radius:999px; font-size:0.78rem; font-weight:800; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC;">${it.auto_confirmed ? '🔵 自動配對' : '✅ 已選修正'}${sc ? ' ' + sc + '%' : ''}</span>
+          <span class="mono" style="font-weight:900; color:#1D4ED8; font-size:0.86rem;">➔ ${_ticEsc(picked.test_id)}</span>
+          ${picked.error_code ? `<span class="mono" style="font-size:0.79rem; color:#475569;">(${_ticEsc(picked.error_code)})</span>` : ''}
+        </div>
+        <div style="font-size:0.82rem; color:#1E293B; margin-top:2px;">文件 D 欄：${descPair || '—'}</div>
+      `;
+    } else if (isKept) {
+      rowBg = '#F8FAFC';
+      statusHtml = `<span style="padding:1px 7px; border-radius:999px; font-size:0.78rem; font-weight:800; background:#E2E8F0; color:#334155;">👌 沿用原碼 (${_ticEsc(it.current_test_id)})</span>`;
+    } else if (it.row_status === 'control_skip') {
+      rowBg = '#F8FAFC';
+      statusHtml = `
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="padding:1px 7px; border-radius:999px; font-size:0.78rem; font-weight:800; background:#E2E8F0; color:#475569;">⚪ 控制/提示保留</span>
+          <span class="mono" style="font-size:0.82rem; color:#475569;">${_ticEsc(it.current_test_id)}</span>
+        </div>
+        <div style="font-size:0.8rem; color:#64748B; margin-top:2px;">${_ticEsc(it.current_desc_en || '')}${it.current_desc_cn ? ' ｜ ' + _ticEsc(it.current_desc_cn) : ''}</div>
+      `;
+    } else if (it.row_status === 'matched_ok') {
+      rowBg = '#FFFFFF';
+      statusHtml = `
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="padding:1px 7px; border-radius:999px; font-size:0.78rem; font-weight:800; background:#DCFCE7; color:#15803D;">🟢 原碼吻合${it.cur_match_score ? ' ' + it.cur_match_score + '%' : ''}</span>
+          <span class="mono" style="font-weight:800; color:#15803D; font-size:0.84rem;">${_ticEsc(it.current_test_id)}</span>
+          ${it.current_error_code ? `<span class="mono" style="font-size:0.79rem; color:#64748B;">(${_ticEsc(it.current_error_code)})</span>` : ''}
+        </div>
+        <div style="font-size:0.82rem; color:#334155; margin-top:2px;">文件 D 欄：${_ticEsc(it.current_desc_en || '')}${it.current_desc_cn ? ' ｜ ' + _ticEsc(it.current_desc_cn) : ''}</div>
+      `;
+    } else {
+      rowBg = '#FFFBEB';
+      const topTxt = topCand ? `建議候選：${_ticEsc(topCand.test_id)} (${topCand.confidence_score || 0}%) - ${_ticEsc(topCand.desc_en || '')}` : '未命中高相似度項目，請點 [換▼] 搜尋或沿用原碼';
+      statusHtml = `
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="padding:1px 7px; border-radius:999px; font-size:0.78rem; font-weight:800; background:#FEF3C7; color:#B45309; border:1px solid #FCD34D;">🟠 需手動確認</span>
+          <span style="font-size:0.8rem; color:#92400E;">${_ticEsc(it.reason_label || '')}</span>
+        </div>
+        <div style="font-size:0.81rem; color:#475569; margin-top:2px;">${topTxt}</div>
+      `;
+    }
+
+    const showCheckbox = (it.row_status === 'auto_suggested' || it.row_status === 'needs_pick' || !!picked);
+    const stepTitle = String(it.title || '').trim();
+    const stepDesc = String(it.description || '').trim();
+    const phTxt = it.effective_phase || it.phase || '-';
 
     return `
-      <div class="tic-issue-card" style="${picked ? 'border-left:4px solid #16A34A;' : 'border-left:4px solid #F59E0B;'}">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
-            <span style="padding:2px 8px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${rb.bg}; border:1px solid ${rb.bd}; color:${rb.fg};">${rb.label}</span>
-            <span style="padding:2px 8px; border-radius:999px; font-size:0.82rem; font-weight:800; background:${tb.bg}; border:1px solid ${tb.bd}; color:${tb.fg};">${tb.label}${it.best_score ? ' (' + it.best_score + '%)' : ''}</span>
-            <span class="mono" style="font-weight:800; color:#0F172A; font-size:0.86rem;">${_ticEsc(it.station)} ｜ Excel R${it.excel_row}</span>
-            ${(it.effective_phase || it.phase) ? `<span class="mono" style="font-size:0.82rem; color:#475569;">Phase ${ _ticEsc(it.effective_phase || it.phase) }</span>` : ''}
-            <span style="font-weight:800; color:#1E293B;">${_ticEsc(it.title || it.description || '(無 Title)')}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span class="mono" style="font-size:0.82rem; color:#64748B;">原：<b>${_ticEsc(it.current_test_id || '(空白)')}</b>${curDesc ? ' (' + _ticEsc(curDesc) + ')' : ''}</span>
-            ${picked ? `<span class="mono" style="padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#14532D; font-weight:800; font-size:0.82rem;">➔ 擬改為 ${_ticEsc(picked.test_id)}</span>
-              ${simCount > 0 ? `<button type="button" class="filter-pill" style="font-size:0.8rem; background:#EFF6FF; border-color:#60A5FA; color:#1D4ED8;" onclick="ticApplyToSimilarRows('${_ticEsc(it.station)}', ${it.row_idx})">🔗 同步套用同類 ${simCount} 列</button>` : ''}
-              <button type="button" class="filter-pill" style="font-size:0.83rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除</button>` : ''}
-            ${canKeepOld && !picked ? `<button type="button" class="filter-pill" style="font-size:0.8rem; background:#F8FAFC; border-color:#94A3B8; color:#334155;" onclick="ticKeepOriginalRow('${_ticEsc(it.station)}', ${it.row_idx})">👌 沿用原碼 (${_ticEsc(it.current_test_id)})</button>` : ''}
-          </div>
-        </div>
-        <div style="font-size:0.83rem; color:#475569; margin-bottom:7px; display:flex; gap:12px; flex-wrap:wrap;">
-          ${it.description ? `<span>Description：<code>${_ticEsc(it.description)}</code></span>` : ''}
-          ${it.send ? `<span>Send：<code>${_ticEsc(it.send)}</code></span>` : ''}
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex; flex-wrap:wrap; gap:6px; flex:1;">
-            ${candsHtml}
-          </div>
-          <div style="display:flex; gap:5px; align-items:center;">
-            <input type="text" id="ticBatchRowSearch_${_ticEsc(it.station)}_${it.row_idx}" placeholder="關鍵字搜相近碼..."
-              onkeydown="if(event.key==='Enter') ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})"
-              style="padding:5px 8px; border:1px solid #94A3B8; border-radius:6px; font-size:0.82rem; width:165px;">
-            <button type="button" class="btn btn-slate" style="padding:5px 10px; font-size:0.82rem;"
-              onclick="ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})">搜</button>
-            ${(!it.candidates || !it.candidates.length) ? `<button type="button" class="btn" style="padding:5px 9px; font-size:0.8rem; background:#FFF1F2; color:#9F1239; border:1px solid #FDA4AF;" onclick="ticCopySingleNewItem('${_ticEsc(it.station)}', ${it.row_idx})" title="極少見才需申請新項目">📝 申請新碼</button>` : ''}
-          </div>
-        </div>
-      </div>
+      <tr style="background:${rowBg}; border-bottom:1px solid #E2E8F0;">
+        <td style="padding:7px 8px; text-align:center; width:42px; vertical-align:top;">
+          ${showCheckbox ? `<input type="checkbox" ${picked ? 'checked' : ''} onchange="ticToggleRowCheckbox('${_ticEsc(it.station)}', ${it.row_idx})" style="width:16px; height:16px; cursor:pointer;">` : '<span style="color:#94A3B8;">—</span>'}
+        </td>
+        <td class="mono" style="padding:7px 8px; font-weight:800; font-size:0.83rem; color:#0F172A; white-space:nowrap; vertical-align:top;">
+          ${activeTab === '__ALL__' ? `<div style="font-size:0.75rem; color:#2563EB;">${_ticEsc(it.station)}</div>` : ''}R${it.excel_row}
+        </td>
+        <td class="mono" style="padding:7px 6px; font-size:0.82rem; color:#475569; white-space:nowrap; vertical-align:top;">Ph ${ _ticEsc(phTxt) }</td>
+        <td style="padding:7px 8px; vertical-align:top; min-width:210px; max-width:310px;">
+          <div style="font-weight:800; font-size:0.85rem; color:#0F172A; word-break:break-word;">${_ticEsc(stepDesc || '(無 O 欄 Description)')}</div>
+          ${stepTitle ? `<div style="font-size:0.78rem; color:#64748B; word-break:break-word;">Title: ${_ticEsc(stepTitle)}</div>` : ''}
+        </td>
+        <td class="mono" style="padding:7px 8px; font-size:0.82rem; color:#475569; vertical-align:top; min-width:110px;">
+          <div style="font-weight:800; color:${it.current_test_id ? '#1E293B' : '#DC2626'};">${_ticEsc(it.current_test_id || '(空白)')}</div>
+          ${(it.current_desc_cn || it.current_desc_en) ? `<div style="font-size:0.76rem; color:#64748B; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${_ticEsc(it.current_desc_cn || it.current_desc_en)}">${_ticEsc(it.current_desc_cn || it.current_desc_en)}</div>` : ''}
+        </td>
+        <td style="padding:7px 8px; vertical-align:top; min-width:260px;">
+          ${statusHtml}
+        </td>
+        <td style="padding:7px 8px; vertical-align:top; white-space:nowrap; text-align:right;">
+          <button type="button" class="btn" onclick="ticToggleRowDrawer('${_ticEsc(it.station)}', ${it.row_idx})"
+            style="padding:3px 9px; font-size:0.8rem; background:${isExpanded ? '#1E293B' : '#EFF6FF'}; color:${isExpanded ? '#FFFFFF' : '#1D4ED8'}; border:1px solid ${isExpanded ? '#0F172A' : '#93C5FD'}; font-weight:800;">
+            ${isExpanded ? '收合▲' : '換▼'}
+          </button>
+          ${canKeepOld && !isKept && (it.row_status === 'auto_suggested' || it.row_status === 'needs_pick') ? `
+            <button type="button" class="btn" onclick="ticKeepOriginalRow('${_ticEsc(it.station)}', ${it.row_idx})"
+              style="padding:3px 8px; font-size:0.79rem; background:#F8FAFC; color:#475569; border:1px solid #CBD5E1; font-weight:700; margin-left:3px;">留原</button>
+          ` : ''}
+        </td>
+      </tr>
+      ${isExpanded ? `<tr><td colspan="7" style="padding:6px 12px 10px 44px; background:#F1F5F9; border-bottom:1.5px solid #CBD5E1;">${_ticRenderRowDrawer(it, picked, canKeepOld)}</td></tr>` : ''}
     `;
   };
 
-  const gMode = TIC_BATCH_STATE.groupBy || 'phase';
-  if (gMode === 'flat') {
-    listEl.innerHTML = filtered.map(_renderIssueCardHtml).join('');
+  const _wrapTable = (rowsHtml) => `
+    <div style="border:1px solid #CBD5E1; border-radius:8px; overflow-x:auto; background:#FFFFFF;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.84rem;">
+        <thead>
+          <tr style="background:#0F172A; color:#FFFFFF; text-align:left; font-size:0.81rem;">
+            <th style="padding:8px 8px; text-align:center; width:42px;">選</th>
+            <th style="padding:8px 8px;">列位</th>
+            <th style="padding:8px 6px;">Phase</th>
+            <th style="padding:8px 8px;">腳本 O 欄 Description (及 Title)</th>
+            <th style="padding:8px 8px;">原 TestID</th>
+            <th style="padding:8px 8px;">逐行比對結果 & 文件 D 欄 Description</th>
+            <th style="padding:8px 8px; text-align:right;">操作</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
+
+  if ((TIC_BATCH_STATE.groupBy || 'phase') !== 'phase') {
+    listEl.innerHTML = _wrapTable(filtered.map(_renderRowHtml).join(''));
     return;
   }
-
-  const catMetaMap = {
-    sfis: { label: '🏭 SFIS / 條碼路由', order: 1, bg: '#FDF2F8', bd: '#F9A8D4', fg: '#9D174D' },
-    power_volt: { label: '⚡ 電源 / 電壓 / 電流', order: 2, bg: '#FEF3C7', bd: '#FCD34D', fg: '#92400E' },
-    rf_wireless: { label: '📡 WiFi / BT / RF 無線', order: 3, bg: '#EFF6FF', bd: '#93C5FD', fg: '#1E40AF' },
-    instrument: { label: '🧪 其他外接儀器 / 治具', order: 4, bg: '#F0FDF4', bd: '#86EFAC', fg: '#166534' },
-    general_cmd: { label: '💬 一般命令 / 控制', order: 5, bg: '#F1F5F9', bd: '#CBD5E1', fg: '#334155' },
-  };
 
   const groups = [];
   const gMap = {};
   filtered.forEach(it => {
-    let gKey = '';
-    let gTitle = '';
-    let gStyle = { bg: '#F8FAFC', bd: '#CBD5E1', fg: '#0F172A', order: 99 };
-    if (gMode === 'category') {
-      const catKey = it.item_category || 'general_cmd';
-      const cm = catMetaMap[catKey] || catMetaMap.general_cmd;
-      gKey = `cat::${catKey}`;
-      gTitle = cm.label;
-      gStyle = cm;
-    } else {
-      const ph = it.effective_phase || it.phase || '-';
-      const tStr = String(it.effective_title || it.title || '').replace(/^(?:[0-9]+|\*\$\([^)]+\)),/, '').trim();
-      gKey = `ph::${it.station}::${ph}`;
-      gTitle = `🧱 ${it.station} ｜ Phase ${ph}${tStr ? ' · ' + tStr : ''}`;
-      gStyle = { bg: '#EFF6FF', bd: '#93C5FD', fg: '#1E3A8A', order: 0 };
-    }
+    const ph = it.effective_phase || it.phase || '-';
+    const tStr = String(it.effective_title || it.title || '').replace(/^(?:[0-9]+|\*\$\([^)]+\)),/, '').trim();
+    const gKey = `ph::${it.station}::${ph}`;
+    const gTitle = `🧱 ${it.station} ｜ Phase ${ph}${tStr ? ' · ' + tStr : ''}`;
     if (!gMap[gKey]) {
-      gMap[gKey] = { key: gKey, title: gTitle, style: gStyle, items: [] };
+      gMap[gKey] = { key: gKey, title: gTitle, items: [] };
       groups.push(gMap[gKey]);
     }
     gMap[gKey].items.push(it);
   });
 
-  if (gMode === 'category') {
-    groups.sort((a, b) => (a.style.order || 99) - (b.style.order || 99));
-  }
-
   listEl.innerHTML = groups.map(g => {
     const isCollapsed = !!(TIC_BATCH_STATE.collapsedGroups && TIC_BATCH_STATE.collapsedGroups[g.key]);
     const gPicked = g.items.filter(x => !!TIC_BATCH_STATE.selections[_ticKey(x)]).length;
-    const gUnpicked = g.items.length - gPicked;
+    const gNeed = g.items.filter(x => {
+      const k = _ticKey(x);
+      return x.needs_review && !TIC_BATCH_STATE.selections[k] && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
+    }).length;
     return `
-      <div style="border:1.5px solid ${g.style.bd}; border-radius:9px; margin-bottom:10px; overflow:hidden; background:#FFFFFF;">
-        <div onclick="ticToggleBatchGroup('${_ticEsc(g.key)}')" style="cursor:pointer; padding:8px 14px; background:${g.style.bg}; color:${g.style.fg}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-weight:800;">
+      <div style="border:1.5px solid #93C5FD; border-radius:9px; margin-bottom:10px; overflow:hidden; background:#FFFFFF;">
+        <div onclick="ticToggleBatchGroup('${_ticEsc(g.key)}')" style="cursor:pointer; padding:7px 14px; background:#EFF6FF; color:#1E3A8A; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-weight:800;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span>${isCollapsed ? '▶' : '▼'}</span>
             <span>${_ticEsc(g.title)}</span>
           </div>
-          <div style="font-size:0.82rem; display:flex; align-items:center; gap:8px;">
+          <div style="font-size:0.81rem; display:flex; align-items:center; gap:8px;">
             <span>共 ${g.items.length} 步</span>
-            ${gPicked > 0 ? `<span style="background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; padding:1px 8px; border-radius:999px;">已選 ${gPicked}</span>` : ''}
-            ${gUnpicked > 0 ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; padding:1px 8px; border-radius:999px;">待選 ${gUnpicked}</span>` : ''}
+            ${gPicked > 0 ? `<span style="background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; padding:1px 8px; border-radius:999px;">已勾修正 ${gPicked}</span>` : ''}
+            ${gNeed > 0 ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; padding:1px 8px; border-radius:999px;">待手選 ${gNeed}</span>` : ''}
           </div>
         </div>
-        ${isCollapsed ? '' : `<div style="padding:10px; display:flex; flex-direction:column; gap:8px;">${g.items.map(_renderIssueCardHtml).join('')}</div>`}
+        ${isCollapsed ? '' : _wrapTable(g.items.map(_renderRowHtml).join(''))}
       </div>
     `;
   }).join('');
 }
 
-async function ticApplyBatchToExcel() {
+async function ticApplyBatchToExcel(forceExportFixed = false) {
   const updates = Object.values(TIC_BATCH_STATE.selections);
   if (!updates.length) {
     alert('尚未選擇任何要修正的 TestID。');
     return;
   }
   const updateDesc = Boolean(document.getElementById('chkTicBatchUpdateDesc') && document.getElementById('chkTicBatchUpdateDesc').checked);
-  if (window._TIC_FROM_EDIT && STATE && STATE.workspace) {
+  if (!forceExportFixed && window._TIC_FROM_EDIT && STATE && STATE.workspace) {
     const stations = STATE.workspace.stations || {};
     STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
     let appliedCnt = 0;
     updates.forEach(u => {
       const rows = stations[u.station];
-      const idx = parseInt(u.row_idx, 10) - 2;
+      const idx = parseInt(u.row_idx, 10);
       if (Array.isArray(rows) && rows[idx]) {
         const oldTid = String(rows[idx].TestID || '');
         rows[idx].TestID = u.test_id;
         STATE.workspace._modified_cells.push({
-          sheet: u.station, row: u.row_idx, col_name: 'TestID',
+          sheet: u.station, row: idx + 2, col_name: 'TestID',
           old: oldTid, new: u.test_id, note: 'TestID 補齊/修正'
         });
         if (updateDesc && u.description) {
@@ -3748,6 +4170,7 @@ async function ticApplyBatchToExcel() {
       excel_path: TIC_BATCH_STATE.excelPath,
       updates,
       update_description: updateDesc,
+      output_suffix: '_Fixed_errorcode',
       open_folder: true,
       open_excel: true,
     }),
