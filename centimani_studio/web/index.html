@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.086">
+<link rel="stylesheet" href="/css/app.css?v=0.8.087">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.086</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.087</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -369,16 +369,16 @@
           </button>
         </div>
         <div id="jeExecModeCheatBox" style="display:none; padding:10px 16px; background:#FFFFFF; border-bottom:1.5px solid #93C5FD; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:7px;">
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px;"><span class="mono" style="background:#64748B;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">0</span><span><b>一般</b>：正常執行一次</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px;"><span class="mono" style="background:#0284C7;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">1</span><span><b>單步重試</b>：該步失敗直接原地重試</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px;"><span class="mono" style="background:#7C3AED;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">2:XX</span><span><b>重試回跳</b>：失敗跳回同 Title 步號 XX</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px;"><span class="mono" style="background:#D97706;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">3</span><span><b>忽略續跑</b>：失敗仍繼續（<code>:ReleaseDevice</code> 必用）</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;"><span class="mono" style="background:#16A34A;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">4:P,F</span><span><b>條件分支</b>：PASS 跳 P、FAIL 跳 F（如 SKU 分流）</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFF1F2; border:1px solid #FECDD3; border-radius:6px;"><span class="mono" style="background:#E11D48;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">5</span><span><b>失敗才跑</b>：前方失敗時才執行</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px;"><span class="mono" style="background:#475569;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">6</span><span><b>略過</b>：Skip 不執行</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:6px;"><span class="mono" style="background:#0D9488;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">7</span><span><b>校正</b>：<code>7:Step,timeout</code></span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4F46E5;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">8</span><span><b>SFIS 執行</b>：啟用 SFIS 時才執行</span></div>
-          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4338CA;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.77rem;">9</span><span><b>SFIS 重試</b>：啟用 SFIS 時失敗重試</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px;"><span class="mono" style="background:#64748B;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">0</span><span><b>一般</b>：正常執行一次</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px;"><span class="mono" style="background:#0284C7;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">1</span><span><b>單步重試</b>：該步失敗直接原地重試</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px;"><span class="mono" style="background:#7C3AED;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">2:XX</span><span><b>重試回跳</b>：失敗跳回同 Title 步號 XX</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px;"><span class="mono" style="background:#D97706;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">3</span><span><b>忽略續跑</b>：失敗仍繼續（<code>:ReleaseDevice</code> 必用）</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px;"><span class="mono" style="background:#16A34A;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">4:P,F</span><span><b>條件分支</b>：PASS 跳 P、FAIL 跳 F（如 SKU 分流）</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#FFF1F2; border:1px solid #FECDD3; border-radius:6px;"><span class="mono" style="background:#E11D48;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">5</span><span><b>失敗才跑</b>：前方失敗時才執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px;"><span class="mono" style="background:#475569;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">6</span><span><b>略過</b>：Skip 不執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#F0FDFA; border:1px solid #99F6E4; border-radius:6px;"><span class="mono" style="background:#0D9488;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">7</span><span><b>校正</b>：<code>7:Step,timeout</code></span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4F46E5;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">8</span><span><b>SFIS 執行</b>：啟用 SFIS 時才執行</span></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:5px 8px; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px;"><span class="mono" style="background:#4338CA;color:#FFF;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.85rem;">9</span><span><b>SFIS 重試</b>：啟用 SFIS 時失敗重試</span></div>
         </div>
         <!-- 多重跳轉與範例說明（同一 Phase 內不同列皆可各自設跳轉） -->
         <div style="padding:7px 16px; background:#FFFBEB; border-bottom:1px solid #FDE68A; font-size:0.8rem; color:#78350F; display:flex; flex-direction:column; gap:3px;">
@@ -584,11 +584,11 @@
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <div style="display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px; padding:3px 6px;">
-          <span style="font-size:0.8rem; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
-          <button id="introFs13" onclick="setIntroFontSize(13)" class="btn" style="padding:2px 8px; font-size:0.8rem;">小 (13px)</button>
-          <button id="introFs15" onclick="setIntroFontSize(15)" class="btn" style="padding:2px 8px; font-size:0.8rem;">中 (15px)</button>
-          <button id="introFs17" onclick="setIntroFontSize(17)" class="btn" style="padding:2px 8px; font-size:0.8rem;">大 (17px)</button>
-          <button id="introFs19" onclick="setIntroFontSize(19)" class="btn" style="padding:2px 8px; font-size:0.8rem;">特大 (19px)</button>
+          <span style="font-size:0.86rem; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
+          <button id="introFs13" onclick="setIntroFontSize(13, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">小 (13px)</button>
+          <button id="introFs15" onclick="setIntroFontSize(15, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">中 (15px)</button>
+          <button id="introFs17" onclick="setIntroFontSize(17, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">大 (17px)</button>
+          <button id="introFs19" onclick="setIntroFontSize(19, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">特大 (19px)</button>
         </div>
         <button id="introNextBtn" onclick="proceedFromIntroToConfig()" class="btn btn-primary-green" style="padding:7px 16px; font-size:0.93rem;">
           下一步：開始設定 ▶
@@ -608,11 +608,11 @@
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <div style="display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border:1px solid #CBD5E1; border-radius:6px; padding:3px 6px;">
-          <span style="font-size:0.8rem; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
-          <button id="hmiFs13" onclick="setIntroFontSize(13)" class="btn" style="padding:2px 8px; font-size:0.8rem;">小 (13px)</button>
-          <button id="hmiFs15" onclick="setIntroFontSize(15)" class="btn" style="padding:2px 8px; font-size:0.8rem;">中 (15px)</button>
-          <button id="hmiFs17" onclick="setIntroFontSize(17)" class="btn" style="padding:2px 8px; font-size:0.8rem;">大 (17px)</button>
-          <button id="hmiFs19" onclick="setIntroFontSize(19)" class="btn" style="padding:2px 8px; font-size:0.8rem;">特大 (19px)</button>
+          <span style="font-size:0.86rem; color:#475569; font-weight:700; margin-right:2px;">字體：</span>
+          <button id="hmiFs13" onclick="setIntroFontSize(13, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">小 (13px)</button>
+          <button id="hmiFs15" onclick="setIntroFontSize(15, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">中 (15px)</button>
+          <button id="hmiFs17" onclick="setIntroFontSize(17, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">大 (17px)</button>
+          <button id="hmiFs19" onclick="setIntroFontSize(19, true)" class="btn" style="padding:2px 8px; font-size:0.86rem;">特大 (19px)</button>
         </div>
         <div id="instHmiTargetBar" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <label style="font-size:0.87rem; font-weight:700; color:#334155;">目標測試站：
@@ -1215,7 +1215,7 @@
         <div id="editorRecentFilesContainer" style="max-width:760px; margin:0 auto; text-align:left; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:8px; padding:12px 16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-size:0.87rem; font-weight:800; color:#1E293B;">⚡ 最近編修腳本快速載入：</span>
-            <span style="font-size:0.77rem; color:#64748B;">點擊右側按鈕即刻開啟</span>
+            <span style="font-size:0.85rem; color:#64748B;">點擊右側按鈕即刻開啟</span>
           </div>
           <div id="editorRecentFilesList" style="display:flex; flex-direction:column; gap:6px;">
             <div style="font-size:0.8rem; color:#94A3B8; text-align:center; padding:10px;">正在偵測最近腳本...</div>
@@ -1668,25 +1668,25 @@
         
         <!-- 左欄：測試積木編排區 (可折疊) -->
         <div id="bsDeckPane" style="flex:1 1 50%; min-width:320px; display:flex; flex-direction:column; background:#F8FAFC; border:1.5px solid #CBD5E1; border-radius:10px; overflow:hidden; transition:all 0.2s ease;">
-          <div style="padding:7px 12px; background:#E2E8F0; font-size:0.83rem; font-weight:800; color:#1E293B; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;">
+          <div style="padding:7px 12px; background:#E2E8F0; font-size:0.9rem; font-weight:800; color:#1E293B; border-bottom:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;">
             <div style="display:flex; align-items:center; gap:6px;">
               <span>🧱 流程積木順序</span>
-              <span id="bsCardCountBadge" style="font-size:0.77rem; font-weight:700; color:#475569;"></span>
+              <span id="bsCardCountBadge" style="font-size:0.86rem; font-weight:700; color:#475569;"></span>
             </div>
             <!-- 縮放密度切換、拖曳模式切換與全螢幕開關 -->
-            <div style="display:inline-flex; align-items:center; gap:3px;">
-              <span style="font-size:0.73rem; color:#64748B; font-weight:700;">密度:</span>
-              <button type="button" class="btn" id="bsZoomAuto" onclick="bsSetCardZoom('auto')" style="padding:1px 6px; font-size:0.73rem; background:#16A34A; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;">自動</button>
-              <button type="button" class="btn" id="bsZoomSmall" onclick="bsSetCardZoom('small')" style="padding:1px 6px; font-size:0.73rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="適合 30~50 個 Phase">緊湊(50步)</button>
-              <button type="button" class="btn" id="bsZoomNorm" onclick="bsSetCardZoom('norm')" style="padding:1px 6px; font-size:0.73rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="適合 10~25 個 Phase">標準</button>
+            <div style="display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap;">
+              <span style="font-size:0.84rem; color:#64748B; font-weight:700;">密度:</span>
+              <button type="button" class="btn" id="bsZoomAuto" onclick="bsSetCardZoom('auto')" style="padding:2px 8px; font-size:0.84rem; background:#16A34A; color:#FFFFFF; border:none; border-radius:4px; font-weight:700;">自動</button>
+              <button type="button" class="btn" id="bsZoomSmall" onclick="bsSetCardZoom('small')" style="padding:2px 8px; font-size:0.84rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:4px; font-weight:700;" title="適合 30~50 個 Phase">緊湊(50步)</button>
+              <button type="button" class="btn" id="bsZoomNorm" onclick="bsSetCardZoom('norm')" style="padding:2px 8px; font-size:0.84rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:4px; font-weight:700;" title="適合 10~25 個 Phase">標準</button>
               
-              <div style="display:inline-flex; align-items:center; gap:2px; margin-left:6px; border-left:1px solid #94A3B8; padding-left:6px;">
-                <span style="font-size:0.73rem; color:#64748B; font-weight:700;">拖曳:</span>
-                <button type="button" class="btn" id="bsDragModeSwap" onclick="bsSetDragMode('swap')" style="padding:1px 6px; font-size:0.73rem; background:#2563EB; color:#FFFFFF; border:none; border-radius:3px; font-weight:700;" title="對調順序：拖拉碰到目標積木立即交換順序">🔀 拖拉對調</button>
-                <button type="button" class="btn" id="bsDragModeInsert" onclick="bsSetDragMode('insert')" style="padding:1px 6px; font-size:0.73rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:3px; font-weight:700;" title="插入移位：插入目標積木前方或後方">📌 插入移位</button>
+              <div style="display:inline-flex; align-items:center; gap:3px; margin-left:6px; border-left:1px solid #94A3B8; padding-left:6px;">
+                <span style="font-size:0.84rem; color:#64748B; font-weight:700;">拖曳:</span>
+                <button type="button" class="btn" id="bsDragModeSwap" onclick="bsSetDragMode('swap')" style="padding:2px 8px; font-size:0.84rem; background:#2563EB; color:#FFFFFF; border:none; border-radius:4px; font-weight:700;" title="對調順序：拖拉碰到目標積木立即交換順序">🔀 拖拉對調</button>
+                <button type="button" class="btn" id="bsDragModeInsert" onclick="bsSetDragMode('insert')" style="padding:2px 8px; font-size:0.84rem; background:#FFFFFF; color:#334155; border:1px solid #CBD5E1; border-radius:4px; font-weight:700;" title="插入移位：插入目標積木前方或後方">📌 插入移位</button>
               </div>
 
-              <button type="button" class="btn" id="bsBtnCollapseRight" onclick="bsToggleRightPane()" style="padding:1px 8px; font-size:0.73rem; background:#0F172A; color:#F8FAFC; border:none; border-radius:3px; font-weight:800; margin-left:6px;" title="折疊右欄，展開全螢幕流程圖">⛶ 全螢幕檢視</button>
+              <button type="button" class="btn" id="bsBtnCollapseRight" onclick="bsToggleRightPane()" style="padding:2px 9px; font-size:0.84rem; background:#0F172A; color:#F8FAFC; border:none; border-radius:4px; font-weight:800; margin-left:6px;" title="折疊右欄，展開全螢幕流程圖">⛶ 全螢幕檢視</button>
             </div>
           </div>
           <!-- 積木容器 (網格排列，滑鼠移入微幅浮起) -->
@@ -1696,7 +1696,7 @@
         <!-- 右欄：選中積木之 Command │ Send 指令終端檢視器與錯誤診斷 (可折疊) -->
         <div id="bsRightDetailPane" style="flex:1 1 50%; min-width:320px; display:flex; flex-direction:column; background:#0F172A; border-radius:10px; border:1.5px solid #334155; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.25); transition:all 0.2s ease;">
           <!-- 右欄頂部：流程錯誤與變數相依性即時警告欄 -->
-          <div id="bsRightIssuesBox" style="background:#1E293B; border-bottom:1px solid #334155; padding:8px 14px; font-size:0.8rem; flex-shrink:0;"></div>
+          <div id="bsRightIssuesBox" style="background:#1E293B; border-bottom:1px solid #334155; padding:8px 14px; font-size:0.9rem; flex-shrink:0;"></div>
           <!-- 頂部資訊摘要 -->
           <div id="bsDetailHeader" style="background:#1E293B; border-bottom:1px solid #334155; padding:8px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; flex-shrink:0;"></div>
           <!-- 指令表格 -->
@@ -1707,7 +1707,7 @@
     </div>
 
     <div style="padding:10px 16px; background:#F8FAFC; border-top:1px solid #CBD5E1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; flex-shrink:0;">
-      <span style="font-size:0.8rem; color:#64748B;">💡 提示：可直接修改積木上的 Phase 數字插隊；滑鼠碰觸積木下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕檢視」可折疊右欄。</span>
+      <span style="font-size:0.9rem; color:#64748B;">💡 提示：可直接修改積木上的 Phase 數字插隊；滑鼠碰觸積木下方浮現 ◀ ▶ 微調；按住亦可直接拖曳對調；點擊「⛶ 全螢幕檢視」可折疊右欄。</span>
     </div>
   </div>
 </div>
@@ -1902,14 +1902,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.086"></script>
-<script src="/js/audit_editors.js?v=0.8.086"></script>
-<script src="/js/flow_guide.js?v=0.8.086"></script>
-<script src="/js/block_sorter.js?v=0.8.086"></script>
-<script src="/js/script_qa.js?v=0.8.086"></script>
-<script src="/js/sfis_hmi.js?v=0.8.086"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.086"></script>
-<script src="/js/create_block_builder.js?v=0.8.086"></script>
+<script src="/js/inst_hmi.js?v=0.8.087"></script>
+<script src="/js/audit_editors.js?v=0.8.087"></script>
+<script src="/js/flow_guide.js?v=0.8.087"></script>
+<script src="/js/block_sorter.js?v=0.8.087"></script>
+<script src="/js/script_qa.js?v=0.8.087"></script>
+<script src="/js/sfis_hmi.js?v=0.8.087"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.087"></script>
+<script src="/js/create_block_builder.js?v=0.8.087"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2485,7 +2485,7 @@ function renderDiagResult(result) {
               </span>
             </div>
             <div style="font-family:'Consolas',monospace; font-size:0.87rem; font-weight:700; color:#334155; white-space:nowrap;">
-              ${b.seconds}s <span style="font-size:0.77rem; color:#64748B; font-weight:400;">(${b.percent}%)</span>
+              ${b.seconds}s <span style="font-size:0.85rem; color:#64748B; font-weight:400;">(${b.percent}%)</span>
             </div>
           </div>
         `;
@@ -2666,12 +2666,12 @@ function renderMeasurementTable(filter) {
       : `<span style="color:#0F172A; font-weight:700;">${m.value}</span>`;
 
     const statusBadge = isFail
-      ? `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #DC2626; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.77rem;">FAIL</span>`
-      : `<span style="background:#DCFCE7; color:#14532D; border:1px solid #22C55E; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.77rem;">PASS</span>`;
+      ? `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #DC2626; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.85rem;">FAIL</span>`
+      : `<span style="background:#DCFCE7; color:#14532D; border:1px solid #22C55E; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.85rem;">PASS</span>`;
 
     const retryBadge = isRetry
-      ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.77rem;">⚠️ ${m.retries}次重試</span>`
-      : `<span style="color:#94A3B8; font-size:0.77rem;">1次過</span>`;
+      ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; padding:2px 8px; border-radius:4px; font-weight:700; font-size:0.85rem;">⚠️ ${m.retries}次重試</span>`
+      : `<span style="color:#94A3B8; font-size:0.85rem;">1次過</span>`;
 
     html += `
       <tr style="background:${rowBg}; border-bottom:1px solid #F1F5F9;">
@@ -2810,16 +2810,16 @@ function searchTicLive() {
       const isSel = SELECTED_TIC_ITEM && SELECTED_TIC_ITEM.test_id === it.test_id;
       const rowBg = isSel ? 'background:#DBEAFE;' : '';
       const tag = it.is_generic
-        ? '<span class="badge badge-pass" style="font-size:0.73rem;">通用碼</span>'
-        : '<span class="badge badge-retry" style="font-size:0.73rem;">專案碼</span>';
+        ? '<span class="badge badge-pass" style="font-size:0.82rem;">通用碼</span>'
+        : '<span class="badge badge-retry" style="font-size:0.82rem;">專案碼</span>';
       html += `<tr style="cursor:pointer; ${rowBg}" onclick="selectTicItem(${idx})">
         <td class="mono" style="font-weight:700; color:#1D4ED8; white-space:nowrap;">${it.test_id}</td>
         <td class="mono" style="color:#B91C1D; font-weight:700; white-space:nowrap;">${it.error_code || '-'}</td>
         <td style="white-space:nowrap;">${tag}</td>
-        <td><div><b>${it.desc_en || ''}</b></div><div style="color:#64748B; font-size:0.77rem;">${it.desc_cn || ''}</div></td>
+        <td><div><b>${it.desc_en || ''}</b></div><div style="color:#64748B; font-size:0.85rem;">${it.desc_cn || ''}</div></td>
         <td style="white-space:nowrap;" onclick="event.stopPropagation()">
-          <button class="btn" style="padding:2px 8px; font-size:0.77rem; background:#F8FAFC;" onclick="copyTicCode('${it.test_id}', this)" title="複製 TestID">📋 複製</button>
-          <button class="btn" style="padding:2px 6px; font-size:0.77rem;" onclick="pinTicItem(${idx})" title="釘選至上方常用列">📌</button>
+          <button class="btn" style="padding:2px 8px; font-size:0.85rem; background:#F8FAFC;" onclick="copyTicCode('${it.test_id}', this)" title="複製 TestID">📋 複製</button>
+          <button class="btn" style="padding:2px 6px; font-size:0.85rem;" onclick="pinTicItem(${idx})" title="釘選至上方常用列">📌</button>
         </td>
       </tr>`;
     });
@@ -2850,7 +2850,7 @@ function renderSelectedTicBanner() {
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
       <span>已選定：<b class="mono" style="color:#1D4ED8; font-size:0.97rem;">${it.test_id}</b>（Error Code: <b class="mono" style="color:#B91C1D;">${it.error_code || '-'}</b>）</span>
       <div style="display:flex; align-items:center; gap:6px;">
-        ${selIdx >= 0 ? `<button class="btn" style="padding:2px 8px; font-size:0.77rem; background:#FFFFFF;" onclick="copyTicTwoCols(${selIdx}, this)">📋 雙欄複製貼 Excel</button>` : ''}
+        ${selIdx >= 0 ? `<button class="btn" style="padding:2px 8px; font-size:0.85rem; background:#FFFFFF;" onclick="copyTicTwoCols(${selIdx}, this)">📋 雙欄複製貼 Excel</button>` : ''}
         <span style="font-size:0.8rem; color:#475569;">點擊下方「⬅️ 套用」即可填入</span>
       </div>
     </div>
@@ -2957,14 +2957,14 @@ function renderTicTargetList() {
         const ov = MOTHER_TESTID_OVERRIDES[key];
         const curTid = (ov && ov.test_id) ? ov.test_id : tid;
         const curDesc = (ov && ov.description) ? ov.description : desc;
-        const badge = ov ? '<span class="badge badge-pass" style="font-size:0.67rem;">已改</span>' : '';
+        const badge = ov ? '<span class="badge badge-pass" style="font-size:0.78rem;">已改</span>' : '';
         return `<tr>
-          <td><div class="mono" style="font-size:0.77rem; color:#0F172A; font-weight:700;">${send || '(step)'}</div></td>
+          <td><div class="mono" style="font-size:0.85rem; color:#0F172A; font-weight:700;">${send || '(step)'}</div></td>
           <td>${curDesc}</td>
           <td class="mono" style="font-weight:700; color:${curTid ? '#1D4ED8' : '#DC2626'};">${curTid || '(缺漏)'} ${badge}</td>
           <td style="white-space:nowrap;">
-            <button class="btn btn-primary-blue" style="padding:2px 8px; font-size:0.77rem;" onclick="applyTicToMotherStep('${blk.block_id}', ${stIdx})">⬅️ 套用</button>
-            ${ov ? `<button class="btn" style="padding:2px 6px; font-size:0.73rem;" onclick="resetMotherStepTic('${blk.block_id}', ${stIdx})">還原</button>` : ''}
+            <button class="btn btn-primary-blue" style="padding:2px 8px; font-size:0.85rem;" onclick="applyTicToMotherStep('${blk.block_id}', ${stIdx})">⬅️ 套用</button>
+            ${ov ? `<button class="btn" style="padding:2px 6px; font-size:0.82rem;" onclick="resetMotherStepTic('${blk.block_id}', ${stIdx})">還原</button>` : ''}
           </td>
         </tr>`;
       }).join('');
@@ -2972,7 +2972,7 @@ function renderTicTargetList() {
         <details ${hasMissing || bIdx === 0 ? 'open' : ''} style="border:1px solid #CBD5E1; border-radius:6px; margin-bottom:6px; background:#F8FAFC;">
           <summary style="cursor:pointer; padding:6px 10px; font-weight:800; font-size:0.83rem; color:#0F172A; display:flex; justify-content:space-between; align-items:center;">
             <span>🧩 ${blk.name || blk.block_id}</span>
-            <span style="font-size:0.77rem; color:${hasMissing ? '#DC2626' : '#64748B'};">${matchedSteps.length} 步${hasMissing ? '（含缺漏碼）' : ''}</span>
+            <span style="font-size:0.85rem; color:${hasMissing ? '#DC2626' : '#64748B'};">${matchedSteps.length} 步${hasMissing ? '（含缺漏碼）' : ''}</span>
           </summary>
           <table class="meas-table" style="margin:0; background:#FFFFFF;">
             <thead><tr><th>Send 指令</th><th>Description</th><th>TestID</th><th>套用</th></tr></thead>
@@ -3007,10 +3007,10 @@ function renderTicTargetList() {
         count++;
         rowsHtml += `<tr>
           <td><b>${sheetName}</b> #${idx + 1}</td>
-          <td><div style="font-weight:700;">${title || '-'}</div><div class="mono" style="font-size:0.73rem; color:#64748B;">${send}</div></td>
+          <td><div style="font-weight:700;">${title || '-'}</div><div class="mono" style="font-size:0.82rem; color:#64748B;">${send}</div></td>
           <td>${r.Description || ''}</td>
           <td class="mono" style="font-weight:700; color:${tid ? '#1D4ED8' : '#DC2626'};">${tid || '(缺漏)'}</td>
-          <td><button class="btn btn-primary-blue" style="padding:2px 8px; font-size:0.77rem;" onclick="applyTicToExcelRow('${sheetName}', ${idx})">⬅️ 填入</button></td>
+          <td><button class="btn btn-primary-blue" style="padding:2px 8px; font-size:0.85rem;" onclick="applyTicToExcelRow('${sheetName}', ${idx})">⬅️ 填入</button></td>
         </tr>`;
       });
     };
@@ -3321,7 +3321,7 @@ function renderTicBatchIssues() {
             <button type="button" class="tic-cand-pill${isSel ? ' selected' : ''}"
               onclick="ticPickRowCandidate('${_ticEsc(it.station)}', ${it.row_idx}, '${_ticEsc(c.test_id)}', '${_ticEsc(c.desc_en || '')}')">
               <div style="font-weight:800; font-family:Consolas, monospace;">${_ticEsc(c.test_id)} <span style="font-weight:500; color:#64748B;">(${_ticEsc(c.error_code || '')})</span></div>
-              <div style="font-size:0.76rem; color:#334155;">${_ticEsc(c.desc_en || '')}${c.desc_cn ? ' ｜ ' + _ticEsc(c.desc_cn) : ''}</div>
+              <div style="font-size:0.84rem; color:#334155;">${_ticEsc(c.desc_en || '')}${c.desc_cn ? ' ｜ ' + _ticEsc(c.desc_cn) : ''}</div>
             </button>
           `;
         }).join('')
@@ -3331,14 +3331,14 @@ function renderTicBatchIssues() {
       <div class="tic-issue-card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
-            <span style="padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:800; background:${rb.bg}; border:1px solid ${rb.bd}; color:${rb.fg};">${rb.label}</span>
+            <span style="padding:2px 8px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${rb.bg}; border:1px solid ${rb.bd}; color:${rb.fg};">${rb.label}</span>
             <span class="mono" style="font-weight:800; color:#0F172A; font-size:0.86rem;">${_ticEsc(it.station)} ｜ Excel R${it.excel_row}</span>
             ${it.phase ? `<span class="mono" style="font-size:0.78rem; color:#475569;">Phase ${ _ticEsc(it.phase) }</span>` : ''}
             <span style="font-weight:800; color:#1E293B;">${_ticEsc(it.title || '(無 Title)')}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span class="mono" style="font-size:0.8rem; color:#64748B;">原 TestID：<b>${_ticEsc(it.current_test_id || '(空白)')}</b>${curDesc ? ' (' + _ticEsc(curDesc) + ')' : ''}</span>
-            ${picked ? `<span class="mono" style="padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#14532D; font-weight:800; font-size:0.8rem;">➔ 擬改為 ${_ticEsc(picked.test_id)}</span><button type="button" class="filter-pill" style="font-size:0.74rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除選擇</button>` : ''}
+            ${picked ? `<span class="mono" style="padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#14532D; font-weight:800; font-size:0.8rem;">➔ 擬改為 ${_ticEsc(picked.test_id)}</span><button type="button" class="filter-pill" style="font-size:0.83rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除選擇</button>` : ''}
           </div>
         </div>
         <div style="font-size:0.8rem; color:#475569; margin-bottom:7px; display:flex; gap:12px; flex-wrap:wrap;">
@@ -3836,16 +3836,16 @@ function renderTab3Queue() {
         style="border-color:${missingDll ? '#DC2626' : th.color}; border-top-color:${missingDll ? '#DC2626' : th.color}; ${missingDll ? 'background:linear-gradient(180deg,#FFF5F5 0%,#FEF2F2 100%);' : ''}">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
-            <span style="background:${missingDll ? '#DC2626' : th.color}; color:#FFF; font-weight:900; font-size:0.68rem; padding:1px 6px; border-radius:999px;">#${stepNo}</span>
-            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.68rem; font-weight:800; padding:1px 5px; border-radius:999px;">${missingDll ? '❌ 缺 DLL' : th.tag}</span>
+            <span style="background:${missingDll ? '#DC2626' : th.color}; color:#FFF; font-weight:900; font-size:0.78rem; padding:1px 6px; border-radius:999px;">#${stepNo}</span>
+            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.78rem; font-weight:800; padding:1px 5px; border-radius:999px;">${missingDll ? '❌ 缺 DLL' : th.tag}</span>
           </div>
           <div class="lego-gold-title mono" title="${it.inst_name}">${it.inst_name}</div>
-          ${missingDll ? `<div style="font-size:0.7rem; color:#B91C1C; font-weight:800; margin-top:4px; line-height:1.25;">缺 ${dllName}</div>` : ''}
-          <div style="font-size:0.72rem; color:${missingDll ? '#7F1D1D' : th.text}; font-weight:700; margin-top:${missingDll ? '2px' : '4px'}; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${it.title_name}</div>
+          ${missingDll ? `<div style="font-size:0.8rem; color:#B91C1C; font-weight:800; margin-top:4px; line-height:1.25;">缺 ${dllName}</div>` : ''}
+          <div style="font-size:0.81rem; color:${missingDll ? '#7F1D1D' : th.text}; font-weight:700; margin-top:${missingDll ? '2px' : '4px'}; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${it.title_name}</div>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #E2E8F0; padding-top:4px;">
-          <span style="font-size:0.7rem; color:#94A3B8; font-weight:700;">⋮⋮</span>
-          <button onclick="tab3RemoveQueueItem(${idx})" title="移除此卡片" class="btn" style="padding:1px 6px; font-size:0.75rem; background:#FEE2E2; color:#991B1B; border:none;">🗑</button>
+          <span style="font-size:0.8rem; color:#94A3B8; font-weight:700;">⋮⋮</span>
+          <button onclick="tab3RemoveQueueItem(${idx})" title="移除此卡片" class="btn" style="padding:1px 6px; font-size:0.84rem; background:#FEE2E2; color:#991B1B; border:none;">🗑</button>
         </div>
       </div>
     `;
@@ -3918,11 +3918,11 @@ function tab3RenderCatalogDeck() {
         style="border-top-color:${missingDll ? '#DC2626' : th.color}; ${missingDll ? 'border-color:#FCA5A5; background:linear-gradient(180deg,#FFF5F5 0%,#FEF2F2 100%);' : ''}">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; margin-bottom:4px;">
-            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.68rem; font-weight:900; padding:1px 5px; border-radius:999px;">${badgeLabel}</span>
-            <button onclick="event.stopPropagation(); openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:0px 5px; font-size:0.72rem; background:#F8FAFC; color:#475569;" title="查看儀器簡介">📖</button>
+            <span style="background:${missingDll ? '#FEE2E2' : th.badge}; color:${missingDll ? '#B91C1C' : th.text}; font-size:0.78rem; font-weight:900; padding:1px 5px; border-radius:999px;">${badgeLabel}</span>
+            <button onclick="event.stopPropagation(); openInstIntroPage('tab3', '${inst.Name}')" class="btn" style="padding:0px 5px; font-size:0.81rem; background:#F8FAFC; color:#475569;" title="查看儀器簡介">📖</button>
           </div>
           <div class="lego-gold-title mono" title="${inst.Name}">${inst.Name}</div>
-          <div style="font-size:0.72rem; color:${missingDll ? '#991B1B' : '#64748B'}; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${missingDll ? ('缺 ' + dllName) : (inst.Desc || inst.Functions || '')}</div>
+          <div style="font-size:0.81rem; color:${missingDll ? '#991B1B' : '#64748B'}; margin-top:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${missingDll ? ('缺 ' + dllName) : (inst.Desc || inst.Functions || '')}</div>
         </div>
         <button onclick="event.stopPropagation(); tab3AddInstBlock('${inst.Name}')" class="btn" style="width:100%; padding:3px 6px; font-size:0.78rem; background:${th.badge}; color:${th.text}; border:1.5px solid ${th.color}; font-weight:900; border-radius:6px;">
           ＋ 加入
@@ -3948,7 +3948,7 @@ function tab3RenderDetailCards() {
           <div>
             <div class="mono" style="font-weight:900; font-size:0.95rem; color:${missingDll ? '#991B1B' : '#4C1D95'};">
               ${it.inst_name}
-              ${missingDll ? `<span style="margin-left:6px; background:#FEE2E2; color:#B91C1C; border:1px solid #FCA5A5; font-size:0.72rem; padding:1px 7px; border-radius:999px;">❌ 缺 ${dllName}</span>` : ''}
+              ${missingDll ? `<span style="margin-left:6px; background:#FEE2E2; color:#B91C1C; border:1px solid #FCA5A5; font-size:0.81rem; padding:1px 7px; border-radius:999px;">❌ 缺 ${dllName}</span>` : ''}
             </div>
             <div style="font-size:0.78rem; color:#64748B;">可獨立調整測項名稱與上下限</div>
           </div>
@@ -4084,9 +4084,9 @@ async function tab3GenerateStandalone(extraHmiItem = null, autoSampleMode = fals
           🎉 [${modeTag}] 成功產出儀器測試範本（${data.total_items || itemsToInsert.length} 台儀器 / 共 ${data.total_steps || '-'} 列步驟），已直接開啟 Excel！
         </div>
         <div style="font-size:0.83rem; color:#334155; line-height:1.6;">
-          • <b>程式輸出目錄：</b><span class="mono">${data.output_dir}</span> <button type="button" onclick="openOutputFolder(${JSON.stringify(data.output_dir)})" class="btn" style="padding:2px 8px; font-size:0.76rem; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700; margin-left:4px;">📂 打開資料夾</button><br>
+          • <b>程式輸出目錄：</b><span class="mono">${data.output_dir}</span> <button type="button" onclick="openOutputFolder(${JSON.stringify(data.output_dir)})" class="btn" style="padding:2px 8px; font-size:0.84rem; background:#FFFFFF; border:1px solid #94A3B8; font-weight:700; margin-left:4px;">📂 打開資料夾</button><br>
           • <b>完整檔案：</b><span class="mono">${data.excel_path}</span><br>
-          ${data.guide_txt_path ? `• <b>編寫與使用說明：</b><span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.77rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
+          ${data.guide_txt_path ? `• <b>編寫與使用說明：</b><span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
           • <b>自動檢查結果：</b><span style="color:${errCnt === 0 ? '#15803D' : '#B45309'}; font-weight:800;">${errCnt === 0 ? '✅ 0 Error (全自動體檢通過、Phase 順編、Phase 97 收尾與 Checksum 已寫入)' : '⚠️ 尚有 ' + errCnt + ' 項待確認 (已自動修復 ' + (data.auto_fixed_count || 0) + ' 項)'}</span>
         </div>
         ${dllWarnHtml}
@@ -4282,7 +4282,7 @@ function renderRecentFilesList(files) {
         <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:6px; padding:7px 12px; gap:8px; transition:all 0.15s ease;">
           <div style="display:flex; flex-direction:column; overflow:hidden;">
             <span style="font-weight:700; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${esc(f.path)}">📄 ${esc(f.name)}</span>
-            <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">[${esc(f.folder)}] ${f.size_kb} KB</span>
+            <span style="font-size:0.84rem; color:#64748B; font-family:Consolas, monospace;">[${esc(f.folder)}] ${f.size_kb} KB</span>
           </div>
           <button class="btn btn-primary-blue" style="padding:4px 12px; font-size:0.82rem; white-space:nowrap; font-weight:700;" onclick="quickLoadFileFromRecent('${encodeURIComponent(f.path)}')">
             ⚡ 立即載入編修
@@ -4302,7 +4302,7 @@ function renderRecentFilesList(files) {
         <div class="audit-top3-card" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
             <div style="font-weight:800; font-size:0.9rem; color:#0F172A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${esc(f.name)}</div>
-            ${f.recently_viewed ? `<span style="flex-shrink:0; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.72rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}
+            ${f.recently_viewed ? `<span style="flex-shrink:0; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.81rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:#475569; font-family:Consolas,monospace;">
             <span>[${esc(f.folder)}] · ${f.size_kb} KB</span>
@@ -4341,7 +4341,7 @@ function renderAuditResumeLastBox() {
   box.style.display = 'flex';
   box.innerHTML = `
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;">
-      <span style="background:#2563EB; color:#FFFFFF; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:999px;">📌 剛檢查過</span>
+      <span style="background:#2563EB; color:#FFFFFF; font-size:0.84rem; font-weight:800; padding:2px 8px; border-radius:999px;">📌 剛檢查過</span>
       <span style="font-weight:800; color:#0F172A; font-size:0.9rem;">${esc(fname)}</span>
       <span class="mono" style="font-size:0.78rem; color:#475569; word-break:break-all;">${esc(lastP)}</span>
     </div>
@@ -4409,7 +4409,7 @@ function filterAuditRecentTable() {
 
   tbody.innerHTML = visibleRows.map(f => `
     <tr class="audit-optc-row" onclick="loadSpecificFile('${encodeURIComponent(f.path)}')" title="${esc(f.path)}">
-      <td style="font-weight:700;">📄 ${esc(f.name)} ${f.recently_viewed ? `<span style="margin-left:6px; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.71rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}</td>
+      <td style="font-weight:700;">📄 ${esc(f.name)} ${f.recently_viewed ? `<span style="margin-left:6px; background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; font-size:0.8rem; font-weight:800; padding:1px 6px; border-radius:999px;">🕒 剛檢視</span>` : ''}</td>
       <td class="mono" style="color:#475569; font-size:0.82rem;">[${esc(f.folder)}]</td>
       <td class="mono" style="text-align:right; color:#475569; font-size:0.82rem;">${f.size_kb} KB</td>
       <td class="mono" style="text-align:center; color:#64748B; font-size:0.8rem;">${esc(f.mtime_str || '-')}</td>
@@ -4508,7 +4508,7 @@ async function fbLoadDir(dirPath = '') {
             <span style="font-size:1rem;">📄</span>
             <div style="display:flex; flex-direction:column; overflow:hidden;">
               <span style="font-weight:800; font-size:0.88rem; color:#0F172A; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${f.name}</span>
-              <span style="font-size:0.75rem; color:#64748B; font-family:Consolas, monospace;">${f.size_kb} KB</span>
+              <span style="font-size:0.84rem; color:#64748B; font-family:Consolas, monospace;">${f.size_kb} KB</span>
             </div>
           </div>
           <button type="button" class="btn btn-primary-blue" style="padding:4px 14px; font-size:0.82rem; font-weight:700; white-space:nowrap;" onclick="fbSelectFile('${encodeURIComponent(f.path)}')">
@@ -4971,7 +4971,7 @@ function renderBatchFolderBox() {
     const fixedBadge = it.has_fixed
       ? '<span style="color:#0369A1; font-weight:700;">📄 已有 _FIXED（將覆蓋）</span>'
       : '<span style="color:#64748B;">尚未修復</span>';
-    const multiNote = it.multi_xlsx_in_dir ? ' <span title="同目錄有多份 xlsx，整包修復時 System.ini 會指向最後一份" style="color:#B45309; font-size:0.77rem;">(同目錄多檔)</span>' : '';
+    const multiNote = it.multi_xlsx_in_dir ? ' <span title="同目錄有多份 xlsx，整包修復時 System.ini 會指向最後一份" style="color:#B45309; font-size:0.85rem;">(同目錄多檔)</span>' : '';
     const encPath = encodeURIComponent(it.file_path);
     return `
       <tr style="border-bottom:1px solid #CBD5E1; background:${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
@@ -4995,7 +4995,7 @@ function renderBatchFolderBox() {
       </div>
     </div>
     <div style="max-height:280px; overflow:auto; border:1px solid #CBD5E1; border-radius:6px; background:#FFFFFF;">
-      <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:${Math.max(12, fs - 1)}px;">
+      <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:0.93rem;">
         <thead>
           <tr style="background:#1E293B; color:#FFFFFF; text-align:left;">
             <th style="padding:6px 8px;">腳本路徑</th>
@@ -5188,7 +5188,7 @@ function renderAuditResults() {
       <div>${statusBadge}</div>
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         ${formatIsnHtml(STATE.isnInfo, false)}
-        <span class="mono" style="font-size:0.77rem; color:#475569; background:rgba(255,255,255,0.7); border:1px solid #CBD5E1; border-radius:4px; padding:2px 7px;" title="修復後寫回原目錄並重算 System.ini Checksum">👉 同目錄 *_FIXED.xlsx</span>
+        <span class="mono" style="font-size:0.85rem; color:#475569; background:rgba(255,255,255,0.7); border:1px solid #CBD5E1; border-radius:4px; padding:2px 7px;" title="修復後寫回原目錄並重算 System.ini Checksum">👉 同目錄 *_FIXED.xlsx</span>
       </div>
     </div>
     ${phaseIssueBanner}
@@ -5206,7 +5206,7 @@ function renderAuditResults() {
         ? `<span style="color:#15803D; font-size:0.78rem;">🟢OK</span>`
         : `<span style="white-space:nowrap;">${ss.errors > 0 ? `<span style="color:#B91C1C;">🔴${ss.errors}</span>` : ''} ${ss.warnings > 0 ? `<span style="color:#B45309;">🟡${ss.warnings}</span>` : ''}</span>`;
       const escName = ss.sheet.replace(/'/g, "\\'");
-      const label = compact ? ss.sheet : `${ss.sheet}${ss.sheet_type === 'Marco' ? ' <span style="color:#64748B;font-size:0.73rem;">(M)</span>' : ''}`;
+      const label = compact ? ss.sheet : `${ss.sheet}${ss.sheet_type === 'Marco' ? ' <span style="color:#64748B;font-size:0.82rem;">(M)</span>' : ''}`;
       return `<button class="sheet-pill ${activeF === ss.sheet ? 'active' : ''}" title="${tip}" onclick="setSheetFilter('${escName}')"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${label}</span>${badge}</button>`;
     };
 
@@ -6393,11 +6393,11 @@ function ni6RenderCards() {
     const presetBtns = ['1.8V', '3.3V', '5V', '12V', 'custom'].map(pk => {
       const act = (c.preset === pk);
       const lbl = pk === 'custom' ? '自訂' : pk;
-      return `<button onclick="ni6ApplyPreset(${c.ch}, '${pk}')" style="padding:2px 8px; font-size:0.77rem; font-weight:700; border-radius:4px; cursor:pointer; border:1px solid ${act ? pinMeta.color : '#CBD5E1'}; background:${act ? pinMeta.color : '#FFFFFF'}; color:${act ? '#FFFFFF' : '#334155'};">${lbl}</button>`;
+      return `<button onclick="ni6ApplyPreset(${c.ch}, '${pk}')" style="padding:2px 8px; font-size:0.85rem; font-weight:700; border-radius:4px; cursor:pointer; border:1px solid ${act ? pinMeta.color : '#CBD5E1'}; background:${act ? pinMeta.color : '#FFFFFF'}; color:${act ? '#FFFFFF' : '#334155'};">${lbl}</button>`;
     }).join(' ');
 
     const dividerSvg = needsDivider ? `
-      <div style="margin-top:6px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:6px 10px; font-size:0.77rem; color:#78350F;">
+      <div style="margin-top:6px; background:#FFFBEB; border:1px solid #F59E0B; border-radius:6px; padding:6px 10px; font-size:0.85rem; color:#78350F;">
         <div style="font-weight:700; margin-bottom:4px;">⚠️ 超過 ±10V 安全範圍：12V 建議接分壓電阻實接示意（或確認治具分壓比）：</div>
         <svg width="100%" height="58" viewBox="0 0 430 58" style="background:#FFFFFF; border:1px solid #FDE68A; border-radius:4px;">
           <text x="8" y="24" font-size="11" font-weight="bold" fill="#92400E">12V 待測點</text>
@@ -6422,7 +6422,7 @@ function ni6RenderCards() {
           <span style="font-weight:700; color:#0F172A; font-size:0.87rem;">📌 <span style="color:${pinMeta.color};">AI ${c.ch}</span>（${pinHint}）</span>
           <div style="display:flex; gap:4px; align-items:center;">
             ${presetBtns}
-            <button onclick="ni6TogglePin(${c.ch})" style="margin-left:4px; padding:2px 7px; font-size:0.73rem; border:1px solid #FCA5A5; background:#FEF2F2; color:#B91C1C; border-radius:4px; cursor:pointer;">移除</button>
+            <button onclick="ni6TogglePin(${c.ch})" style="margin-left:4px; padding:2px 7px; font-size:0.82rem; border:1px solid #FCA5A5; background:#FEF2F2; color:#B91C1C; border-radius:4px; cursor:pointer;">移除</button>
           </div>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:0.83rem;">
@@ -6654,7 +6654,7 @@ async function applyFixAndExport(dryRun) {
     ✅ <strong>修復匯出完成！已自動開啟輸出資料夾進行檢視</strong><br>
     📂 所在資料夾：<span class="mono">${data.output_dir}</span><br>
     📄 匯出檔案：<span class="mono" style="color:#0F172A; font-weight:700;">${data.excel_path}</span>
-    ${data.guide_txt_path ? `<br>📝 編寫說明：<span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.77rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button>` : ''}
+    ${data.guide_txt_path ? `<br>📝 編寫說明：<span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button>` : ''}
     ${instVerifyHtml}
     ${logsHtml}
     <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:8px 0;">
@@ -7261,7 +7261,7 @@ async function generateNewMother(dryRun) {
     ✅ <strong>測試包產出完成</strong>（已自動寫入 Checksum 並開啟資料夾）<br>
     📂 <span class="mono">${data.output_dir}</span><br>
     📄 <span class="mono">${data.excel_path}</span><br>
-    ${data.guide_txt_path ? `📝 <span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.77rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
+    ${data.guide_txt_path ? `📝 <span class="mono">${data.guide_txt_path}</span> <button onclick="openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})" class="btn" style="padding:2px 9px; font-size:0.85rem; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; font-weight:800; margin-left:4px;">📄 開啟說明 .txt</button><br>` : ''}
     ${formatIsnHtml(data.isn_info)}
   `;
   showExportCompleteModal({

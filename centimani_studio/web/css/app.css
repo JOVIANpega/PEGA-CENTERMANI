@@ -34,8 +34,18 @@
     overflow: hidden;
   }
   /* 全站字體等比縮放聯動規則 (當使用者調整 FONT 大小時全面繼承) */
-  .workspace, .main-layout, #editorWorkspaceBody, #panelAudit, #panelGen, #panelDiagnose, #panelTic, #panelSettings, #genModeTools, #toolsSubPaneSfis, .action-bar, .modal-panel {
+  .workspace, .main-layout, #editorWorkspaceBody, #panelHome, #panelFlowGuide, #panelInstIntro, #panelInstHmi, #panelNi6009,
+  #panelAudit, #panelGen, #panelDiagnose, #panelTic, #panelSettings, #genModeTools, #toolsSubPaneSfis,
+  .action-bar, .modal-backdrop, .modal-panel,
+  #modalBlockSorter, #jumpEditorModal, #templateSkuModal, #copySheetModal, #stationDiffModal, #qaCheatsheetModal, #modalFolderBrowser, #insertInstModal, #sfisIplasModal, #exportConfirmModal {
     font-size: var(--app-font-size, 15px);
+  }
+  button {
+    font-family: inherit;
+    font-size: calc(var(--app-font-size, 15px) * 0.92);
+  }
+  table, th, td, pre, details, summary {
+    font-size: inherit;
   }
   .btn {
     font-size: calc(var(--app-font-size, 15px) * 0.95);
@@ -58,7 +68,7 @@
   }
   code, .mono {
     font-family: "Consolas", "Courier New", monospace;
-    font-size: 0.9em;
+    font-size: 0.96em;
   }
 
   /* Top Navigation Bar */
@@ -1330,7 +1340,7 @@ button:not(:disabled):hover {
   background: #FEF3C7 !important;
 }
 .bs-card-moved-tag {
-  font-size:0.67rem;
+  font-size:0.78rem;
   font-weight: 800;
   color: #92400E;
   background: #FDE68A;
@@ -1371,7 +1381,7 @@ button:not(:disabled):hover {
 }
 .bs-paused-badge {
   display: inline-block;
-  font-size:0.7rem;
+  font-size:0.8rem;
   font-weight: 800;
   color: #92400E;
   background: #FEF3C7;
@@ -1383,9 +1393,9 @@ button:not(:disabled):hover {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 18px;
-  padding: 0 5px;
-  font-size:0.67rem;
+  min-height: 1.45em;
+  padding: 1px 6px;
+  font-size:0.78rem;
   font-weight: 800;
   background: #FEF3C7;
   color: #92400E;
@@ -1457,12 +1467,12 @@ button:not(:disabled):hover {
 
 /* Phase 數字直接輸入框 (方案 A 融入方法一) */
 .bs-phase-direct-input {
-  width: 32px;
-  height: 18px;
+  width: 2.6em;
+  height: 1.55em;
   text-align: center;
   font-family: Consolas, monospace;
   font-weight: 800;
-  font-size:0.73rem;
+  font-size:0.86rem;
   color: #15803D;
   background: #FFFFFF;
   border: 1px solid #86EFAC;
@@ -1484,7 +1494,7 @@ button:not(:disabled):hover {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 24px;
+  min-height: 1.75em;
   background: rgba(248, 250, 252, 0.94);
   backdrop-filter: blur(4px);
   border-top: 1px solid #E2E8F0;
@@ -1492,7 +1502,7 @@ button:not(:disabled):hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px;
+  padding: 2px 6px;
   opacity: 0;
   transform: translateY(4px);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1507,10 +1517,10 @@ button:not(:disabled):hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 18px;
-  padding: 0;
-  font-size:0.67rem;
+  min-width: 1.5em;
+  height: 1.45em;
+  padding: 0 4px;
+  font-size:0.8rem;
   font-weight: 800;
   background: #FFFFFF;
   color: #334155;
@@ -1532,7 +1542,7 @@ button:not(:disabled):hover {
 
 /* 步驟步數膠囊標籤 */
 .bs-card-steps-pill {
-  font-size:0.73rem;
+  font-size:0.82rem;
   font-weight: 800;
   color: #166534;
   background: #DCFCE7;
@@ -1634,7 +1644,7 @@ button:not(:disabled):hover {
 
 .bs-card-phase-badge {
   font-family: Consolas, monospace;
-  font-size: calc(var(--app-font-size, 15px) * 0.75);
+  font-size: calc(var(--app-font-size, 15px) * 0.86);
   font-weight: 800;
   color: #166534;
   letter-spacing: 0.2px;
@@ -1642,7 +1652,7 @@ button:not(:disabled):hover {
 
 .bs-card-title-label {
   font-weight: 800;
-  font-size: calc(var(--app-font-size, 15px) * 0.8);
+  font-size: calc(var(--app-font-size, 15px) * 0.92);
   color: #0F172A;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -1656,7 +1666,7 @@ button:not(:disabled):hover {
 }
 
 .bs-card-steps-pill {
-  font-size: calc(var(--app-font-size, 15px) * 0.72);
+  font-size: calc(var(--app-font-size, 15px) * 0.82);
   font-weight: 800;
   color: #166534;
   background: #DCFCE7;
@@ -1674,13 +1684,13 @@ button:not(:disabled):hover {
 #modalBlockSorter label,
 #modalBlockSorter select,
 #modalBlockSorter input {
-  font-size: calc(var(--app-font-size, 15px) * 0.88);
+  font-size: calc(var(--app-font-size, 15px) * 0.94);
 }
 #modalBlockSorter .btn {
-  font-size: calc(var(--app-font-size, 15px) * 0.85);
+  font-size: calc(var(--app-font-size, 15px) * 0.9);
 }
 #modalBlockSorter .bs-card-hover-btn {
-  font-size: calc(var(--app-font-size, 15px) * 0.7);
+  font-size: calc(var(--app-font-size, 15px) * 0.82);
 }
 
 /* ======================== 書籤三：華麗磁性積木對接效果 (Lego Snap-Ghost) ======================== */
@@ -2273,7 +2283,7 @@ button:not(:disabled):hover {
   min-width: 60px;
 }
 .sfis-flow-label {
-  font-size: 0.74rem;
+  font-size: 0.84rem;
   font-weight: 800;
   color: #475569;
   white-space: nowrap;
@@ -2337,7 +2347,7 @@ button:not(:disabled):hover {
   transform: translateY(-2px);
 }
 .sfis-packet-badge {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 999px;
@@ -2388,7 +2398,7 @@ button:not(:disabled):hover {
   border: 2px solid #94A3B8;
   cursor: grab;
   user-select: none;
-  font-size: 0.79rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: #0F172A;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
@@ -2422,7 +2432,7 @@ button:not(:disabled):hover {
   right: -6px;
   background: #2563EB;
   color: #FFFFFF;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 800;
   padding: 1px 6px;
   border-radius: 999px;

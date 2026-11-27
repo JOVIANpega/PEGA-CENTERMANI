@@ -1832,9 +1832,9 @@ function _renderSimpleCardInputs(it, idx) {
         const isSel = (curSlotCode === sl.code);
         return `
           <div style="display:flex; align-items:center; gap:5px; padding:2px 5px; border-radius:4px; background:${isSel ? '#DBEAFE' : '#FFFFFF'}; border:1px solid ${isSel ? '#3B82F6' : '#E2E8F0'};">
-            <span class="mono" style="font-size:0.75rem; font-weight:900; color:#1E40AF; min-width:74px;">[${sl.code}] ${sl.name}</span>
-            <span class="mono" style="flex:1; font-size:0.76rem; color:${val ? '#0F172A' : '#94A3B8'}; word-break:break-all;">${_escH(val || '(空)')}</span>
-            <button type="button" onclick="sfisPickSlotIndex(${idx},'${sl.code}')" style="padding:1px 6px; font-size:0.72rem; border-radius:4px; border:1px solid ${isSel ? '#1D4ED8' : '#94A3B8'}; background:${isSel ? '#1D4ED8' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">
+            <span class="mono" style="font-size:0.84rem; font-weight:900; color:#1E40AF; min-width:74px;">[${sl.code}] ${sl.name}</span>
+            <span class="mono" style="flex:1; font-size:0.84rem; color:${val ? '#0F172A' : '#94A3B8'}; word-break:break-all;">${_escH(val || '(空)')}</span>
+            <button type="button" onclick="sfisPickSlotIndex(${idx},'${sl.code}')" style="padding:1px 6px; font-size:0.81rem; border-radius:4px; border:1px solid ${isSel ? '#1D4ED8' : '#94A3B8'}; background:${isSel ? '#1D4ED8' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">
               ${isSel ? `✓ 已選第${sl.code}格` : `選第${sl.code}格`}
             </button>
           </div>`;
@@ -1853,12 +1853,12 @@ function _renderSimpleCardInputs(it, idx) {
         : '';
       const emptyFoldHtml = emptySlots.length ? `
         <details class="sfis-empty-slots-fold" style="margin-top:3px;">
-          <summary style="cursor:pointer; font-size:0.74rem; font-weight:700; color:#64748B; padding:2px 4px;">▸ 折疊 ${emptySlots.length} 格無資料欄位（${emptyRangeLbl}・需要時點擊展開）</summary>
+          <summary style="cursor:pointer; font-size:0.83rem; font-weight:700; color:#64748B; padding:2px 4px;">▸ 折疊 ${emptySlots.length} 格無資料欄位（${emptyRangeLbl}・需要時點擊展開）</summary>
           <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">${emptySlots.map(renderSlotRow).join('')}</div>
         </details>` : '';
       slotsGridHtml = `
         <div style="margin-top:6px; background:#F8FAFC; border:1px solid #BFDBFE; border-radius:6px; padding:6px 8px;">
-          <div style="font-size:0.76rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;">
+          <div style="font-size:0.84rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;">
             🎯 SFIS [0~7] 堆疊回傳位置（[0]P_RET=${_escH(it.lastRetCode || '-')} · [1]P_Msg=${_escH((it.lastMsg || '').slice(0, 42))}）：
           </div>
           <div style="display:flex; flex-direction:column; gap:3px;">${visibleSlots.map(renderSlotRow).join('')}</div>
@@ -1870,30 +1870,30 @@ function _renderSimpleCardInputs(it, idx) {
     if (pickedRawVal && (pickedRawVal.includes(';') || pickedRawVal.includes(','))) {
       const autoDelim = pickedRawVal.includes(';') ? ';' : ',';
       const segs = pickedRawVal.split(autoDelim).filter((x, i, a) => !(i === a.length - 1 && x === ''));
-      segBtnsHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; align-items:center;"><span style="font-size:0.71rem; color:#475569; font-weight:700;">快速點切段(${autoDelim === ';' ? '分號;' : '逗號,'})：</span>` +
-        segs.map((sg, si) => `<button type="button" onclick="sfisPickSegment(${idx},'${autoDelim}',${si})" style="padding:1px 6px; font-size:0.71rem; border-radius:4px; border:1px solid ${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#059669' : '#CBD5E1'}; background:${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;" class="mono">[${si}] ${_escH(sg)}</button>`).join('') + `</div>`;
+      segBtnsHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; align-items:center;"><span style="font-size:0.8rem; color:#475569; font-weight:700;">快速點切段(${autoDelim === ';' ? '分號;' : '逗號,'})：</span>` +
+        segs.map((sg, si) => `<button type="button" onclick="sfisPickSegment(${idx},'${autoDelim}',${si})" style="padding:1px 6px; font-size:0.8rem; border-radius:4px; border:1px solid ${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#059669' : '#CBD5E1'}; background:${(it.ref_mode === 'split' && parseInt(it.ref_seg_idx, 10) === si) ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;" class="mono">[${si}] ${_escH(sg)}</button>`).join('') + `</div>`;
     }
 
     const rm = it.ref_mode || 'raw';
     const refExtraInputs = rm === 'split'
-      ? `<label style="font-size:0.72rem;">分隔字:<input type="text" value="${_escH(it.ref_delim || (it.kind === 'getimac' ? ',' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_delim',this.value)" class="mono" style="width:36px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
-         <label style="font-size:0.72rem;">第N段(0起):<input type="number" min="0" value="${parseInt(it.ref_seg_idx || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_seg_idx',this.value)" class="mono" style="width:42px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+      ? `<label style="font-size:0.81rem;">分隔字:<input type="text" value="${_escH(it.ref_delim || (it.kind === 'getimac' ? ',' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_delim',this.value)" class="mono" style="width:36px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+         <label style="font-size:0.81rem;">第N段(0起):<input type="number" min="0" value="${parseInt(it.ref_seg_idx || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_seg_idx',this.value)" class="mono" style="width:42px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
       : (rm === 'within'
-        ? `<label style="font-size:0.72rem;">左界:<input type="text" value="${_escH(it.ref_left || 'SN:')}" oninput="sfisUpdateItemField(${idx},'ref_left',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
-           <label style="font-size:0.72rem;">右界:<input type="text" value="${_escH(it.ref_right || ';')}" oninput="sfisUpdateItemField(${idx},'ref_right',this.value)" class="mono" style="width:65px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+        ? `<label style="font-size:0.81rem;">左界:<input type="text" value="${_escH(it.ref_left || 'SN:')}" oninput="sfisUpdateItemField(${idx},'ref_left',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+           <label style="font-size:0.81rem;">右界:<input type="text" value="${_escH(it.ref_right || ';')}" oninput="sfisUpdateItemField(${idx},'ref_right',this.value)" class="mono" style="width:65px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
         : (rm === 'ma' || rm === 'mb'
-          ? `<label style="font-size:0.72rem;">定位字:<input type="text" value="${_escH(it.ref_marker || (rm === 'ma' ? ':' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_marker',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+          ? `<label style="font-size:0.81rem;">定位字:<input type="text" value="${_escH(it.ref_marker || (rm === 'ma' ? ':' : ';'))}" oninput="sfisUpdateItemField(${idx},'ref_marker',this.value)" class="mono" style="width:70px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
           : (rm === 'substr'
-            ? `<label style="font-size:0.72rem;">起始:<input type="number" min="0" value="${parseInt(it.ref_sub_start || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_sub_start',this.value)" class="mono" style="width:44px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
-               <label style="font-size:0.72rem;">長度:<input type="number" min="1" value="${parseInt(it.ref_sub_len || 12, 10) || 12}" oninput="sfisUpdateItemField(${idx},'ref_sub_len',this.value)" class="mono" style="width:46px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
+            ? `<label style="font-size:0.81rem;">起始:<input type="number" min="0" value="${parseInt(it.ref_sub_start || 0, 10) || 0}" oninput="sfisUpdateItemField(${idx},'ref_sub_start',this.value)" class="mono" style="width:44px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+               <label style="font-size:0.81rem;">長度:<input type="number" min="1" value="${parseInt(it.ref_sub_len || 12, 10) || 12}" oninput="sfisUpdateItemField(${idx},'ref_sub_len',this.value)" class="mono" style="width:46px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>`
             : '')));
 
     const topInputs = isImac
       ? `<span style="font-size:0.78rem; font-weight:700; color:#0F766E;">WTSP_GETIMAC 配發/讀取 MAC（結果於第 2 格起）</span>`
       : `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-           <label style="font-size:0.76rem; font-weight:700;">type:<select onchange="sfisUpdateItemField(${idx},'ver_type',this.value)" style="padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem; max-width:190px;">${vtOpts}</select></label>
-           ${vt === 'ISN_BASEINFO' ? fieldSelectHtml : `<label style="font-size:0.76rem; font-weight:700;">ChkData:<input type="text" value="${_escH(it.chk_data || '')}" oninput="sfisUpdateItemField(${idx},'chk_data',this.value)" class="mono" style="width:88px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem;"></label><label style="font-size:0.76rem; font-weight:700;">Chk2:<input type="text" value="${_escH(it.chk_data2 || '')}" oninput="sfisUpdateItemField(${idx},'chk_data2',this.value)" class="mono" style="width:85px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.77rem;"></label>`}
-           <label style="font-size:0.76rem; font-weight:700;">取第<select onchange="sfisUpdateItemField(${idx},'slot_code',this.value)" style="padding:2px 4px; border:1px solid #3B82F6; border-radius:4px; font-size:0.77rem;">${slotList.map(sl => `<option value="${sl.code}" ${curSlotCode === sl.code ? 'selected' : ''}>${sl.code} (${sl.name})</option>`).join('')}</select>格</label>
+           <label style="font-size:0.84rem; font-weight:700;">type:<select onchange="sfisUpdateItemField(${idx},'ver_type',this.value)" style="padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.85rem; max-width:190px;">${vtOpts}</select></label>
+           ${vt === 'ISN_BASEINFO' ? fieldSelectHtml : `<label style="font-size:0.84rem; font-weight:700;">ChkData:<input type="text" value="${_escH(it.chk_data || '')}" oninput="sfisUpdateItemField(${idx},'chk_data',this.value)" class="mono" style="width:88px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.85rem;"></label><label style="font-size:0.84rem; font-weight:700;">Chk2:<input type="text" value="${_escH(it.chk_data2 || '')}" oninput="sfisUpdateItemField(${idx},'chk_data2',this.value)" class="mono" style="width:85px; padding:3px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.85rem;"></label>`}
+           <label style="font-size:0.84rem; font-weight:700;">取第<select onchange="sfisUpdateItemField(${idx},'slot_code',this.value)" style="padding:2px 4px; border:1px solid #3B82F6; border-radius:4px; font-size:0.85rem;">${slotList.map(sl => `<option value="${sl.code}" ${curSlotCode === sl.code ? 'selected' : ''}>${sl.code} (${sl.name})</option>`).join('')}</select>格</label>
          </div>`;
 
     return `
@@ -1901,8 +1901,8 @@ function _renderSimpleCardInputs(it, idx) {
       ${slotsGridHtml}
       <div style="margin-top:6px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:6px; padding:5px 8px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <span style="font-size:0.74rem; font-weight:800; color:#065F46;">✂️ Ref 找字串：</span>
-          <select onchange="sfisUpdateItemField(${idx},'ref_mode',this.value)" style="padding:2px 5px; border:1px solid #6EE7B7; border-radius:4px; font-size:0.75rem;">
+          <span style="font-size:0.83rem; font-weight:800; color:#065F46;">✂️ Ref 找字串：</span>
+          <select onchange="sfisUpdateItemField(${idx},'ref_mode',this.value)" style="padding:2px 5px; border:1px solid #6EE7B7; border-radius:4px; font-size:0.84rem;">
             <option value="raw" ${rm === 'raw' ? 'selected' : ''}>全取 (不切)</option>
             <option value="split" ${rm === 'split' ? 'selected' : ''}>依分隔字切段 (:SplitString)</option>
             <option value="within" ${rm === 'within' ? 'selected' : ''}>前後關鍵字夾取 (:WithinString)</option>
@@ -1912,11 +1912,11 @@ function _renderSimpleCardInputs(it, idx) {
             <option value="getmac2" ${rm === 'getmac2' ? 'selected' : ''}>自動抓 12 碼 MAC (:getMAC2)</option>
           </select>
           ${refExtraInputs}
-          <label style="font-size:0.73rem; font-weight:700;">變數:<input type="text" value="${_escH(it.ref_var || 'sfData')}" oninput="sfisUpdateItemField(${idx},'ref_var',this.value)" class="mono" style="width:76px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
-          <label style="font-size:0.73rem; font-weight:700;" title="Centimani Validation 欄位規則（例：(sfSNA,%len,1,64); 或 (sfMAC,%len,12,12);）">✅ 驗證:<input type="text" value="${_escH(it.validation || '')}" placeholder="例:(${_escH(it.ref_var || 'sfData')},%len,1,64);" oninput="sfisUpdateItemField(${idx},'validation',this.value)" class="mono" style="width:165px; padding:2px 4px; border:1px solid #6EE7B7; border-radius:4px; background:#FFFFFF;"></label>
+          <label style="font-size:0.82rem; font-weight:700;">變數:<input type="text" value="${_escH(it.ref_var || 'sfData')}" oninput="sfisUpdateItemField(${idx},'ref_var',this.value)" class="mono" style="width:76px; padding:2px 4px; border:1px solid #94A3B8; border-radius:4px;"></label>
+          <label style="font-size:0.82rem; font-weight:700;" title="Centimani Validation 欄位規則（例：(sfSNA,%len,1,64); 或 (sfMAC,%len,12,12);）">✅ 驗證:<input type="text" value="${_escH(it.validation || '')}" placeholder="例:(${_escH(it.ref_var || 'sfData')},%len,1,64);" oninput="sfisUpdateItemField(${idx},'validation',this.value)" class="mono" style="width:165px; padding:2px 4px; border:1px solid #6EE7B7; border-radius:4px; background:#FFFFFF;"></label>
         </div>
         ${segBtnsHtml}
-        <div id="sfisSlicePrev_${idx}" class="mono" style="margin-top:4px; font-size:0.72rem; color:#047857; font-weight:800; word-break:break-all;">
+        <div id="sfisSlicePrev_${idx}" class="mono" style="margin-top:4px; font-size:0.81rem; color:#047857; font-weight:800; word-break:break-all;">
           ${pickedRawVal ? `預期切出：${_escH(slicedVal)}  |  ` : ''}Ref 公式：${_escH(refExprStr)}${it.validation ? `  |  Val：${_escH(it.validation)}` : ''}
         </div>
       </div>`;
@@ -1974,12 +1974,12 @@ function renderSfisHmiWorkspace() {
     : ((a.responseViewMode === 'latest' && a.logs.length) ? [a.logs[0]] : a.logs);
   const logsHtml = showList.length ? showList.map(l => `
     <div style="border-bottom:1px dashed #334155; padding:5px 0;">
-      <div style="display:flex; justify-content:space-between; gap:6px; font-size:0.77rem; font-weight:800; color:${l.ok ? '#86EFAC' : (l.offline ? '#FDE68A' : '#FCA5A5')};">
+      <div style="display:flex; justify-content:space-between; gap:6px; font-size:0.85rem; font-weight:800; color:${l.ok ? '#86EFAC' : (l.offline ? '#FDE68A' : '#FCA5A5')};">
         <span>[${l.time}] ${_escH(l.title)}</span>
         <span>${_escH(l.summary)}</span>
       </div>
-      <div class="mono" style="font-size:0.74rem; color:#94A3B8; margin-top:2px;">&gt;&gt; ${_escH(l.sent)}</div>
-      <pre class="mono" style="margin:2px 0 0 0; font-size:0.76rem; color:#E2E8F0; white-space:pre-wrap; word-break:break-all;">${_escH(l.recv)}</pre>
+      <div class="mono" style="font-size:0.83rem; color:#94A3B8; margin-top:2px;">&gt;&gt; ${_escH(l.sent)}</div>
+      <pre class="mono" style="margin:2px 0 0 0; font-size:0.84rem; color:#E2E8F0; white-space:pre-wrap; word-break:break-all;">${_escH(l.recv)}</pre>
     </div>`).join('')
     : `<div class="mono" style="font-size:0.79rem; color:#94A3B8; padding:6px 0;">${a.responseViewMode === 'selected' ? '此步驟尚無實測紀錄，請按上方「⚡ 實測這步」或左側「▶ 依序實測全部」。' : '尚無實測輸出。點左邊任一步驟按「⚡ 實測這步」或「▶ 依序實測全部步驟」，結果都會即時顯示在這裡。'}</div>`;
 
@@ -1990,10 +1990,10 @@ function renderSfisHmiWorkspace() {
     const isCur = (tok === cfg.isn);
     return `
       <span style="display:inline-flex; align-items:center; gap:2px; border:1px solid ${isCur ? '#2563EB' : (isUsed ? '#94A3B8' : '#CBD5E1')}; background:${isCur ? '#DBEAFE' : (isUsed ? '#F1F5F9' : '#FFFFFF')}; border-radius:5px; padding:1px 4px;">
-        <button type="button" onclick="sfisPickIsnFromPool('${_escH(tok)}')" style="border:none; background:transparent; padding:1px 4px; font-size:0.75rem; color:${isCur ? '#1E40AF' : (isUsed ? '#64748B' : '#0F172A')}; font-weight:${isCur ? '800' : '600'}; cursor:pointer; text-decoration:${isUsed ? 'line-through' : 'none'};" class="mono">
+        <button type="button" onclick="sfisPickIsnFromPool('${_escH(tok)}')" style="border:none; background:transparent; padding:1px 4px; font-size:0.84rem; color:${isCur ? '#1E40AF' : (isUsed ? '#64748B' : '#0F172A')}; font-weight:${isCur ? '800' : '600'}; cursor:pointer; text-decoration:${isUsed ? 'line-through' : 'none'};" class="mono">
           ${isCur ? '🎯 ' : ''}${_escH(tok)}
         </button>
-        <button type="button" onclick="sfisToggleUsedIsn('${_escH(tok)}')" title="${isUsed ? '取消已寫記號' : '手動標記已寫過'}" style="border:none; background:transparent; font-size:0.68rem; color:${isUsed ? '#16A34A' : '#94A3B8'}; cursor:pointer; padding:0 2px;">${isUsed ? '✓已用' : '○'}</button>
+        <button type="button" onclick="sfisToggleUsedIsn('${_escH(tok)}')" title="${isUsed ? '取消已寫記號' : '手動標記已寫過'}" style="border:none; background:transparent; font-size:0.78rem; color:${isUsed ? '#16A34A' : '#94A3B8'}; cursor:pointer; padding:0 2px;">${isUsed ? '✓已用' : '○'}</button>
       </span>`;
   }).join('');
 
@@ -2001,15 +2001,15 @@ function renderSfisHmiWorkspace() {
     const isSel = (mi === s.selectedMoIdx);
     return `
       <tr style="background:${isSel ? '#EFF6FF' : '#FFFFFF'};">
-        <td><input type="text" value="${_escH(m.date)}" onchange="sfisUpdateMoCell(${mi},'date',this.value)" style="width:52px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
-        <td><input type="text" value="${_escH(m.model)}" onchange="sfisUpdateMoCell(${mi},'model',this.value)" style="width:128px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
-        <td><input type="text" value="${_escH(m.pn)}" onchange="sfisUpdateMoCell(${mi},'pn',this.value)" class="mono" style="width:94px; font-size:0.71rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
-        <td><input type="number" min="1" max="50" value="${_escH(m.qty)}" onchange="sfisUpdateMoCell(${mi},'qty',this.value)" style="width:36px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
-        <td><input type="text" value="${_escH(m.mo)}" onchange="sfisUpdateMoCell(${mi},'mo',this.value)" class="mono" style="width:74px; font-size:0.72rem; padding:2px 3px; border:1px solid #3B82F6; border-radius:3px; font-weight:800;"></td>
-        <td><input type="number" min="1" max="8" value="${_escH(m.seq_digits || 5)}" onchange="sfisUpdateMoCell(${mi},'seq_digits',this.value)" title="流水號位數" style="width:34px; font-size:0.72rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.date)}" onchange="sfisUpdateMoCell(${mi},'date',this.value)" style="width:52px; font-size:0.81rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.model)}" onchange="sfisUpdateMoCell(${mi},'model',this.value)" style="width:128px; font-size:0.81rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.pn)}" onchange="sfisUpdateMoCell(${mi},'pn',this.value)" class="mono" style="width:94px; font-size:0.8rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="number" min="1" max="50" value="${_escH(m.qty)}" onchange="sfisUpdateMoCell(${mi},'qty',this.value)" style="width:36px; font-size:0.81rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
+        <td><input type="text" value="${_escH(m.mo)}" onchange="sfisUpdateMoCell(${mi},'mo',this.value)" class="mono" style="width:74px; font-size:0.81rem; padding:2px 3px; border:1px solid #3B82F6; border-radius:3px; font-weight:800;"></td>
+        <td><input type="number" min="1" max="8" value="${_escH(m.seq_digits || 5)}" onchange="sfisUpdateMoCell(${mi},'seq_digits',this.value)" title="流水號位數" style="width:34px; font-size:0.81rem; padding:2px 3px; border:1px solid #CBD5E1; border-radius:3px;"></td>
         <td style="white-space:nowrap;">
-          <button type="button" onclick="sfisSelectMoRow(${mi})" style="padding:2px 6px; font-size:0.71rem; border-radius:4px; border:1px solid ${isSel ? '#2563EB' : '#94A3B8'}; background:${isSel ? '#2563EB' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">展開</button>
-          <button type="button" onclick="sfisRemoveMoRow(${mi})" style="padding:2px 4px; font-size:0.7rem; border-radius:4px; border:1px solid #FECACA; background:#FEF2F2; color:#DC2626; cursor:pointer;">✕</button>
+          <button type="button" onclick="sfisSelectMoRow(${mi})" style="padding:2px 6px; font-size:0.8rem; border-radius:4px; border:1px solid ${isSel ? '#2563EB' : '#94A3B8'}; background:${isSel ? '#2563EB' : '#F8FAFC'}; color:${isSel ? '#FFFFFF' : '#334155'}; cursor:pointer; font-weight:800;">展開</button>
+          <button type="button" onclick="sfisRemoveMoRow(${mi})" style="padding:2px 4px; font-size:0.8rem; border-radius:4px; border:1px solid #FECACA; background:#FEF2F2; color:#DC2626; cursor:pointer;">✕</button>
         </td>
       </tr>`;
   }).join('');
@@ -2036,20 +2036,20 @@ function renderSfisHmiWorkspace() {
       : (it.locked === 'login' ? '起點登入' : (it.locked === 'checkroute' ? '途程過站' : (it.locked === 'logout' ? '收尾登出' : '')));
 
     const stCls = it.status === 'running' ? 'status-running' : (it.status === 'pass' ? 'status-pass' : ((it.status === 'fail' || it.status === 'offline') ? 'status-fail' : ''));
-    const stPill = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">PASS</span>'
-      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">FAIL</span>'
-      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">離線</span>'
-      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 5px; border-radius:999px; font-size:0.69rem; font-weight:800;">跑中</span>'
-      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 5px; border-radius:999px; font-size:0.69rem;">待測</span>')));
+    const stPill = it.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 5px; border-radius:999px; font-size:0.79rem; font-weight:800;">PASS</span>'
+      : (it.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 5px; border-radius:999px; font-size:0.79rem; font-weight:800;">FAIL</span>'
+      : (it.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 5px; border-radius:999px; font-size:0.79rem; font-weight:800;">離線</span>'
+      : (it.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 5px; border-radius:999px; font-size:0.79rem; font-weight:800;">跑中</span>'
+      : '<span style="background:#F1F5F9; color:#64748B; padding:1px 5px; border-radius:999px; font-size:0.79rem;">待測</span>')));
 
     const isMidFirst = (idx === 2);
     const isMidLast = (idx === s.items.length - 2);
     const footerCtrl = isLocked
-      ? `<span style="font-size:0.69rem; font-weight:800; color:#475569; background:#E2E8F0; padding:1px 5px; border-radius:4px;">🔒 骨架鎖定</span>`
+      ? `<span style="font-size:0.79rem; font-weight:800; color:#475569; background:#E2E8F0; padding:1px 5px; border-radius:4px;">🔒 骨架鎖定</span>`
       : `<div style="display:flex; gap:2px; align-items:center;" onclick="event.stopPropagation()">
-           <button type="button" onclick="sfisMoveStep(${idx}, -1)" ${isMidFirst ? 'disabled' : ''} style="padding:1px 5px; font-size:0.7rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往前移">◀</button>
-           <button type="button" onclick="sfisMoveStep(${idx}, 1)" ${isMidLast ? 'disabled' : ''} style="padding:1px 5px; font-size:0.7rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往後移">▶</button>
-           <button type="button" onclick="sfisRemoveItem(${idx})" style="padding:1px 5px; font-size:0.7rem; border:1px solid #FECACA; border-radius:4px; background:#FEF2F2; color:#DC2626; cursor:pointer;" title="移除此中間步驟">✕</button>
+           <button type="button" onclick="sfisMoveStep(${idx}, -1)" ${isMidFirst ? 'disabled' : ''} style="padding:1px 5px; font-size:0.8rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往前移">◀</button>
+           <button type="button" onclick="sfisMoveStep(${idx}, 1)" ${isMidLast ? 'disabled' : ''} style="padding:1px 5px; font-size:0.8rem; border:1px solid #CBD5E1; border-radius:4px; background:#F8FAFC; cursor:pointer;" title="往後移">▶</button>
+           <button type="button" onclick="sfisRemoveItem(${idx})" style="padding:1px 5px; font-size:0.8rem; border:1px solid #FECACA; border-radius:4px; background:#FEF2F2; color:#DC2626; cursor:pointer;" title="移除此中間步驟">✕</button>
          </div>`;
 
     return `
@@ -2064,13 +2064,13 @@ function renderSfisHmiWorkspace() {
            onclick="sfisSelectDeckCard('${_escH(it.uid)}')"
            style="border-color:${isActive ? '#2563EB' : (stCls ? '' : meta.border)};">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:3px;">
-          <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 5px; border-radius:4px; font-weight:900; font-size:0.72rem;">#${idx + 1}</span>
+          <span style="background:${meta.bg}; color:${meta.theme}; border:1px solid ${meta.border}; padding:1px 5px; border-radius:4px; font-weight:900; font-size:0.81rem;">#${idx + 1}</span>
           ${stPill}
         </div>
         <div style="text-align:center; padding:2px 0;">
           <div style="font-size:1.15rem; line-height:1.1;">${cardIcon}</div>
           <div style="font-weight:900; font-size:0.81rem; color:#0F172A; margin-top:2px;">${_escH(cardTitle)}</div>
-          ${subTag ? `<div class="mono" style="font-size:0.71rem; color:#475569; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_escH(subTag)}</div>` : ''}
+          ${subTag ? `<div class="mono" style="font-size:0.8rem; color:#475569; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_escH(subTag)}</div>` : ''}
         </div>
         <div style="display:flex; justify-content:center; align-items:center;">${footerCtrl}</div>
       </div>`;
@@ -2083,11 +2083,11 @@ function renderSfisHmiWorkspace() {
   const selIsOut = (selItem.kind === 'login' && String(selItem.login_status || '1') === '0');
   const selTitle = selItem.kind === 'login' ? (selIsOut ? 'Logout 登出' : 'Login 登入') : selMeta.title;
   const selIcon = selItem.kind === 'login' ? (selIsOut ? '🚪' : '🔐') : selMeta.icon;
-  const selStBadge = selItem.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">PASS</span>'
-    : (selItem.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">FAIL</span>'
-    : (selItem.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">離線/未連網</span>'
-    : (selItem.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 8px; border-radius:999px; font-size:0.76rem; font-weight:800;">傳送中</span>'
-    : '<span style="background:#F1F5F9; color:#64748B; padding:1px 8px; border-radius:999px; font-size:0.76rem;">待測</span>')));
+  const selStBadge = selItem.status === 'pass' ? '<span style="background:#DCFCE7; color:#166534; padding:1px 8px; border-radius:999px; font-size:0.84rem; font-weight:800;">PASS</span>'
+    : (selItem.status === 'fail' ? '<span style="background:#FEE2E2; color:#991B1B; padding:1px 8px; border-radius:999px; font-size:0.84rem; font-weight:800;">FAIL</span>'
+    : (selItem.status === 'offline' ? '<span style="background:#FEF3C7; color:#92400E; padding:1px 8px; border-radius:999px; font-size:0.84rem; font-weight:800;">離線/未連網</span>'
+    : (selItem.status === 'running' ? '<span style="background:#DBEAFE; color:#1D4ED8; padding:1px 8px; border-radius:999px; font-size:0.84rem; font-weight:800;">傳送中</span>'
+    : '<span style="background:#F1F5F9; color:#64748B; padding:1px 8px; border-radius:999px; font-size:0.84rem;">待測</span>')));
   const selOfflineBtn = (selItem.status === 'offline' && !s.mockMode)
     ? `<div style="margin-top:6px;"><button type="button" onclick="sfisSetMockMode(true); sfisHmiRunAll();" class="btn" style="padding:3px 9px; font-size:0.79rem; background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; font-weight:800;">🧪 目前非工廠內網 — 一鍵改用本機模擬並重測</button></div>`
     : '';
@@ -2098,8 +2098,8 @@ function renderSfisHmiWorkspace() {
 
   const latestLog = a.logs[0] || null;
   const respSummaryBadge = latestLog
-    ? `<span style="padding:1px 7px; border-radius:999px; font-size:0.76rem; font-weight:800; background:${latestLog.ok ? '#14532D' : (latestLog.offline ? '#78350F' : '#7F1D1D')}; color:${latestLog.ok ? '#86EFAC' : (latestLog.offline ? '#FDE68A' : '#FCA5A5')};">${_escH(latestLog.title)} · ${_escH(latestLog.summary)}</span>`
-    : '<span style="font-size:0.76rem; color:#94A3B8;">尚無紀錄</span>';
+    ? `<span style="padding:1px 7px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${latestLog.ok ? '#14532D' : (latestLog.offline ? '#78350F' : '#7F1D1D')}; color:${latestLog.ok ? '#86EFAC' : (latestLog.offline ? '#FDE68A' : '#FCA5A5')};">${_escH(latestLog.title)} · ${_escH(latestLog.summary)}</span>`
+    : '<span style="font-size:0.84rem; color:#94A3B8;">尚無紀錄</span>';
 
   const isMock = !!s.mockMode;
   const hmiWrapBg = isMock ? 'linear-gradient(180deg, #FEF9C3 0%, #FDE68A 100%)' : '#FFFFFF';
@@ -2129,19 +2129,19 @@ function renderSfisHmiWorkspace() {
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🖥️ 機台 ⇄ SFIS 即時動畫</span>
-            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後按「依序實測全部步驟」會於約 5 秒內一次跑完全流程動畫（單步實測約 1.5 秒）；關閉則零延遲即時出結果">
+            <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.83rem; font-weight:800; color:#1E40AF; background:#FFFFFF; border:1px solid #93C5FD; border-radius:999px; padding:1px 7px; cursor:pointer;" title="開啟後按「依序實測全部步驟」會於約 5 秒內一次跑完全流程動畫（單步實測約 1.5 秒）；關閉則零延遲即時出結果">
               <input type="checkbox" ${a.slowDemo !== false ? 'checked' : ''} onchange="sfisToggleSlowDemo(this.checked)" style="width:13px; height:13px;">
               <span>🎬 5秒全流程動畫</span>
             </label>
           </div>
-          <span style="padding:2px 9px; border-radius:999px; font-size:0.75rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
+          <span style="padding:2px 9px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${isPass ? '#DCFCE7' : (isFail ? '#FEE2E2' : (isOffline ? '#FEF3C7' : (isSending ? '#DBEAFE' : '#E2E8F0')))}; color:${isPass ? '#166534' : (isFail ? '#991B1B' : (isOffline ? '#92400E' : (isSending ? '#1D4ED8' : '#334155')))};">${_escH(a.actionLabel)}</span>
         </div>
         <div class="sfis-anim-stage">
           <div class="sfis-node-card sfis-node-card-wide ${a.stage === 'to_cloud' ? 'pulse-blue' : (isPass && a.stage === 'idle' ? 'glow-green' : ((isFail || isOffline) && a.stage === 'idle' ? 'glow-red' : ''))}">
             <img src="/images/PC.png" alt="Test PC" style="width:42px; height:42px; object-fit:contain; flex-shrink:0;">
             <div style="min-width:0;">
-              <div style="font-weight:900; font-size:0.8rem; color:#0F172A;">測試 PC <span style="font-size:0.71rem; color:${opColor};"><i class="sfis-led" style="background:${netColor};"></i>${opText}</span></div>
-              <div class="mono" style="font-size:0.71rem; color:#334155; display:flex; align-items:center; gap:5px; margin-top:2px;">
+              <div style="font-weight:900; font-size:0.8rem; color:#0F172A;">測試 PC <span style="font-size:0.8rem; color:${opColor};"><i class="sfis-led" style="background:${netColor};"></i>${opText}</span></div>
+              <div class="mono" style="font-size:0.8rem; color:#334155; display:flex; align-items:center; gap:5px; margin-top:2px;">
                 <span>Dev:<b id="sfisPcDevTxt">${_escH(cfg.device_id)}</b></span>
                 <span style="color:#854D0E; background:#FEF9C3; padding:0 4px; border-radius:3px; max-width:118px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${_escH(cfg.isn)}"><b id="sfisPcIsnTxt">${_escH(cfg.isn || '-')}</b></span>
               </div>
@@ -2154,8 +2154,8 @@ function renderSfisHmiWorkspace() {
           <div class="sfis-node-card sfis-node-card-wide sfis-cloud-card ${(a.stage === 'to_cloud' || a.stage === 'to_db' || a.stage === 'to_pc') ? 'cloud-active' : ''}">
             <img src="/images/cloud.png" alt="Cloud" style="width:44px; height:36px; object-fit:contain; flex-shrink:0;">
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:0.75rem; font-weight:900; color:#0F172A;">WebService</span>
-              <div style="display:flex; gap:3px; font-size:0.68rem; font-weight:800;">
+              <span style="font-size:0.84rem; font-weight:900; color:#0F172A;">WebService</span>
+              <div style="display:flex; gap:3px; font-size:0.78rem; font-weight:800;">
                 <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#2563EB' : '#F1F5F9'}; color:${(a.stage === 'to_cloud' || a.stage === 'to_db') ? '#FFFFFF' : '#64748B'};">⬆發</span>
                 <span style="padding:1px 4px; border-radius:3px; background:${(a.stage === 'to_pc' || isPass) ? '#16A34A' : (isFail ? '#DC2626' : '#F1F5F9')}; color:${(a.stage === 'to_pc' || isPass || isFail) ? '#FFFFFF' : '#64748B'};">⬇回</span>
               </div>
@@ -2169,7 +2169,7 @@ function renderSfisHmiWorkspace() {
             <img src="/images/database.png" alt="SFIS DB" style="width:38px; height:42px; object-fit:contain; flex-shrink:0;">
             <div>
               <div style="font-weight:900; font-size:0.8rem; color:#0F172A;">SFIS DB</div>
-              <div style="font-size:0.72rem; font-weight:800; color:#1D4ED8;">${_escH(curPlant.label.split(' ')[0])} <span style="font-weight:700; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${a.stage === 'to_db' ? '處理中...' : (isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機')))}</span></div>
+              <div style="font-size:0.81rem; font-weight:800; color:#1D4ED8;">${_escH(curPlant.label.split(' ')[0])} <span style="font-weight:700; color:#334155;"><i class="sfis-led" style="background:${dbLedColor};"></i>${a.stage === 'to_db' ? '處理中...' : (isPass ? 'PASS' : (isFail ? 'FAIL' : (isOffline ? '離線' : '待機')))}</span></div>
             </div>
           </div>
         </div>
@@ -2200,43 +2200,43 @@ function renderSfisHmiWorkspace() {
           <input type="text" value="${_escH(cfg.url)}" oninput="sfisSyncConfig('url', this.value)" class="mono" placeholder="SFIS_WebLink (.asmx)" style="flex:1; min-width:210px; padding:4px 8px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem; background:#FFFFFF;">
           <button type="button" onclick="toolsCheckSfisLink()" class="btn" style="padding:4px 10px; font-size:0.8rem; background:#E0F2FE; color:#0369A1; border-color:#7DD3FC; font-weight:800;">🔍 測連通</button>
 
-          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.77rem; font-weight:800; color:#334155;">Dev
+          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.85rem; font-weight:800; color:#334155;">Dev
             <input type="text" value="${_escH(cfg.device_id)}" oninput="sfisSyncConfig('device_id', this.value)" class="mono" style="width:68px; padding:4px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem;">
           </label>
-          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.77rem; font-weight:800; color:#334155;">OP
+          <label style="display:inline-flex; align-items:center; gap:3px; font-size:0.85rem; font-weight:800; color:#334155;">OP
             <input type="text" value="${_escH(cfg.op)}" oninput="sfisSyncConfig('op', this.value)" class="mono" style="width:90px; padding:4px 5px; border:1px solid #94A3B8; border-radius:5px; font-size:0.79rem;">
           </label>
-          <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.77rem; font-weight:800; color:#9A3412;">🎯 ISN
+          <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; font-weight:800; color:#9A3412;">🎯 ISN
             <input type="text" value="${_escH(cfg.isn)}" oninput="sfisSyncConfig('isn', this.value)" class="mono" style="width:136px; padding:4px 6px; border:1.5px solid #F59E0B; border-radius:5px; font-size:0.8rem; background:#FFFBEB; font-weight:800;">
           </label>
-          <button type="button" onclick="sfisQuickQueryLabel()" class="btn" style="padding:4px 8px; font-size:0.77rem; background:#EEF2FF; color:#4338CA; border-color:#A5B4FC; font-weight:800;" title="呼叫 WTSP_GETLABEL 線上查詢標籤資料（結果顯示於上方動畫與右側終端，不寫入 Excel）">🏷 查標籤</button>
+          <button type="button" onclick="sfisQuickQueryLabel()" class="btn" style="padding:4px 8px; font-size:0.85rem; background:#EEF2FF; color:#4338CA; border-color:#A5B4FC; font-weight:800;" title="呼叫 WTSP_GETLABEL 線上查詢標籤資料（結果顯示於上方動畫與右側終端，不寫入 Excel）">🏷 查標籤</button>
         </div>
 
         ${s.showPlantEditor ? `
           <div style="background:#EFF6FF; border:1px solid #93C5FD; border-radius:7px; padding:8px; margin-top:7px;">
-            <div style="font-size:0.75rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">✏️ 修改此廠區或新增為自訂廠區（自動儲存保留）：</div>
+            <div style="font-size:0.84rem; font-weight:800; color:#1E3A8A; margin-bottom:5px;">✏️ 修改此廠區或新增為自訂廠區（自動儲存保留）：</div>
             <div style="display:grid; grid-template-columns:1fr 90px 1fr; gap:6px; margin-bottom:6px;">
               <input id="sfisEdPlantLabel" type="text" value="${_escH(curPlant.label)}" placeholder="廠區顯示名稱" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
               <input id="sfisEdPlantDev" type="text" value="${_escH(curPlant.defaultDevice || '710001')}" placeholder="DevID" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.78rem;">
-              <input id="sfisEdPlantUrl" type="text" value="${_escH(cfg.url)}" placeholder="http://.../SFISTSPWebService.asmx" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.77rem;">
+              <input id="sfisEdPlantUrl" type="text" value="${_escH(cfg.url)}" placeholder="http://.../SFISTSPWebService.asmx" class="mono" style="padding:4px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.85rem;">
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button type="button" onclick="sfisSaveEditedPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#2563EB; color:#FFFFFF; border:none;">💾 儲存修改</button>
-              <button type="button" onclick="sfisAddCustomPlant()" class="btn" style="padding:3px 9px; font-size:0.75rem; background:#059669; color:#FFFFFF; border:none;">＋ 另存為新廠區</button>
-              <button type="button" onclick="sfisDeleteCurrentPlant()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除此項</button>
+              <button type="button" onclick="sfisSaveEditedPlant()" class="btn" style="padding:3px 9px; font-size:0.84rem; background:#2563EB; color:#FFFFFF; border:none;">💾 儲存修改</button>
+              <button type="button" onclick="sfisAddCustomPlant()" class="btn" style="padding:3px 9px; font-size:0.84rem; background:#059669; color:#FFFFFF; border:none;">＋ 另存為新廠區</button>
+              <button type="button" onclick="sfisDeleteCurrentPlant()" class="btn" style="padding:3px 8px; font-size:0.84rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除此項</button>
             </div>
           </div>` : ''}
 
         <details style="margin-top:6px;">
-          <summary style="cursor:pointer; font-size:0.76rem; font-weight:800; color:#92400E;">📋 虛擬工單與 5 碼 ISN 範本 (MO: ${_escH(curMo ? curMo.mo : '')}・共 ${s.virtualMos.length} 筆，可修改) / ⚙️ 進階 (專案/站別/TSP) ▾</summary>
+          <summary style="cursor:pointer; font-size:0.84rem; font-weight:800; color:#92400E;">📋 虛擬工單與 5 碼 ISN 範本 (MO: ${_escH(curMo ? curMo.mo : '')}・共 ${s.virtualMos.length} 筆，可修改) / ⚙️ 進階 (專案/站別/TSP) ▾</summary>
           <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CBD5E1; display:flex; flex-direction:column; gap:7px;">
             <div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span style="font-size:0.73rem; color:#92400E; font-weight:800;">規則：虛擬工單 ＋ 流水號（預設 5 碼如 <code>2695160300001~00005</code>，改寫自動存檔）</span>
-                <button type="button" onclick="sfisAddMoRow()" style="padding:2px 7px; font-size:0.72rem; border-radius:4px; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; cursor:pointer; font-weight:800;">＋ 新增工單</button>
+                <span style="font-size:0.82rem; color:#92400E; font-weight:800;">規則：虛擬工單 ＋ 流水號（預設 5 碼如 <code>2695160300001~00005</code>，改寫自動存檔）</span>
+                <button type="button" onclick="sfisAddMoRow()" style="padding:2px 7px; font-size:0.81rem; border-radius:4px; border:1px solid #F59E0B; background:#FFFBEB; color:#92400E; cursor:pointer; font-weight:800;">＋ 新增工單</button>
               </div>
               <div style="overflow-x:auto; border:1px solid #E2E8F0; border-radius:5px;">
-                <table style="width:100%; border-collapse:collapse; font-size:0.72rem; text-align:left;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.81rem; text-align:left;">
                   <thead>
                     <tr style="background:#F1F5F9; color:#334155;">
                       <th style="padding:3px 4px;">日期</th><th style="padding:3px 4px;">機種</th><th style="padding:3px 4px;">料號</th>
@@ -2246,13 +2246,13 @@ function renderSfisHmiWorkspace() {
                   <tbody>${moRowsHtml}</tbody>
                 </table>
               </div>
-              <div style="margin-top:5px; font-size:0.72rem; font-weight:800; color:#334155;">工單 [${_escH(curMo ? curMo.mo : '')}] 展開序號（點任 1 顆載入槍口實測）：</div>
+              <div style="margin-top:5px; font-size:0.81rem; font-weight:800; color:#334155;">工單 [${_escH(curMo ? curMo.mo : '')}] 展開序號（點任 1 顆載入槍口實測）：</div>
               <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">${poolBtns}</div>
             </div>
             <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; border-top:1px dashed #CBD5E1; padding-top:6px;">
-              <label style="font-size:0.74rem; font-weight:700;">專案名稱<input type="text" value="${_escH(cfg.project_name)}" oninput="sfisSyncConfig('project_name', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-              <label style="font-size:0.74rem; font-weight:700;">站別分頁<input type="text" value="${_escH(cfg.station)}" oninput="sfisSyncConfig('station', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
-              <label style="font-size:0.74rem; font-weight:700;">SFIS_TSP<input type="text" value="${_escH(cfg.tsp)}" oninput="sfisSyncConfig('tsp', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+              <label style="font-size:0.83rem; font-weight:700;">專案名稱<input type="text" value="${_escH(cfg.project_name)}" oninput="sfisSyncConfig('project_name', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+              <label style="font-size:0.83rem; font-weight:700;">站別分頁<input type="text" value="${_escH(cfg.station)}" oninput="sfisSyncConfig('station', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
+              <label style="font-size:0.83rem; font-weight:700;">SFIS_TSP<input type="text" value="${_escH(cfg.tsp)}" oninput="sfisSyncConfig('tsp', this.value)" class="mono" style="width:100%; padding:3px 5px; border:1px solid #94A3B8; border-radius:4px; box-sizing:border-box;"></label>
             </div>
           </div>
         </details>
@@ -2267,8 +2267,8 @@ function renderSfisHmiWorkspace() {
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
               <span style="font-size:0.81rem; font-weight:900; color:#0F172A;">➕ 新增中間自訂測項（頭尾鎖定自動保留）：</span>
               <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
-                ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置 DB</button>` : ''}
-                <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:3px 8px; font-size:0.75rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;" title="保留 Login / CheckRoute / Logout，僅清空自訂測項">清空中間區</button>
+                ${isMock ? `<button type="button" onclick="sfisResetMockDb()" class="btn" style="padding:3px 8px; font-size:0.84rem; background:#FEF3C7; color:#92400E; border-color:#F59E0B; font-weight:800;">↺ 重置 DB</button>` : ''}
+                <button type="button" onclick="sfisClearAllItems()" class="btn" style="padding:3px 8px; font-size:0.84rem; background:#FFFFFF; color:#64748B; border-color:#CBD5E1;" title="保留 Login / CheckRoute / Logout，僅清空自訂測項">清空中間區</button>
                 <button type="button" onclick="sfisHmiRunAll()" ${s.isRunning ? 'disabled' : ''} class="btn" style="padding:4px 11px; font-size:0.8rem; background:#059669; color:#FFFFFF; border:none; border-radius:6px; font-weight:800;">
                   ${s.isRunning ? '⏳ 執行中...' : '▶ 依序實測全部步驟'}
                 </button>
@@ -2285,8 +2285,8 @@ function renderSfisHmiWorkspace() {
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
               <span style="font-size:0.79rem; font-weight:900; color:#334155;">🧱 流程步驟順序（共 ${s.items.length} 步・點任一步驟即於右側設定與檢視回傳）</span>
               <div style="display:inline-flex; gap:4px;">
-                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 拖拉對調</button>
-                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 7px; font-size:0.72rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插入移位</button>
+                <button type="button" onclick="sfisSetDragSortMode('swap')" style="padding:2px 7px; font-size:0.81rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode !== 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode !== 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode !== 'insert' ? '#FFFFFF' : '#334155'};">🔀 拖拉對調</button>
+                <button type="button" onclick="sfisSetDragSortMode('insert')" style="padding:2px 7px; font-size:0.81rem; border-radius:5px; cursor:pointer; font-weight:800; border:1px solid ${s.dragSortMode === 'insert' ? '#2563EB' : '#CBD5E1'}; background:${s.dragSortMode === 'insert' ? '#2563EB' : '#FFFFFF'}; color:${s.dragSortMode === 'insert' ? '#FFFFFF' : '#334155'};">📌 插入移位</button>
               </div>
             </div>
             <div id="sfisPokerDeckGrid" class="sfis-deck-grid">${deckCardsHtml}</div>
@@ -2307,7 +2307,7 @@ function renderSfisHmiWorkspace() {
               </div>
               <div style="display:flex; gap:5px; align-items:center;">
                 <button type="button" onclick="sfisHmiRunStep(${selIdx})" class="btn" style="padding:4px 11px; font-size:0.8rem; background:#ECFDF5; color:#047857; border-color:#6EE7B7; font-weight:800;">⚡ 實測這步</button>
-                ${selItem.locked ? '<span style="font-size:0.75rem; font-weight:800; color:#475569; background:#F1F5F9; padding:3px 8px; border-radius:5px; border:1px solid #CBD5E1;">🔒 鎖定骨架</span>' : `<button type="button" onclick="sfisRemoveItem(${selIdx})" class="btn" style="padding:4px 8px; font-size:0.78rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除</button>`}
+                ${selItem.locked ? '<span style="font-size:0.84rem; font-weight:800; color:#475569; background:#F1F5F9; padding:3px 8px; border-radius:5px; border:1px solid #CBD5E1;">🔒 鎖定骨架</span>' : `<button type="button" onclick="sfisRemoveItem(${selIdx})" class="btn" style="padding:4px 8px; font-size:0.78rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">🗑 刪除</button>`}
               </div>
             </div>
             ${selInputsHtml}
@@ -2322,11 +2322,11 @@ function renderSfisHmiWorkspace() {
             </summary>
             <div style="margin-top:8px; padding-top:7px; border-top:1px solid #1E293B;">
               <div style="display:flex; justify-content:flex-end; gap:4px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
-                <button type="button" onclick="sfisSetRespViewMode('selected')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'selected' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">🎯 目前這步</button>
-                <button type="button" onclick="sfisSetRespViewMode('all')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'all' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">全部(${a.logs.length})</button>
-                <button type="button" onclick="sfisSetRespViewMode('latest')" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'latest' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">最新</button>
-                <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 8px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
-                <button type="button" onclick="sfisClearLogs()" style="padding:2px 7px; font-size:0.76rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#FCA5A5; cursor:pointer;">🗑 清空</button>
+                <button type="button" onclick="sfisSetRespViewMode('selected')" style="padding:2px 7px; font-size:0.84rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'selected' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">🎯 目前這步</button>
+                <button type="button" onclick="sfisSetRespViewMode('all')" style="padding:2px 7px; font-size:0.84rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'all' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">全部(${a.logs.length})</button>
+                <button type="button" onclick="sfisSetRespViewMode('latest')" style="padding:2px 7px; font-size:0.84rem; border-radius:4px; border:1px solid #475569; background:${a.responseViewMode === 'latest' ? '#2563EB' : '#1E293B'}; color:#F8FAFC; cursor:pointer;">最新</button>
+                <button id="sfisBtnCopyRecv" type="button" onclick="sfisCopyRecvString()" style="padding:2px 8px; font-size:0.84rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#E2E8F0; cursor:pointer;">📋 複製</button>
+                <button type="button" onclick="sfisClearLogs()" style="padding:2px 7px; font-size:0.84rem; border-radius:4px; border:1px solid #475569; background:#1E293B; color:#FCA5A5; cursor:pointer;">🗑 清空</button>
               </div>
               <div id="sfisLogsContainer">${logsHtml}</div>
             </div>
@@ -2350,8 +2350,8 @@ function renderSfisHmiWorkspace() {
           </div>
         </div>
         <details>
-          <summary style="cursor:pointer; font-size:0.77rem; font-weight:800; color:#14532D;">📝 展開預覽將寫入之 Excel 標準指令 (ExecMode=8) ▾</summary>
-          <pre id="sfisLiveExcelPreview" class="mono" style="margin:6px 0 0 0; font-size:0.73rem; color:#0F172A; background:#FFFFFF; border:1px solid #BBF7D0; border-radius:6px; padding:6px 8px; white-space:pre-wrap; overflow:auto;"></pre>
+          <summary style="cursor:pointer; font-size:0.85rem; font-weight:800; color:#14532D;">📝 展開預覽將寫入之 Excel 標準指令 (ExecMode=8) ▾</summary>
+          <pre id="sfisLiveExcelPreview" class="mono" style="margin:6px 0 0 0; font-size:0.82rem; color:#0F172A; background:#FFFFFF; border:1px solid #BBF7D0; border-radius:6px; padding:6px 8px; white-space:pre-wrap; overflow:auto;"></pre>
         </details>
       </div>
     </div>

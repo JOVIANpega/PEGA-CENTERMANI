@@ -399,7 +399,7 @@ function _buildChangeConfirmBoxHtml(entries, ws) {
       <div style="font-size:0.83rem; color:#0F172A;">
         <b style="color:#854D0E;">#${idx + 1} [${_escAttr(e.file)}]</b> ${_explainChangeByAi(e, ws)}
       </div>
-      <button onclick="revertSingleIniKey('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}')" class="btn" style="padding:2px 8px; font-size:0.77rem; background:#F8FAFC; color:#B91C1C; border:1px solid #FCA5A5; font-weight:700;">↩ 還原此項</button>
+      <button onclick="revertSingleIniKey('${_escAttr(e.file)}','${_escAttr(e.section)}','${_escAttr(e.key)}')" class="btn" style="padding:2px 8px; font-size:0.85rem; background:#F8FAFC; color:#B91C1C; border:1px solid #FCA5A5; font-weight:700;">↩ 還原此項</button>
     </div>
   `).join('');
 
@@ -497,7 +497,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#1E40AF;">01 / INI 環境</span>
-            ${totalIniMod > 0 ? `<span style="background:#FEF08A; color:#854D0E; padding:1px 7px; border-radius:999px; font-size:0.74rem; font-weight:800;">已改 ${totalIniMod} 項</span>` : `<span class="mono" style="font-size:0.74rem; font-weight:700; color:#1E3A8A; background:rgba(37,99,235,0.1); padding:1px 7px; border-radius:999px;">Debug=${_escAttr(sys.DebugMode || '1')} · ${dutPortShort}</span>`}
+            ${totalIniMod > 0 ? `<span style="background:#FEF08A; color:#854D0E; padding:1px 7px; border-radius:999px; font-size:0.83rem; font-weight:800;">已改 ${totalIniMod} 項</span>` : `<span class="mono" style="font-size:0.83rem; font-weight:700; color:#1E3A8A; background:rgba(37,99,235,0.1); padding:1px 7px; border-radius:999px;">Debug=${_escAttr(sys.DebugMode || '1')} · ${dutPortShort}</span>`}
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">⚙️</span>
@@ -518,7 +518,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#B45309;">02 / FLOW SORT</span>
-            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#92400E; background:rgba(217,119,6,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · ${curPhases} Phase / ${curSteps.length} 步</span>
+            <span class="mono" style="font-size:0.83rem; font-weight:700; color:#92400E; background:rgba(217,119,6,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · ${curPhases} Phase / ${curSteps.length} 步</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">🧩</span>
@@ -536,7 +536,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#4338CA;">03 / JUMP &amp; SKU</span>
-            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#3730A3; background:rgba(99,102,241,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · 4:P,F / SKU</span>
+            <span class="mono" style="font-size:0.83rem; font-weight:700; color:#3730A3; background:rgba(99,102,241,0.12); padding:1px 7px; border-radius:999px;">${_escAttr(curStation || '-')} · 4:P,F / SKU</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">🔀</span>
@@ -557,7 +557,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#15803D;">04 / STATION &amp; INST</span>
-            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#166534; background:rgba(22,163,74,0.12); padding:1px 7px; border-radius:999px;">${stationKeys.length} 站 · ${_escAttr(curIsnBadge)} · ${activeInstCount} 儀器</span>
+            <span class="mono" style="font-size:0.83rem; font-weight:700; color:#166534; background:rgba(22,163,74,0.12); padding:1px 7px; border-radius:999px;">${stationKeys.length} 站 · ${_escAttr(curIsnBadge)} · ${activeInstCount} 儀器</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">📋</span>
@@ -575,7 +575,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#A16207;">05 / COPY SHEET</span>
-            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#854D0E; background:rgba(234,179,8,0.18); padding:1px 7px; border-radius:999px;">目前共 ${stationKeys.length} 站</span>
+            <span class="mono" style="font-size:0.83rem; font-weight:700; color:#854D0E; background:rgba(234,179,8,0.18); padding:1px 7px; border-radius:999px;">目前共 ${stationKeys.length} 站</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">📋</span>
@@ -593,7 +593,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
             <span class="mono" style="font-size:0.78rem; font-weight:800; color:#7E22CE;">06 / ERROR CODE</span>
-            <span class="mono" style="font-size:0.74rem; font-weight:700; color:#6B21A8; background:rgba(168,85,247,0.12); padding:1px 7px; border-radius:999px;">Test Item Code V2.04</span>
+            <span class="mono" style="font-size:0.83rem; font-weight:700; color:#6B21A8; background:rgba(168,85,247,0.12); padding:1px 7px; border-radius:999px;">Test Item Code V2.04</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <span style="font-size:1.35rem;">🏷️</span>
@@ -631,8 +631,8 @@ function _renderSystemIniFullPageHtml(ws) {
         <div style="flex:1; min-width:0;">
           <div style="font-weight:800; font-size:0.9rem; color:#0F172A; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <span>${title}</span>
-            <span class="mono" style="font-size:0.77rem; color:${checked ? '#15803D' : '#64748B'};">(${key}=${cur})</span>
-            ${isMod ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #FACC15; font-size:0.73rem; padding:0 5px; border-radius:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            <span class="mono" style="font-size:0.85rem; color:${checked ? '#15803D' : '#64748B'};">(${key}=${cur})</span>
+            ${isMod ? `<span style="background:#FEF08A; color:#854D0E; border:1px solid #FACC15; font-size:0.82rem; padding:0 5px; border-radius:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
           <div style="font-size:0.8rem; color:#475569; margin-top:3px;">${subHint}</div>
         </div>
@@ -649,9 +649,9 @@ function _renderSystemIniFullPageHtml(ws) {
         <div>
           <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:0 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.82rem; padding:0 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[${sec}] ${key}</div>
+          <div class="mono" style="font-size:0.82rem; color:#5B21B6;">[${sec}] ${key}</div>
         </div>
         <input value="${_escAttr(cur)}" onchange="setSystemIniValueLive('${_escAttr(key)}', this.value, true)" class="mono"
           style="width:${widthPx}px; padding:5px 8px; font-size:0.87rem; font-weight:${isMod ? '800' : '600'}; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A;">
@@ -711,7 +711,7 @@ function _renderSystemIniFullPageHtml(ws) {
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div style="font-weight:800; font-size:0.9rem; color:#0F172A;">
             🏭 出廠廠區設定
-            ${webLinkMod ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.73rem; padding:1px 6px; border-radius:4px; margin-left:6px;">已變更廠區</span>` : ''}
+            ${webLinkMod ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.82rem; padding:1px 6px; border-radius:4px; margin-left:6px;">已變更廠區</span>` : ''}
           </div>
           <select onchange="if(this.value) applySfisFactoryPreset(this.value)" style="flex:1; max-width:460px; padding:6px 10px; font-size:0.87rem; font-weight:800; border-radius:6px; border:1.5px solid #6D28D9; background:#F5F3FF; color:#4C1D95; cursor:pointer;">
             <option value="" ${!matchedFactory ? 'selected' : ''}>✏️ 自訂廠區網址...</option>
@@ -731,8 +731,8 @@ function _renderSystemIniFullPageHtml(ws) {
         ${mkSysText('iPLAS', 'iPLAS_ProjectName', '專案名稱 (Project)', 130)}
         <div style="background:${retryMod ? '#FEF9C3' : '#F8FAFC'}; border:1.5px solid ${retryMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
           <div>
-            <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.73rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
-            <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[System] RetryCount</div>
+            <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">失敗重測次數 ${retryMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.82rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origRetry)}</span>` : ''}</div>
+            <div class="mono" style="font-size:0.82rem; color:#5B21B6;">[System] RetryCount</div>
           </div>
           <select onchange="setSystemIniValueLive('RetryCount', this.value, true)" class="mono"
             style="width:95px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${retryMod ? '#16A34A' : '#94A3B8'}; background:${retryMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
@@ -752,8 +752,8 @@ function _renderSystemIniFullPageHtml(ws) {
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px;">
           <div style="background:${siteMod ? '#FEF9C3' : '#FFFFFF'}; border:1.5px solid ${siteMod ? '#EAB308' : '#CBD5E1'}; border-radius:7px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div>
-              <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.73rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
-              <div class="mono" style="font-size:0.73rem; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
+              <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">iPLAS 廠區代碼 ${siteMod ? `<span style="background:#FEF08A;color:#854D0E;font-size:0.82rem;padding:0 5px;border-radius:999px;">原:${_escAttr(origSite)}</span>` : ''}</div>
+              <div class="mono" style="font-size:0.82rem; color:#5B21B6;">[iPLAS] iPLAS_Site</div>
             </div>
             <select onchange="setSystemIniValueLive('iPLAS_Site', this.value, true)" class="mono"
               style="width:95px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${siteMod ? '#16A34A' : '#94A3B8'}; background:${siteMod ? '#DCFCE7' : '#FFFFFF'}; cursor:pointer;">
@@ -803,7 +803,7 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
           onchange="setGlobalIniValueLive('Settings', '${key}', this.checked ? 'true' : 'false', true)"
           style="width:16px; height:16px; cursor:pointer; accent-color:#2563EB;">
         <span>${slotIdx} 號槽 ${checked ? '啟用' : '停用'}</span>
-        ${isMod ? `<span style="background:#FDE047; color:#854D0E; font-size:0.7rem; padding:0 5px; border-radius:999px;">已改</span>` : ''}
+        ${isMod ? `<span style="background:#FDE047; color:#854D0E; font-size:0.8rem; padding:0 5px; border-radius:999px;">已改</span>` : ''}
       </label>
     `;
   };
@@ -825,9 +825,9 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
         <div>
           <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.82rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:0.73rem; color:#1E40AF;">[Settings] ${actualKey}</div>
+          <div class="mono" style="font-size:0.82rem; color:#1E40AF;">[Settings] ${actualKey}</div>
         </div>
         <select onchange="setGlobalIniValueLive('Settings', '${actualKey}', this.value, true)" class="mono"
           style="width:110px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
@@ -849,9 +849,9 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
         <div>
           <div style="font-weight:800; font-size:0.83rem; color:#0F172A;">
             ${label}
-            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.73rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
+            ${isMod ? `<span style="background:#FEE2E2; color:#B91C1C; font-size:0.82rem; padding:1px 5px; border-radius:4px; text-decoration:line-through; margin-left:4px;">原本: ${_escAttr(orig)}</span>` : ''}
           </div>
-          <div class="mono" style="font-size:0.73rem; color:#1E40AF;">[Settings] ${key}</div>
+          <div class="mono" style="font-size:0.82rem; color:#1E40AF;">[Settings] ${key}</div>
         </div>
         <select onchange="setGlobalIniValueLive('Settings', '${key}', this.value, true)" class="mono"
           style="width:110px; padding:5px 8px; font-size:0.87rem; font-weight:800; border-radius:5px; border:1.5px solid ${isMod ? '#16A34A' : '#94A3B8'}; background:${isMod ? '#DCFCE7' : '#FFFFFF'}; color:#0F172A; cursor:pointer;">
@@ -872,8 +872,8 @@ function _renderGlobalIniFullPageHtml(ws, usedVars) {
         <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
           <span style="font-weight:800; font-size:0.87rem; color:#0F172A;">${label}</span>
           ${isMod
-            ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.73rem; font-weight:700; padding:1px 6px; border-radius:999px; white-space:nowrap;" title="原本值: ${_escAttr(orig)}">已修改 (原: ${_escAttr(orig)})</span>`
-            : `<span class="mono" style="font-size:0.73rem; color:#64748B;">${_escAttr(key)}</span>`
+            ? `<span style="background:#FEF08A; color:#854D0E; font-size:0.82rem; font-weight:700; padding:1px 6px; border-radius:999px; white-space:nowrap;" title="原本值: ${_escAttr(orig)}">已修改 (原: ${_escAttr(orig)})</span>`
+            : `<span class="mono" style="font-size:0.82rem; color:#64748B;">${_escAttr(key)}</span>`
           }
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
@@ -1008,7 +1008,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
     const sbHtml = sb.empty ? `
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
         <span style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; border-radius:4px; padding:3px 8px; font-size:0.79rem; font-weight:700;">⚪ 免掃條碼 (留空)</span>
-        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',true)" class="btn" style="padding:3px 8px; font-size:0.77rem; background:#EFF6FF; color:#1D4ED8; border:1px solid #93C5FD; font-weight:700;">＋ 啟用掃碼</button>
+        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',true)" class="btn" style="padding:3px 8px; font-size:0.85rem; background:#EFF6FF; color:#1D4ED8; border:1px solid #93C5FD; font-weight:700;">＋ 啟用掃碼</button>
       </div>
     ` : (sb.simple ? `
       <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
@@ -1022,7 +1022,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
           <option value="" ${sb.pat===''?'selected':''}>(不限字元/留空)</option>
           ${!patPresets.includes(sb.pat) ? `<option value="__CUSTOM__" selected>自訂 (${_escAttr(sb.pat)})</option>` : ''}
         </select>
-        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',false)" class="btn" style="padding:3px 7px; font-size:0.75rem; background:#F8FAFC; color:#64748B; border:1px solid #CBD5E1;" title="清空條碼規則（改為免掃）">免掃</button>
+        <button type="button" onclick="_toggleDutScanBlank(${i},'${_escAttr(scanKey)}',false)" class="btn" style="padding:3px 7px; font-size:0.84rem; background:#F8FAFC; color:#64748B; border:1px solid #CBD5E1;" title="清空條碼規則（改為免掃）">免掃</button>
       </div>
     ` : `<input value="${_escAttr(sb.raw)}" onchange="STATE.workspace.duts[${i}]['${_escAttr(scanKey)}']=this.value" class="mono" style="width:100%;padding:4px;font-size:0.8rem;box-sizing:border-box;">`);
 
@@ -1077,7 +1077,7 @@ function _renderStationIsnFullPageHtml(ws, usedInstRefs) {
             ${checksHtml || '<span style="color:#94A3B8;font-size:0.8rem;">尚無測試站</span>'}
           </div>
         </td>
-        <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')} ${String(inst['Sub']||'').trim()==='1'?'<span style="background:#DBEAFE;color:#1E40AF;font-size:0.7rem;padding:1px 5px;border-radius:4px;">Sub=1</span>':''}</td>
+        <td class="mono" style="font-weight:700;">${_escAttr(inst['Name']||'')} ${String(inst['Sub']||'').trim()==='1'?'<span style="background:#DBEAFE;color:#1E40AF;font-size:0.8rem;padding:1px 5px;border-radius:4px;">Sub=1</span>':''}</td>
         <td><input value="${_escAttr(inst['Settings']||'')}" onchange="STATE.workspace.instruments[${idx}]['Settings']=this.value" class="mono" style="width:225px;padding:4px;font-size:0.8rem;" placeholder="例：192.168.100.254 或 COM Port"></td>
         <td><input value="${_escAttr(inst['Sub']||'')}" onchange="STATE.workspace.instruments[${idx}]['Sub']=this.value" class="mono" style="width:42px;padding:4px;font-size:0.8rem;text-align:center;" placeholder="空/1" title="填 1 表示共用子設備 (:ObtainSubDevice)"></td>
         <td><input value="${_escAttr(inst['Switch']||'')}" onchange="STATE.workspace.instruments[${idx}]['Switch']=this.value" class="mono" style="width:105px;padding:4px;font-size:0.8rem;" placeholder="Switch"></td>
@@ -1177,7 +1177,7 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       <td>
         <div style="display:flex; gap:4px; align-items:center;">
           <input value="${_escAttr(inst['Mount']||'')}" onchange="STATE.workspace.instruments[${i}]['Mount']=this.value" class="mono" style="width:145px;padding:4px;font-size:0.8rem;" placeholder="站名">
-          <select onchange="appendMountStation(${i}, this.value); this.value='';" style="padding:3px;font-size:0.77rem;max-width:90px;">
+          <select onchange="appendMountStation(${i}, this.value); this.value='';" style="padding:3px;font-size:0.85rem;max-width:90px;">
             <option value="">+站別</option>
             ${stationNames.map(sn => `<option value="${_escAttr(sn)}">${sn}</option>`).join('')}
           </select>

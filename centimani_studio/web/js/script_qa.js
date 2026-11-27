@@ -408,7 +408,7 @@ function qaRenderResults(rawQuery, forcedId) {
               <code class="mono" style="background:#FFFFFF; border:1px solid #CBD5E1; padding:1px 7px; border-radius:4px; font-size:0.81rem; color:#0F172A;">${qaEscapeHtml(st.ex)}</code>
             </div>
             <button type="button" class="btn" onclick="qaCopySnippet(${JSON.stringify(st.ex)}, this)"
-              data-pop-tip="複製此寫法範例" style="padding:2px 8px; font-size:0.76rem; font-weight:800; background:#FFFFFF; border:1px solid #CBD5E1;">複製</button>
+              data-pop-tip="複製此寫法範例" style="padding:2px 8px; font-size:0.84rem; font-weight:800; background:#FFFFFF; border:1px solid #CBD5E1;">複製</button>
           </div>
         `).join('')}
       </div>

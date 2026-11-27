@@ -3473,6 +3473,27 @@ def run_all_verifications():
                   "v0.8.086 統一返回編修主入口、6頁僅暫存改由總覽匯出、StationName全站清單與移除重複Phase=-1勾選通過",
                   "missing expected v0.8.086 markers")
 
+            # [v0.8.087] 全分頁與彈窗字體連動修復（panelHome/FlowGuide/InstIntro/InstHmi/Ni6009/BlockSorter/0->1/SFIS/表格按鍵繼承與雙向同步）
+            fg87_src = open(os.path.join(STUDIO_DIR, "web", "js", "flow_guide.js"), "r", encoding="utf-8").read()
+            sf87_src = open(os.path.join(STUDIO_DIR, "web", "js", "sfis_hmi.js"), "r", encoding="utf-8").read()
+            cbb87_src = open(os.path.join(STUDIO_DIR, "web", "js", "create_block_builder.js"), "r", encoding="utf-8").read()
+            sqa87_src = open(os.path.join(STUDIO_DIR, "web", "js", "script_qa.js"), "r", encoding="utf-8").read()
+            ih87_src = open(os.path.join(STUDIO_DIR, "web", "js", "inst_hmi.js"), "r", encoding="utf-8").read()
+            sub_tiny_hits = _re_chk.findall(r'font-size\s*:\s*0\.6\d?rem', idx81_src + bs82_src + ae81_src + tsw83_src + sf87_src + cbb87_src + sqa87_src)
+            check('#panelHome, #panelFlowGuide, #panelInstIntro, #panelInstHmi, #panelNi6009' in css83_src
+                  and 'button {' in css83_src
+                  and 'table, th, td, pre, details, summary {' in css83_src
+                  and 'setIntroFontSize(fs, false)' in fg87_src
+                  and '_bootApplyCachedFontSize' in fg87_src
+                  and 'setIntroFontSize(sz, persist = false)' in ih87_src
+                  and 'setIntroFontSize(19, true)' in idx81_src
+                  and 'calc(84px * var(--app-scale, 1))' in cbb87_src
+                  and 'Math.max(0.86, rootFontPx / 15)' in bs82_src
+                  and 'minmax(13.5rem, 26%) 1fr' in bs82_src
+                  and not sub_tiny_hits,
+                  "v0.8.087 全分頁/彈窗/積木排序器/0->1/SFIS/儀器頁面字體連動與雙向持久化全面檢查通過",
+                  f"sub_tiny_hits={sub_tiny_hits[:5]}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

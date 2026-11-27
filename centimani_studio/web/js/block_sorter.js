@@ -100,7 +100,7 @@ function bsApplyCardDimensions() {
   }
 
   const rootFontPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-font-size')) || 15;
-  const fontScale = Math.max(1, rootFontPx / 15);
+  const fontScale = Math.max(0.86, rootFontPx / 15);
   cardW = Math.round(cardW * fontScale);
   cardH = Math.round(cardH * fontScale);
 
@@ -687,18 +687,18 @@ function bsRenderRightInspector() {
   if (issuesEl) {
     if (allWarns.length === 0) {
       issuesEl.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px; color:#4ADE80; font-weight:700;">
-          <span style="font-size:1rem;">✅</span>
+        <div style="display:flex; align-items:center; gap:8px; color:#4ADE80; font-weight:700; font-size:0.92rem;">
+          <span style="font-size:1.05rem;">✅</span>
           <span>即時檢查通過：全流程 Phase 順編與變數相依皆正確無誤</span>
         </div>
       `;
     } else {
       issuesEl.innerHTML = `
         <div style="background:#450A0A; border:1px solid #DC2626; border-radius:6px; padding:7px 10px; color:#FECACA;">
-          <div style="font-weight:800; font-size:0.8rem; color:#FCA5A5; margin-bottom:3px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-weight:800; font-size:0.9rem; color:#FCA5A5; margin-bottom:3px; display:flex; justify-content:space-between; align-items:center;">
             <span>⚠️ 偵測到 ${allWarns.length} 項問題（請調整積木前後順序）：</span>
           </div>
-          <ul style="margin:0 0 0 16px; padding:0; font-size:0.77rem; line-height:1.45;">
+          <ul style="margin:0 0 0 16px; padding:0; font-size:0.86rem; line-height:1.5;">
             ${allWarns.map(w => `<li>${w}</li>`).join('')}
           </ul>
         </div>
@@ -708,23 +708,23 @@ function bsRenderRightInspector() {
 
   const b = BS_STATE.currentBlocks[BS_STATE.selectedIdx];
   if (!b) {
-    headerEl.innerHTML = `<span style="color:#94A3B8; font-size:0.87rem;">請從左側點選任一項積木以檢視內部指令</span>`;
+    headerEl.innerHTML = `<span style="color:#94A3B8; font-size:0.95rem;">請從左側點選任一項積木以檢視內部指令</span>`;
     tableEl.innerHTML = '';
     return;
   }
 
   const st = rowStates[BS_STATE.selectedIdx] || {};
 
-  const prodChips = (b.produced_vars || []).map(v => `<span class="mono" style="background:#14532D; color:#86EFAC; border:1px solid #166534; font-size:0.73rem; padding:1px 6px; border-radius:4px; font-weight:700;">🏷️ 產出變數: $${v}</span>`).join(' ');
-  const usedChips = (b.used_vars || []).map(v => `<span class="mono" style="background:#1E3A8A; color:#93C5FD; border:1px solid #1D4ED8; font-size:0.73rem; padding:1px 6px; border-radius:4px; font-weight:700;">📥 引用變數: $${v}</span>`).join(' ');
+  const prodChips = (b.produced_vars || []).map(v => `<span class="mono" style="background:#14532D; color:#86EFAC; border:1px solid #166534; font-size:0.84rem; padding:2px 7px; border-radius:4px; font-weight:700;">🏷️ 產出變數: $${v}</span>`).join(' ');
+  const usedChips = (b.used_vars || []).map(v => `<span class="mono" style="background:#1E3A8A; color:#93C5FD; border:1px solid #1D4ED8; font-size:0.84rem; padding:2px 7px; border-radius:4px; font-weight:700;">📥 引用變數: $${v}</span>`).join(' ');
 
   // 當前選取積木若有警告，顯示專屬提示與「⚡ 一鍵前置產出積木」按鈕
   let conflictAlertHtml = '';
   if (st.hasConflict && st.reason) {
     conflictAlertHtml = `
-      <div style="width:100%; background:#7F1D1D; border:1px solid #EF4444; border-radius:6px; padding:5px 10px; margin-top:5px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-        <span style="color:#FEE2E2; font-size:0.77rem; font-weight:700;">⚠️ ${st.reason}</span>
-        <button type="button" class="btn" onclick="bsResolveCardConflict(${BS_STATE.selectedIdx})" style="padding:2px 8px; font-size:0.73rem; background:#F59E0B; color:#0F172A; font-weight:800; border:none; border-radius:3px; cursor:pointer;" title="一鍵將產出該變數的積木移至本步驟前方">
+      <div style="width:100%; background:#7F1D1D; border:1px solid #EF4444; border-radius:6px; padding:6px 10px; margin-top:5px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+        <span style="color:#FEE2E2; font-size:0.86rem; font-weight:700;">⚠️ ${st.reason}</span>
+        <button type="button" class="btn" onclick="bsResolveCardConflict(${BS_STATE.selectedIdx})" style="padding:3px 10px; font-size:0.84rem; background:#F59E0B; color:#0F172A; font-weight:800; border:none; border-radius:4px; cursor:pointer;" title="一鍵將產出該變數的積木移至本步驟前方">
           ⚡ 一鍵前置產出積木
         </button>
       </div>
@@ -734,15 +734,15 @@ function bsRenderRightInspector() {
   headerEl.innerHTML = `
     <div style="width:100%; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.07rem;">📌</span>
-        <span style="font-weight:800; font-size:0.93rem; color:#F8FAFC;">
+        <span style="font-size:1.12rem;">📌</span>
+        <span style="font-weight:800; font-size:1.02rem; color:#F8FAFC;">
           [ Phase ${st.previewPhase || b.phase} ] ${bsEscapeHtml(b.title)}
         </span>
-        <span style="background:#334155; color:#E2E8F0; font-size:0.77rem; font-weight:700; padding:2px 7px; border-radius:4px;">
+        <span style="background:#334155; color:#E2E8F0; font-size:0.84rem; font-weight:700; padding:2px 8px; border-radius:4px;">
           共 ${b.row_count} 列指令 · 原第 ${b.start_row} 列
         </span>
       </div>
-      <div style="font-size:0.8rem; color:#94A3B8;">
+      <div style="font-size:0.88rem; color:#94A3B8;">
         序號：#${BS_STATE.selectedIdx + 1} / ${BS_STATE.currentBlocks.length}
       </div>
     </div>
@@ -758,15 +758,15 @@ function bsRenderRightInspector() {
   const steps = b.steps || [];
   tableEl.innerHTML = `
     <div style="height:100%; display:flex; flex-direction:column;">
-      <div style="background:#1E293B; color:#94A3B8; font-size:0.8rem; font-weight:800; padding:6px 14px; display:grid; grid-template-columns:220px 1fr; border-bottom:1px solid #334155; font-family:Consolas, monospace; letter-spacing:0.4px;">
+      <div style="background:#1E293B; color:#94A3B8; font-size:0.9rem; font-weight:800; padding:7px 14px; display:grid; grid-template-columns:minmax(13.5rem, 26%) 1fr; gap:10px; border-bottom:1px solid #334155; font-family:Consolas, monospace; letter-spacing:0.4px;">
         <span>Command (執行命令)</span>
         <span>Send (發送字串/參數規格)</span>
       </div>
-      <div style="flex:1; overflow-y:auto; font-family:Consolas, monospace; font-size:0.83rem;">
+      <div style="flex:1; overflow-y:auto; font-family:Consolas, monospace; font-size:0.94rem;">
         ${steps.length === 0 ? `
           <div style="padding:20px; color:#64748B; text-align:center;">此 Phase 區塊無內部子指令</div>
         ` : steps.map((s, sIdx) => `
-          <div style="display:grid; grid-template-columns:220px 1fr; padding:5px 14px; border-bottom:1px solid #1E293B; background:${sIdx % 2 === 0 ? '#0F172A' : '#141E33'}; line-height:1.45;">
+          <div style="display:grid; grid-template-columns:minmax(13.5rem, 26%) 1fr; gap:10px; padding:6px 14px; border-bottom:1px solid #1E293B; background:${sIdx % 2 === 0 ? '#0F172A' : '#141E33'}; line-height:1.5;">
             <span style="color:#38BDF8; font-weight:700; word-break:break-all;">${bsEscapeHtml(s.Command || '-')}</span>
             <span style="color:#FCD34D; word-break:break-all;">${bsEscapeHtml(s.Send || '-')}</span>
           </div>

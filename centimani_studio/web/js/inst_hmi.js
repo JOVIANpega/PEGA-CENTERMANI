@@ -245,10 +245,10 @@ INST_INTRO_PROFILES['GDM906x'] = Object.assign({}, INST_INTRO_PROFILES['MDA2700'
 INST_INTRO_PROFILES['XelM8-B'] = Object.assign({}, INST_INTRO_PROFILES['InstIQApiA'], { img: '/images/XelM8-B.png' });
 INST_INTRO_PROFILES['MT8870A'] = Object.assign({}, INST_INTRO_PROFILES['InstIQApiA'], { img: '/images/MT8870A.png' });
 
-function setIntroFontSize(sz) {
+function setIntroFontSize(sz, persist = false) {
   const valid = [13, 15, 17, 19].includes(sz) ? sz : 15;
   INTRO_STATE.fontSize = valid;
-  localStorage.setItem('centimani_intro_font_size', String(valid));
+  try { localStorage.setItem('centimani_intro_font_size', String(valid)); } catch (e) {}
   [13, 15, 17, 19].forEach(s => {
     ['introFs' + s, 'hmiFs' + s].forEach(bid => {
       const btn = document.getElementById(bid);
@@ -269,19 +269,24 @@ function setIntroFontSize(sz) {
   document.documentElement.style.fontSize = valid + 'px';
   document.body.style.fontSize = valid + 'px';
   document.documentElement.style.setProperty('--app-font-size', valid + 'px');
+  document.documentElement.style.setProperty('--app-scale', (valid / 15).toFixed(4));
   if (typeof APP_SETTINGS === 'object' && APP_SETTINGS) {
     APP_SETTINGS.intro_font_size = valid;
   }
   document.querySelectorAll('.intro-scalable-text, .flow-guide-desc').forEach(el => {
-    el.style.fontSize = valid + 'px';
+    el.style.fontSize = '1rem';
   });
   document.querySelectorAll('.intro-spec-table').forEach(el => {
-    el.style.fontSize = Math.max(12, valid - 1) + 'px';
+    el.style.fontSize = '0.93rem';
   });
   const hmiL = document.getElementById('instHmiLeft');
   const hmiR = document.getElementById('instHmiRight');
-  if (hmiL) hmiL.style.fontSize = valid + 'px';
-  if (hmiR) hmiR.style.fontSize = valid + 'px';
+  if (hmiL) hmiL.style.fontSize = '1rem';
+  if (hmiR) hmiR.style.fontSize = '1rem';
+  if (persist) {
+    if (typeof saveAppSettings === 'function') saveAppSettings({ intro_font_size: valid }, false);
+    if (typeof applyLoadedSettings === 'function') applyLoadedSettings({ intro_font_size: valid });
+  }
 }
 
 function buildGenericProfile(instName) {
@@ -330,7 +335,7 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
   INTRO_STATE.editGenIdx = editGenIdx;
   const baseInst = resolveBaseInstName(INTRO_STATE.instName);
   const prof = INST_INTRO_PROFILES[baseInst] || buildGenericProfile(INTRO_STATE.instName);
-  const fs = INTRO_STATE.fontSize || 15;
+  const fs = (typeof APP_SETTINGS === 'object' && APP_SETTINGS && parseInt(APP_SETTINGS.intro_font_size, 10)) || INTRO_STATE.fontSize || 15;
 
   document.getElementById('introPageTitle').textContent = `📖 儀器介紹：${prof.title} (${prof.dll})`;
   const nextBtn = document.getElementById('introNextBtn');
@@ -353,14 +358,14 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
   const stepsHtml = (prof.steps || []).map((st, idx) => `
     <div style="flex:1; min-width:160px; display:flex; align-items:flex-start; gap:8px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:6px; padding:8px 10px;">
       <span style="flex-shrink:0; width:22px; height:22px; border-radius:999px; background:#0284C7; color:#FFFFFF; font-weight:700; font-size:0.8rem; display:inline-flex; align-items:center; justify-content:center;">${idx + 1}</span>
-      <span class="intro-scalable-text" style="font-size:${fs}px; color:#0C4A6E; line-height:1.45;">${st}</span>
+      <span class="intro-scalable-text" style="font-size:1rem; color:#0C4A6E; line-height:1.45;">${st}</span>
     </div>
   `).join('');
 
   const detailsHtml = (prof.details && prof.details.length) ? `
     <details style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:10px 14px;">
-      <summary style="cursor:pointer; font-weight:700; color:#334155; font-size:0.9rem;">📚 進階指令與參數補充說明（點擊展開）</summary>
-      <ul class="intro-scalable-text" style="margin:8px 0 0 18px; padding:0; font-size:${fs}px; color:#334155; line-height:1.65;">
+      <summary style="cursor:pointer; font-weight:700; color:#334155; font-size:0.95rem;">📚 進階指令與參數補充說明（點擊展開）</summary>
+      <ul class="intro-scalable-text" style="margin:8px 0 0 18px; padding:0; font-size:1rem; color:#334155; line-height:1.65;">
         ${prof.details.map(d => `<li style="margin-bottom:4px;">${d}</li>`).join('')}
       </ul>
     </details>
@@ -378,22 +383,22 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
           <div style="font-size:0.77rem; color:#64748B;">可放置實體照片至 <code class="mono">IMAGES/${instName}.png</code></div>
         </div>
       </div>
-      <div style="font-weight:700; font-size:0.9rem; color:#0F172A; margin-bottom:6px;">📋 硬體規格摘要</div>
-      <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:${Math.max(12, fs - 1)}px;">
+      <div style="font-weight:700; font-size:0.95rem; color:#0F172A; margin-bottom:6px;">📋 硬體規格摘要</div>
+      <table class="intro-spec-table" style="width:100%; border-collapse:collapse; font-size:0.93rem;">
         <tbody>${specsHtml}</tbody>
       </table>
     </div>
     <div style="display:flex; flex-direction:column; gap:12px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">${highlightsHtml}</div>
       <div style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; font-size:1rem; color:#0F172A; margin-bottom:6px;">📌 主要特色與 Centimani 應用方式</div>
-        <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:${fs}px; color:#334155; line-height:1.65;">
+        <div style="font-weight:700; font-size:1.05rem; color:#0F172A; margin-bottom:6px;">📌 主要特色與 Centimani 應用方式</div>
+        <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:1rem; color:#334155; line-height:1.65;">
           ${prof.features.map(f => `<li style="margin-bottom:4px;">${f}</li>`).join('')}
         </ul>
       </div>
       <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; font-size:1rem; color:#92400E; margin-bottom:6px;">⚠️ 硬體安全與接線須知</div>
-        <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:${fs}px; color:#78350F; line-height:1.65;">
+        <div style="font-weight:700; font-size:1.05rem; color:#92400E; margin-bottom:6px;">⚠️ 硬體安全與接線須知</div>
+        <ul class="intro-scalable-text" style="margin:0 0 0 18px; padding:0; font-size:1rem; color:#78350F; line-height:1.65;">
           ${prof.safety.map(s => `<li style="margin-bottom:4px;">${s}</li>`).join('')}
         </ul>
       </div>
@@ -410,7 +415,7 @@ function openInstIntroPage(targetMode, instName = 'NI6008', editGenIdx = -1) {
     </div>
   `;
 
-  setIntroFontSize(fs);
+  setIntroFontSize(fs, false);
   ['panelHome', 'panelAudit', 'panelGen', 'panelDiagnose', 'panelTic', 'panelFlowGuide', 'panelSettings', 'panelNi6009', 'panelInstHmi'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -516,7 +521,8 @@ function openInstHmi(targetMode, instName) {
   }
 
   renderInstHmi();
-  setIntroFontSize(INTRO_STATE.fontSize || 15);
+  const curFs = (typeof APP_SETTINGS === 'object' && APP_SETTINGS && parseInt(APP_SETTINGS.intro_font_size, 10)) || INTRO_STATE.fontSize || 15;
+  setIntroFontSize(curFs, false);
   ['panelHome', 'panelAudit', 'panelGen', 'panelDiagnose', 'panelTic', 'panelFlowGuide', 'panelSettings', 'panelInstIntro', 'panelNi6009'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';

@@ -15,6 +15,18 @@ try {
   if (cached) APP_SETTINGS = Object.assign({}, APP_SETTINGS, JSON.parse(cached));
 } catch (e) {}
 
+(function _bootApplyCachedFontSize() {
+  try {
+    const fs = parseInt(APP_SETTINGS.intro_font_size, 10);
+    if ([13, 15, 17, 19].includes(fs)) {
+      document.documentElement.style.fontSize = fs + 'px';
+      document.documentElement.style.setProperty('--app-font-size', fs + 'px');
+      document.documentElement.style.setProperty('--app-scale', (fs / 15).toFixed(4));
+      if (document.body) document.body.style.fontSize = fs + 'px';
+    }
+  } catch (e) {}
+})();
+
 let PENDING_FLOW_TARGET = { tab: 'audit', afterAction: null };
 
 const FLOW_GUIDE_DATA = {
@@ -296,7 +308,7 @@ function applyLoadedSettings(s) {
   document.body.style.fontSize = fs + 'px';
 
   if (typeof setIntroFontSize === 'function') {
-    setIntroFontSize(fs);
+    setIntroFontSize(fs, false);
   }
   const chkTic = document.getElementById('chkTicGenericOnly');
   if (chkTic) chkTic.checked = !!APP_SETTINGS.tic_generic_only;
@@ -304,6 +316,15 @@ function applyLoadedSettings(s) {
   const btnRef = document.getElementById('btnTopRefresh');
   if (btnRef) {
     btnRef.style.display = (APP_SETTINGS.show_top_refresh !== false) ? 'inline-flex' : 'none';
+  }
+
+  // 若積木排序視窗或設定頁目前開啟中，即時同步卡片與介面尺寸
+  if (typeof bsApplyCardDimensions === 'function') {
+    bsApplyCardDimensions();
+    const bsModal = document.getElementById('modalBlockSorter');
+    if (bsModal && bsModal.classList.contains('open') && typeof bsRenderBlocks === 'function') {
+      bsRenderBlocks();
+    }
   }
 
   // 若目前正在瀏覽導覽頁，即時套用新字體大小重繪

@@ -575,10 +575,10 @@
         .bb-splitter:hover, .bb-splitter.dragging { background:#BAE6FD; }
         .bb-splitter-bar { width:3px; height:44px; border-radius:999px; background:#94A3B8; }
         .bb-right-pane { flex:1 1 0%; min-width:260px; background:#FAF5FF; border:1.5px dashed #C084FC; border-radius:10px; padding:12px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; }
-        /* 直立積木方格（左欄 3 列網格 & 右欄橫向串接共用完全相同尺寸） */
-        .bb-poker-grid { display:grid; grid-template-columns:repeat(auto-fill, 82px); gap:7px; justify-content:start; }
+        /* 直立積木方格（左欄 3 列網格 & 右欄橫向串接共用完全相同尺寸，隨 --app-scale 等比縮放） */
+        .bb-poker-grid { display:grid; grid-template-columns:repeat(auto-fill, calc(84px * var(--app-scale, 1))); gap:7px; justify-content:start; }
         .bb-poker-track { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
-        .bb-poker-card { width:82px; height:96px; min-width:82px; min-height:96px; box-sizing:border-box; border-radius:9px; padding:6px 6px 5px 6px; border:1.5px solid #CBD5E1; border-top:4px solid #3B82F6; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; transition:all 0.14s ease; user-select:none; position:relative; }
+        .bb-poker-card { width:calc(84px * var(--app-scale, 1)); height:calc(98px * var(--app-scale, 1)); min-width:calc(84px * var(--app-scale, 1)); min-height:calc(98px * var(--app-scale, 1)); box-sizing:border-box; border-radius:9px; padding:6px 6px 5px 6px; border:1.5px solid #CBD5E1; border-top:4px solid #3B82F6; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:space-between; text-align:center; transition:all 0.14s ease; user-select:none; position:relative; }
         .bb-poker-card.palette-card { cursor:grab; }
         .bb-poker-card:hover { background:#E0F2FE; border-color:#38BDF8; transform:translateY(-2px); box-shadow:0 4px 10px rgba(14,165,233,0.18); }
         .bb-poker-card.is-red { background:#FEF2F2; border-color:#EF4444; border-top-color:#DC2626; }
@@ -586,15 +586,15 @@
         .bb-poker-card.is-fixed { filter:grayscale(100%); background:#E2E8F0 !important; border:1.5px dashed #94A3B8 !important; border-top:4px solid #64748B !important; opacity:0.86; }
         .bb-poker-card.is-fixed:hover { filter:grayscale(25%); background:#F1F5F9 !important; opacity:1; }
         .bb-poker-card.drag-over-card { outline:2.5px dashed #2563EB; background:#DBEAFE !important; transform:scale(1.04); }
-        .bb-poker-plus { width:100%; height:22px; padding:0; border-radius:5px; border:1px solid #94A3B8; background:#F8FAFC; color:#0F172A; font-weight:900; font-size:0.95rem; line-height:1; cursor:pointer; transition:all 0.12s; }
+        .bb-poker-plus { width:100%; min-height:1.45em; padding:1px 0; border-radius:5px; border:1px solid #94A3B8; background:#F8FAFC; color:#0F172A; font-weight:900; font-size:0.95rem; line-height:1; cursor:pointer; transition:all 0.12s; }
         .bb-poker-plus:hover { background:#2563EB; border-color:#1D4ED8; color:#FFFFFF; }
         .bb-poker-card.is-red .bb-poker-plus { background:#FFFFFF; border-color:#FCA5A5; color:#991B1B; }
         .bb-poker-card.is-red .bb-poker-plus:hover { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
-        .bb-drop-slot-v { width:20px; height:86px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:0.95rem; border:1.5px dashed transparent; transition:all 0.14s ease; flex-shrink:0; }
+        .bb-drop-slot-v { width:20px; height:calc(88px * var(--app-scale, 1)); border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:0.95rem; border:1.5px dashed transparent; transition:all 0.14s ease; flex-shrink:0; }
         .bb-drop-slot-v.drag-over { width:34px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
         .bb-snake-wrap { display:flex; flex-direction:column; gap:2px; align-items:flex-start; }
         .bb-snake-grid-row { display:grid; align-items:center; gap:4px; }
-        .bb-drop-slot-turn { width:82px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:1rem; border:1.5px dashed transparent; transition:all 0.14s ease; }
+        .bb-drop-slot-turn { width:calc(84px * var(--app-scale, 1)); height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#7C3AED; font-weight:900; font-size:1rem; border:1.5px dashed transparent; transition:all 0.14s ease; }
         .bb-drop-slot-turn.drag-over { height:32px; background:#DBEAFE; border-color:#2563EB; color:#1D4ED8; }
         .bb-group-collapsed-card { box-shadow:3px 3px 0 #FDE68A, 5px 5px 0 #D97706 !important; background:#FFFBEB !important; border-color:#D97706 !important; }
         .bb-group-box { width:100%; box-sizing:border-box; border:2px dashed #D97706; background:rgba(254, 243, 199, 0.42); border-radius:11px; padding:9px 11px; margin:4px 0; transition:all 0.15s ease; }
@@ -602,17 +602,17 @@
         .bb-group-inner-track { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-height:98px; padding:4px 0; }
         .bb-bottom-dock { margin-top:14px; padding-top:12px; border-top:1.5px solid #CBD5E1; display:flex; flex-direction:column; gap:10px; }
         .bb-progress-strip { display:flex; align-items:stretch; gap:6px; overflow-x:auto; padding:8px 10px; background:#F1F5F9; border:1.5px solid #CBD5E1; border-radius:10px; }
-        .bb-step-pill { min-width:82px; max-width:118px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
+        .bb-step-pill { min-width:82px; max-width:126px; flex:1 0 auto; border-radius:8px; padding:6px 8px; border:1.5px solid #94A3B8; background:#FFFFFF; cursor:pointer; transition:all 0.18s ease; text-align:left; filter:grayscale(100%); opacity:0.65; }
         .bb-step-pill:hover { opacity:0.92; filter:grayscale(35%); background:#E2E8F0; }
         .bb-step-pill.active { filter:none !important; opacity:1 !important; transform:translateY(-2px); border:2px solid #2563EB; background:#DBEAFE; box-shadow:0 4px 12px rgba(37,99,235,0.22); }
         .bb-step-pill.active.is-red { border-color:#DC2626; background:#FEE2E2; box-shadow:0 4px 12px rgba(220,38,38,0.22); }
-        #bbPopWindow { position:fixed; z-index:1200; max-width:300px; background:#0F172A; color:#F8FAFC; border:1.5px solid #38BDF8; border-radius:10px; padding:9px 11px; box-shadow:0 12px 32px rgba(15,23,42,0.45); pointer-events:none; display:none; font-size:0.8rem; line-height:1.45; }
-        .bb-inst-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); gap:8px; max-height:230px; overflow-y:auto; padding:6px; background:#FFFFFF; border:1px solid #FECACA; border-radius:9px; margin-bottom:10px; }
+        #bbPopWindow { position:fixed; z-index:1200; max-width:320px; background:#0F172A; color:#F8FAFC; border:1.5px solid #38BDF8; border-radius:10px; padding:9px 11px; box-shadow:0 12px 32px rgba(15,23,42,0.45); pointer-events:none; display:none; font-size:0.88rem; line-height:1.45; }
+        .bb-inst-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; max-height:240px; overflow-y:auto; padding:6px; background:#FFFFFF; border:1px solid #FECACA; border-radius:9px; margin-bottom:10px; }
         .bb-inst-card { border:1.5px solid #CBD5E1; border-top:4px solid #EF4444; border-radius:8px; padding:7px; background:#FFFFFF; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; gap:4px; transition:all 0.14s ease; text-align:left; min-height:84px; }
         .bb-inst-card:hover { background:#E0F2FE; border-color:#38BDF8; transform:translateY(-2px); box-shadow:0 4px 10px rgba(14,165,233,0.16); }
         .bb-inst-card.selected { background:#FFF1F2; border:2px solid #DC2626; border-top-width:4px; box-shadow:0 4px 12px rgba(220,38,38,0.2); }
         .bb-inst-card.missing-dll { background:#FFF8F8; border-color:#FCA5A5; }
-        .bb-inst-pill { cursor:pointer; padding:4px 10px; border-radius:999px; font-size:0.78rem; font-weight:800; border:1px solid #FCA5A5; background:#FFFFFF; color:#7F1D1D; transition:all 0.12s; }
+        .bb-inst-pill { cursor:pointer; padding:4px 10px; border-radius:999px; font-size:0.85rem; font-weight:800; border:1px solid #FCA5A5; background:#FFFFFF; color:#7F1D1D; transition:all 0.12s; }
         .bb-inst-pill:hover { background:#FEE2E2; }
         .bb-inst-pill.active { background:#DC2626; border-color:#991B1B; color:#FFFFFF; }
       `;
@@ -672,7 +672,7 @@
     pop.innerHTML = `
       <div style="font-weight:900; font-size:0.85rem; color:${meta.exclusivePage ? '#FCA5A5' : '#7DD3FC'}; margin-bottom:4px;">${_esc(meta.popTitle || meta.name)}</div>
       <div style="color:#E2E8F0; margin-bottom:5px;">${_esc(meta.popDesc || '')}</div>
-      ${meta.popExample ? `<div class="mono" style="background:#1E293B; color:#FDE047; padding:3px 7px; border-radius:5px; font-size:0.74rem;">${_esc(meta.popExample)}</div>` : ''}
+      ${meta.popExample ? `<div class="mono" style="background:#1E293B; color:#FDE047; padding:3px 7px; border-radius:5px; font-size:0.83rem;">${_esc(meta.popExample)}</div>` : ''}
     `;
     pop.style.display = 'block';
     const x = Math.min((evt.clientX || 200) + 14, window.innerWidth - 320);
@@ -1496,7 +1496,7 @@
       <div style="margin-top:12px; background:#F8FAFC; border:1px solid #CBD5E1; border-left:4px solid #0EA5E9; border-radius:7px; padding:7px 11px;">
         <div style="font-size:0.78rem; font-weight:900; color:#0369A1; margin-bottom:3px;">🔗 此積木連動的 INI / 工作表預覽：</div>
         <div style="display:flex; flex-direction:column; gap:2px;">
-          ${lines.map(ln => `<div class="mono" style="font-size:0.76rem; color:#334155;">• ${_esc(ln)}</div>`).join('')}
+          ${lines.map(ln => `<div class="mono" style="font-size:0.84rem; color:#334155;">• ${_esc(ln)}</div>`).join('')}
         </div>
       </div>
     `;
@@ -1788,7 +1788,7 @@
         }
         box.innerHTML = items.map(x => `
           <button type="button" onclick="bbPickTestIdAdv(${idx}, '${_esc(x.test_id)}')" class="mono"
-            style="cursor:pointer; padding:3px 8px; border-radius:6px; border:1px solid #A855F7; background:#FFFFFF; color:#581C87; font-size:0.75rem; font-weight:800; text-align:left;"
+            style="cursor:pointer; padding:3px 8px; border-radius:6px; border:1px solid #A855F7; background:#FFFFFF; color:#581C87; font-size:0.84rem; font-weight:800; text-align:left;"
             title="${_esc((x.desc_en || '') + ' ' + (x.desc_cn || ''))}">
             <b>${_esc(x.test_id)}</b> · ${_esc((x.desc_cn || x.desc_en || '').slice(0, 18))}
           </button>
@@ -1931,12 +1931,12 @@
       const isPm1 = ic.phase_role === '-1';
       const isSameP = !isGrp && ic.phase_role === 'same';
       const badgeTag = isP0
-        ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD;" title="Phase 0 開頭 Pretest">P0</span>'
+        ? '<span class="mono" style="font-size:0.72rem; font-weight:900; padding:0 4px; border-radius:4px; background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD;" title="Phase 0 開頭 Pretest">P0</span>'
         : (isPm1
-            ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#E2E8F0; color:#475569;" title="Phase -1 暫停略過">-1</span>'
+            ? '<span class="mono" style="font-size:0.72rem; font-weight:900; padding:0 4px; border-radius:4px; background:#E2E8F0; color:#475569;" title="Phase -1 暫停略過">-1</span>'
             : (isSameP
-                ? '<span class="mono" style="font-size:0.62rem; font-weight:900; padding:0 4px; border-radius:4px; background:#FEF3C7; color:#92400E;" title="沿用前一塊 Phase">同P</span>'
-                : (ic.exec_mode ? `<span class="mono" style="font-size:0.6rem; font-weight:900; padding:0 3px; border-radius:4px; background:#E0E7FF; color:#3730A3;" title="自訂 ExecMode=${_esc(ic.exec_mode)}">EM</span>` : '')));
+                ? '<span class="mono" style="font-size:0.72rem; font-weight:900; padding:0 4px; border-radius:4px; background:#FEF3C7; color:#92400E;" title="沿用前一塊 Phase">同P</span>'
+                : (ic.exec_mode ? `<span class="mono" style="font-size:0.72rem; font-weight:900; padding:0 3px; border-radius:4px; background:#E0E7FF; color:#3730A3;" title="自訂 ExecMode=${_esc(ic.exec_mode)}">EM</span>` : '')));
       const dragAttrs = readonly ? '' : `
         draggable="${isFixed ? 'false' : 'true'}"
         ondragstart="bbDragStartStack(event, ${idx})"
@@ -1947,15 +1947,15 @@
       `;
       const bottomRow = readonly
         ? (isGrp
-            ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 8px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組檢視子積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
-            : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${isFixed ? (item.configured ? '✓ 已設' : '點擊設') : (item.configured ? '✓ 已設' : '待設定')}</span>`)
+            ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 8px; font-size:0.8rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組檢視子積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
+            : `<span style="font-size:0.78rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${isFixed ? (item.configured ? '✓ 已設' : '點擊設') : (item.configured ? '✓ 已設' : '待設定')}</span>`)
         : (!isFixed ? `
-            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
+            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.74rem; cursor:pointer;" title="往前" onclick="bbMoveStackIdx(${idx}, -1)">◀</button>
             ${isGrp
-              ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 6px; font-size:0.7rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
-              : `<span style="font-size:0.68rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
-            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.66rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
-          ` : `<span style="font-size:0.7rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`);
+              ? `<button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:4px; padding:0 6px; font-size:0.8rem; font-weight:900; line-height:1.25; cursor:pointer;" title="展開群組拖入積木" onclick="bbToggleGroupCollapse(${idx})">▼</button>`
+              : `<span style="font-size:0.78rem; font-weight:900; color:${item.configured ? '#15803D' : '#B45309'};">${item.configured ? '✓' : '待'}</span>`}
+            <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.74rem; cursor:pointer;" title="往後" onclick="bbMoveStackIdx(${idx}, 1)">▶</button>
+          ` : `<span style="font-size:0.8rem; font-weight:900; color:#475569;">${item.configured ? '✓ 已設' : '點擊設'}</span>`);
 
       return `
         <div class="bb-poker-card ${isRed ? 'is-red' : ''} ${isFixed ? 'is-fixed' : ''} ${isGrp ? 'bb-group-collapsed-card' : ''}"
@@ -1967,10 +1967,10 @@
           onclick="bbJumpQa(${idx})"
           title="${readonly ? _esc(_summarizeBlock(item) + '（點擊修改）') : ''}">
           <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
-            <span style="display:inline-flex; align-items:center; gap:2px;"><span class="mono" style="font-weight:900; font-size:0.68rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>${badgeTag}</span>
+            <span style="display:inline-flex; align-items:center; gap:2px;"><span class="mono" style="font-weight:900; font-size:0.78rem; padding:1px 4px; border-radius:4px; background:${isGrp ? '#FDE68A' : (isRed ? '#FEE2E2' : '#E2E8F0')}; color:${isGrp ? '#92400E' : (isRed ? '#991B1B' : '#334155')};">#${idx + 1}</span>${badgeTag}</span>
             ${!readonly && !isFixed
-              ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
-              : `<span style="font-size:0.65rem; color:#475569; font-weight:800;">${isFixed ? '固定' : (item.configured ? '✓' : '待')}</span>`}
+              ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.84rem; cursor:pointer; padding:0 2px;" title="移除" onclick="bbRemoveStackIdx(${idx})">✕</button>`
+              : `<span style="font-size:0.74rem; color:#475569; font-weight:800;">${isFixed ? '固定' : (item.configured ? '✓' : '待')}</span>`}
           </div>
           <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
             <span style="font-size:1.15rem; line-height:1;">${meta.icon || '🧩'}</span>
@@ -2016,10 +2016,10 @@
             onclick="bbJumpQa(${gIdx}, ${cIdx})"
             title="${readonly ? _esc(_summarizeBlock(ch) + '（點擊修改）') : ''}">
             <div style="width:100%; display:flex; justify-content:space-between; align-items:center;" onclick="event.stopPropagation();">
-              <span class="mono" style="font-weight:900; font-size:0.65rem; padding:1px 4px; border-radius:4px; background:#FEF3C7; color:#92400E;">#${gIdx + 1}.${cIdx + 1}</span>
+              <span class="mono" style="font-weight:900; font-size:0.74rem; padding:1px 4px; border-radius:4px; background:#FEF3C7; color:#92400E;">#${gIdx + 1}.${cIdx + 1}</span>
               ${!readonly
-                ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.75rem; cursor:pointer; padding:0 2px;" title="從群組移除" onclick="bbGroupRemoveChild(${gIdx}, ${cIdx})">✕</button>`
-                : `<span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>`}
+                ? `<button type="button" style="border:none; background:transparent; color:#DC2626; font-weight:900; font-size:0.84rem; cursor:pointer; padding:0 2px;" title="從群組移除" onclick="bbGroupRemoveChild(${gIdx}, ${cIdx})">✕</button>`
+                : `<span style="font-size:0.74rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>`}
             </div>
             <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
               <span style="font-size:1.1rem; line-height:1;">${cm.icon || '🧩'}</span>
@@ -2027,10 +2027,10 @@
             </div>
             <div style="width:100%; display:flex; justify-content:center; align-items:center; gap:3px;" onclick="event.stopPropagation();">
               ${!readonly ? `
-                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往前" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, -1)">◀</button>
-                <span style="font-size:0.66rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>
-                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.64rem; cursor:pointer;" title="往後" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, 1)">▶</button>
-              ` : `<span style="font-size:0.67rem; font-weight:800; color:#475569;">${ch.configured ? '✓ 已設' : '點擊設'}</span>`}
+                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.74rem; cursor:pointer;" title="往前" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, -1)">◀</button>
+                <span style="font-size:0.74rem; font-weight:900; color:${ch.configured ? '#15803D' : '#B45309'};">${ch.configured ? '✓' : '待'}</span>
+                <button type="button" style="border:1px solid #CBD5E1; background:#F8FAFC; border-radius:3px; padding:0 4px; font-size:0.74rem; cursor:pointer;" title="往後" onclick="bbGroupMoveChild(${gIdx}, ${cIdx}, 1)">▶</button>
+              ` : `<span style="font-size:0.78rem; font-weight:800; color:#475569;">${ch.configured ? '✓ 已設' : '點擊設'}</span>`}
             </div>
           </div>
         `;
@@ -2048,31 +2048,31 @@
         <div class="bb-group-box" ${grpBoxDrag}>
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;" onclick="event.stopPropagation();">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span class="mono" style="background:#D97706; color:#FFFFFF; font-weight:900; font-size:0.75rem; padding:2px 7px; border-radius:999px;">#${gIdx + 1} 📦 群組 (${chs.length}塊共用 1 Phase)</span>
-              ${gc.phase_role === '0' ? '<span class="mono" style="background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase 0</span>' : (gc.phase_role === '-1' ? '<span class="mono" style="background:#E2E8F0; color:#475569; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase -1 略過</span>' : (['97','97:PWROFF','98','99'].includes(gc.phase_role) ? `<span class="mono" style="background:#FFE4E6; color:#9F1239; font-weight:900; font-size:0.72rem; padding:1px 7px; border-radius:999px;">Phase ${_esc(gc.phase_role)}</span>` : ''))}
+              <span class="mono" style="background:#D97706; color:#FFFFFF; font-weight:900; font-size:0.84rem; padding:2px 7px; border-radius:999px;">#${gIdx + 1} 📦 群組 (${chs.length}塊共用 1 Phase)</span>
+              ${gc.phase_role === '0' ? '<span class="mono" style="background:#EDE9FE; color:#5B21B6; border:1px solid #C4B5FD; font-weight:900; font-size:0.81rem; padding:1px 7px; border-radius:999px;">Phase 0</span>' : (gc.phase_role === '-1' ? '<span class="mono" style="background:#E2E8F0; color:#475569; font-weight:900; font-size:0.81rem; padding:1px 7px; border-radius:999px;">Phase -1 略過</span>' : (['97','97:PWROFF','98','99'].includes(gc.phase_role) ? `<span class="mono" style="background:#FFE4E6; color:#9F1239; font-weight:900; font-size:0.81rem; padding:1px 7px; border-radius:999px;">Phase ${_esc(gc.phase_role)}</span>` : ''))}
               ${readonly
                 ? `<span style="font-size:0.82rem; font-weight:800; color:#78350F;">${_esc(gc.title || '自訂機能群組')}</span>`
                 : `<input value="${_esc(gc.title || '自訂機能群組')}" placeholder="群組共同 Title" oninput="bbGroupSetField(${gIdx},'title',this.value)" style="padding:3px 8px; border:1px solid #F59E0B; border-radius:6px; font-size:0.8rem; font-weight:800; color:#78350F; background:#FFFFFF; width:170px;">`}
             </div>
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
               ${!readonly ? `
-                <select onchange="if(this.value){ bbGroupAddChild(${gIdx}, this.value); this.value=''; }" style="padding:3px 7px; border:1px solid #D97706; border-radius:5px; font-size:0.76rem; font-weight:800; background:#FFFFFF; color:#92400E; cursor:pointer;">
+                <select onchange="if(this.value){ bbGroupAddChild(${gIdx}, this.value); this.value=''; }" style="padding:3px 7px; border:1px solid #D97706; border-radius:5px; font-size:0.84rem; font-weight:800; background:#FFFFFF; color:#92400E; cursor:pointer;">
                   <option value="">＋ 加入子積木</option>
                   ${childOptions.map(b => `<option value="${b.kind}">${b.icon} ${_esc(b.shortName)}</option>`).join('')}
                 </select>
               ` : ''}
-              <button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:5px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer;" onclick="bbToggleGroupCollapse(${gIdx})" title="收合群組">${readonly ? '▲' : '▲ 收合'}</button>
+              <button type="button" style="border:1px solid #D97706; background:#FEF3C7; color:#92400E; border-radius:5px; padding:2px 8px; font-size:0.84rem; font-weight:800; cursor:pointer;" onclick="bbToggleGroupCollapse(${gIdx})" title="收合群組">${readonly ? '▲' : '▲ 收合'}</button>
               ${!readonly ? `
-                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往前" onclick="bbMoveStackIdx(${gIdx}, -1)">◀</button>
-                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="群組往後" onclick="bbMoveStackIdx(${gIdx}, 1)">▶</button>
-                <button type="button" style="border:1px solid #FCA5A5; background:#FFFFFF; color:#DC2626; border-radius:4px; padding:2px 7px; font-size:0.74rem; font-weight:900; cursor:pointer;" title="移除群組" onclick="bbRemoveStackIdx(${gIdx})">✕</button>
+                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.81rem; cursor:pointer;" title="群組往前" onclick="bbMoveStackIdx(${gIdx}, -1)">◀</button>
+                <button type="button" style="border:1px solid #CBD5E1; background:#FFFFFF; border-radius:4px; padding:2px 6px; font-size:0.81rem; cursor:pointer;" title="群組往後" onclick="bbMoveStackIdx(${gIdx}, 1)">▶</button>
+                <button type="button" style="border:1px solid #FCA5A5; background:#FFFFFF; color:#DC2626; border-radius:4px; padding:2px 7px; font-size:0.83rem; font-weight:900; cursor:pointer;" title="移除群組" onclick="bbRemoveStackIdx(${gIdx})">✕</button>
               ` : ''}
             </div>
           </div>
           <div class="bb-group-inner-track">
             ${chs.length ? innerHtml : `<span style="font-size:0.8rem; font-weight:700; color:#92400E; padding:8px;">${readonly ? '此群組尚無子積木' : '將左側「指令 / 等待 / 儀器 / 治具 / 比對」拖進此黃框，或點右上角「＋ 加入子積木」'}</span>`}
             ${!readonly ? `
-              <div class="bb-drop-slot-v" style="width:auto; min-width:58px; padding:0 8px; font-size:0.76rem; border-color:#F59E0B; background:rgba(255,255,255,0.6);"
+              <div class="bb-drop-slot-v" style="width:auto; min-width:58px; padding:0 8px; font-size:0.84rem; border-color:#F59E0B; background:rgba(255,255,255,0.6);"
                 ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('drag-over');"
                 ondragleave="this.classList.remove('drag-over');"
                 ondrop="bbDropInGroup(event, ${gIdx}, ${chs.length})">➔ +拖入</div>
@@ -2215,7 +2215,7 @@
         <div id="bbLeftPane" class="bb-left-pane" style="width:${Number(BB_STATE.splitLeftPx || 300)}px;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:8px;">
             <span style="font-weight:900; font-size:0.86rem; color:#0F172A;">🧱 積木庫</span>
-            <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.77rem; font-weight:700; color:#334155;">
+            <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85rem; font-weight:700; color:#334155;">
               <input type="checkbox" ${BB_STATE.showAdvanced ? 'checked' : ''} onchange="bbToggleAdvanced(this.checked)" style="cursor:pointer;">
               <span>進階 (${advCards.length})</span>
             </label>
@@ -2225,7 +2225,7 @@
           </div>
           ${BB_STATE.showAdvanced ? `
             <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #CBD5E1;">
-              <div style="font-size:0.75rem; font-weight:800; color:#64748B; margin-bottom:6px;">進階積木</div>
+              <div style="font-size:0.84rem; font-weight:800; color:#64748B; margin-bottom:6px;">進階積木</div>
               <div class="bb-poker-grid">
                 ${advCards.map(mkPaletteCard).join('')}
               </div>
@@ -2250,7 +2250,7 @@
                 <button type="button" class="btn" data-pop-tip="清空目前編排，恢復標準 6 塊完整流程（含條碼與 chkRoute）" style="padding:4px 10px; font-size:0.84rem; font-weight:800; background:#F8FAFC; border:1.5px solid #CBD5E1; color:#475569;" onclick="bbResetDefaultStack()">🔄 恢復預設 6 塊</button>
                 <button type="button" class="btn" data-pop-tip="載入純儀器單測極簡骨架（免掃條碼/免 SFIS，專注驗證單台電源、DAQ、LED 或 RF 儀器）" style="padding:4px 10px; font-size:0.84rem; font-weight:800; background:#F0FDF4; border:1.5px solid #4ADE80; color:#15803D;" onclick="bbLoadSingleInstPreset()">⚡ 純儀器單測骨架</button>
               </div>
-              <span style="font-size:0.76rem; color:#64748B;">直接拖卡片到任意積木上方或箭頭處即可調換順序</span>
+              <span style="font-size:0.84rem; color:#64748B;">直接拖卡片到任意積木上方或箭頭處即可調換順序</span>
             </div>
             ${BB_STATE.autoSortMsg ? `<div style="background:#EEF2FF; border:1px solid #A5B4FC; color:#1E1B4B; font-size:0.78rem; font-weight:700; padding:6px 10px; border-radius:7px; margin-bottom:8px;">${_esc(BB_STATE.autoSortMsg)}</div>` : ''}
             <div class="bb-poker-track">
@@ -2652,10 +2652,10 @@
                   </div>
                   <div id="bbInferResultBox" style="margin-top:6px; display:${Array.isArray(item._extractCandidates) && item._extractCandidates.length ? 'block' : 'none'};">
                     ${Array.isArray(item._extractCandidates) && item._extractCandidates.length ? `
-                      <div style="font-size:0.77rem; font-weight:800; color:#0F172A; margin-bottom:4px;">💡 已針對 <code>${_esc(item._lastTarget || '')}</code> 算出 ${item._extractCandidates.length} 種擷取方案（點選切換）：</div>
+                      <div style="font-size:0.85rem; font-weight:800; color:#0F172A; margin-bottom:4px;">💡 已針對 <code>${_esc(item._lastTarget || '')}</code> 算出 ${item._extractCandidates.length} 種擷取方案（點選切換）：</div>
                       <div style="display:flex; gap:5px; flex-wrap:wrap;">
                         ${item._extractCandidates.map((cd, ci) => `
-                          <button type="button" onclick="bbApplyInferCandidate(${idx}, ${ci})" class="mono" style="cursor:pointer; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; border:1.5px solid ${item._activeCandIdx === ci ? '#2563EB' : '#CBD5E1'}; background:${item._activeCandIdx === ci ? '#DBEAFE' : '#F8FAFC'}; color:#1E293B;">
+                          <button type="button" onclick="bbApplyInferCandidate(${idx}, ${ci})" class="mono" style="cursor:pointer; padding:4px 8px; border-radius:6px; font-size:0.84rem; font-weight:800; border:1.5px solid ${item._activeCandIdx === ci ? '#2563EB' : '#CBD5E1'}; background:${item._activeCandIdx === ci ? '#DBEAFE' : '#F8FAFC'}; color:#1E293B;">
                             ${_esc(cd.label)}
                           </button>
                         `).join('')}
@@ -2719,22 +2719,22 @@
                     <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #CBD5E1;">
                       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                         <span style="font-size:0.79rem; font-weight:900; color:#1E40AF;">🧬 單筆指令同時擷取多個變數（多行 Ref，如 mfg sysinfo）：</span>
-                        <button type="button" class="btn" style="padding:2px 9px; font-size:0.74rem; font-weight:800; background:#DBEAFE; border:1px solid #60A5FA;" onclick="bbCmdAddRefRow(${idx})">＋ 新增同時擷取變數</button>
+                        <button type="button" class="btn" style="padding:2px 9px; font-size:0.83rem; font-weight:800; background:#DBEAFE; border:1px solid #60A5FA;" onclick="bbCmdAddRefRow(${idx})">＋ 新增同時擷取變數</button>
                       </div>
                       ${(Array.isArray(c.multi_refs) && c.multi_refs.length) ? c.multi_refs.map((mr, mi) => `
                         <div style="display:grid; grid-template-columns:110px 95px 1fr 1fr auto 28px; gap:5px; align-items:center; margin-top:4px;">
-                          <input value="${_esc(mr.var_name || '')}" placeholder="變數名" oninput="bbCmdUpdateRefRow(${idx},${mi},'var_name',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
-                          <select onchange="bbCmdUpdateRefRow(${idx},${mi},'extract_mode',this.value)" style="padding:3px; border:1px solid #94A3B8; border-radius:4px; font-size:0.75rem;">
+                          <input value="${_esc(mr.var_name || '')}" placeholder="變數名" oninput="bbCmdUpdateRefRow(${idx},${mi},'var_name',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.84rem;">
+                          <select onchange="bbCmdUpdateRefRow(${idx},${mi},'extract_mode',this.value)" style="padding:3px; border:1px solid #94A3B8; border-radius:4px; font-size:0.84rem;">
                             <option value="within" ${mr.extract_mode !== 'split' && mr.extract_mode !== 'sub' ? 'selected' : ''}>Within</option>
                             <option value="split" ${mr.extract_mode === 'split' ? 'selected' : ''}>Split</option>
                             <option value="sub" ${mr.extract_mode === 'sub' ? 'selected' : ''}>Sub</option>
                           </select>
-                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_sep || ':') : (mr.extract_mode === 'sub' ? (mr.sub_start || '0') : (mr.left_delim ?? '')))}" placeholder="左界/分隔/起" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_sep' : (mr.extract_mode === 'sub' ? 'sub_start' : 'left_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
-                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_idx || '1') : (mr.extract_mode === 'sub' ? (mr.sub_len || '8') : (mr.right_delim ?? '\\n')))}" placeholder="右界/段數/長" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_idx' : (mr.extract_mode === 'sub' ? 'sub_len' : 'right_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.76rem;">
-                          <label style="font-size:0.72rem; font-weight:700;"><input type="checkbox" ${mr.trim ? 'checked' : ''} onchange="bbCmdUpdateRefRow(${idx},${mi},'trim',this.checked)">Trim</label>
+                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_sep || ':') : (mr.extract_mode === 'sub' ? (mr.sub_start || '0') : (mr.left_delim ?? '')))}" placeholder="左界/分隔/起" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_sep' : (mr.extract_mode === 'sub' ? 'sub_start' : 'left_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.84rem;">
+                          <input value="${_esc(mr.extract_mode === 'split' ? (mr.split_idx || '1') : (mr.extract_mode === 'sub' ? (mr.sub_len || '8') : (mr.right_delim ?? '\\n')))}" placeholder="右界/段數/長" oninput="bbCmdUpdateRefRow(${idx},${mi},'${mr.extract_mode === 'split' ? 'split_idx' : (mr.extract_mode === 'sub' ? 'sub_len' : 'right_delim')}',this.value)" class="mono" style="padding:3px 6px; border:1px solid #94A3B8; border-radius:4px; font-size:0.84rem;">
+                          <label style="font-size:0.81rem; font-weight:700;"><input type="checkbox" ${mr.trim ? 'checked' : ''} onchange="bbCmdUpdateRefRow(${idx},${mi},'trim',this.checked)">Trim</label>
                           <button type="button" style="border:1px solid #FCA5A5; background:#FFF; color:#DC2626; border-radius:4px; cursor:pointer; font-weight:900;" onclick="bbCmdDelRefRow(${idx},${mi})">✕</button>
                         </div>
-                      `).join('') : '<div style="font-size:0.74rem; color:#64748B;">（未新增多行 Ref 時，只擷取上方單一變數）</div>'}
+                      `).join('') : '<div style="font-size:0.83rem; color:#64748B;">（未新增多行 Ref 時，只擷取上方單一變數）</div>'}
                     </div>
                   </div>
                 ` : ''}
@@ -2946,11 +2946,11 @@
                     onclick="bbSelectBuilderInst(${idx},'${_esc(nm)}')"
                     title="${_esc(inst.Desc || inst.Functions || nm)}">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:3px; width:100%;">
-                      <span style="font-size:0.67rem; font-weight:900; padding:1px 5px; border-radius:999px; background:${missingDll ? '#FEE2E2' : '#EEF2FF'}; color:${missingDll ? '#B91C1C' : '#3730A3'};">${catBadge(nm)}</span>
-                      <span style="font-size:0.68rem; font-weight:900; color:${isSel ? '#DC2626' : (missingDll ? '#B91C1C' : '#15803D')};">${isSel ? '✓已選' : (missingDll ? '缺DLL' : '實機')}</span>
+                      <span style="font-size:0.78rem; font-weight:900; padding:1px 5px; border-radius:999px; background:${missingDll ? '#FEE2E2' : '#EEF2FF'}; color:${missingDll ? '#B91C1C' : '#3730A3'};">${catBadge(nm)}</span>
+                      <span style="font-size:0.78rem; font-weight:900; color:${isSel ? '#DC2626' : (missingDll ? '#B91C1C' : '#15803D')};">${isSel ? '✓已選' : (missingDll ? '缺DLL' : '實機')}</span>
                     </div>
                     <div class="mono" style="font-weight:900; font-size:0.8rem; color:#0F172A; word-break:break-all;">${_esc(nm)}</div>
-                    <div style="font-size:0.68rem; color:#64748B; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${_esc(inst.Desc || inst.Functions || '')}</div>
+                    <div style="font-size:0.78rem; color:#64748B; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${_esc(inst.Desc || inst.Functions || '')}</div>
                   </button>
                 `;
               }).join('') || '<div style="grid-column:1/-1; text-align:center; padding:14px; color:#64748B; font-size:0.83rem;">找不到符合的儀器，請清除搜尋字或點「全部」</div>'}
@@ -2961,9 +2961,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <div style="font-weight:900; color:#991B1B; font-size:0.92rem;">⚡ NI-6008 / NI-6009 多通道類比電壓量測設定</div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},1)">1 軌預設</button>
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},3)">3 軌(5V/3V3/1V8)</button>
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.77rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},8)">8 軌全配 AI0~7</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.85rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},1)">1 軌預設</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.85rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},3)">3 軌(5V/3V3/1V8)</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.85rem; font-weight:800; background:#F0F9FF; border:1px solid #38BDF8; color:#0369A1;" onclick="bbSetInstNiPreset(${idx},8)">8 軌全配 AI0~7</button>
                   <button type="button" class="btn" style="padding:3px 10px; font-size:0.78rem; font-weight:900; background:#DBEAFE; border:1.5px solid #2563EB; color:#1E40AF;" onclick="bbOpenNi6DiagramFromBuilder(${idx})">🔌 開啟 NI-6008 圖解接線頁</button>
                 </div>
               </div>
@@ -2991,7 +2991,7 @@
                   <input value="${_esc(ch.dl)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].dl=this.value" class="mono" style="width:74px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
                   <span style="font-size:0.78rem; font-weight:700;">UL:</span>
                   <input value="${_esc(ch.ul)}" oninput="BB_STATE.stack[${idx}].config.channels[${ci}].ul=this.value" class="mono" style="width:74px; padding:4px; border:1px solid #94A3B8; border-radius:4px;">
-                  <button type="button" class="btn" style="padding:2px 7px; font-size:0.75rem;" onclick="BB_STATE.stack[${idx}].config.channels.splice(${ci},1); bbRender();">✕</button>
+                  <button type="button" class="btn" style="padding:2px 7px; font-size:0.84rem;" onclick="BB_STATE.stack[${idx}].config.channels.splice(${ci},1); bbRender();">✕</button>
                 </div>
               `).join('')}
               <button type="button" class="btn" style="padding:4px 10px; font-size:0.8rem;" onclick="BB_STATE.stack[${idx}].config.channels.push({ch:BB_STATE.stack[${idx}].config.channels.length,name:'V_CH',dl:'3.15',ul:'3.45'}); bbRender();">+ 新增一個 AI 通道</button>
@@ -3010,9 +3010,9 @@
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <span style="font-weight:900; color:#065F46;">💡 FeasaLED 色彩波長與亮度檢測（實戰 :Dev.CaptureAndRead）</span>
                 <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#DCFCE7; border:1px solid #4ADE80; color:#14532D; font-weight:800;" onclick="bbSetLedPreset(${idx},'green')">💚 綠燈 515~535</button>
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#FFE4E6; border:1px solid #FB7185; color:#9F1239; font-weight:800;" onclick="bbSetLedPreset(${idx},'red')">❤️ 紅燈 620~645</button>
-                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.76rem; background:#DBEAFE; border:1px solid #60A5FA; color:#1E40AF; font-weight:800;" onclick="bbSetLedPreset(${idx},'blue')">💙 藍燈 455~480</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.84rem; background:#DCFCE7; border:1px solid #4ADE80; color:#14532D; font-weight:800;" onclick="bbSetLedPreset(${idx},'green')">💚 綠燈 515~535</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.84rem; background:#FFE4E6; border:1px solid #FB7185; color:#9F1239; font-weight:800;" onclick="bbSetLedPreset(${idx},'red')">❤️ 紅燈 620~645</button>
+                  <button type="button" class="btn" style="padding:3px 9px; font-size:0.84rem; background:#DBEAFE; border:1px solid #60A5FA; color:#1E40AF; font-weight:800;" onclick="bbSetLedPreset(${idx},'blue')">💙 藍燈 455~480</button>
                 </div>
               </div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
@@ -3153,7 +3153,7 @@
             <div style="background:linear-gradient(90deg,#EFF6FF 0%,#EEF2FF 100%); border:1.5px solid #60A5FA; border-radius:9px; padding:9px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div>
                 <div style="font-weight:900; color:#1E3A8A; font-size:0.89rem;">🛡️ 需要多種 SFIS 讀寫組合或實測 GET / WRITE 回傳字串？</div>
-                <div style="font-size:0.77rem; color:#475569;">可呼叫完整「SFIS 流程積木編輯頁」一次串好並實測帶回！</div>
+                <div style="font-size:0.85rem; color:#475569;">可呼叫完整「SFIS 流程積木編輯頁」一次串好並實測帶回！</div>
               </div>
               <button type="button" class="btn btn-primary-blue" style="padding:6px 13px; font-weight:900; font-size:0.84rem;" onclick="bbOpenFullSfisWorkspace(${idx})">
                 🛡️ 呼叫 SFIS 流程積木編輯頁 ▶
@@ -3562,8 +3562,8 @@
               style="${isChild ? 'border-left:3.5px solid #D97706;' : ''}"
               title="${ent.parentGroup ? _esc('所屬群組：' + ((ent.parentGroup.config && ent.parentGroup.config.title) || '群組')) : ''}">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:2px;">
-                <span class="mono" style="font-weight:900; font-size:0.74rem; color:${isChild ? '#B45309' : (isAct ? (isRed ? '#991B1B' : '#1E3A8A') : '#475569')};">${_esc(ent.numLabel)}</span>
-                ${isAct ? `<span style="font-size:0.68rem; font-weight:900; color:${isRed ? '#DC2626' : '#2563EB'};">● 設定中</span>` : (it.configured ? `<span style="font-size:0.72rem; color:#15803D;">✓</span>` : '')}
+                <span class="mono" style="font-weight:900; font-size:0.83rem; color:${isChild ? '#B45309' : (isAct ? (isRed ? '#991B1B' : '#1E3A8A') : '#475569')};">${_esc(ent.numLabel)}</span>
+                ${isAct ? `<span style="font-size:0.78rem; font-weight:900; color:${isRed ? '#DC2626' : '#2563EB'};">● 設定中</span>` : (it.configured ? `<span style="font-size:0.81rem; color:#15803D;">✓</span>` : '')}
               </div>
               <div style="font-weight:800; font-size:0.8rem; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${meta.icon || ''} ${_esc(meta.shortName || it.kind)}</div>
             </button>
@@ -3774,7 +3774,7 @@
               <input value="${_esc((netBlk.config && netBlk.config.dut_ip) || '192.168.11.143')}" oninput="bbExportSetIniParam('DUTIP_1', this.value)" class="mono" style="width:120px; padding:3px 6px; border:1px solid #F59E0B; border-radius:5px; background:#FFFFFF; font-weight:800;">
             </label>
           ` : ''}
-          ${scriptVars.map(sv => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:5px; padding:2px 7px; font-size:0.75rem;">[Scripts] ${_esc(sv)}</span>`).join('')}
+          ${scriptVars.map(sv => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:5px; padding:2px 7px; font-size:0.84rem;">[Scripts] ${_esc(sv)}</span>`).join('')}
         </div>
       </div>
     `;
@@ -3857,7 +3857,7 @@
       `;
     }
     if (isum && (isum.system || isum.settings || isum.scripts)) {
-      const mkChips = (obj) => Object.entries(obj || {}).filter(([_k, v]) => String(v || '').trim() !== '').map(([k, v]) => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:4px; padding:1px 6px; font-size:0.75rem;">${_esc(k)}=${_esc(v)}</span>`).join(' ');
+      const mkChips = (obj) => Object.entries(obj || {}).filter(([_k, v]) => String(v || '').trim() !== '').map(([k, v]) => `<span class="mono" style="background:#FFFFFF; border:1px solid #FCD34D; border-radius:4px; padding:1px 6px; font-size:0.84rem;">${_esc(k)}=${_esc(v)}</span>`).join(' ');
       const sysChips = mkChips(isum.system);
       const setChips = mkChips(isum.settings);
       const scrChips = mkChips(isum.scripts);
@@ -3923,9 +3923,9 @@
       alertBox.innerHTML = `
         ✅ <strong>測試包產出完成，已直接開啟 Excel</strong>（已自動寫入 Checksum；儲存於程式預設輸出目錄）<br>
         📂 <span class="mono">${_esc(data.output_dir)}</span>
-        <button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem; margin-left:6px;" onclick="if(typeof openOutputFolder==='function') openOutputFolder(${JSON.stringify(data.output_dir)})">📂 打開資料夾</button><br>
+        <button type="button" class="btn" style="padding:2px 8px; font-size:0.84rem; margin-left:6px;" onclick="if(typeof openOutputFolder==='function') openOutputFolder(${JSON.stringify(data.output_dir)})">📂 打開資料夾</button><br>
         📄 <span class="mono">${_esc(data.excel_path)}</span>
-        ${data.guide_txt_path ? `<button type="button" class="btn" style="padding:2px 8px; font-size:0.76rem; margin-left:6px;" onclick="if(typeof openGuideTxtFile==='function') openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})">📄 開啟說明 .txt</button>` : ''}<br>
+        ${data.guide_txt_path ? `<button type="button" class="btn" style="padding:2px 8px; font-size:0.84rem; margin-left:6px;" onclick="if(typeof openGuideTxtFile==='function') openGuideTxtFile(${JSON.stringify(data.guide_txt_path)})">📄 開啟說明 .txt</button>` : ''}<br>
         ${typeof window.formatIsnHtml === 'function' ? window.formatIsnHtml(data.isn_info) : ''}
         ${_renderAuditAndIniHtml(data)}
       `;

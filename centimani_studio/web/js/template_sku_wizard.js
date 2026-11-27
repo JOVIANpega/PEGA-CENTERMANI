@@ -76,7 +76,7 @@
         .tsw-btn-soft { cursor:pointer; padding:5px 11px; border-radius:6px; border:1px solid #CBD5E1; background:#F8FAFC; color:#1E293B; font-weight:700; font-size:0.82rem; transition:all 0.15s; }
         .tsw-btn-soft:hover { background:#E0F2FE; border-color:#38BDF8; color:#0369A1; }
         .tsw-card { background:#FFFFFF; border:1.5px solid #CBD5E1; border-radius:10px; padding:12px 15px; margin-bottom:12px; }
-        .tsw-tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.76rem; font-weight:800; }
+        .tsw-tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.84rem; font-weight:800; }
         .tsw-guard-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:999px; font-size:0.8rem; font-weight:800; cursor:pointer; transition:all 0.14s; user-select:none; }
         .tsw-guard-chip.is-run { background:#DCFCE7; border:1.5px solid #4ADE80; color:#14532D; }
         .tsw-guard-chip.is-run:hover { background:#BBF7D0; }
@@ -442,10 +442,10 @@
               return `<label class="tsw-guard-chip ${checked ? 'is-run' : 'is-skip'}" title="${checked ? `${code} 會正常執行此測項；若想讓 ${code} 跳過請點此取消勾選` : `${code} 沒有此零件／不測此項（點一下恢復測試）`}">
                 <input type="checkbox" ${checked ? 'checked' : ''} style="width:14px; height:14px; cursor:pointer;" onchange="tswToggleSectionGuardSku('${_esc(sec.section_title)}','${_esc(code)}',this.checked)">
                 <span class="mono">${_esc(code)}</span>
-                <span style="font-size:0.71rem;">${checked ? '要測' : '不測(跳過)'}</span>
+                <span style="font-size:0.8rem;">${checked ? '要測' : '不測(跳過)'}</span>
               </label>`;
             }).join('')}
-            <span style="font-size:0.77rem; font-weight:800; color:${isGated ? '#9F1239' : '#15803D'}; min-width:130px; text-align:right;">
+            <span style="font-size:0.85rem; font-weight:800; color:${isGated ? '#9F1239' : '#15803D'}; min-width:130px; text-align:right;">
               ${isGated ? `⏭️ ${skippedSkus.map(_esc).join(', ')} 跳過` : '✅ 全部 SKU 都測'}
             </span>
           </div>
@@ -460,24 +460,24 @@
       <div class="tsw-card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
           <span style="font-weight:900; color:#0F172A; font-size:0.95rem;">1. 這次為何要分 SKU？（點一個最接近的，欄位會自動整理）</span>
-          ${isInline ? `<span style="background:#DCFCE7; color:#15803D; border:1px solid #4ADE80; padding:2px 9px; border-radius:999px; font-size:0.76rem; font-weight:800;">● 直接同頁修改，已即時存檔</span>` : ''}
+          ${isInline ? `<span style="background:#DCFCE7; color:#15803D; border:1px solid #4ADE80; padding:2px 9px; border-radius:999px; font-size:0.84rem; font-weight:800;">● 直接同頁修改，已即時存檔</span>` : ''}
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(195px, 1fr)); gap:8px;">
           <button type="button" class="tsw-reason-btn ${TSW.reason === 'derivative' ? 'active' : ''}" onclick="tswSelectReason('derivative')">
             <div>🧩 硬體模組增減</div>
-            <div style="font-size:0.76rem; font-weight:600; color:#64748B;">整機 / 無電池 / 無 WiFi</div>
+            <div style="font-size:0.84rem; font-weight:600; color:#64748B;">整機 / 無電池 / 無 WiFi</div>
           </button>
           <button type="button" class="tsw-reason-btn ${TSW.reason === 'version' ? 'active' : ''}" onclick="tswSelectReason('version')">
             <div>⚙️ 版號 / 料號差異</div>
-            <div style="font-size:0.76rem; font-weight:600; color:#64748B;">HW Rev / FW / 工單名單</div>
+            <div style="font-size:0.84rem; font-weight:600; color:#64748B;">HW Rev / FW / 工單名單</div>
           </button>
           <button type="button" class="tsw-reason-btn ${TSW.reason === 'country' ? 'active' : ''}" onclick="tswSelectReason('country')">
             <div>🌐 區域 / 國別碼不同</div>
-            <div style="font-size:0.76rem; font-weight:600; color:#64748B;">SFIS CountryCode vs DUT</div>
+            <div style="font-size:0.84rem; font-weight:600; color:#64748B;">SFIS CountryCode vs DUT</div>
           </button>
           <button type="button" class="tsw-reason-btn ${TSW.reason === 'custom' ? 'active' : ''}" onclick="tswSelectReason('custom')">
             <div>✏️ 自由設定</div>
-            <div style="font-size:0.76rem; font-weight:600; color:#64748B;">自訂 SFIS 欄位與分支</div>
+            <div style="font-size:0.84rem; font-weight:600; color:#64748B;">自訂 SFIS 欄位與分支</div>
           </button>
         </div>
 
@@ -634,7 +634,7 @@
           <span style="font-weight:900; font-size:0.9rem;">
             ${errs.length === 0 && warns.length === 0 ? '🟢 Script Doctor 預檢通過：0 Error / 0 Warning' : `⚠️ 檢出 ${errs.length} 錯誤 / ${warns.length} 警告`}
           </span>
-          <span style="font-size:0.75rem; color:#475569; font-weight:700;">
+          <span style="font-size:0.84rem; color:#475569; font-weight:700;">
             🎨 與匯出 Excel 同步配色：<span style="background:#1E3A8A;color:#FFF;padding:0 5px;border-radius:3px;">深藍</span>/<span style="background:#14532D;color:#FFF;padding:0 5px;border-radius:3px;">深綠</span>/<span style="background:#7F1D1D;color:#FFF;padding:0 5px;border-radius:3px;">深紅</span>/<span style="background:#4C1D95;color:#FFF;padding:0 5px;border-radius:3px;">深紫</span>/<span style="background:#134E4A;color:#FFF;padding:0 5px;border-radius:3px;">深青</span>配白字 ｜ 條件略過柔青 ｜ <span style="background:#FFF2CC;padding:0 4px;">P97金</span>/<span style="background:#DCFCE7;color:#15803D;padding:0 4px;">P98綠</span>/<span style="background:#FFE4E6;color:#9F1239;padding:0 4px;">P99紅</span>
           </span>
         </div>
@@ -658,7 +658,7 @@
                     <td class="mono" style="padding:2px 6px;">${_esc(r.Reply || '')}</td>
                     <td class="mono" style="padding:2px 6px;">${_esc(r.Validation || '')}</td>
                     <td class="mono" style="padding:2px 6px; color:${isDark ? '#FDE68A' : '#6D28D9'}; font-weight:800;">${_esc(r.ExecMode || '')}</td>
-                    <td style="padding:2px 6px; font-size:0.73rem;">${_esc(v.role_label || '')}</td>
+                    <td style="padding:2px 6px; font-size:0.82rem;">${_esc(v.role_label || '')}</td>
                   </tr>
                 `;
               }).join('')}
