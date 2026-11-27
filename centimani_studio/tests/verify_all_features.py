@@ -3664,6 +3664,39 @@ def run_all_verifications():
                   "v0.8.092 逐行完整比對 (all_rows + station_summary) + 進度視窗/工作表分頁總結 + 原檔名_Fixed_errorcode.xlsx 匯出通過",
                   f"rows={len(all_rows_91)}, st_sum={st_sum_91}, out={tic92_fixed.get('excel_path')}")
 
+            # [v0.8.093] 5 欄 AND 查詢 + 抽屜 3 欄預填 + TX!=RX / 頻率不混 / SfGetVersion 不誤推 Version / 選檔先選範圍再掃 / 字體連動放大
+            and_res93 = get_json("/api/search_test_id?k1=tx&k2=2402&k3=le&generic_only=1&limit=20")
+            and_items93 = and_res93.get("items") or []
+            tic_v93_ws = {
+                "stations": {
+                    "RF": [
+                        {"Index": "1", "Phase": "1", "Title": "0,TX_LE 2402 1LE", "Description": "", "Send": "00,1,2402,7", "TestID": "", "ExecMode": "0"},
+                    ],
+                    "BootUp": [
+                        {"Index": "2", "Phase": "1", "Title": "", "Description": "Get SFIS MACs", "Send": ':SfGetVersion,"*(sf80ISN)","ISN_BASEINFO","4","SSN","SNMAC"', "TestID": "B7PL011", "ExecMode": "0"},
+                        {"Index": "3", "Phase": "1", "Title": "", "Description": "Input Password", "Send": "LAN@admin", "TestID": "", "ExecMode": "0"},
+                    ],
+                }
+            }
+            tic_v93 = post_json("/api/tic_audit_excel", {"workspace": tic_v93_ws})
+            iss93 = tic_v93.get("issues") or []
+            iss93_tx = next((x for x in iss93 if "TX_LE 2402" in str(x.get("title") or "")), None)
+            iss93_mac = next((x for x in iss93 if x.get("description") == "Get SFIS MACs"), None)
+            iss93_pw = next((x for x in iss93 if x.get("description") == "Input Password"), None)
+            tx_cands93 = [c.get("test_id") for c in (iss93_tx or {}).get("candidates", [])]
+            mac_cands93 = [c.get("test_id") for c in (iss93_mac or {}).get("candidates", [])]
+            pick_fn_body93 = idx81_src.split("async function ticBatchPickAndAudit()")[1].split("function ticCancelAudit()")[0]
+            check(and_res93.get("status") == "ok" and len(and_items93) > 0
+                  and all("2402" in (x.get("desc_en", "") + x.get("desc_cn", "")) and "2440" not in x.get("desc_en", "") and "RX" not in x.get("desc_en", "").upper() for x in and_items93)
+                  and iss93_tx is not None and "RVRF031" not in tx_cands93 and any(str(t).startswith("BTTX") for t in tx_cands93)
+                  and iss93_mac is not None and "VSCH018" not in mac_cands93 and any(t in mac_cands93 for t in ("OTFX133", "OTFX085"))
+                  and iss93_pw is not None and iss93_pw.get("auto_confirmed") is False
+                  and "ticSearchK5" in idx81_src
+                  and "ticBatchRowK3_" in idx81_src
+                  and "ticAuditExcel(STATE.workspace.source_file" not in pick_fn_body93,
+                  "v0.8.093 5欄AND查碼 + TX≠RX頻道互斥 + Get SFIS MACs免誤判OS Version + 選檔先選範圍再掃通過",
+                  f"and_n={len(and_items93)}, tx={tx_cands93}, mac={mac_cands93}, pw_auto={iss93_pw and iss93_pw.get('auto_confirmed')}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

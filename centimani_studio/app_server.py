@@ -1113,7 +1113,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             if last_f and not os.path.isfile(last_f):
                 last_f = ""
             self._send_json({
-                "server_build": "Build v0.8.092",
+                "server_build": "Build v0.8.093",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "last_opened_file": last_f,
@@ -1279,7 +1279,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             q = qs.get("q", [""])[0]
             limit = int(qs.get("limit", ["30"])[0])
             generic_only = qs.get("generic_only", ["0"])[0] in ("1", "true", "True")
-            items = search_test_ids(q, limit=limit, generic_only=generic_only)
+            and_terms = [qs.get(f"k{i}", [""])[0] for i in range(1, 6) if qs.get(f"k{i}", [""])[0].strip()]
+            items = search_test_ids(q, limit=limit, generic_only=generic_only, and_terms=and_terms or None)
             self._send_json({"status": "ok", "items": items})
         elif parsed.path == "/api/sfis_hmi_profiles":
             from core.sfis_client import SFIS_PLANT_PRESETS, DEFAULT_VIRTUAL_MO_TEMPLATES
@@ -1931,7 +1932,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.092")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.093")
 
                 self._send_json({
                     "status": "ok",
@@ -2311,7 +2312,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.092")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.093")
 
                 self._send_json({
                     "status": "ok",
@@ -2565,7 +2566,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.092")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.093")
 
                 self._send_json({
                     "status": "ok",
@@ -2936,7 +2937,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.092")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.093")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -3107,7 +3108,7 @@ def run_server(port=8765):
         # Port already in use (e.g. already running); open existing studio window instead of silent exit
         launch_fullscreen_browser(url)
         return
-    print(f"Centimani Studio V2.4 (Build v0.8.092) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.093) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 

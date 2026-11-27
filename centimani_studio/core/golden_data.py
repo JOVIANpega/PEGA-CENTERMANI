@@ -962,21 +962,119 @@ def get_tic_catalog():
     return catalog
 
 
-def search_test_ids(query, limit=30, generic_only=False):
+def _and_term_hits(tl, tid_l, ec_l, en_l, cn_l, mf_l, if_l):
+    """Smart strict matcher for a single AND keyword against a Test Item Code row."""
+    import re
+    if not tl:
+        return (True, 0)
+    if tl == tid_l or tl == ec_l:
+        return (True, 120)
+    if tid_l.startswith(tl) or ec_l.startswith(tl):
+        return (True, 60)
+
+    has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in tl)
+    if has_cjk:
+        if tl in cn_l:
+            return (True, 30)
+        if tl in en_l or tl in mf_l or tl in if_l:
+            return (True, 18)
+        return (False, 0)
+
+    # Pure numeric (e.g. 2402, 2412, 5180): forbid partial prefix overlap inside another channel number
+    if tl.isdigit():
+        pat = rf"(?<![0-9]){re.escape(tl)}(?![0-9])"
+        if re.search(pat, en_l) or re.search(pat, cn_l):
+            return (True, 32)
+        return (False, 0)
+
+    # Short ASCII tokens (<= 3 chars like tx, rx, le, bt, ac, dc, 5v): avoid false substring hits (e.g. 'le' in 'cable')
+    if len(tl) <= 3:
+        # Split identifiers like 'TX1_2402_BLE_PER' into alphanumeric word parts AND alpha/num sub-parts
+        en_parts = set(re.findall(r"[a-z0-9]+|[a-z]+|[0-9]+", en_l))
+        cn_parts = set(re.findall(r"[a-z0-9]+|[a-z]+|[0-9]+", cn_l))
+        hit_en = (
+            tl in en_parts
+            or bool(re.search(rf"(?<![a-z0-9]){re.escape(tl)}(?![a-z0-9])", en_l))
+            or (tl == "le" and ("ble" in en_parts or "1le" in en_parts))
+            or (tl == "tx" and any(p.startswith("tx") and p[2:].isdigit() for p in en_parts))
+            or (tl == "rx" and any(p.startswith("rx") and p[2:].isdigit() for p in en_parts))
+        )
+        hit_cn = (
+            tl in cn_parts
+            or bool(re.search(rf"(?<![a-z0-9]){re.escape(tl)}(?![a-z0-9])", cn_l))
+            or (tl == "le" and ("ble" in cn_parts or "1le" in cn_parts))
+        )
+        if hit_en:
+            return (True, 26)
+        if hit_cn:
+            return (True, 24)
+        if tl in re.findall(r"[a-z0-9]+", mf_l) or tl in re.findall(r"[a-z0-9]+", if_l):
+            return (True, 10)
+        return (False, 0)
+
+    pts = 0
+    if tl in en_l:
+        pts += 24
+    if tl in cn_l:
+        pts += 24
+    if pts == 0 and (tl in mf_l or tl in if_l):
+        pts += 8
+    return (pts > 0, pts)
+
+
+def search_test_ids(query="", limit=30, generic_only=False, and_terms=None):
     """
     Searches the official Test Item Code catalog by free-text keywords (EN/CN/TestID/ErrorCode),
-    prioritizing generic production codes over project-specific test point codes.
+    or strict multi-field AND filtering when `and_terms` has non-empty values.
     """
+    import re
+    catalog = get_tic_catalog()
+
+    clean_and = [str(t or "").strip().lower() for t in (and_terms or []) if str(t or "").strip()]
+    if clean_and:
+        # Flatten any spaces inside individual boxes into required AND sub-tokens
+        req_tokens = []
+        for cell in clean_and:
+            for part in re.split(r"[\s,;/#]+", cell):
+                p = part.strip()
+                if p and p not in req_tokens:
+                    req_tokens.append(p)
+        scored = []
+        for item in catalog:
+            if generic_only and not item["is_generic"]:
+                continue
+            tid_l = item["test_id"].lower()
+            ec_l = item["error_code"].lower()
+            en_l = item["desc_en"].lower()
+            cn_l = item["desc_cn"].lower()
+            mf_l = item["main_func"].lower()
+            if_l = item["interface"].lower()
+
+            total_pts = 0
+            all_ok = True
+            for tok in req_tokens:
+                ok, pts = _and_term_hits(tok, tid_l, ec_l, en_l, cn_l, mf_l, if_l)
+                if not ok:
+                    all_ok = False
+                    break
+                total_pts += pts
+            if not all_ok:
+                continue
+            if item["is_generic"]:
+                total_pts += 28
+            total_pts -= min(len(item["desc_en"]), 60) * 0.1
+            scored.append((total_pts, item))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [x[1] for x in scored[:limit]]
+
     q = (query or "").strip()
     if not q:
         return []
 
-    import re
     tokens = [t.lower() for t in re.split(r"[\s,;/#\-_]+", q) if t.strip()]
     if not tokens:
         return []
 
-    catalog = get_tic_catalog()
     scored = []
     for item in catalog:
         if generic_only and not item["is_generic"]:
@@ -991,23 +1089,9 @@ def search_test_ids(query, limit=30, generic_only=False):
         score = 0
         matched_tokens = 0
         for tok in tokens:
-            hit = False
-            if tok == tid_l or tok == ec_l:
-                score += 100
-                hit = True
-            elif tid_l.startswith(tok) or ec_l.startswith(tok):
-                score += 50
-                hit = True
-            if tok in en_l:
-                score += 20
-                hit = True
-            if tok in cn_l:
-                score += 25
-                hit = True
-            if tok in mf_l or tok in if_l:
-                score += 8
-                hit = True
-            if hit:
+            ok, pts = _and_term_hits(tok, tid_l, ec_l, en_l, cn_l, mf_l, if_l)
+            if ok:
+                score += pts
                 matched_tokens += 1
 
         if matched_tokens == 0:
@@ -1015,7 +1099,7 @@ def search_test_ids(query, limit=30, generic_only=False):
 
         # Bonus for matching all tokens and being a generic production code
         if matched_tokens == len(tokens):
-            score += 30
+            score += 45
         if item["is_generic"]:
             score += 25
         # Prefer concise generic descriptions
@@ -1118,25 +1202,35 @@ def _trigger_matches_text(trigger, low, spaced_low):
     return bool(re.search(rf"(?<![a-z0-9]){re.escape(trigger)}(?![a-z0-9])", spaced_low))
 
 
-def _extract_row_keywords(title, desc, send):
+def _extract_row_keywords(title, desc, send, return_concrete=False):
     import re
     clean_desc = re.sub(r"^(?:DUT|PC|OP)#-#", "", (desc or "").strip(), flags=re.I)
-    clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip())
+    clean_desc = re.sub(r"^log[_\s]+", "", clean_desc, flags=re.I).strip()
+    clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip()).strip()
     # Prioritize Script Description (Col O) -> Title -> Send payload, preserving numeric/channel tokens like 2412, TX1, 5V
     primary_raw = f"{clean_desc} {clean_title}".strip()
     primary_low = primary_raw.lower()
     primary_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", primary_raw).replace("_", " ").lower()
 
-    send_clean = re.sub(r"^(?:UARTF?|SSH[0-9]*|TELNET[0-9]*|ADB[0-9]*|LAN|COM[0-9]*)@+", "", (send or "").strip(), flags=re.I)
+    send_raw = (send or "").strip()
+    send_low_full = send_raw.lower()
+    is_sfis_func = send_low_full.startswith((":sfget", ":sfsave", ":sfcheckroute", ":wsfis"))
+    is_box_or_cmd = send_low_full.startswith((":showconfirmbox", ":showimageconfirmbox", ":lib.cmd", ":lib.substr"))
+    send_clean = re.sub(r"^(?:UARTF?|SSH[0-9]*|TELNET[0-9]*|ADB[0-9]*|LAN|COM[0-9]*)@+", "", send_raw, flags=re.I)
     send_low = send_clean.lower()
     send_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", send_clean).replace("_", " ").lower()
 
     syn_tokens = []
+    concrete_tokens = []
     seen = set()
 
     # 1) Direct alphanumeric/Chinese tokens from Script Description (Col O) then Title (preserve 2412, TX1, 5V, etc.)
     for w in re.findall(r"[a-zA-Z0-9]{2,}|[\u4e00-\u9fff]{2,}", primary_raw.replace("_", " ").replace("-", " ")):
         wl = w.lower()
+        # Normalize plural MACs -> MAC, LEDs -> LED, Buttons -> Button
+        if wl in ("macs", "leds", "buttons", "ports", "pins"):
+            w = w[:-1]
+            wl = w.lower()
         if wl in _STOP_KEYWORDS or wl in _TRANSPORT_ONLY_TOKENS or wl in seen:
             continue
         # Ignore bare tiny integers like 1, 2, 10 unless >= 4 digits (e.g. 2412, 5180, 6008)
@@ -1144,6 +1238,7 @@ def _extract_row_keywords(title, desc, send):
             continue
         seen.add(wl)
         syn_tokens.append(w)
+        concrete_tokens.append(w)
 
     # 2) Synonyms from Description + Title
     for triggers, expanded in _ATE_SYNONYM_GROUPS:
@@ -1154,8 +1249,13 @@ def _extract_row_keywords(title, desc, send):
                     seen.add(tl)
                     syn_tokens.append(tok)
 
-    # 3) Synonyms from Send payload (only after Description + Title)
-    if send_clean:
+    # 3) Synonyms from Send payload (only after Description + Title; skip false triggers from :SfGetVersion / file paths)
+    if is_sfis_func:
+        for tok in (("route", "sfis") if send_low_full.startswith(":sfcheckroute") else ("sfis",)):
+            if tok not in seen:
+                seen.add(tok)
+                syn_tokens.append(tok)
+    elif send_clean and not is_box_or_cmd:
         for triggers, expanded in _ATE_SYNONYM_GROUPS:
             if any(_trigger_matches_text(t, send_low, send_spaced) for t in triggers):
                 for tok in expanded:
@@ -1164,6 +1264,8 @@ def _extract_row_keywords(title, desc, send):
                         seen.add(tl)
                         syn_tokens.append(tok)
 
+    if return_concrete:
+        return syn_tokens, concrete_tokens
     return syn_tokens
 
 
@@ -1186,8 +1288,9 @@ def re_has_rf(blob):
 
 
 _EXCLUSIVE_DOMAIN_WORDS = (
-    "moca", "hdmi", "edid", "cable modem", "bluetooth", "audio", "camera",
+    "moca", "hdmi", "edid", "cable modem", "audio", "camera",
     "sata", "pcie", "nfc", "fingerprint", "touch", "battery", "gps", "zigbee",
+    "scart", "1394", "modem line", "hdd", "keyboard", "touchpanel",
 )
 
 
@@ -1198,30 +1301,64 @@ def _token_in_text(tok_l, text_l):
     if any("\u4e00" <= ch <= "\u9fff" for ch in tok_l):
         return tok_l in text_l
     if len(tok_l) <= 3:
-        return bool(re.search(rf"(?<![a-z0-9]){re.escape(tok_l)}(?![a-z0-9])", text_l))
+        parts = set(re.findall(r"[a-z0-9]+|[a-z]+|[0-9]+", text_l))
+        if tok_l in parts or bool(re.search(rf"(?<![a-z0-9]){re.escape(tok_l)}(?![a-z0-9])", text_l)):
+            return True
+        if tok_l in ("le", "1le") and ("ble" in parts or "1le" in parts or "le" in parts):
+            return True
+        return False
     return tok_l in text_l
 
 
 def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=False):
     """Compute a 0..100 similarity score between a script step and a Test Item Code entry."""
+    import re
     from difflib import SequenceMatcher
     en_l = str(cand.get("desc_en") or "").lower()
     cn_l = str(cand.get("desc_cn") or "").lower()
     mf_l = str(cand.get("main_func") or "").lower()
     if_l = str(cand.get("interface") or "").lower()
 
-    clean_desc = (desc or "").replace("DUT#-#", "").replace("PC#-#", "").replace("OP#-#", "").strip()
-    row_text = f"{title} {clean_desc}".strip().lower()
+    clean_desc = re.sub(r"^(?:DUT|PC|OP)#-#", "", (desc or "").strip(), flags=re.I)
+    clean_desc = re.sub(r"^log[_\s]+", "", clean_desc, flags=re.I).strip()
+    clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip()).strip()
+    row_text = f"{clean_title} {clean_desc}".strip().lower()
     if not row_text:
         row_text = (send or "").strip().lower()
     full_row_blob = f"{row_text} {send}".lower()
     full_cand_blob = f"{en_l} {mf_l} {if_l}"
 
-    # Penalize if candidate targets an exclusive subsystem (e.g. MOCA / HDMI / Audio) not mentioned in the script step
+    # Penalize if candidate targets an exclusive subsystem (e.g. MOCA / HDMI / Audio / 1394 / SCART) not in the script step
     domain_penalty = 0.0
     for dom in _EXCLUSIVE_DOMAIN_WORDS:
         if dom in full_cand_blob and dom not in full_row_blob:
-            domain_penalty += 32.0
+            domain_penalty += 38.0
+
+    # Bluetooth domain protection (allow BLE / 1LE / 2402 / 2440 / 2480 / BDR / EDR rows to match Bluetooth codes)
+    if "bluetooth" in full_cand_blob and not any(k in full_row_blob for k in ("bluetooth", "ble", "1le", "bdr", "edr", "2402", "2440", "2480", "bt_")):
+        if not re.search(r"(?<![a-z0-9])(bt|le)(?![a-z0-9])", full_row_blob):
+            domain_penalty += 38.0
+
+    # WiFi domain protection (LAN@admin Password must not match WIFI_Password fail)
+    if "wifi" in (en_l + " " + mf_l) and not any(k in full_row_blob for k in ("wifi", "wlan", "ssid", "11ag", "11ac", "11ax", "bpsk", "ofdm", "2412", "2437", "2462", "5180", "5500", "5745", "2g", "5g", "6g")):
+        domain_penalty += 40.0
+
+    # TX vs RX directional exclusivity (TX step must NOT recommend RX code and vice versa)
+    row_parts = set(re.findall(r"[a-z]+|[a-z0-9]+", full_row_blob))
+    cand_parts = set(re.findall(r"[a-z]+|[a-z0-9]+", en_l))
+    row_tx = ("tx" in row_parts or any(p.startswith("tx") and p[2:].isdigit() for p in row_parts))
+    row_rx = ("rx" in row_parts or any(p.startswith("rx") and p[2:].isdigit() for p in row_parts))
+    cand_tx = ("tx" in cand_parts or any(p.startswith("tx") and p[2:].isdigit() for p in cand_parts))
+    cand_rx = ("rx" in cand_parts or any(p.startswith("rx") and p[2:].isdigit() for p in cand_parts))
+    if (row_tx and not row_rx and cand_rx and not cand_tx) or (row_rx and not row_tx and cand_tx and not cand_rx):
+        domain_penalty += 60.0
+
+    # 4-digit RF channel frequency exclusivity (2402 step must NOT match 2440 or 2480)
+    row_freqs = set(re.findall(r"(?<![0-9])(?:24[0-9]{2}|5[0-9]{3}|6[0-9]{3})(?![0-9])", full_row_blob))
+    cand_freqs = set(re.findall(r"(?<![0-9])(?:24[0-9]{2}|5[0-9]{3}|6[0-9]{3})(?![0-9])", en_l + " " + cn_l))
+    if row_freqs and cand_freqs and not (row_freqs & cand_freqs):
+        domain_penalty += 60.0
+    freq_en_bonus = 10.0 if (row_freqs and (row_freqs & set(re.findall(r"(?<![0-9])(?:24[0-9]{2}|5[0-9]{3}|6[0-9]{3})(?![0-9])", en_l)))) else 0.0
 
     matched = 0
     substantive_hits = 0
@@ -1236,35 +1373,44 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
             matched += 1
             if is_sub:
                 substantive_hits += 1
-                weighted_hits += 1.2 if idx_t < 3 else 1.0
+                weighted_hits += 1.25 if idx_t < 3 else 1.0
             else:
-                weighted_hits += 0.4
+                weighted_hits += 0.35
         elif _token_in_text(tl, mf_l) or _token_in_text(tl, if_l):
             matched += 1
             if is_sub:
                 substantive_hits += 1
-                weighted_hits += 0.6
+                weighted_hits += 0.55
             else:
-                weighted_hits += 0.25
+                weighted_hits += 0.2
 
-    tok_denom = max(1.0, min(len(kw_tokens or []), 4))
+    tok_denom = max(1.0, min(substantive_total or len(kw_tokens or []), 4))
     tok_ratio = min(1.0, weighted_hits / tok_denom)
     seq_ratio = SequenceMatcher(None, row_text[:80], f"{en_l} {cn_l}".strip()[:80]).ratio() if (row_text and (en_l or cn_l)) else 0.0
 
-    raw = tok_ratio * 68.0 + seq_ratio * 24.0 + (10.0 if cand.get("is_generic") else 0.0) - domain_penalty
+    # Natural engineering intent bonus: e.g. 'Get ... MAC' matches OTFX133 ('Get MAC Fail') or 'Get SFIS' matches OTFX085 ('Get SFIS DATA Fail')
+    intent_bonus = 0.0
+    if domain_penalty <= 0:
+        if re.search(r"\bget\b", row_text) and re.search(r"\bmac\b", row_text) and not any(w in row_text for w in ("wifi", "wlan", "eth", "bt")):
+            if en_l.startswith("get mac"):
+                intent_bonus += 26.0
+        if "sfis" in row_text and re.search(r"\bget\b", row_text) and "get sfis data" in en_l:
+            intent_bonus += 14.0
+
+    raw = tok_ratio * 64.0 + seq_ratio * 22.0 + (8.0 if cand.get("is_generic") else 0.0) + freq_en_bonus + intent_bonus - domain_penalty
     if domain_penalty <= 0:
         if substantive_total > 0 and substantive_hits == 0 and not is_ctrl:
             raw = min(raw, 36.0)
-        elif substantive_hits >= 2 and cand.get("is_generic"):
-            raw = max(raw, 78.0)
-        elif substantive_hits >= 1 and cand.get("is_generic") and tok_ratio >= 0.45:
-            raw = max(raw, 74.0)
+        elif substantive_hits == 1 and seq_ratio < 0.65 and intent_bonus <= 0:
+            raw = min(raw, 65.0)
+        elif substantive_hits >= 2 and cand.get("is_generic") and tok_ratio >= 0.62:
+            raw = max(raw, 76.0)
         elif matched == 0 and is_ctrl and str(cand.get("test_id") or "").upper() in _PLACEHOLDER_TEST_IDS:
             raw = max(raw, 65.0)
         elif matched == 0:
             raw = min(raw, 35.0)
     else:
-        raw = min(raw, 40.0)
+        raw = min(raw, 30.0)
 
     return max(0, min(99, int(round(raw))))
 
@@ -1363,7 +1509,7 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 })
                 continue
 
-            kw_tokens = _extract_row_keywords(title, desc, send)
+            kw_tokens, concrete_tokens = _extract_row_keywords(title, desc, send, return_concrete=True)
             reason_code = ""
             reason_label = ""
 
@@ -1413,6 +1559,7 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                     "reason_label": "原碼與描述相符",
                     "row_status": "matched_ok",
                     "query_keywords": kw_tokens[:6],
+                    "search_terms": concrete_tokens[:5],
                     "candidates": [],
                     "best_score": cur_sc,
                     "match_tier": "high",
@@ -1423,9 +1570,26 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 })
                 continue
 
-            # Gather up to 5 deduplicated candidate TestIDs with confidence scores
+            # Gather candidate TestIDs across all 5,253 entries: strict AND intersection first, then broader OR fallback
             raw_cands = []
             seen_tids = set()
+            and_batches = []
+            if len(concrete_tokens) >= 3:
+                and_batches.append(concrete_tokens[:3])
+            if len(concrete_tokens) >= 2:
+                and_batches.append(concrete_tokens[:2])
+            for a_terms in and_batches:
+                for cand in search_test_ids("", limit=30, and_terms=a_terms):
+                    c_tid = cand.get("test_id", "").upper()
+                    if not c_tid or c_tid in seen_tids:
+                        continue
+                    seen_tids.add(c_tid)
+                    scored_cand = dict(cand)
+                    scored_cand["confidence_score"] = _score_candidate_confidence(
+                        kw_tokens, title, desc, send, cand, is_ctrl=is_ctrl
+                    )
+                    raw_cands.append(scored_cand)
+
             queries_to_try = []
             if kw_tokens:
                 queries_to_try.append(" ".join(kw_tokens[:3]))
@@ -1437,7 +1601,7 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 queries_to_try.append("delay others")
 
             for q_str in queries_to_try:
-                for cand in search_test_ids(q_str, limit=8):
+                for cand in search_test_ids(q_str, limit=25):
                     c_tid = cand.get("test_id", "").upper()
                     if not c_tid or c_tid in seen_tids:
                         continue
@@ -1479,6 +1643,7 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                     "reason_label": "原碼尚可接受（無顯著更優替代碼）",
                     "row_status": "matched_ok",
                     "query_keywords": kw_tokens[:6],
+                    "search_terms": concrete_tokens[:5],
                     "candidates": candidates,
                     "best_score": cur_sc,
                     "match_tier": "high",
@@ -1526,6 +1691,7 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "reason_label": reason_label,
                 "row_status": row_status,
                 "query_keywords": kw_tokens[:6],
+                "search_terms": concrete_tokens[:5],
                 "candidates": candidates,
                 "best_score": best_score,
                 "match_tier": match_tier,
