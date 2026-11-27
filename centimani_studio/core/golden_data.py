@@ -1045,6 +1045,7 @@ _CONTROL_SEND_PREFIXES = (
 
 _PLACEHOLDER_TEST_IDS = {
     "B7PL025",
+    "B7PL011",
     "OTFX054",
     "OTFX074",
     "OTFX082",
@@ -1077,7 +1078,8 @@ _ATE_SYNONYM_GROUPS = [
     (("flash", "燒錄", "fwdl", "download", "emmc", "spi", "nvme"), ["download", "flash", "燒錄"]),
     (("usb", "getcom"), ["usb"]),
     (("boot", "reboot", "startup", "開機", "delay", "wait"), ["boot", "delay", "wait"]),
-    (("fan", "pwm", "rpm", "轉速"), ["fan", "speed"]),
+    (("fan", "pwm", "rpm", "轉速", "風扇"), ["fan", "speed"]),
+    (("sound", "noise", "聲音", "異音", "噪音"), ["sound", "noise"]),
     (("rtc", "clock", "time", "ntp"), ["rtc", "time"]),
     (("lte", "5g", "wwan", "imei", "sim", "modem"), ["lte", "wwan", "sim"]),
     (("gps", "gnss"), ["gps", "gnss"]),
@@ -1113,27 +1115,46 @@ def _trigger_matches_text(trigger, low, spaced_low):
 
 def _extract_row_keywords(title, desc, send):
     import re
-    raw = f"{title} {desc} {send}"
-    low = raw.lower()
-    spaced_low = re.sub(r"([a-z])([A-Z])", r"\1 \2", raw).lower()
+    clean_desc = re.sub(r"^(?:DUT|PC|OP)#-#", "", (desc or "").strip(), flags=re.I)
+    clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip())
+    # Prioritize Title & Description (the actual test purpose) before Send transport prefixes (LAN@@, UART@, etc.)
+    primary_raw = f"{clean_title} {clean_desc}".strip()
+    primary_low = primary_raw.lower()
+    primary_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", primary_raw).lower()
+
+    send_clean = re.sub(r"^(?:UARTF?|SSH[0-9]*|TELNET[0-9]*|ADB[0-9]*|LAN|COM[0-9]*)@+", "", (send or "").strip(), flags=re.I)
+    send_low = send_clean.lower()
+    send_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", send_clean).lower()
+
     syn_tokens = []
     seen = set()
 
+    # 1) Synonyms from Title + Description first
     for triggers, expanded in _ATE_SYNONYM_GROUPS:
-        if any(_trigger_matches_text(t, low, spaced_low) for t in triggers):
+        if any(_trigger_matches_text(t, primary_low, primary_spaced) for t in triggers):
             for tok in expanded:
                 tl = tok.lower()
                 if tl not in seen:
                     seen.add(tl)
                     syn_tokens.append(tok)
 
-    raw_source = f"{title} {desc}"
-    for w in re.findall(r"[a-zA-Z]{3,}|[\u4e00-\u9fff]{2,}", raw_source):
+    # 2) Direct substantive words from Title + Description
+    for w in re.findall(r"[a-zA-Z]{3,}|[\u4e00-\u9fff]{2,}", primary_raw):
         wl = w.lower()
-        if wl in _STOP_KEYWORDS or wl in seen:
+        if wl in _STOP_KEYWORDS or wl in _TRANSPORT_ONLY_TOKENS or wl in seen:
             continue
         seen.add(wl)
         syn_tokens.append(w)
+
+    # 3) Synonyms from Send payload (only after Title + Description)
+    if send_clean:
+        for triggers, expanded in _ATE_SYNONYM_GROUPS:
+            if any(_trigger_matches_text(t, send_low, send_spaced) for t in triggers):
+                for tok in expanded:
+                    tl = tok.lower()
+                    if tl not in seen and tl not in _TRANSPORT_ONLY_TOKENS:
+                        seen.add(tl)
+                        syn_tokens.append(tok)
 
     return syn_tokens
 
@@ -1298,10 +1319,12 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                     raw_cands.append(scored_cand)
 
             raw_cands.sort(key=lambda x: (x.get("confidence_score", 0), 1 if x.get("is_generic") else 0), reverse=True)
-            candidates = raw_cands[:5]
+            # Filter out irrelevant <35% candidates (e.g. 0% false hits)
+            filtered_cands = [c for c in raw_cands if int(c.get("confidence_score", 0)) >= 35]
+            candidates = filtered_cands[:5]
 
-            # Do not flag semantic_mismatch if catalog has no alternative suggestion at all
-            if reason_code == "semantic_mismatch" and not candidates:
+            # Do not flag semantic_mismatch on an already-filled non-placeholder TestID unless a much stronger (>=72%) match exists
+            if reason_code == "semantic_mismatch" and (not candidates or int(candidates[0].get("confidence_score", 0)) < 72):
                 ok_count += 1
                 continue
 
@@ -1312,6 +1335,9 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 match_tier = "medium"
             else:
                 match_tier = "low_gap"
+
+            # Auto-confirmed when high similarity (>=72%), or placeholder with a close-enough alternative (>=55%)
+            auto_confirmed = (match_tier == "high") or (reason_code == "generic_placeholder" and best_score >= 55)
 
             issues.append({
                 "station": st_name,
@@ -1331,6 +1357,8 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "candidates": candidates,
                 "best_score": best_score,
                 "match_tier": match_tier,
+                "auto_confirmed": auto_confirmed,
+                "needs_review": not auto_confirmed,
                 "suggest_new_item": (match_tier == "low_gap"),
                 "proposed_new_desc": _clean_proposed_item_name(title, desc, send),
             })
@@ -1345,6 +1373,8 @@ def analyze_workspace_test_ids(workspace, target_station=""):
         "high_match_count": sum(1 for x in issues if x.get("match_tier") == "high"),
         "medium_match_count": sum(1 for x in issues if x.get("match_tier") == "medium"),
         "gap_new_item_count": sum(1 for x in issues if x.get("match_tier") == "low_gap"),
+        "auto_confirmed_count": sum(1 for x in issues if x.get("auto_confirmed")),
+        "needs_review_count": sum(1 for x in issues if x.get("needs_review")),
     }
     return {"issues": issues, "summary": summary, "stations": list(stations.keys())}
 

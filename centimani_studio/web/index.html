@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.088">
+<link rel="stylesheet" href="/css/app.css?v=0.8.089">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.088</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.089</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1610,18 +1610,16 @@
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">篩選：</span>
-            <button id="btnTicBatchFilterAll" class="filter-pill active" onclick="ticSetBatchFilter('all')">全部疑慮</button>
-            <button id="btnTicBatchFilterTierHigh" class="filter-pill" onclick="ticSetBatchFilter('tier_high')">🟢 高相似自動配對</button>
-            <button id="btnTicBatchFilterTierMed" class="filter-pill" onclick="ticSetBatchFilter('tier_medium')">🟡 尚可參考・待確認</button>
-            <button id="btnTicBatchFilterTierGap" class="filter-pill" onclick="ticSetBatchFilter('tier_gap')">📝 差距過大・建議申請新碼</button>
-            <button id="btnTicBatchFilterMissing" class="filter-pill" onclick="ticSetBatchFilter('missing')">缺漏 / 非法格式</button>
+            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">顯示：</span>
+            <button id="btnTicBatchFilterNeedsReview" class="filter-pill active" onclick="ticSetBatchFilter('needs_review')">❓ 只看無法自動確認</button>
+            <button id="btnTicBatchFilterAutoOk" class="filter-pill" onclick="ticSetBatchFilter('auto_confirmed')">🟢 已自動配對</button>
+            <button id="btnTicBatchFilterAll" class="filter-pill" onclick="ticSetBatchFilter('all')">全部項目</button>
+            <button id="btnTicBatchFilterTierGap" class="filter-pill" onclick="ticSetBatchFilter('tier_gap')">📝 找不到相近</button>
+            <button id="btnTicBatchFilterMissing" class="filter-pill" onclick="ticSetBatchFilter('missing')">缺漏</button>
             <button id="btnTicBatchFilterPlaceholder" class="filter-pill" onclick="ticSetBatchFilter('generic_placeholder')">通用佔位碼</button>
-            <button id="btnTicBatchFilterMismatch" class="filter-pill" onclick="ticSetBatchFilter('semantic_mismatch')">語意不符</button>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800;" onclick="ticAutoSelectTier('high')">✨ 自動預選高相似</button>
-            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#E0F2FE; color:#0369A1; border:1px solid #7DD3FC; font-weight:800;" onclick="ticAutoSelectTier('all')">⚡ 全選第 1 名推薦</button>
+            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800;" onclick="ticAutoSelectTier('auto')">✨ 重新自動配對</button>
             <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#F8FAFC; color:#475569; border:1px solid #CBD5E1; font-weight:700;" onclick="ticClearAllBatchSelections()">🧹 清空已選</button>
           </div>
         </div>
@@ -1915,14 +1913,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.088"></script>
-<script src="/js/audit_editors.js?v=0.8.088"></script>
-<script src="/js/flow_guide.js?v=0.8.088"></script>
-<script src="/js/block_sorter.js?v=0.8.088"></script>
-<script src="/js/script_qa.js?v=0.8.088"></script>
-<script src="/js/sfis_hmi.js?v=0.8.088"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.088"></script>
-<script src="/js/create_block_builder.js?v=0.8.088"></script>
+<script src="/js/inst_hmi.js?v=0.8.089"></script>
+<script src="/js/audit_editors.js?v=0.8.089"></script>
+<script src="/js/flow_guide.js?v=0.8.089"></script>
+<script src="/js/block_sorter.js?v=0.8.089"></script>
+<script src="/js/script_qa.js?v=0.8.089"></script>
+<script src="/js/sfis_hmi.js?v=0.8.089"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.089"></script>
+<script src="/js/create_block_builder.js?v=0.8.089"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -3153,8 +3151,9 @@ const TIC_BATCH_STATE = {
   issues: [],
   summary: null,
   stations: [],
-  filter: 'all',
+  filter: 'needs_review',
   selections: {},
+  keptRows: {},
 };
 
 function _ticEsc(s) {
@@ -3245,21 +3244,21 @@ async function ticAuditExcel(explicitPath) {
 
   const alertBox = document.getElementById('ticBatchApplyAlert');
   if (alertBox) alertBox.style.display = 'none';
-  // 自動預選所有高相似度 (match_tier === 'high') 的第 1 名建議，免手動逐一比對
-  ticAutoSelectTier('high', true);
-  renderTicBatchIssues();
+  TIC_BATCH_STATE.keptRows = {};
+  // 自動預選所有可自動配對項目 (auto_confirmed)，主畫面預設僅顯示無法確認項目
+  ticAutoSelectTier('auto', true);
+  ticSetBatchFilter('needs_review');
 }
 
 function ticSetBatchFilter(mode) {
   TIC_BATCH_STATE.filter = mode;
   const map = {
+    needs_review: 'btnTicBatchFilterNeedsReview',
+    auto_confirmed: 'btnTicBatchFilterAutoOk',
     all: 'btnTicBatchFilterAll',
-    tier_high: 'btnTicBatchFilterTierHigh',
-    tier_medium: 'btnTicBatchFilterTierMed',
     tier_gap: 'btnTicBatchFilterTierGap',
     missing: 'btnTicBatchFilterMissing',
     generic_placeholder: 'btnTicBatchFilterPlaceholder',
-    semantic_mismatch: 'btnTicBatchFilterMismatch',
   };
   Object.entries(map).forEach(([k, id]) => {
     const el = document.getElementById(id);
@@ -3268,13 +3267,17 @@ function ticSetBatchFilter(mode) {
   renderTicBatchIssues();
 }
 
-function ticAutoSelectTier(mode = 'high', silent = false) {
+function ticAutoSelectTier(mode = 'auto', silent = false) {
   (TIC_BATCH_STATE.issues || []).forEach(it => {
     if (!it.candidates || !it.candidates.length) return;
-    if (mode === 'high' && it.match_tier !== 'high') return;
-    if (mode === 'all' && it.match_tier === 'low_gap') return;
+    if (mode === 'auto' || mode === 'high') {
+      if (!it.auto_confirmed && it.match_tier !== 'high') return;
+    } else if (mode === 'all') {
+      if (it.match_tier === 'low_gap') return;
+    }
     const key = _ticKey(it);
     if (silent && TIC_BATCH_STATE.selections[key]) return;
+    if (TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[key]) return;
     const top = it.candidates[0];
     TIC_BATCH_STATE.selections[key] = {
       station: it.station,
@@ -3286,8 +3289,17 @@ function ticAutoSelectTier(mode = 'high', silent = false) {
   if (!silent) renderTicBatchIssues();
 }
 
+function ticKeepOriginalRow(station, rowIdx) {
+  const key = `${station}::${rowIdx}`;
+  delete TIC_BATCH_STATE.selections[key];
+  TIC_BATCH_STATE.keptRows = TIC_BATCH_STATE.keptRows || {};
+  TIC_BATCH_STATE.keptRows[key] = true;
+  renderTicBatchIssues();
+}
+
 function ticClearAllBatchSelections() {
   TIC_BATCH_STATE.selections = {};
+  TIC_BATCH_STATE.keptRows = {};
   renderTicBatchIssues();
 }
 
@@ -3402,16 +3414,27 @@ async function ticSearchRowCustom(station, rowIdx) {
 }
 
 function renderTicBatchIssues() {
-  const sum = TIC_BATCH_STATE.summary || { total_checked: 0, ok_count: 0, flagged_count: 0, missing_count: 0, placeholder_count: 0, mismatch_count: 0, high_match_count: 0, medium_match_count: 0, gap_new_item_count: 0 };
+  const sum = TIC_BATCH_STATE.summary || { total_checked: 0, ok_count: 0, flagged_count: 0, missing_count: 0, placeholder_count: 0, mismatch_count: 0, high_match_count: 0, medium_match_count: 0, gap_new_item_count: 0, auto_confirmed_count: 0, needs_review_count: 0 };
   const selectedCount = Object.keys(TIC_BATCH_STATE.selections).length;
   const sumEl = document.getElementById('ticBatchSummaryBanner');
   const applyBtn = document.getElementById('btnTicBatchApply');
   const gapBtn = document.getElementById('btnTicExportGapNew');
-  const gapCount = (TIC_BATCH_STATE.issues || []).filter(x => x.match_tier === 'low_gap' || !x.candidates || !x.candidates.length).length;
+  const issuesAll = TIC_BATCH_STATE.issues || [];
+  const gapCount = issuesAll.filter(x => x.match_tier === 'low_gap' || !x.candidates || !x.candidates.length).length;
+  const autoIssuesCount = issuesAll.filter(x => x.auto_confirmed).length;
+  const pendingReviewCount = issuesAll.filter(x => {
+    const k = _ticKey(x);
+    return x.needs_review && !TIC_BATCH_STATE.selections[k] && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
+  }).length;
+
+  const nrBtn = document.getElementById('btnTicBatchFilterNeedsReview');
+  const autoBtn = document.getElementById('btnTicBatchFilterAutoOk');
+  if (nrBtn) nrBtn.textContent = `❓ 只看無法自動確認 (${pendingReviewCount})`;
+  if (autoBtn) autoBtn.textContent = `🟢 已自動配對 (${autoIssuesCount})`;
 
   if (gapBtn) {
     gapBtn.style.display = gapCount > 0 ? 'inline-flex' : 'none';
-    gapBtn.textContent = `📋 複製「申請新 Error Code」清單 (${gapCount})`;
+    gapBtn.textContent = `📋 複製「申請新碼」清單 (${gapCount})`;
   }
 
   if (applyBtn) {
@@ -3427,47 +3450,60 @@ function renderTicBatchIssues() {
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <span>📄 掃描目標：<span class="mono" style="font-weight:700; color:#0F172A;">${fileLabel}</span></span>
         <span>
-          共檢查 <b>${sum.total_checked}</b> 步 ｜
-          <span style="color:#15803D; font-weight:700;">通過 ${sum.ok_count}</span> ｜
-          <span style="color:#B91C1C; font-weight:700;">待調整 ${sum.flagged_count}</span>
-          （<span style="color:#15803D; font-weight:800;">🟢 高相似 ${sum.high_match_count || 0}</span> /
-           <span style="color:#B45309; font-weight:800;">🟡 待確認 ${sum.medium_match_count || 0}</span> /
-           <span style="color:#9F1239; font-weight:800;">📝 建議申請新碼 ${gapCount}</span>）｜
-          已預選待套用：<b style="color:#1D4ED8;">${selectedCount}</b> 筆
+          共 <b>${sum.total_checked}</b> 步 ｜
+          <span style="color:#15803D; font-weight:700;">原已合格 ${sum.ok_count}</span> ｜
+          <span style="color:#15803D; font-weight:800;">🤖 自動配對完成 ${autoIssuesCount} 筆</span> ｜
+          <span style="color:${pendingReviewCount > 0 ? '#B91C1C' : '#15803D'}; font-weight:800;">❓ 無法確認待選 ${pendingReviewCount} 筆</span> ｜
+          準備套用：<b style="color:#1D4ED8;">${selectedCount}</b> 筆
         </span>
       </div>
+      ${autoIssuesCount > 0 && TIC_BATCH_STATE.filter === 'needs_review' ? `
+        <div style="margin-top:8px; background:#DCFCE7; border:1px solid #86EFAC; border-radius:6px; padding:7px 12px; color:#14532D; font-size:0.84rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <span>✅ 系統已自動從代碼庫幫您配對 <b>${autoIssuesCount}</b> 筆 TestID並預選完成，下方只列出「無法自動確認」的項目讓您挑選。</span>
+          <button type="button" class="btn" style="padding:2px 9px; font-size:0.8rem; background:#FFFFFF; color:#14532D; border:1px solid #4ADE80; font-weight:800;" onclick="ticSetBatchFilter('auto_confirmed')">👁️ 查看已自動配對明細</button>
+        </div>
+      ` : ''}
     `;
   }
 
   const listEl = document.getElementById('ticBatchIssueList');
   if (!listEl) return;
 
-  const filtered = TIC_BATCH_STATE.issues.filter(it => {
+  const filtered = issuesAll.filter(it => {
     const f = TIC_BATCH_STATE.filter;
+    const k = _ticKey(it);
+    if (f === 'needs_review') {
+      return it.needs_review && !(TIC_BATCH_STATE.keptRows && TIC_BATCH_STATE.keptRows[k]);
+    }
+    if (f === 'auto_confirmed') return !!it.auto_confirmed;
     if (f === 'all') return true;
-    if (f === 'tier_high') return it.match_tier === 'high';
-    if (f === 'tier_medium') return it.match_tier === 'medium';
     if (f === 'tier_gap') return it.match_tier === 'low_gap' || !it.candidates || !it.candidates.length;
     return it.reason_code === f;
   });
   if (!filtered.length) {
-    listEl.innerHTML = `
-      <div style="background:#ECFDF5; border:1px solid #86EFAC; border-radius:8px; padding:16px; color:#14532D; font-weight:700;">
-        目前篩選條件下沒有需要調整的 TestID 疑慮步驟。
-      </div>
-    `;
+    listEl.innerHTML = (TIC_BATCH_STATE.filter === 'needs_review')
+      ? `
+        <div style="background:#ECFDF5; border:1.5px solid #4ADE80; border-radius:8px; padding:18px; color:#14532D; font-weight:800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <span>🎉 目前沒有無法確認的步驟！所有可自動配對項目已為您準備就緒（共預選 ${selectedCount} 筆），直接點擊右上角綠色按鈕套用即可。</span>
+        </div>
+      `
+      : `
+        <div style="background:#ECFDF5; border:1px solid #86EFAC; border-radius:8px; padding:16px; color:#14532D; font-weight:700;">
+          目前篩選條件下沒有項目。
+        </div>
+      `;
     return;
   }
 
   const reasonBadgeMap = {
     missing: { label: '缺漏 / 格式異常', bg: '#FEE2E2', bd: '#FCA5A5', fg: '#991B1B' },
     generic_placeholder: { label: '通用佔位碼', bg: '#FEF3C7', bd: '#FCD34D', fg: '#92400E' },
-    semantic_mismatch: { label: '語意與步驟不符', bg: '#DBEAFE', bd: '#93C5FD', fg: '#1E40AF' },
+    semantic_mismatch: { label: '語意可升級', bg: '#DBEAFE', bd: '#93C5FD', fg: '#1E40AF' },
   };
   const tierBadgeMap = {
-    high: { label: '🟢 高相似自動配對', bg: '#DCFCE7', bd: '#4ADE80', fg: '#14532D' },
-    medium: { label: '🟡 尚可參考', bg: '#FEF3C7', bd: '#FBBF24', fg: '#92400E' },
-    low_gap: { label: '📝 差距過大・建議申請新碼', bg: '#FFE4E6', bd: '#FB7185', fg: '#9F1239' },
+    high: { label: '🟢 已自動配對', bg: '#DCFCE7', bd: '#4ADE80', fg: '#14532D' },
+    medium: { label: '🟡 請挑選相近碼', bg: '#FEF3C7', bd: '#FBBF24', fg: '#92400E' },
+    low_gap: { label: '❓ 找不到相近・請自搜或沿用原碼', bg: '#F1F5F9', bd: '#CBD5E1', fg: '#334155' },
   };
 
   listEl.innerHTML = filtered.map(it => {
@@ -3477,6 +3513,7 @@ function renderTicBatchIssues() {
     const picked = TIC_BATCH_STATE.selections[key] || null;
     const simCount = picked ? _ticCountSimilarRows(it) : 0;
     const curDesc = it.current_desc_cn || it.current_desc_en;
+    const canKeepOld = Boolean(it.current_test_id && /^[A-Z0-9]{7}$/.test(it.current_test_id));
     const candsHtml = (it.candidates && it.candidates.length)
       ? it.candidates.map(c => {
           const isSel = picked && picked.test_id === c.test_id;
@@ -3493,35 +3530,27 @@ function renderTicBatchIssues() {
             </button>
           `;
         }).join('')
-      : `<span style="font-size:0.84rem; color:#9F1239; font-weight:700;">代碼庫找不到相近項目，建議申請新 Error Code（亦可於右側手動輸入關鍵字覆查）。</span>`;
-
-    const gapBannerHtml = (it.match_tier === 'low_gap' || !it.candidates || !it.candidates.length)
-      ? `<div style="background:#FFF1F2; border:1px solid #FDA4AF; border-radius:6px; padding:6px 10px; margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.84rem; color:#9F1239;">
-           <span>📝 <b>與現行檔案差距較大（最高相似 ${it.best_score || 0}%）</b>：建議申請新測項「<code>${_ticEsc(it.proposed_new_desc || it.title || it.send)}</code>」</span>
-           <button type="button" class="btn" style="padding:2px 9px; font-size:0.8rem; background:#FFFFFF; color:#9F1239; border:1px solid #FB7185; font-weight:800;" onclick="ticCopySingleNewItem('${_ticEsc(it.station)}', ${it.row_idx})">📋 複製申請資訊</button>
-         </div>`
-      : '';
+      : `<span style="font-size:0.84rem; color:#475569; font-weight:700;">無高相似度自動命中（已隱藏無關選項）；請在右側輸入關鍵字搜相近碼${canKeepOld ? '，或選擇沿用原碼' : ''}。</span>`;
 
     return `
-      <div class="tic-issue-card" style="${it.match_tier === 'low_gap' ? 'border-left:4px solid #E11D48;' : (picked ? 'border-left:4px solid #16A34A;' : '')}">
+      <div class="tic-issue-card" style="${picked ? 'border-left:4px solid #16A34A;' : 'border-left:4px solid #F59E0B;'}">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
             <span style="padding:2px 8px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${rb.bg}; border:1px solid ${rb.bd}; color:${rb.fg};">${rb.label}</span>
             <span style="padding:2px 8px; border-radius:999px; font-size:0.82rem; font-weight:800; background:${tb.bg}; border:1px solid ${tb.bd}; color:${tb.fg};">${tb.label}${it.best_score ? ' (' + it.best_score + '%)' : ''}</span>
             <span class="mono" style="font-weight:800; color:#0F172A; font-size:0.86rem;">${_ticEsc(it.station)} ｜ Excel R${it.excel_row}</span>
             ${it.phase ? `<span class="mono" style="font-size:0.82rem; color:#475569;">Phase ${ _ticEsc(it.phase) }</span>` : ''}
-            <span style="font-weight:800; color:#1E293B;">${_ticEsc(it.title || '(無 Title)')}</span>
+            <span style="font-weight:800; color:#1E293B;">${_ticEsc(it.title || it.description || '(無 Title)')}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <span class="mono" style="font-size:0.82rem; color:#64748B;">原 TestID：<b>${_ticEsc(it.current_test_id || '(空白)')}</b>${curDesc ? ' (' + _ticEsc(curDesc) + ')' : ''}</span>
+            <span class="mono" style="font-size:0.82rem; color:#64748B;">原：<b>${_ticEsc(it.current_test_id || '(空白)')}</b>${curDesc ? ' (' + _ticEsc(curDesc) + ')' : ''}</span>
             ${picked ? `<span class="mono" style="padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#14532D; font-weight:800; font-size:0.82rem;">➔ 擬改為 ${_ticEsc(picked.test_id)}</span>
               ${simCount > 0 ? `<button type="button" class="filter-pill" style="font-size:0.8rem; background:#EFF6FF; border-color:#60A5FA; color:#1D4ED8;" onclick="ticApplyToSimilarRows('${_ticEsc(it.station)}', ${it.row_idx})">🔗 同步套用同類 ${simCount} 列</button>` : ''}
-              <button type="button" class="filter-pill" style="font-size:0.83rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除選擇</button>` : ''}
+              <button type="button" class="filter-pill" style="font-size:0.83rem;" onclick="ticClearRowCandidate('${_ticEsc(it.station)}', ${it.row_idx})">清除</button>` : ''}
+            ${canKeepOld && !picked ? `<button type="button" class="filter-pill" style="font-size:0.8rem; background:#F8FAFC; border-color:#94A3B8; color:#334155;" onclick="ticKeepOriginalRow('${_ticEsc(it.station)}', ${it.row_idx})">👌 沿用原碼 (${_ticEsc(it.current_test_id)})</button>` : ''}
           </div>
         </div>
-        ${gapBannerHtml}
         <div style="font-size:0.83rem; color:#475569; margin-bottom:7px; display:flex; gap:12px; flex-wrap:wrap;">
-          <span>${_ticEsc(it.reason_label)}</span>
           ${it.description ? `<span>Description：<code>${_ticEsc(it.description)}</code></span>` : ''}
           ${it.send ? `<span>Send：<code>${_ticEsc(it.send)}</code></span>` : ''}
         </div>
@@ -3530,11 +3559,12 @@ function renderTicBatchIssues() {
             ${candsHtml}
           </div>
           <div style="display:flex; gap:5px; align-items:center;">
-            <input type="text" id="ticBatchRowSearch_${_ticEsc(it.station)}_${it.row_idx}" placeholder="改用其他關鍵字重搜..."
+            <input type="text" id="ticBatchRowSearch_${_ticEsc(it.station)}_${it.row_idx}" placeholder="關鍵字搜相近碼..."
               onkeydown="if(event.key==='Enter') ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})"
               style="padding:5px 8px; border:1px solid #94A3B8; border-radius:6px; font-size:0.82rem; width:165px;">
             <button type="button" class="btn btn-slate" style="padding:5px 10px; font-size:0.82rem;"
               onclick="ticSearchRowCustom('${_ticEsc(it.station)}', ${it.row_idx})">搜</button>
+            ${(!it.candidates || !it.candidates.length) ? `<button type="button" class="btn" style="padding:5px 9px; font-size:0.8rem; background:#FFF1F2; color:#9F1239; border:1px solid #FDA4AF;" onclick="ticCopySingleNewItem('${_ticEsc(it.station)}', ${it.row_idx})" title="極少見才需申請新項目">📝 申請新碼</button>` : ''}
           </div>
         </div>
       </div>

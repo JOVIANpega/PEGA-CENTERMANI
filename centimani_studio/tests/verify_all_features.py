@@ -3548,6 +3548,34 @@ def run_all_verifications():
                   "v0.8.088 Error Code 智慧比對分級（高相似自動預選 / 差距過大建議申請新碼 / 同類同步 / 1->N直入比對）通過",
                   f"v={iss88_v and iss88_v.get('match_tier')}, q={iss88_q and (iss88_q.get('match_tier'), iss88_q.get('best_score'))}")
 
+            # [v0.8.089] B7PL011 偷懶通用碼自動對照升級 + Title/Description 優先關鍵字擷取 + 過濾 <35% 無關候選 + 預設只列出無法自動確認項目
+            tic_v89_ws = {
+                "stations": {
+                    "OQC": [
+                        {"Index": "61", "Phase": "8", "Title": "", "Description": "Fan Control", "Send": "LAN@@FA4201$3#c8.", "TestID": "B7PL011", "ExecMode": "0"},
+                        {"Index": "63", "Phase": "8", "Title": "", "Description": "FAN sound", "Send": ':ShowConfirmBox,"有風扇聲音嗎?","好(OK)"', "TestID": "B7PL011", "ExecMode": "0"},
+                        {"Index": "64", "Phase": "9", "Title": "Custom Proprietary XYZ", "Description": "PC#-#Qubit Calibration Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "IOFN136", "ExecMode": "0"},
+                        {"Index": "65", "Phase": "9", "Title": "Quantum Flux Z99 Xyzzy", "Description": "PC#-#Qubit Calibration Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "", "ExecMode": "0"},
+                    ]
+                }
+            }
+            tic_v89 = post_json("/api/tic_audit_excel", {"workspace": tic_v89_ws, "station": "OQC"})
+            iss89 = tic_v89.get("issues") or []
+            iss89_fc = next((x for x in iss89 if x.get("description") == "Fan Control"), None)
+            iss89_fs = next((x for x in iss89 if x.get("description") == "FAN sound"), None)
+            iss89_prop = next((x for x in iss89 if x.get("title") == "Custom Proprietary XYZ"), None)
+            iss89_qf = next((x for x in iss89 if "Quantum Flux" in str(x.get("title") or "")), None)
+            check(tic_v89.get("status") == "ok"
+                  and iss89_fc is not None and iss89_fc.get("auto_confirmed") is True and "IOFN" in str((iss89_fc.get("candidates") or [{}])[0].get("test_id") or "")
+                  and iss89_fs is not None and iss89_fs.get("auto_confirmed") is True and "IOFN" in str((iss89_fs.get("candidates") or [{}])[0].get("test_id") or "")
+                  and iss89_prop is None
+                  and iss89_qf is not None and iss89_qf.get("needs_review") is True and len(iss89_qf.get("candidates") or []) == 0
+                  and "filter: 'needs_review'" in idx81_src
+                  and "btnTicBatchFilterNeedsReview" in idx81_src
+                  and "ticKeepOriginalRow" in idx81_src,
+                  "v0.8.089 B7PL011 自動升級配對 + 排除0%誤導候選 + 不誤報已有專碼 + 預設只列無法確認項目通過",
+                  f"fc={iss89_fc and (iss89_fc.get('auto_confirmed'), iss89_fc.get('candidates', [{}])[0].get('test_id'))}, prop={iss89_prop}, qf={iss89_qf and iss89_qf.get('candidates')}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
