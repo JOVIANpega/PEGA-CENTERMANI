@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.089">
+<link rel="stylesheet" href="/css/app.css?v=0.8.090">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.089</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.090</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1500,8 +1500,8 @@
     <!-- 頂部子模式切換列 ＋ 代碼庫檔案條 -->
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:9px; padding:9px 13px; margin-bottom:10px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button id="btnTicSubSingle" type="button" class="tic-sub-tab active" onclick="switchTicSubTab('single')">🔍 關鍵字單筆速查</button>
-        <button id="btnTicSubBatch" type="button" class="tic-sub-tab" onclick="switchTicSubTab('batch')">🤖 整份 Excel 自動比對＆推薦 TestID</button>
+        <button id="btnTicSubBatch" type="button" class="tic-sub-tab active" onclick="switchTicSubTab('batch')">🤖 整份 Excel 自動比對＆補齊 TestID</button>
+        <button id="btnTicSubSingle" type="button" class="tic-sub-tab" onclick="switchTicSubTab('single')">🔍 單筆關鍵字速查（手動查碼／母體積木）</button>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.82rem; color:#475569;">
         <span style="font-weight:700;">📄 代碼庫：</span>
@@ -1512,8 +1512,8 @@
       </div>
     </div>
 
-    <!-- 子分頁 1：關鍵字單筆速查 (原有雙欄工作區) -->
-    <div id="ticSingleWrap">
+    <!-- 子分頁 2（預設主畫面）：單筆關鍵字速查置後 -->
+    <div id="ticSingleWrap" style="display:none;">
       <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:8px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <span style="font-weight:700; color:var(--slate-900); font-size:0.97rem; white-space:nowrap;">🏷️ TestID / Error Code 查詢：</span>
@@ -1584,8 +1584,8 @@
       </div>
     </div>
 
-    <!-- 子分頁 2：整份 Excel 自動比對＆推薦 TestID -->
-    <div id="ticBatchWrap" style="display:none;">
+    <!-- 子分頁 1（預設主畫面）：整份 Excel 自動比對＆推薦 TestID -->
+    <div id="ticBatchWrap" style="display:block;">
       <div class="action-bar" style="flex-direction:column; align-items:stretch; gap:9px;">
         <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
           <button id="btnTicBatchPickExcel" class="btn btn-primary-blue" style="padding:7px 14px; font-size:0.88rem;" onclick="ticBatchPickAndAudit()">
@@ -1619,7 +1619,11 @@
             <button id="btnTicBatchFilterPlaceholder" class="filter-pill" onclick="ticSetBatchFilter('generic_placeholder')">通用佔位碼</button>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800;" onclick="ticAutoSelectTier('auto')">✨ 重新自動配對</button>
+            <span style="font-size:0.82rem; font-weight:700; color:#64748B;">分組：</span>
+            <button id="btnTicGroupPhase" class="filter-pill active" onclick="ticSetBatchGroupBy('phase')">🧱 依 Phase 分組</button>
+            <button id="btnTicGroupCat" class="filter-pill" onclick="ticSetBatchGroupBy('category')">🏷️ 依測項分類</button>
+            <button id="btnTicGroupFlat" class="filter-pill" onclick="ticSetBatchGroupBy('flat')">📋 清單</button>
+            <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; font-weight:800; margin-left:4px;" onclick="ticAutoSelectTier('auto')">✨ 重新自動配對</button>
             <button type="button" class="btn" style="padding:4px 10px; font-size:0.82rem; background:#F8FAFC; color:#475569; border:1px solid #CBD5E1; font-weight:700;" onclick="ticClearAllBatchSelections()">🧹 清空已選</button>
           </div>
         </div>
@@ -1913,14 +1917,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.089"></script>
-<script src="/js/audit_editors.js?v=0.8.089"></script>
-<script src="/js/flow_guide.js?v=0.8.089"></script>
-<script src="/js/block_sorter.js?v=0.8.089"></script>
-<script src="/js/script_qa.js?v=0.8.089"></script>
-<script src="/js/sfis_hmi.js?v=0.8.089"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.089"></script>
-<script src="/js/create_block_builder.js?v=0.8.089"></script>
+<script src="/js/inst_hmi.js?v=0.8.090"></script>
+<script src="/js/audit_editors.js?v=0.8.090"></script>
+<script src="/js/flow_guide.js?v=0.8.090"></script>
+<script src="/js/block_sorter.js?v=0.8.090"></script>
+<script src="/js/script_qa.js?v=0.8.090"></script>
+<script src="/js/sfis_hmi.js?v=0.8.090"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.090"></script>
+<script src="/js/create_block_builder.js?v=0.8.090"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2079,6 +2083,18 @@ function switchTab(tab) {
     const backBtn = document.getElementById('btnTicBackOrigin');
     if (backBar) backBar.style.display = (window._TIC_FROM_EDIT || window._TIC_FROM_GEN_HUB) ? 'flex' : 'none';
     if (backBtn) backBtn.textContent = window._TIC_FROM_GEN_HUB ? '⬅ 返回腳本建立與編修中心' : '⬅ 返回編修主入口';
+    // 預設優先進入「整份 Excel 自動比對」主工作區，避免四個分頁選項混淆
+    if (typeof switchTicSubTab === 'function' && TIC_BATCH_STATE.subTab !== 'single') {
+      switchTicSubTab('batch');
+    }
+    const mBtn = document.getElementById('btnTicModeMother');
+    if (mBtn) {
+      const hasMotherSel = Boolean(STATE && Array.isArray(STATE.selectedBlockIds) && STATE.selectedBlockIds.length > 0 && !window._TIC_FROM_EDIT);
+      mBtn.style.display = hasMotherSel ? 'inline-flex' : 'none';
+      if (!hasMotherSel && typeof switchTicTargetMode === 'function') {
+        switchTicTargetMode('excel');
+      }
+    }
     renderTicTargetList();
     if (TIC_BATCH_STATE.subTab === 'single') {
       setTimeout(() => {
@@ -3145,13 +3161,15 @@ async function pickTicFileNative() {
 }
 
 const TIC_BATCH_STATE = {
-  subTab: 'single',
+  subTab: 'batch',
   workspace: null,
   excelPath: '',
   issues: [],
   summary: null,
   stations: [],
   filter: 'needs_review',
+  groupBy: 'phase',
+  collapsedGroups: {},
   selections: {},
   keptRows: {},
 };
@@ -3185,8 +3203,9 @@ function switchTicSubTab(sub) {
       ticAuditExcel();
     }
   }
-  if (TIC_BATCH_STATE.subTab === 'single' && STATE && STATE.workspace && typeof switchTicTargetMode === 'function') {
-    switchTicTargetMode('excel');
+  if (TIC_BATCH_STATE.subTab === 'single' && typeof switchTicTargetMode === 'function') {
+    const hasMotherSel = Boolean(STATE && Array.isArray(STATE.selectedBlockIds) && STATE.selectedBlockIds.length > 0 && !window._TIC_FROM_EDIT);
+    switchTicTargetMode(hasMotherSel && !(STATE && STATE.workspace) ? 'mother' : 'excel');
   }
 }
 
@@ -3287,6 +3306,26 @@ function ticAutoSelectTier(mode = 'auto', silent = false) {
     };
   });
   if (!silent) renderTicBatchIssues();
+}
+
+function ticSetBatchGroupBy(mode) {
+  TIC_BATCH_STATE.groupBy = ['phase', 'category', 'flat'].includes(mode) ? mode : 'phase';
+  const map = {
+    phase: 'btnTicGroupPhase',
+    category: 'btnTicGroupCat',
+    flat: 'btnTicGroupFlat',
+  };
+  Object.entries(map).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', k === TIC_BATCH_STATE.groupBy);
+  });
+  renderTicBatchIssues();
+}
+
+function ticToggleBatchGroup(gKey) {
+  TIC_BATCH_STATE.collapsedGroups = TIC_BATCH_STATE.collapsedGroups || {};
+  TIC_BATCH_STATE.collapsedGroups[gKey] = !TIC_BATCH_STATE.collapsedGroups[gKey];
+  renderTicBatchIssues();
 }
 
 function ticKeepOriginalRow(station, rowIdx) {
@@ -3506,7 +3545,7 @@ function renderTicBatchIssues() {
     low_gap: { label: '❓ 找不到相近・請自搜或沿用原碼', bg: '#F1F5F9', bd: '#CBD5E1', fg: '#334155' },
   };
 
-  listEl.innerHTML = filtered.map(it => {
+  const _renderIssueCardHtml = (it) => {
     const rb = reasonBadgeMap[it.reason_code] || reasonBadgeMap.missing;
     const tb = tierBadgeMap[it.match_tier] || tierBadgeMap.low_gap;
     const key = _ticKey(it);
@@ -3539,7 +3578,7 @@ function renderTicBatchIssues() {
             <span style="padding:2px 8px; border-radius:999px; font-size:0.84rem; font-weight:800; background:${rb.bg}; border:1px solid ${rb.bd}; color:${rb.fg};">${rb.label}</span>
             <span style="padding:2px 8px; border-radius:999px; font-size:0.82rem; font-weight:800; background:${tb.bg}; border:1px solid ${tb.bd}; color:${tb.fg};">${tb.label}${it.best_score ? ' (' + it.best_score + '%)' : ''}</span>
             <span class="mono" style="font-weight:800; color:#0F172A; font-size:0.86rem;">${_ticEsc(it.station)} ｜ Excel R${it.excel_row}</span>
-            ${it.phase ? `<span class="mono" style="font-size:0.82rem; color:#475569;">Phase ${ _ticEsc(it.phase) }</span>` : ''}
+            ${(it.effective_phase || it.phase) ? `<span class="mono" style="font-size:0.82rem; color:#475569;">Phase ${ _ticEsc(it.effective_phase || it.phase) }</span>` : ''}
             <span style="font-weight:800; color:#1E293B;">${_ticEsc(it.title || it.description || '(無 Title)')}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -3567,6 +3606,72 @@ function renderTicBatchIssues() {
             ${(!it.candidates || !it.candidates.length) ? `<button type="button" class="btn" style="padding:5px 9px; font-size:0.8rem; background:#FFF1F2; color:#9F1239; border:1px solid #FDA4AF;" onclick="ticCopySingleNewItem('${_ticEsc(it.station)}', ${it.row_idx})" title="極少見才需申請新項目">📝 申請新碼</button>` : ''}
           </div>
         </div>
+      </div>
+    `;
+  };
+
+  const gMode = TIC_BATCH_STATE.groupBy || 'phase';
+  if (gMode === 'flat') {
+    listEl.innerHTML = filtered.map(_renderIssueCardHtml).join('');
+    return;
+  }
+
+  const catMetaMap = {
+    sfis: { label: '🏭 SFIS / 條碼路由', order: 1, bg: '#FDF2F8', bd: '#F9A8D4', fg: '#9D174D' },
+    power_volt: { label: '⚡ 電源 / 電壓 / 電流', order: 2, bg: '#FEF3C7', bd: '#FCD34D', fg: '#92400E' },
+    rf_wireless: { label: '📡 WiFi / BT / RF 無線', order: 3, bg: '#EFF6FF', bd: '#93C5FD', fg: '#1E40AF' },
+    instrument: { label: '🧪 其他外接儀器 / 治具', order: 4, bg: '#F0FDF4', bd: '#86EFAC', fg: '#166534' },
+    general_cmd: { label: '💬 一般命令 / 控制', order: 5, bg: '#F1F5F9', bd: '#CBD5E1', fg: '#334155' },
+  };
+
+  const groups = [];
+  const gMap = {};
+  filtered.forEach(it => {
+    let gKey = '';
+    let gTitle = '';
+    let gStyle = { bg: '#F8FAFC', bd: '#CBD5E1', fg: '#0F172A', order: 99 };
+    if (gMode === 'category') {
+      const catKey = it.item_category || 'general_cmd';
+      const cm = catMetaMap[catKey] || catMetaMap.general_cmd;
+      gKey = `cat::${catKey}`;
+      gTitle = cm.label;
+      gStyle = cm;
+    } else {
+      const ph = it.effective_phase || it.phase || '-';
+      const tStr = String(it.effective_title || it.title || '').replace(/^(?:[0-9]+|\*\$\([^)]+\)),/, '').trim();
+      gKey = `ph::${it.station}::${ph}`;
+      gTitle = `🧱 ${it.station} ｜ Phase ${ph}${tStr ? ' · ' + tStr : ''}`;
+      gStyle = { bg: '#EFF6FF', bd: '#93C5FD', fg: '#1E3A8A', order: 0 };
+    }
+    if (!gMap[gKey]) {
+      gMap[gKey] = { key: gKey, title: gTitle, style: gStyle, items: [] };
+      groups.push(gMap[gKey]);
+    }
+    gMap[gKey].items.push(it);
+  });
+
+  if (gMode === 'category') {
+    groups.sort((a, b) => (a.style.order || 99) - (b.style.order || 99));
+  }
+
+  listEl.innerHTML = groups.map(g => {
+    const isCollapsed = !!(TIC_BATCH_STATE.collapsedGroups && TIC_BATCH_STATE.collapsedGroups[g.key]);
+    const gPicked = g.items.filter(x => !!TIC_BATCH_STATE.selections[_ticKey(x)]).length;
+    const gUnpicked = g.items.length - gPicked;
+    return `
+      <div style="border:1.5px solid ${g.style.bd}; border-radius:9px; margin-bottom:10px; overflow:hidden; background:#FFFFFF;">
+        <div onclick="ticToggleBatchGroup('${_ticEsc(g.key)}')" style="cursor:pointer; padding:8px 14px; background:${g.style.bg}; color:${g.style.fg}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-weight:800;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span>${isCollapsed ? '▶' : '▼'}</span>
+            <span>${_ticEsc(g.title)}</span>
+          </div>
+          <div style="font-size:0.82rem; display:flex; align-items:center; gap:8px;">
+            <span>共 ${g.items.length} 步</span>
+            ${gPicked > 0 ? `<span style="background:#DCFCE7; color:#14532D; border:1px solid #86EFAC; padding:1px 8px; border-radius:999px;">已選 ${gPicked}</span>` : ''}
+            ${gUnpicked > 0 ? `<span style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; padding:1px 8px; border-radius:999px;">待選 ${gUnpicked}</span>` : ''}
+          </div>
+        </div>
+        ${isCollapsed ? '' : `<div style="padding:10px; display:flex; flex-direction:column; gap:8px;">${g.items.map(_renderIssueCardHtml).join('')}</div>`}
       </div>
     `;
   }).join('');

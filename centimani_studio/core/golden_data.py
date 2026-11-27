@@ -1062,7 +1062,9 @@ _ATE_SYNONYM_GROUPS = [
     (("版本", "version", "fw", "firmware", "sw_ver", "hw_ver", "cat /etc/version"), ["version", "fw", "版本"]),
     (("mac", "imac", "bdaddr", "efuse"), ["mac"]),
     (("ping", "ethernet", "lan", "iperf", "throughput", "dhcp", "rj45"), ["ping", "ethernet", "network", "lan"]),
-    (("wifi", "wlan", "rssi", "evm", "2g", "5g", "6g", "iqxel", "xelm8", "mt8870"), ["wifi", "wlan", "rf"]),
+    (("wifi", "wlan", "rssi", "evm", "2g", "5g", "6g", "iqxel", "xelm8", "mt8870", "bpsk", "ofdm", "cck", "11ag", "11ac", "11ax", "2412", "2437", "2462", "5180", "5500", "5745"), ["wifi", "wlan", "rf"]),
+    (("tx1", "tx2", "tx3", "tx4"), ["wifi", "tx"]),
+    (("rx1", "rx2", "rx3", "rx4"), ["wifi", "rx"]),
     (("bt", "bluetooth", "ble"), ["bluetooth", "bt", "藍牙"]),
     (("led", "feasa", "rgb", "lux", "亮度", "色溫", "light", "hue", "intensity"), ["led", "light"]),
     (("條碼", "isn", "barcode", "scan", "sn", "showisn"), ["isn", "barcode", "條碼"]),
@@ -1117,19 +1119,30 @@ def _extract_row_keywords(title, desc, send):
     import re
     clean_desc = re.sub(r"^(?:DUT|PC|OP)#-#", "", (desc or "").strip(), flags=re.I)
     clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip())
-    # Prioritize Title & Description (the actual test purpose) before Send transport prefixes (LAN@@, UART@, etc.)
-    primary_raw = f"{clean_title} {clean_desc}".strip()
+    # Prioritize Script Description (Col O) -> Title -> Send payload, preserving numeric/channel tokens like 2412, TX1, 5V
+    primary_raw = f"{clean_desc} {clean_title}".strip()
     primary_low = primary_raw.lower()
-    primary_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", primary_raw).lower()
+    primary_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", primary_raw).replace("_", " ").lower()
 
     send_clean = re.sub(r"^(?:UARTF?|SSH[0-9]*|TELNET[0-9]*|ADB[0-9]*|LAN|COM[0-9]*)@+", "", (send or "").strip(), flags=re.I)
     send_low = send_clean.lower()
-    send_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", send_clean).lower()
+    send_spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", send_clean).replace("_", " ").lower()
 
     syn_tokens = []
     seen = set()
 
-    # 1) Synonyms from Title + Description first
+    # 1) Direct alphanumeric/Chinese tokens from Script Description (Col O) then Title (preserve 2412, TX1, 5V, etc.)
+    for w in re.findall(r"[a-zA-Z0-9]{2,}|[\u4e00-\u9fff]{2,}", primary_raw.replace("_", " ").replace("-", " ")):
+        wl = w.lower()
+        if wl in _STOP_KEYWORDS or wl in _TRANSPORT_ONLY_TOKENS or wl in seen:
+            continue
+        # Ignore bare tiny integers like 1, 2, 10 unless >= 4 digits (e.g. 2412, 5180, 6008)
+        if wl.isdigit() and len(wl) < 4:
+            continue
+        seen.add(wl)
+        syn_tokens.append(w)
+
+    # 2) Synonyms from Description + Title
     for triggers, expanded in _ATE_SYNONYM_GROUPS:
         if any(_trigger_matches_text(t, primary_low, primary_spaced) for t in triggers):
             for tok in expanded:
@@ -1138,15 +1151,7 @@ def _extract_row_keywords(title, desc, send):
                     seen.add(tl)
                     syn_tokens.append(tok)
 
-    # 2) Direct substantive words from Title + Description
-    for w in re.findall(r"[a-zA-Z]{3,}|[\u4e00-\u9fff]{2,}", primary_raw):
-        wl = w.lower()
-        if wl in _STOP_KEYWORDS or wl in _TRANSPORT_ONLY_TOKENS or wl in seen:
-            continue
-        seen.add(wl)
-        syn_tokens.append(w)
-
-    # 3) Synonyms from Send payload (only after Title + Description)
+    # 3) Synonyms from Send payload (only after Description + Title)
     if send_clean:
         for triggers, expanded in _ATE_SYNONYM_GROUPS:
             if any(_trigger_matches_text(t, send_low, send_spaced) for t in triggers):
@@ -1157,6 +1162,24 @@ def _extract_row_keywords(title, desc, send):
                         syn_tokens.append(tok)
 
     return syn_tokens
+
+
+def _classify_step_category(title, desc, send, inst="", sw=""):
+    blob = f"{title} {desc} {send} {inst} {sw}".lower()
+    if any(k in blob for k in ("sfcheckroute", "sfget", "sfsave", "showisn", "sfis", "barcode", "isn", "route")):
+        return "sfis"
+    if any(k in blob for k in ("ni6008", "ni6009", "mvolt", "mscurr", "pph1503", "ps2005", "34401", "2700", "voltage", "current", "power", "volt", "curr", "電壓", "電流")):
+        return "power_volt"
+    if any(k in blob for k in ("wifi", "wlan", "tx1", "tx2", "rx1", "rx2", "2412", "5180", "bpsk", "ofdm", "11ag", "11ac", "11ax", "evm", "iqxel", "xelm8", "mt8870", "bluetooth", "ble", "bt_")) or re_has_rf(blob):
+        return "rf_wireless"
+    if (inst or "").strip() or (sw or "").strip() or ":dev." in blob or ":sdev." in blob or "feasa" in blob or "fan" in blob:
+        return "instrument"
+    return "general_cmd"
+
+
+def re_has_rf(blob):
+    import re
+    return bool(re.search(r"(?<![a-z0-9])(rf|bt|2g|5g|6g)(?![a-z0-9])", blob))
 
 
 def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=False):
@@ -1241,13 +1264,23 @@ def analyze_workspace_test_ids(workspace, target_station=""):
     for st_name, rows in stations.items():
         if target_station and st_name != target_station:
             continue
+        cur_eff_phase = ""
+        cur_eff_title = ""
         for row_idx, r in enumerate(rows or []):
             title = str(r.get("Title") or "").strip()
             desc = str(r.get("Description") or "").strip()
             send = str(r.get("Send") or "").strip()
+            inst = str(r.get("Instrument") or "").strip()
+            sw = str(r.get("Switch") or "").strip()
             tid = str(r.get("TestID") or "").strip().upper()
             phase = str(r.get("Phase") or "").strip()
             index_val = str(r.get("Index") or "").strip()
+            if phase:
+                cur_eff_phase = phase
+            if title:
+                cur_eff_title = title
+            eff_phase = phase or cur_eff_phase or "-"
+            eff_title = title or cur_eff_title or ""
 
             if not (title or desc or send or tid):
                 continue
@@ -1345,6 +1378,9 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "excel_row": row_idx + 2,
                 "index": index_val,
                 "phase": phase,
+                "effective_phase": eff_phase,
+                "effective_title": eff_title,
+                "item_category": _classify_step_category(eff_title, desc, send, inst, sw),
                 "title": title,
                 "description": desc,
                 "send": send,

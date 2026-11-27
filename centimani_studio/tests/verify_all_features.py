@@ -3555,7 +3555,7 @@ def run_all_verifications():
                         {"Index": "61", "Phase": "8", "Title": "", "Description": "Fan Control", "Send": "LAN@@FA4201$3#c8.", "TestID": "B7PL011", "ExecMode": "0"},
                         {"Index": "63", "Phase": "8", "Title": "", "Description": "FAN sound", "Send": ':ShowConfirmBox,"有風扇聲音嗎?","好(OK)"', "TestID": "B7PL011", "ExecMode": "0"},
                         {"Index": "64", "Phase": "9", "Title": "Custom Proprietary XYZ", "Description": "PC#-#Qubit Calibration Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "IOFN136", "ExecMode": "0"},
-                        {"Index": "65", "Phase": "9", "Title": "Quantum Flux Z99 Xyzzy", "Description": "PC#-#Qubit Calibration Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "", "ExecMode": "0"},
+                        {"Index": "65", "Phase": "9", "Title": "Quantum Flux Z99 Xyzzy", "Description": "PC#-#Qubit Frobnicate Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "", "ExecMode": "0"},
                     ]
                 }
             }
@@ -3575,6 +3575,34 @@ def run_all_verifications():
                   and "ticKeepOriginalRow" in idx81_src,
                   "v0.8.089 B7PL011 自動升級配對 + 排除0%誤導候選 + 不誤報已有專碼 + 預設只列無法確認項目通過",
                   f"fc={iss89_fc and (iss89_fc.get('auto_confirmed'), iss89_fc.get('candidates', [{}])[0].get('test_id'))}, prop={iss89_prop}, qf={iss89_qf and iss89_qf.get('candidates')}")
+
+            # [v0.8.090] Script O欄 Description (含 2412 TX1 等英數通道碼) 對照文件 D 欄 + Phase 繼承 + 測項分類分組 + 整份比對為預設主畫面
+            tic_v90_ws = {
+                "stations": {
+                    "MainBoard": [
+                        {"Index": "59", "Phase": "5", "Title": "1,TX1_2412 6M BPSK", "Description": "2412 TX1", "Send": "1,1,6,12.5,11ag_6,10.5,14.5,-50,-5", "TestID": "", "ExecMode": "0"},
+                        {"Index": "60", "Phase": "", "Title": "", "Description": "PC#-#Check Route", "Send": ":SfCheckRoute", "TestID": "", "ExecMode": "1"},
+                        {"Index": "61", "Phase": "6", "Title": "0,Power", "Description": "Measure 5V Voltage", "Send": ":Dev.MVolt,1", "TestID": "", "ExecMode": "1"},
+                    ]
+                }
+            }
+            tic_v90 = post_json("/api/tic_audit_excel", {"workspace": tic_v90_ws, "station": "MainBoard"})
+            iss90 = tic_v90.get("issues") or []
+            iss90_tx = next((x for x in iss90 if x.get("description") == "2412 TX1"), None)
+            iss90_rt = next((x for x in iss90 if x.get("description") == "PC#-#Check Route"), None)
+            iss90_pw = next((x for x in iss90 if x.get("description") == "Measure 5V Voltage"), None)
+            check(tic_v90.get("status") == "ok"
+                  and iss90_tx is not None and iss90_tx.get("auto_confirmed") is True
+                  and "WFTX" in str((iss90_tx.get("candidates") or [{}])[0].get("test_id") or "")
+                  and iss90_tx.get("item_category") == "rf_wireless" and iss90_tx.get("effective_phase") == "5"
+                  and iss90_rt is not None and iss90_rt.get("item_category") == "sfis" and iss90_rt.get("effective_phase") == "5"
+                  and iss90_pw is not None and iss90_pw.get("item_category") == "power_volt" and iss90_pw.get("effective_phase") == "6"
+                  and "subTab: 'batch'" in idx81_src
+                  and "groupBy: 'phase'" in idx81_src
+                  and "ticSetBatchGroupBy" in idx81_src
+                  and "btnTicGroupPhase" in idx81_src,
+                  "v0.8.090 Description 2412 TX1 精準對照 WFTX + Phase繼承/測項分類分組 + 整份比對預設主畫面檢查通過",
+                  f"tx={iss90_tx and (iss90_tx.get('auto_confirmed'), iss90_tx.get('candidates', [{}])[0].get('test_id'), iss90_tx.get('item_category'))}")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
