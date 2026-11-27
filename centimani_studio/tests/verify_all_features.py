@@ -3604,6 +3604,33 @@ def run_all_verifications():
                   "v0.8.090 Description 2412 TX1 精準對照 WFTX + Phase繼承/測項分類分組 + 整份比對預設主畫面檢查通過",
                   f"tx={iss90_tx and (iss90_tx.get('auto_confirmed'), iss90_tx.get('candidates', [{}])[0].get('test_id'), iss90_tx.get('item_category'))}")
 
+            # [v0.8.091] 防止子字串/領域詞誤配（如 UFS ID 誤中 HDMI EDID、Plug in Power 誤中 MOCA）+ 控制顯示列豁免 + 開啟原檔按鈕 + 前後端版本不一致提醒
+            tic_v91_ws = {
+                "stations": {
+                    "MB": [
+                        {"Index": "1", "Phase": "1", "Title": "0,Msg", "Description": "Show EnterTest Box", "Send": ':ShowImageMessage,"Loimage.gif"', "TestID": "OTFX054", "ExecMode": "0"},
+                        {"Index": "2", "Phase": "2", "Title": "0,UFS", "Description": "UFS ID", "Send": "LAN@@UFc000$#d5.", "TestID": "B7PL011", "ExecMode": "0"},
+                        {"Index": "3", "Phase": "3", "Title": "0,Power", "Description": "Plug in Power", "Send": ':ShowImageConfirmBox,"Plug.jpg","好(OK)"', "TestID": "B7PL011", "ExecMode": "0"},
+                    ]
+                }
+            }
+            tic_v91 = post_json("/api/tic_audit_excel", {"workspace": tic_v91_ws, "station": "MB"})
+            iss91 = tic_v91.get("issues") or []
+            iss91_msg = next((x for x in iss91 if x.get("description") == "Show EnterTest Box"), None)
+            iss91_ufs = next((x for x in iss91 if x.get("description") == "UFS ID"), None)
+            iss91_pwr = next((x for x in iss91 if x.get("description") == "Plug in Power"), None)
+            ufs_tids = [c.get("test_id") for c in (iss91_ufs or {}).get("candidates", [])]
+            pwr_tids = [c.get("test_id") for c in (iss91_pwr or {}).get("candidates", [])]
+            check(tic_v91.get("status") == "ok"
+                  and iss91_msg is None
+                  and "VDHD009" not in ufs_tids
+                  and "MCLL005" not in pwr_tids
+                  and "ticOpenTargetExcel" in idx81_src
+                  and "btnTicOpenTargetExcel" in idx81_src
+                  and "serverBuildMismatchBanner" in idx81_src,
+                  "v0.8.091 排除跨領域與短詞誤配 (UFS ID≠EDID / Power≠MOCA)、:ShowImageMessage 豁免、開啟Excel鈕與版本警告通過",
+                  f"msg={iss91_msg}, ufs_tids={ufs_tids}, pwr_tids={pwr_tids}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

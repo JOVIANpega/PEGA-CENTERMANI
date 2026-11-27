@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.090">
+<link rel="stylesheet" href="/css/app.css?v=0.8.091">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.090</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.85rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.091</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -1917,14 +1917,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.090"></script>
-<script src="/js/audit_editors.js?v=0.8.090"></script>
-<script src="/js/flow_guide.js?v=0.8.090"></script>
-<script src="/js/block_sorter.js?v=0.8.090"></script>
-<script src="/js/script_qa.js?v=0.8.090"></script>
-<script src="/js/sfis_hmi.js?v=0.8.090"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.090"></script>
-<script src="/js/create_block_builder.js?v=0.8.090"></script>
+<script src="/js/inst_hmi.js?v=0.8.091"></script>
+<script src="/js/audit_editors.js?v=0.8.091"></script>
+<script src="/js/flow_guide.js?v=0.8.091"></script>
+<script src="/js/block_sorter.js?v=0.8.091"></script>
+<script src="/js/script_qa.js?v=0.8.091"></script>
+<script src="/js/sfis_hmi.js?v=0.8.091"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.091"></script>
+<script src="/js/create_block_builder.js?v=0.8.091"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -3248,7 +3248,11 @@ async function ticAuditExcel(explicitPath) {
 
   TIC_BATCH_STATE.workspace = data.workspace;
   TIC_BATCH_STATE.excelPath = data.excel_path || excelPath;
-  TIC_BATCH_STATE.issues = data.issues || [];
+  TIC_BATCH_STATE.issues = (data.issues || []).map(it => {
+    const isAuto = (it.auto_confirmed !== undefined) ? !!it.auto_confirmed : (it.match_tier === 'high');
+    const isNeeds = (it.needs_review !== undefined) ? !!it.needs_review : !isAuto;
+    return Object.assign({}, it, { auto_confirmed: isAuto, needs_review: isNeeds });
+  });
   TIC_BATCH_STATE.summary = data.summary || {};
   TIC_BATCH_STATE.stations = data.stations || [];
   if (STATE && !STATE.workspace) {
@@ -3433,6 +3437,23 @@ function ticPickRowCandidate(station, rowIdx, testId, descEn) {
   renderTicBatchIssues();
 }
 
+async function ticOpenTargetExcel() {
+  const fpath = TIC_BATCH_STATE.excelPath || (STATE && STATE.workspace && STATE.workspace.source_file) || '';
+  if (!fpath) {
+    alert('目前尚未指定要開啟的 Excel 檔案路徑。');
+    return;
+  }
+  const res = await fetch('/api/open_excel_file', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: fpath }),
+  });
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert('開啟 Excel 失敗：' + (data.message || '找不到檔案'));
+  }
+}
+
 function ticClearRowCandidate(station, rowIdx) {
   delete TIC_BATCH_STATE.selections[`${station}::${rowIdx}`];
   renderTicBatchIssues();
@@ -3485,9 +3506,13 @@ function renderTicBatchIssues() {
 
   if (sumEl) {
     const fileLabel = TIC_BATCH_STATE.excelPath ? _ticEsc(TIC_BATCH_STATE.excelPath) : '目前載入之工作區';
+    const hasPath = Boolean(TIC_BATCH_STATE.excelPath || (STATE && STATE.workspace && STATE.workspace.source_file));
     sumEl.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <span>📄 掃描目標：<span class="mono" style="font-weight:700; color:#0F172A;">${fileLabel}</span></span>
+        <span style="display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span>📄 掃描目標：<span class="mono" style="font-weight:700; color:#0F172A;">${fileLabel}</span></span>
+          ${hasPath ? `<button id="btnTicOpenTargetExcel" type="button" class="btn" onclick="ticOpenTargetExcel()" style="padding:2px 10px; font-size:0.82rem; background:#E0F2FE; color:#0369A1; border:1px solid #38BDF8; font-weight:800;">📂 開啟 Excel</button>` : ''}
+        </span>
         <span>
           共 <b>${sum.total_checked}</b> 步 ｜
           <span style="color:#15803D; font-weight:700;">原已合格 ${sum.ok_count}</span> ｜
@@ -4950,6 +4975,19 @@ async function initPage() {
   const res = await fetch('/api/init');
   const data = await res.json();
   window.__SERVER_BUILD__ = data.server_build || '';
+  const badgeEl = document.getElementById('appVersionBadge');
+  const uiBuild = badgeEl ? badgeEl.textContent.trim() : '';
+  if (window.__SERVER_BUILD__ && uiBuild && window.__SERVER_BUILD__ !== uiBuild) {
+    let warnEl = document.getElementById('serverBuildMismatchBanner');
+    if (!warnEl) {
+      warnEl = document.createElement('div');
+      warnEl.id = 'serverBuildMismatchBanner';
+      warnEl.style.cssText = 'background:#FEF08A; border:1.8px solid #DC2626; color:#7F1D1D; border-radius:8px; padding:9px 14px; margin-bottom:10px; font-weight:800; font-size:0.9rem; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;';
+      const mc = document.querySelector('.main-content');
+      if (mc) mc.insertBefore(warnEl, mc.firstChild);
+    }
+    warnEl.innerHTML = `<span>⚠️ 偵測到背景 Python 服務仍為舊版（後端 <code>${_ticEsc(window.__SERVER_BUILD__)}</code> ≠ 前端 <code>${_ticEsc(uiBuild)}</code>）：請關閉舊的命令提示字元視窗並重新雙擊「啟動_Centimani腳本工具.bat」，新版比對演算法與功能才會完整生效。</span>`;
+  }
   STATE.blocks = data.blocks || [];
   STATE.lastOpenedFile = data.last_opened_file || '';
   if (data.recent_files) {

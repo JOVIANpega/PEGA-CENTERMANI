@@ -1035,6 +1035,9 @@ _CONTROL_SEND_PREFIXES = (
     ":connect",
     ":disconnect",
     ":closemessage",
+    ":showmessage",
+    ":showimagemessage",
+    ":load",
     ":showisn",
     ":end",
     ":return",
@@ -1182,6 +1185,23 @@ def re_has_rf(blob):
     return bool(re.search(r"(?<![a-z0-9])(rf|bt|2g|5g|6g)(?![a-z0-9])", blob))
 
 
+_EXCLUSIVE_DOMAIN_WORDS = (
+    "moca", "hdmi", "edid", "cable modem", "bluetooth", "audio", "camera",
+    "sata", "pcie", "nfc", "fingerprint", "touch", "battery", "gps", "zigbee",
+)
+
+
+def _token_in_text(tok_l, text_l):
+    import re
+    if not tok_l or not text_l:
+        return False
+    if any("\u4e00" <= ch <= "\u9fff" for ch in tok_l):
+        return tok_l in text_l
+    if len(tok_l) <= 3:
+        return bool(re.search(rf"(?<![a-z0-9]){re.escape(tok_l)}(?![a-z0-9])", text_l))
+    return tok_l in text_l
+
+
 def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=False):
     """Compute a 0..100 similarity score between a script step and a Test Item Code entry."""
     from difflib import SequenceMatcher
@@ -1194,6 +1214,14 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
     row_text = f"{title} {clean_desc}".strip().lower()
     if not row_text:
         row_text = (send or "").strip().lower()
+    full_row_blob = f"{row_text} {send}".lower()
+    full_cand_blob = f"{en_l} {mf_l} {if_l}"
+
+    # Penalize if candidate targets an exclusive subsystem (e.g. MOCA / HDMI / Audio) not mentioned in the script step
+    domain_penalty = 0.0
+    for dom in _EXCLUSIVE_DOMAIN_WORDS:
+        if dom in full_cand_blob and dom not in full_row_blob:
+            domain_penalty += 32.0
 
     matched = 0
     substantive_hits = 0
@@ -1204,14 +1232,14 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
         if not tl:
             continue
         is_sub = tl not in _TRANSPORT_ONLY_TOKENS
-        if tl in en_l or tl in cn_l:
+        if _token_in_text(tl, en_l) or _token_in_text(tl, cn_l):
             matched += 1
             if is_sub:
                 substantive_hits += 1
                 weighted_hits += 1.2 if idx_t < 3 else 1.0
             else:
                 weighted_hits += 0.4
-        elif tl in mf_l or tl in if_l:
+        elif _token_in_text(tl, mf_l) or _token_in_text(tl, if_l):
             matched += 1
             if is_sub:
                 substantive_hits += 1
@@ -1223,18 +1251,20 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
     tok_ratio = min(1.0, weighted_hits / tok_denom)
     seq_ratio = SequenceMatcher(None, row_text[:80], f"{en_l} {cn_l}".strip()[:80]).ratio() if (row_text and (en_l or cn_l)) else 0.0
 
-    raw = tok_ratio * 68.0 + seq_ratio * 24.0 + (10.0 if cand.get("is_generic") else 0.0)
-    if substantive_total > 0 and substantive_hits == 0 and not is_ctrl:
-        # Only matched transport interface (e.g. UART), none of the actual test-item words matched
-        raw = min(raw, 36.0)
-    elif substantive_hits >= 2 and cand.get("is_generic"):
-        raw = max(raw, 78.0)
-    elif substantive_hits >= 1 and cand.get("is_generic") and tok_ratio >= 0.45:
-        raw = max(raw, 74.0)
-    elif matched == 0 and is_ctrl and str(cand.get("test_id") or "").upper() in _PLACEHOLDER_TEST_IDS:
-        raw = max(raw, 65.0)
-    elif matched == 0:
-        raw = min(raw, 35.0)
+    raw = tok_ratio * 68.0 + seq_ratio * 24.0 + (10.0 if cand.get("is_generic") else 0.0) - domain_penalty
+    if domain_penalty <= 0:
+        if substantive_total > 0 and substantive_hits == 0 and not is_ctrl:
+            raw = min(raw, 36.0)
+        elif substantive_hits >= 2 and cand.get("is_generic"):
+            raw = max(raw, 78.0)
+        elif substantive_hits >= 1 and cand.get("is_generic") and tok_ratio >= 0.45:
+            raw = max(raw, 74.0)
+        elif matched == 0 and is_ctrl and str(cand.get("test_id") or "").upper() in _PLACEHOLDER_TEST_IDS:
+            raw = max(raw, 65.0)
+        elif matched == 0:
+            raw = min(raw, 35.0)
+    else:
+        raw = min(raw, 40.0)
 
     return max(0, min(99, int(round(raw))))
 
