@@ -481,7 +481,7 @@ function _renderGlobalHubAccordionHtml(ws, usedVars, usedInstRefs) {
         <div style="font-size:0.83rem; color:#64748B;">所有設定已整併為 6 張寬版功能卡；右側選擇要調整流程與跳轉的目標測試站。</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:5px 10px;">
-        <span style="font-size:0.86rem; font-weight:800; color:#1E293B;">🎯 目標測試站：</span>
+        <span style="font-size:0.86rem; font-weight:800; color:#1E293B;">🔍 編輯／檢視站別：</span>
         <select id="editorSheetSel" onchange="onEditorSheetChange()" style="padding:4px 9px; border:1.5px solid #94A3B8; border-radius:6px; font-size:0.88rem; font-weight:800; color:#0F172A; background:#FFFFFF;">${stationOptsHtml}</select>
         <button type="button" onclick="openStationDiffModal()" ${canDiff ? '' : 'disabled'} class="btn"
           data-pop-tip="${canDiff ? '並排比較同一份 Excel 內兩個測試站分頁（例如產線站 vs 台北除錯站，或不同版本站別），快速找出增減步驟與上下限差異' : '目前這份 Excel 只有 1 個測試站，需至少 2 個測試站分頁才能並排比對差異'}"
@@ -1197,9 +1197,9 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
       <div style="background:#FFFBEB; border:1.5px solid #FCD34D; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
           <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:5px 12px; font-size:0.87rem; background:#FFFFFF; color:#1E293B; border:1.5px solid #94A3B8; font-weight:800;">
-            ⬅ 返回 6 格設定入口
+            ⬅ 返回編修主入口
           </button>
-          <span style="font-weight:900; font-size:1.03rem; color:#78350F;">🎛️ 05-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
+          <span style="font-weight:900; font-size:1.03rem; color:#78350F;">🎛️ 04-B / Excel 儀器掛載表 (Instrument 工作表 — 使用中 ${activeInsts.length} 台)</span>
         </div>
         <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-blue" style="padding:5px 14px; font-size:0.87rem; font-weight:800;">
           ✔ 套用設定並更新體檢
@@ -1224,14 +1224,9 @@ function _renderInstMountFullPageHtml(ws, usedInstRefs) {
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:4px; border-top:1px solid #E2E8F0;">
         <button onclick="switchGlobalEditorTab('hub')" class="btn" style="padding:7px 16px; font-size:0.9rem; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:800;">⬅ 返回編修主入口</button>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button onclick="applyFixAndExport(true)" class="btn btn-dry" style="padding:9px 18px; font-size:0.92rem; font-weight:800;" data-pop-tip="立即輸出無儀器試跑版 (*_DryRun.xlsx)：自動停用實機儀器掛載並切換單 DUT">
-            🧪 無儀器試跑匯出 (*_DryRun.xlsx)
-          </button>
-          <button onclick="applyFixAndExport(false)" class="btn btn-primary-green" style="padding:9px 24px; font-size:0.97rem; font-weight:900; box-shadow:0 3px 10px rgba(22,163,74,0.3);">
-            💾 寫入並匯出 Excel (*_FIXED.xlsx)
-          </button>
-        </div>
+        <button onclick="applyGlobalEditorAndReaudit()" class="btn btn-primary-green" style="padding:8px 20px; font-size:0.93rem; font-weight:900;">
+          ✔ 套用設定並記憶修改
+        </button>
       </div>
     </div>
   `;
@@ -1453,7 +1448,7 @@ function renderGlobalEditorPanel() {
   }
   const expBar = document.getElementById('editorExportBar');
   if (expBar) {
-    expBar.style.display = 'flex';
+    expBar.style.display = (AUDIT_GLOBAL_TAB === 'hub') ? 'flex' : 'none';
   }
 }
 
@@ -1619,8 +1614,9 @@ async function applyGlobalEditorAndReaudit() {
   STATE.pendingInserts.push({
     sheet: labelMap[AUDIT_GLOBAL_TAB] || '全域設定',
     inst: 'Excel 全域微調',
-    summary: `已套用設定並完成即時覆檢（ISN 條碼：${STATE.lastIsnLen || 15} 碼；請點擊底部「💾 寫入並匯出 Excel (*_FIXED.xlsx)」寫入檔案）`
+    summary: `已暫存設定修改（ISN 條碼：${STATE.lastIsnLen || 15} 碼；請於功能總覽底部統一匯出）`
   });
+  AUDIT_GLOBAL_TAB = 'hub';
   renderGlobalEditorPanel();
   renderAuditResults();
 }

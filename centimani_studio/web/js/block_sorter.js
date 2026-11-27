@@ -163,7 +163,19 @@ async function openBlockSorterModal(preferredSheet = '') {
 
   const container = document.getElementById('modalBlockSorter');
   if (container) {
-    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(container, 'btnBsCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(container, 'btnBsCloseModal', '✕ 關閉', '⬅ 返回編修主入口');
+    const topApplyBtn = document.getElementById('btnBsApplyAndOpenTop');
+    if (topApplyBtn) {
+      if (container.classList.contains('as-page')) {
+        topApplyBtn.innerHTML = '✔ 套用排序並記憶修改';
+        topApplyBtn.title = '將新順序套用至記憶體，返回編修主入口後統一匯出';
+        topApplyBtn.onclick = () => bsApplyReorder();
+      } else {
+        topApplyBtn.innerHTML = '🚀 套用排序、自動修復並開啟 Excel 檢視';
+        topApplyBtn.title = '將新排序寫入 Excel 並自動開啟檢視';
+        topApplyBtn.onclick = () => bsApplyAndOpenExcel();
+      }
+    }
     container.style.display = 'flex';
     container.classList.add('open');
   }
@@ -833,6 +845,7 @@ async function bsApplyReorder() {
       summary: `共 ${BS_STATE.currentBlocks.length} 個 Phase 區塊已重排${autoRenum ? '並自動順編 Phase' : ''}`
     });
     closeBlockSorterModal();
+    if (typeof renderGlobalEditorPanel === 'function') renderGlobalEditorPanel();
     renderAuditResults();
   } catch (err) {
     console.error('bsApplyReorder error:', err);

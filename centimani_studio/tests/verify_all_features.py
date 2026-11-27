@@ -3106,7 +3106,7 @@ def run_all_verifications():
                   and "RobotMode" in ae78_src
                   and "PCUART_1" in ae78_src
                   and ("5～6 格" in ae78_src or "6 張寬版功能卡" in ae78_src)
-                  and "返回 6 格設定入口" in ae78_src
+                  and "返回編修主入口" in ae78_src
                   and "['Switch']" in ae78_src and "['Sub']" in ae78_src,
                   "v0.8.078 audit_editors.js 具備免掃條碼保護、*$(var)/空規則支援、DeviceSemaphore/RobotMode、Inst Sub/Switch 與 PCUART_1",
                   "missing expected v0.8.078 UI/editor markers in audit_editors.js")
@@ -3393,7 +3393,6 @@ def run_all_verifications():
                   and 'btn-primary-green' in idx81_src.split('id="btnHomeSettings"')[1][:120]
                   and 'id="accCard_settings"' not in idx81_src
                   and 'id="btnExportAuditDry"' in idx81_src
-                  and 'id="auditPanelNoHwPhaseChk"' in idx81_src
                   and 'id="btnAuditResetPicker"' in idx81_src
                   and 'id="auditResumeLastBox"' in idx81_src
                   and 'record_recent_file' in open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read()
@@ -3431,7 +3430,7 @@ def run_all_verifications():
             check('.gen-big-card[data-theme="blue"]' in css83_src
                   and '.gen-big-card[data-theme="green"]' in css83_src
                   and 'flex: 1.55 1 0%' in css83_src
-                  and "expBar.style.display = 'flex';" in ae81_src
+                  and "AUDIT_GLOBAL_TAB === 'hub'" in ae81_src
                   and 'renderGlobalEditorPanel' in tsw83_src
                   and '同一 Phase 可設多個跳轉點' in idx81_src
                   and '失敗跳到結尾 (略過中段)' in idx81_src
@@ -3463,6 +3462,16 @@ def run_all_verifications():
                   and 'btnTswCloseModal' in tsw83_src,
                   "v0.8.085 移除暫存列重複匯出按鈕、1->N 所有卡片點入皆以全寬獨立頁面呈現 (.as-page) 檢查通過",
                   "missing expected v0.8.085 markers")
+
+            # [v0.8.086] 統一「⬅ 返回編修主入口」、子頁面不直接匯出改由總覽統一匯出、StationName清單(ask置首+全測站)、去重Phase=-1勾選
+            check('返回 1 → N 編修總覽' not in (idx81_src + bs82_src + tsw83_src)
+                  and '返回 6 格設定入口' not in ae81_src
+                  and 'id="auditNoHwPhaseChk"' not in idx81_src
+                  and "expBar.style.display = (AUDIT_GLOBAL_TAB === 'hub') ? 'flex' : 'none';" in ae81_src
+                  and "執行時由使用者當場選站" in idx81_src
+                  and "station_name_value" in open(os.path.join(STUDIO_DIR, "app_server.py"), "r", encoding="utf-8").read(),
+                  "v0.8.086 統一返回編修主入口、6頁僅暫存改由總覽匯出、StationName全站清單與移除重複Phase=-1勾選通過",
+                  "missing expected v0.8.086 markers")
 
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")

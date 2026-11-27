@@ -115,7 +115,7 @@
               <span id="tswFooterStatus" style="font-size:0.84rem; color:#475569; font-weight:700;"></span>
               <button type="button" class="tsw-btn-soft" onclick="tswTogglePreview()">👁️ 預覽產出步驟</button>
             </div>
-            <button type="button" class="btn btn-primary-green" onclick="tswApplyToTarget()" style="padding:8px 22px; font-weight:900; font-size:0.94rem;">✅ 套用並準備產出 Excel</button>
+            <button id="btnTswApplyFooter" type="button" class="btn btn-primary-green" onclick="tswApplyToTarget()" style="padding:8px 22px; font-weight:900; font-size:0.94rem;">✅ 套用並準備產出 Excel</button>
           </div>
         </div>
       `;
@@ -183,12 +183,16 @@
     const modal = document.getElementById('templateSkuModal');
     if (modal) {
       if (TSW.targetMode === 'edit' && typeof window._applyAsPageMode === 'function') {
-        window._applyAsPageMode(modal, 'btnTswCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+        window._applyAsPageMode(modal, 'btnTswCloseModal', '✕ 關閉', '⬅ 返回編修主入口');
       } else {
         modal.classList.remove('as-page');
         modal.style.top = '';
         const cBtn = document.getElementById('btnTswCloseModal');
         if (cBtn) cBtn.textContent = '✕ 關閉';
+      }
+      const applyFooterBtn = document.getElementById('btnTswApplyFooter');
+      if (applyFooterBtn) {
+        applyFooterBtn.textContent = (TSW.targetMode === 'edit') ? '✅ 套用設定並記憶修改' : '✅ 套用並準備產出 Excel';
       }
       modal.style.display = '';
       modal.classList.add('open');

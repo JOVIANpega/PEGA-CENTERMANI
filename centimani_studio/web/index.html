@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centimani Studio V2.4 — 智慧腳本健檢修復與母體產生工作台</title>
-<link rel="stylesheet" href="/css/app.css?v=0.8.085">
+<link rel="stylesheet" href="/css/app.css?v=0.8.086">
 </head>
 <body>
 
@@ -12,7 +12,7 @@
 <div class="top-header">
   <div class="brand-group" style="flex-wrap:wrap; align-items:center; gap:10px;">
     <span class="brand-title">Centimani Studio V2.4</span>
-    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.085</span>
+    <span id="appVersionBadge" style="background:#16A34A; color:#FFFFFF; font-size:0.77rem; font-weight:800; padding:2px 8px; border-radius:999px; font-family:Consolas, monospace; letter-spacing:0.3px;" title="目前前端載入之版本號">Build v0.8.086</span>
     <div class="top-nav-pills">
       <button id="topNavHome" class="top-nav-pill active" onclick="switchTab('home')">🏠 首頁</button>
       <button id="topNavAudit" class="top-nav-pill" style="display:none;" onclick="switchTab('audit')">🔍 01 腳本健檢</button>
@@ -196,14 +196,10 @@
           </button>
         </div>
 
-        <!-- 健檢右側動作：一鍵修好並匯出（含無儀器設 Phase=-1 與無儀器試跑版匯出） -->
+        <!-- 健檢右側動作：一鍵修好並匯出（含無儀器試跑版匯出） -->
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <label id="lblAuditPanelNoHw" style="display:none; align-items:center; gap:6px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:5px 10px; font-size:0.82rem; color:#92400E; font-weight:700; cursor:pointer;" data-pop-tip="勾選後匯出 *_FIXED.xlsx 時維持單一工作表，但自動把儀器測項改寫為 Phase = -1 並停用 Mount，方便無儀器電腦直接開啟試跑">
-            <input id="auditPanelNoHwPhaseChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;" onchange="syncNoHwCheckboxes(this.checked)">
-            <span>⏸️ 無儀器設 <code>Phase = -1</code></span>
-          </label>
           <button id="btnExportAuditDry" class="btn btn-dry" style="display:none;" onclick="applyFixAndExport(true)" data-pop-tip="立即輸出無儀器試跑版 (*_DryRun.xlsx)：自動停用實機儀器掛載並切換單 DUT，適合無儀器環境先行試跑流程">
-            🧪 無儀器試跑匯出
+            🧪 匯出「無硬體試跑版」
           </button>
           <button id="btnExportFixed" class="btn btn-primary-green" style="display:none;" onclick="applyFixAndExport(false)" title="依下方對策自動修補異常項目，輸出 *_FIXED.xlsx 並重算 Checksum">
             💾 一鍵修好並匯出 (*_FIXED.xlsx)
@@ -410,7 +406,7 @@
           <div style="display:flex; gap:8px;">
             <button onclick="jeApplyCurrent()" class="btn" style="background:#DBEAFE; color:#1E3A8A; border-color:#3B82F6;">✨ 套用此步跳轉</button>
             <button onclick="jeClearCurrent()" class="btn" style="background:#E2E8F0; color:#334155; border-color:#94A3B8;">🧹 清除本步 (設為 0)</button>
-            <button onclick="closeJumpEditorModal()" class="btn btn-primary-green">✔ 完成並重新體檢</button>
+            <button onclick="closeJumpEditorModal()" class="btn btn-primary-green">✔ 完成並返回編修主入口</button>
           </div>
         </div>
       </div>
@@ -1235,33 +1231,26 @@
         <!-- ④ 待匯出異動摘要條（插入儀器或微調後顯示，提醒匯出驗證） -->
         <div id="pendingChangesBar" style="display:none; background:#EFF6FF; border:1.5px solid #3B82F6; border-radius:8px; padding:10px 14px; margin-bottom:12px;"></div>
 
-        <!-- ⑤ 產出確認列 -->
+        <!-- ⑤ 產出確認列（僅在腳本編修功能總覽顯示，統一由總覽匯出） -->
         <div id="editorExportBar" style="background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px 16px; display:none; flex-direction:column; gap:10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
-            <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:5px 10px; font-size:0.83rem; color:#1E3A8A; font-weight:700;" title="決定匯出後 System.ini 的 StationName 值；若為留空則執行時彈窗選站">
-              <span>🎯 匯出寫入 StationName：</span>
-              <select id="auditStationPromptSel" style="padding:3px 6px; border:1px solid #93C5FD; border-radius:5px; font-weight:700; color:#0F172A;">
-                <option value="fixed">指定目前站別 (寫入 StationName)</option>
-                <option value="ask">留空（執行時彈窗選擇測試站）</option>
+            <div style="display:flex; align-items:center; gap:8px; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:6px 12px; font-size:0.84rem; color:#1E3A8A; font-weight:700;" data-pop-tip="決定匯出後寫入 System.ini [System] StationName 的開機預設站別；選「由作業員當場選擇」則寫入空白讓主程式執行時彈窗挑站">
+              <span>🎯 匯出後 System.ini 啟動站別 (StationName)：</span>
+              <select id="auditStationPromptSel" style="padding:4px 8px; border:1.5px solid #93C5FD; border-radius:5px; font-weight:800; color:#0F172A; background:#FFFFFF;">
+                <option value="ask">📋 執行時由使用者當場選站 (StationName 留空)</option>
               </select>
             </div>
-            <label style="display:flex; align-items:center; gap:8px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:6px 12px; font-size:0.83rem; color:#92400E; font-weight:700; cursor:pointer;">
-              <input id="auditNoHwPhaseChk" type="checkbox" style="width:15px; height:15px; cursor:pointer;">
-              <span>⏸️ 無儀器時將儀器測項寫入 <code>Phase = -1</code>（回產線改回數字即跑）</span>
-            </label>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
-            <div style="font-size:0.85rem; color:#475569;" title="自動完成：格式修復、Phase 順編（保留既有 Phase 0）、安全收尾與 Checksum 簽章，並檢核實機 DLL">
-              ✅ 匯出時自動執行格式修復、順編與 Checksum 簽章（完成後開啟資料夾並詢問開啟 Excel）
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-              <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:0.9rem;" onclick="applyFixAndExport(true)">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-left:auto;">
+              <button id="btnEditorExportDry" class="btn btn-dry" style="padding:8px 16px; font-size:0.9rem;" onclick="applyFixAndExport(true)" data-pop-tip="產出無硬體試跑版 (*_DryRun.xlsx)：自動停用實機儀器掛載並切換單 DUT，方便無儀器電腦先行驗證流程">
                 🧪 匯出「無硬體試跑版」
               </button>
               <button id="btnEditorExportFixed" class="btn btn-primary-green" style="padding:8px 18px; font-size:0.9rem;" onclick="applyFixAndExport(false)">
                 💾 寫入並匯出 Excel (*_FIXED.xlsx)
               </button>
             </div>
+          </div>
+          <div style="font-size:0.83rem; color:#475569;" title="自動完成：格式修復、Phase 順編（保留既有 Phase 0）、安全收尾與 Checksum 簽章，並檢核實機 DLL">
+            ✅ 上方所有卡片的修改會先暫存於記憶體，由這裡統一執行格式修復、順編、Checksum 簽章與匯出（完成後開啟資料夾並詢問開啟 Excel）
           </div>
         </div>
       </div>
@@ -1502,7 +1491,7 @@
     <div id="ticBackFromEditBar" style="display:none; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; background:#F3E8FF; border:1.5px solid #A855F7; border-radius:9px; padding:8px 14px;">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <button id="btnTicBackOrigin" type="button" class="btn" style="padding:6px 14px; background:#1E293B; color:#FFFFFF; border:none; border-radius:7px; font-weight:900;" onclick="returnToEditFromTic()">
-          ⬅ 返回既有腳本編修 (1 → N)
+          ⬅ 返回編修主入口
         </button>
         <span style="font-weight:900; color:#581C87; font-size:0.96rem;">🏷️ Error Code / TestID 速查與整份 Excel 自動對照</span>
       </div>
@@ -1810,7 +1799,7 @@
     </div>
     <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid #E2E8F0; padding-top:12px;">
       <button onclick="closeCopySheetModal()" class="btn">取消返回</button>
-      <button onclick="csExecuteCopy()" class="btn btn-primary-green" style="font-weight:800;">✨ 複製整張 Sheet 並匯出驗證</button>
+      <button onclick="csExecuteCopy()" class="btn btn-primary-green" style="font-weight:800;">✨ 執行跨檔案複製 Sheet</button>
     </div>
   </div>
 </div>
@@ -1913,14 +1902,14 @@
 </div>
 
 <div id="appGlobalBtnPop" class="app-btn-popup"></div>
-<script src="/js/inst_hmi.js?v=0.8.085"></script>
-<script src="/js/audit_editors.js?v=0.8.085"></script>
-<script src="/js/flow_guide.js?v=0.8.085"></script>
-<script src="/js/block_sorter.js?v=0.8.085"></script>
-<script src="/js/script_qa.js?v=0.8.085"></script>
-<script src="/js/sfis_hmi.js?v=0.8.085"></script>
-<script src="/js/template_sku_wizard.js?v=0.8.085"></script>
-<script src="/js/create_block_builder.js?v=0.8.085"></script>
+<script src="/js/inst_hmi.js?v=0.8.086"></script>
+<script src="/js/audit_editors.js?v=0.8.086"></script>
+<script src="/js/flow_guide.js?v=0.8.086"></script>
+<script src="/js/block_sorter.js?v=0.8.086"></script>
+<script src="/js/script_qa.js?v=0.8.086"></script>
+<script src="/js/sfis_hmi.js?v=0.8.086"></script>
+<script src="/js/template_sku_wizard.js?v=0.8.086"></script>
+<script src="/js/create_block_builder.js?v=0.8.086"></script>
 <script>
 // 全站按鍵滑鼠懸停說明 Popup（立即顯示該按鍵用途與操作方式，不延遲）
 (function initGlobalButtonPopup() {
@@ -2016,7 +2005,7 @@ function _applyAsPageMode(backdropEl, closeBtnId, defaultCloseText, pageBackText
     backdropEl.classList.add('as-page');
     const hdr = document.querySelector('.top-header');
     backdropEl.style.top = (hdr ? Math.round(hdr.getBoundingClientRect().bottom) : 48) + 'px';
-    if (btn) btn.textContent = pageBackText || '⬅ 返回 1 → N 編修總覽';
+    if (btn) btn.textContent = pageBackText || '⬅ 返回編修主入口';
   } else {
     backdropEl.classList.remove('as-page');
     backdropEl.style.top = '';
@@ -2078,7 +2067,7 @@ function switchTab(tab) {
     const backBar = document.getElementById('ticBackFromEditBar');
     const backBtn = document.getElementById('btnTicBackOrigin');
     if (backBar) backBar.style.display = (window._TIC_FROM_EDIT || window._TIC_FROM_GEN_HUB) ? 'flex' : 'none';
-    if (backBtn) backBtn.textContent = window._TIC_FROM_GEN_HUB ? '⬅ 返回腳本建立與編修中心' : '⬅ 返回既有腳本編修 (1 → N)';
+    if (backBtn) backBtn.textContent = window._TIC_FROM_GEN_HUB ? '⬅ 返回腳本建立與編修中心' : '⬅ 返回編修主入口';
     renderTicTargetList();
     if (TIC_BATCH_STATE.subTab === 'single') {
       setTimeout(() => {
@@ -3280,7 +3269,9 @@ function renderTicBatchIssues() {
 
   if (applyBtn) {
     applyBtn.style.display = selectedCount > 0 ? 'inline-flex' : 'none';
-    applyBtn.textContent = `💾 套用 ${selectedCount} 筆修正並匯出 *_FIXED.xlsx + 簽章`;
+    applyBtn.textContent = window._TIC_FROM_EDIT
+      ? `✅ 套用 ${selectedCount} 筆修正並返回編修主入口`
+      : `💾 套用 ${selectedCount} 筆修正並匯出 *_FIXED.xlsx + 簽章`;
   }
 
   if (sumEl) {
@@ -3379,6 +3370,37 @@ async function ticApplyBatchToExcel() {
     return;
   }
   const updateDesc = Boolean(document.getElementById('chkTicBatchUpdateDesc') && document.getElementById('chkTicBatchUpdateDesc').checked);
+  if (window._TIC_FROM_EDIT && STATE && STATE.workspace) {
+    const stations = STATE.workspace.stations || {};
+    STATE.workspace._modified_cells = STATE.workspace._modified_cells || [];
+    let appliedCnt = 0;
+    updates.forEach(u => {
+      const rows = stations[u.station];
+      const idx = parseInt(u.row_idx, 10) - 2;
+      if (Array.isArray(rows) && rows[idx]) {
+        const oldTid = String(rows[idx].TestID || '');
+        rows[idx].TestID = u.test_id;
+        STATE.workspace._modified_cells.push({
+          sheet: u.station, row: u.row_idx, col_name: 'TestID',
+          old: oldTid, new: u.test_id, note: 'TestID 補齊/修正'
+        });
+        if (updateDesc && u.description) {
+          rows[idx].Description = u.description;
+        }
+        appliedCnt++;
+      }
+    });
+    STATE.pendingInserts = STATE.pendingInserts || [];
+    STATE.pendingInserts.push({
+      sheet: 'TestID 補碼',
+      inst: 'TestID 批次修正',
+      summary: `已暫存更新 ${appliedCnt} 筆 TestID（請於總覽底部統一匯出）`
+    });
+    TIC_BATCH_STATE.selections = {};
+    if (typeof renderAuditResults === 'function') renderAuditResults();
+    returnToEditFromTic();
+    return;
+  }
   const res = await fetch('/api/tic_apply_batch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4213,6 +4235,24 @@ function syncEditorView() {
       sel.innerHTML = stNames.map(n => `<option value="${n}">${n}</option>`).join('');
       if (STATE.activeSheetFilter && stNames.includes(STATE.activeSheetFilter)) {
         sel.value = STATE.activeSheetFilter;
+      }
+    }
+    const stPromptSel = document.getElementById('auditStationPromptSel');
+    if (stPromptSel) {
+      const prevVal = stPromptSel.value;
+      const sysIni = (STATE.workspace && STATE.workspace.system_ini) || {};
+      const sysSt = String(sysIni.StationName || '').trim();
+      const isAsk = String(sysIni.StationName_Mode || '').toLowerCase() === 'ask';
+      const escOpt = s => String(s || '').replace(/"/g, '&quot;');
+      stPromptSel.innerHTML =
+        `<option value="ask">📋 執行時由使用者當場選站 (StationName 留空)</option>` +
+        stNames.map(n => `<option value="${escOpt(n)}">📌 指定啟動站別：${escOpt(n)}</option>`).join('');
+      if (prevVal && (prevVal === 'ask' || stNames.includes(prevVal))) {
+        stPromptSel.value = prevVal;
+      } else if (isAsk || !sysSt || !stNames.includes(sysSt)) {
+        stPromptSel.value = 'ask';
+      } else {
+        stPromptSel.value = sysSt;
       }
     }
   } else {
@@ -5563,7 +5603,7 @@ function openJumpEditorModal(preferSheet, preferTitle) {
   jeOnSheetChange(preferTitle);
   const jm = document.getElementById('jumpEditorModal');
   if (jm) {
-    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(jm, 'btnJeCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(jm, 'btnJeCloseModal', '✕ 關閉', '⬅ 返回編修主入口');
     jm.style.display = 'flex';
     jm.classList.add('open');
   }
@@ -6536,11 +6576,9 @@ async function applyFixAndExport(dryRun) {
     || (document.getElementById('editorSheetSel') && document.getElementById('editorSheetSel').value)
     || (STATE.activeSheetFilter && STATE.activeSheetFilter !== 'ALL' ? STATE.activeSheetFilter : '');
 
-  const noHwPhasePause = Boolean(
-    (document.getElementById('auditNoHwPhaseChk') && document.getElementById('auditNoHwPhaseChk').checked) ||
-    (document.getElementById('auditPanelNoHwPhaseChk') && document.getElementById('auditPanelNoHwPhaseChk').checked)
-  );
-  const stationNameMode = (document.getElementById('auditStationPromptSel') && document.getElementById('auditStationPromptSel').value) || 'fixed';
+  const selStVal = (document.getElementById('auditStationPromptSel') && document.getElementById('auditStationPromptSel').value) || 'ask';
+  const stationNameMode = (selStVal === 'ask') ? 'ask' : 'fixed';
+  const stationNameValue = (selStVal === 'ask' || selStVal === 'fixed') ? '' : selStVal;
   const data = await withLoadingTimer(
     dryRun ? '正在匯出「無硬體試跑版」Excel 並喚醒視窗' : '正在寫入匯出 *_FIXED.xlsx、簽章並喚醒開啟 Excel',
     async () => {
@@ -6551,8 +6589,9 @@ async function applyFixAndExport(dryRun) {
           workspace: STATE.workspace,
           user_choices: STATE.userChoices,
           dry_run: dryRun,
-          no_hw_phase_pause: noHwPhasePause,
+          no_hw_phase_pause: false,
           station_name_mode: stationNameMode,
+          station_name_value: stationNameValue,
           taipei_dual_mode: false,
           active_sheet: targetSheet,
           open_excel: false
@@ -7368,7 +7407,7 @@ async function openCopySheetModal() {
   if (currPath && !dstInput.value) dstInput.value = currPath;
   const cm = document.getElementById('copySheetModal');
   if (cm) {
-    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(cm, 'btnCsCloseModal', '✕ 關閉', '⬅ 返回 1 → N 編修總覽');
+    if (typeof _applyAsPageMode === 'function') _applyAsPageMode(cm, 'btnCsCloseModal', '✕ 關閉', '⬅ 返回編修主入口');
     cm.classList.add('open');
   }
 
