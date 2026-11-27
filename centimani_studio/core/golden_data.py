@@ -1054,28 +1054,35 @@ _PLACEHOLDER_TEST_IDS = {
 }
 
 _ATE_SYNONYM_GROUPS = [
-    (("電壓", "volt", "voltage", "vdd", "vcc", "vbus", "vbat", "dcv", "acv"), ["voltage", "volt", "電壓"]),
-    (("電流", "curr", "current", "mscurr", "mcurr", "amp", "leakage"), ["current", "curr", "電流"]),
+    (("電壓", "volt", "voltage", "vdd", "vcc", "vbus", "vbat", "dcv", "acv", "mvolt"), ["voltage", "volt", "電壓"]),
+    (("電流", "curr", "current", "mscurr", "mcurr", "amp", "leakage", "consumption"), ["current", "curr", "電流"]),
     (("電阻", "ohm", "res", "resistance"), ["resistance", "ohm", "電阻"]),
-    (("功率", "power", "watt", "pph", "pwr"), ["power", "電源"]),
-    (("版本", "version", "fw", "firmware", "sw_ver", "hw_ver"), ["version", "fw", "版本"]),
-    (("mac", "imac", "bdaddr"), ["mac"]),
-    (("ping", "ethernet", "lan", "iperf"), ["ping", "ethernet", "network"]),
-    (("wifi", "wlan", "rssi", "evm", "2g", "5g", "6g"), ["wifi", "wlan", "rf"]),
+    (("功率", "power", "watt", "pph", "ps2005", "pwr", "outonoff", "ipower"), ["power", "電源"]),
+    (("版本", "version", "fw", "firmware", "sw_ver", "hw_ver", "cat /etc/version"), ["version", "fw", "版本"]),
+    (("mac", "imac", "bdaddr", "efuse"), ["mac"]),
+    (("ping", "ethernet", "lan", "iperf", "throughput", "dhcp", "rj45"), ["ping", "ethernet", "network", "lan"]),
+    (("wifi", "wlan", "rssi", "evm", "2g", "5g", "6g", "iqxel", "xelm8", "mt8870"), ["wifi", "wlan", "rf"]),
     (("bt", "bluetooth", "ble"), ["bluetooth", "bt", "藍牙"]),
-    (("led", "feasa", "rgb", "lux", "亮度", "色溫", "light"), ["led", "light"]),
-    (("條碼", "isn", "barcode", "scan", "sn"), ["isn", "barcode", "條碼"]),
+    (("led", "feasa", "rgb", "lux", "亮度", "色溫", "light", "hue", "intensity"), ["led", "light"]),
+    (("條碼", "isn", "barcode", "scan", "sn", "showisn"), ["isn", "barcode", "條碼"]),
     (("路由", "route", "sfcheck", "checkroute", "chkroute"), ["route", "sfis"]),
     (("上傳", "sfsave", "linkdata", "wsfis"), ["sfis", "save", "upload"]),
     (("uart", "com", "serial", "baud"), ["uart", "serial"]),
     (("adc", "ni6008", "ni6009", "daq", "analog"), ["voltage", "adc", "analog"]),
     (("sensor", "temp", "溫度", "imu", "accel", "gyro", "als"), ["sensor", "temp"]),
     (("camera", "cam", "sfr", "lens", "focus", "影像", "鏡頭"), ["camera", "cam"]),
-    (("audio", "mic", "spk", "speaker", "聲音", "音頻"), ["audio", "mic", "speaker"]),
-    (("button", "key", "按鍵", "switch"), ["button", "key", "按鍵"]),
+    (("audio", "mic", "spk", "speaker", "聲音", "音頻", "ni4461"), ["audio", "mic", "speaker"]),
+    (("button", "key", "按鍵", "switch", "reset", "gpio"), ["button", "key", "按鍵"]),
     (("fixture", "治具", "uartf"), ["fixture", "治具"]),
-    (("flash", "燒錄", "fwdl", "download"), ["download", "flash", "燒錄"]),
+    (("flash", "燒錄", "fwdl", "download", "emmc", "spi", "nvme"), ["download", "flash", "燒錄"]),
     (("usb", "getcom"), ["usb"]),
+    (("boot", "reboot", "startup", "開機", "delay", "wait"), ["boot", "delay", "wait"]),
+    (("fan", "pwm", "rpm", "轉速"), ["fan", "speed"]),
+    (("rtc", "clock", "time", "ntp"), ["rtc", "time"]),
+    (("lte", "5g", "wwan", "imei", "sim", "modem"), ["lte", "wwan", "sim"]),
+    (("gps", "gnss"), ["gps", "gnss"]),
+    (("nfc", "rfid"), ["nfc"]),
+    (("34401", "2700", "dmm", "u2004", "multimeter"), ["voltage", "current", "power"]),
 ]
 
 _STOP_KEYWORDS = {
@@ -1092,15 +1099,28 @@ def _is_control_send(send_str):
     return any(s.startswith(p) for p in _CONTROL_SEND_PREFIXES)
 
 
+_TRANSPORT_ONLY_TOKENS = {"uart", "serial", "com", "adb", "ssh", "telnet", "cmd", "console"}
+
+
+def _trigger_matches_text(trigger, low, spaced_low):
+    import re
+    if any("\u4e00" <= ch <= "\u9fff" for ch in trigger):
+        return trigger in low
+    if len(trigger) >= 5:
+        return bool(re.search(rf"(?<![a-z0-9]){re.escape(trigger)}|{re.escape(trigger)}(?![a-z0-9])", spaced_low))
+    return bool(re.search(rf"(?<![a-z0-9]){re.escape(trigger)}(?![a-z0-9])", spaced_low))
+
+
 def _extract_row_keywords(title, desc, send):
     import re
     raw = f"{title} {desc} {send}"
     low = raw.lower()
+    spaced_low = re.sub(r"([a-z])([A-Z])", r"\1 \2", raw).lower()
     syn_tokens = []
     seen = set()
 
     for triggers, expanded in _ATE_SYNONYM_GROUPS:
-        if any(t in low for t in triggers):
+        if any(_trigger_matches_text(t, low, spaced_low) for t in triggers):
             for tok in expanded:
                 tl = tok.lower()
                 if tl not in seen:
@@ -1118,10 +1138,76 @@ def _extract_row_keywords(title, desc, send):
     return syn_tokens
 
 
+def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=False):
+    """Compute a 0..100 similarity score between a script step and a Test Item Code entry."""
+    from difflib import SequenceMatcher
+    en_l = str(cand.get("desc_en") or "").lower()
+    cn_l = str(cand.get("desc_cn") or "").lower()
+    mf_l = str(cand.get("main_func") or "").lower()
+    if_l = str(cand.get("interface") or "").lower()
+
+    clean_desc = (desc or "").replace("DUT#-#", "").replace("PC#-#", "").replace("OP#-#", "").strip()
+    row_text = f"{title} {clean_desc}".strip().lower()
+    if not row_text:
+        row_text = (send or "").strip().lower()
+
+    matched = 0
+    substantive_hits = 0
+    substantive_total = sum(1 for t in (kw_tokens or []) if t.lower() not in _TRANSPORT_ONLY_TOKENS)
+    weighted_hits = 0.0
+    for idx_t, tok in enumerate(kw_tokens or []):
+        tl = tok.lower()
+        if not tl:
+            continue
+        is_sub = tl not in _TRANSPORT_ONLY_TOKENS
+        if tl in en_l or tl in cn_l:
+            matched += 1
+            if is_sub:
+                substantive_hits += 1
+                weighted_hits += 1.2 if idx_t < 3 else 1.0
+            else:
+                weighted_hits += 0.4
+        elif tl in mf_l or tl in if_l:
+            matched += 1
+            if is_sub:
+                substantive_hits += 1
+                weighted_hits += 0.6
+            else:
+                weighted_hits += 0.25
+
+    tok_denom = max(1.0, min(len(kw_tokens or []), 4))
+    tok_ratio = min(1.0, weighted_hits / tok_denom)
+    seq_ratio = SequenceMatcher(None, row_text[:80], f"{en_l} {cn_l}".strip()[:80]).ratio() if (row_text and (en_l or cn_l)) else 0.0
+
+    raw = tok_ratio * 68.0 + seq_ratio * 24.0 + (10.0 if cand.get("is_generic") else 0.0)
+    if substantive_total > 0 and substantive_hits == 0 and not is_ctrl:
+        # Only matched transport interface (e.g. UART), none of the actual test-item words matched
+        raw = min(raw, 36.0)
+    elif substantive_hits >= 2 and cand.get("is_generic"):
+        raw = max(raw, 78.0)
+    elif substantive_hits >= 1 and cand.get("is_generic") and tok_ratio >= 0.45:
+        raw = max(raw, 74.0)
+    elif matched == 0 and is_ctrl and str(cand.get("test_id") or "").upper() in _PLACEHOLDER_TEST_IDS:
+        raw = max(raw, 65.0)
+    elif matched == 0:
+        raw = min(raw, 35.0)
+
+    return max(0, min(99, int(round(raw))))
+
+
+def _clean_proposed_item_name(title, desc, send):
+    import re
+    clean_d = re.sub(r"^(?:DUT|PC|OP)#-#", "", (desc or "").strip(), flags=re.I).strip()
+    clean_t = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip()).strip()
+    if clean_d and clean_t and clean_d.lower() != clean_t.lower():
+        return f"{clean_t} - {clean_d}"
+    return clean_t or clean_d or (send or "").strip()[:50]
+
+
 def analyze_workspace_test_ids(workspace, target_station=""):
     """
     Scans a workspace's station sheets to detect missing, generic-placeholder,
-    or semantically mismatched TestIDs, and proposes Top 5 catalog candidates per flagged row.
+    or semantically mismatched TestIDs, and proposes Top 5 catalog candidates with confidence tiers.
     """
     catalog = get_tic_catalog()
     cat_map = {item["test_id"].upper(): item for item in catalog if item.get("test_id")}
@@ -1186,8 +1272,8 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 ok_count += 1
                 continue
 
-            # Gather up to 5 deduplicated candidate TestIDs
-            candidates = []
+            # Gather up to 5 deduplicated candidate TestIDs with confidence scores
+            raw_cands = []
             seen_tids = set()
             queries_to_try = []
             if kw_tokens:
@@ -1196,23 +1282,36 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                     queries_to_try.append(single_kw)
             if not queries_to_try and title:
                 queries_to_try.append(title)
+            if is_ctrl and not tid:
+                queries_to_try.append("delay others")
 
             for q_str in queries_to_try:
-                if len(candidates) >= 5:
-                    break
                 for cand in search_test_ids(q_str, limit=8):
                     c_tid = cand.get("test_id", "").upper()
                     if not c_tid or c_tid in seen_tids:
                         continue
                     seen_tids.add(c_tid)
-                    candidates.append(cand)
-                    if len(candidates) >= 5:
-                        break
+                    scored_cand = dict(cand)
+                    scored_cand["confidence_score"] = _score_candidate_confidence(
+                        kw_tokens, title, desc, send, cand, is_ctrl=is_ctrl
+                    )
+                    raw_cands.append(scored_cand)
+
+            raw_cands.sort(key=lambda x: (x.get("confidence_score", 0), 1 if x.get("is_generic") else 0), reverse=True)
+            candidates = raw_cands[:5]
 
             # Do not flag semantic_mismatch if catalog has no alternative suggestion at all
             if reason_code == "semantic_mismatch" and not candidates:
                 ok_count += 1
                 continue
+
+            best_score = int(candidates[0].get("confidence_score", 0)) if candidates else 0
+            if best_score >= 72:
+                match_tier = "high"
+            elif best_score >= 42:
+                match_tier = "medium"
+            else:
+                match_tier = "low_gap"
 
             issues.append({
                 "station": st_name,
@@ -1230,6 +1329,10 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 "reason_label": reason_label,
                 "query_keywords": kw_tokens[:6],
                 "candidates": candidates,
+                "best_score": best_score,
+                "match_tier": match_tier,
+                "suggest_new_item": (match_tier == "low_gap"),
+                "proposed_new_desc": _clean_proposed_item_name(title, desc, send),
             })
 
     summary = {
@@ -1239,6 +1342,9 @@ def analyze_workspace_test_ids(workspace, target_station=""):
         "missing_count": sum(1 for x in issues if x["reason_code"] == "missing"),
         "placeholder_count": sum(1 for x in issues if x["reason_code"] == "generic_placeholder"),
         "mismatch_count": sum(1 for x in issues if x["reason_code"] == "semantic_mismatch"),
+        "high_match_count": sum(1 for x in issues if x.get("match_tier") == "high"),
+        "medium_match_count": sum(1 for x in issues if x.get("match_tier") == "medium"),
+        "gap_new_item_count": sum(1 for x in issues if x.get("match_tier") == "low_gap"),
     }
     return {"issues": issues, "summary": summary, "stations": list(stations.keys())}
 

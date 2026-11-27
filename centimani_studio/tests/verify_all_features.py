@@ -3494,6 +3494,60 @@ def run_all_verifications():
                   "v0.8.087 全分頁/彈窗/積木排序器/0->1/SFIS/儀器頁面字體連動與雙向持久化全面檢查通過",
                   f"sub_tiny_hits={sub_tiny_hits[:5]}")
 
+            # [v0.8.088] 1) tbd_stub (待補測項佔位) 僅 1 列合法 :Delay,"10" 且預設 Phase=-1 (0 Error)
+            #            2) Error Code / TestID 智慧比對：信心度分級 + 高相似自動預選 + 差距大建議申請新項目 + 1->N直入比對 + 同類同步
+            v88_payload = {
+                "project_name": "TBD_STUB_V88",
+                "station_name": "MB",
+                "dut_count": 1,
+                "open_folder": False,
+                "open_excel": False,
+                "builder_sequence": [
+                    {"kind": "start", "config": {"project": "TBD_STUB_V88", "station": "MB", "dut_count": 1}},
+                    {"kind": "tbd_stub", "config": {"phase_role": "-1", "title": "TBD - RF Power Meter", "note": "待補實機步驟"}},
+                    {"kind": "delay", "config": {"ms": "200", "note": "Regular Step"}},
+                    {"kind": "teardown", "config": {"teardown_mode": "97_only"}},
+                    {"kind": "end", "config": {"confirmed": True}},
+                ]
+            }
+            v88_res = post_json("/api/generate_new_standalone", v88_payload)
+            ws_v88 = _parse_v50(v88_res["excel_path"])
+            v88_rows = ws_v88["stations"]["MB"]
+            tbd_rows = [r for r in v88_rows if "TBD - RF Power Meter" in str(r.get("Title") or "")]
+            check(v88_res.get("status") == "ok"
+                  and len(tbd_rows) == 1
+                  and str(tbd_rows[0].get("Phase") or "").strip() == "-1"
+                  and str(tbd_rows[0].get("Send") or "").strip() == ':Delay,"10"'
+                  and int((v88_res.get("audit_report") or {}).get("error_count", -1)) == 0
+                  and "tbd_stub" in cbb87_src
+                  and "待補測項佔位" in cbb87_src,
+                  "v0.8.088 新增「🔖 佔位 (TBD)」積木僅產出 1 列合法 :Delay,\"10\" (Phase=-1, 0 Error)",
+                  f"tbd_rows={tbd_rows}, ar={v88_res.get('audit_report')}")
+
+            tic_v88_ws = {
+                "stations": {
+                    "MB": [
+                        {"Index": "1", "Phase": "1", "Title": "Measure 5V Voltage", "Description": "PC#-#Measure 5V Voltage", "Send": ":Dev.MVolt,1", "TestID": "", "ExecMode": "0"},
+                        {"Index": "2", "Phase": "2", "Title": "Quantum Flux Z99 Xyzzy", "Description": "PC#-#Qubit Calibration Xyzzy", "Send": "UART@qflux_xyz99", "TestID": "", "ExecMode": "0"},
+                    ]
+                }
+            }
+            tic_v88 = post_json("/api/tic_audit_excel", {"workspace": tic_v88_ws, "station": "MB"})
+            iss88 = tic_v88.get("issues") or []
+            iss88_v = next((x for x in iss88 if "5V Voltage" in str(x.get("title") or "")), None)
+            iss88_q = next((x for x in iss88 if "Quantum Flux" in str(x.get("title") or "")), None)
+            check(tic_v88.get("status") == "ok"
+                  and iss88_v is not None and iss88_v.get("match_tier") == "high"
+                  and int((iss88_v.get("candidates") or [{}])[0].get("confidence_score", 0)) >= 72
+                  and iss88_q is not None and iss88_q.get("match_tier") == "low_gap"
+                  and iss88_q.get("suggest_new_item") is True
+                  and "ticAutoSelectTier" in idx81_src
+                  and "ticExportNewItemRequests" in idx81_src
+                  and "ticApplyToSimilarRows" in idx81_src
+                  and "switchTicSubTab('batch')" in idx81_src.split("function openTicFromEdit()")[1].split("function openTicBatchAuditFromGen()")[0],
+                  "v0.8.088 Error Code 智慧比對分級（高相似自動預選 / 差距過大建議申請新碼 / 同類同步 / 1->N直入比對）通過",
+                  f"v={iss88_v and iss88_v.get('match_tier')}, q={iss88_q and (iss88_q.get('match_tier'), iss88_q.get('best_score'))}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)

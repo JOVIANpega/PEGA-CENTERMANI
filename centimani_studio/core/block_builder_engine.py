@@ -680,6 +680,28 @@ def build_workspace_from_sequence(
                 test_id="B7PL025",
             ))
 
+        elif kind == "tbd_stub":
+            raw_title = str(cfg.get("title") or "TBD - 待補測項").strip() or "TBD - 待補測項"
+            note = str(cfg.get("note") or "待補測項佔位（尚未填入實機步驟）").strip()
+            if req_role in ("", "-1"):
+                tbd_ph = "-1"
+            elif req_role == "0":
+                tbd_ph = "0"
+                has_phase0 = True
+            elif req_role == "same":
+                tbd_ph = ""
+            else:
+                tbd_ph = _alloc_phase()
+            steps.append(_step(
+                phase=tbd_ph,
+                title=f"0,{raw_title}",
+                send=':Delay,"10"',
+                reply="0",
+                exec_mode="0",
+                description=f"PC#-#{note}",
+                test_id="B7PL025",
+            ))
+
         elif kind == "prompt_box":
             p_mode = str(cfg.get("prompt_mode") or "ok_only").strip().lower()
             msg = str(cfg.get("message") or "請確認測試狀態").strip()
@@ -1370,7 +1392,7 @@ def build_workspace_from_sequence(
         active_phase_role[0] = ""
         # Every action block (except start / end / isn / delay / inst / multi_sku / disabled fixture) supports optional post-block Delay row
         skip_post_delay = (
-            kind in ("start", "end", "isn", "delay", "inst", "multi_sku")
+            kind in ("start", "end", "isn", "delay", "tbd_stub", "inst", "multi_sku")
             or (kind == "fixture" and str(cfg.get("fixture_type") or "none").strip().lower() == "none")
         )
         if kind not in ("start", "isn", "group", "teardown", "end", "sfis_route", "multi_sku", "inst") and len(steps) > step_start_idx:

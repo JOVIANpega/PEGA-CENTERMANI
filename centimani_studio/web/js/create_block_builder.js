@@ -44,6 +44,19 @@
       popExample: '例：2000 ms（自動解讀為等 2 秒）'
     },
     {
+      kind: 'tbd_stub',
+      icon: '🔖',
+      shortName: '佔位',
+      name: '🔖 佔位',
+      tier: 'common',
+      exclusivePage: false,
+      theme: '#FFFBEB',
+      border: '#D97706',
+      popTitle: '🔖 待補測項佔位 (TBD · 僅 1 列 · 預設 Phase = -1)',
+      popDesc: '確定日後要加測某項儀器或工站、但暫時未知詳細步驟時，先放 1 列合法的 :Delay,"10" 並預設 Phase = -1（執行時自動略過、不報錯、不影響 CT）。',
+      popExample: '例：TBD - RF Power Meter（僅 1 列安全佔位）'
+    },
+    {
       kind: 'inst',
       icon: '🧪',
       shortName: '儀器',
@@ -394,6 +407,9 @@
         });
       case 'delay':
         return { ms: '2000', note: '等待開機與供電穩定' };
+      case 'tbd_stub':
+        return Object.assign({}, base, { phase_role: '-1', title: 'TBD - 待補測項', note: '待補測項佔位（尚未填入實機步驟）' });
+
       case 'prompt_box':
         return Object.assign({}, base, { prompt_mode: 'yes_no', title: 'Operator Confirm', message: '請確認待測物藍燈是否正常亮起？', ok_label: '好(OK)', yes_label: 'Yes', no_label: 'No', no_policy: 'fail', var_name: 'ScanSub', min_len: '1', max_len: '32' });
       case 'var_check':
@@ -511,6 +527,9 @@
         return `${String(c.protocol || 'uart').toUpperCase()}@${(c.command || '').slice(0, 14)}${dNote}`;
       case 'delay':
         return `${c.ms || 2000}ms (${_formatMsReadable(c.ms || 2000)})`;
+      case 'tbd_stub':
+        return `TBD:${String(c.title || '待補測項').replace(/^TBD\s*[-:]\s*/i, '').slice(0, 10)}${dNote}`;
+
       case 'prompt_box':
         return (c.prompt_mode === 'yes_no' ? 'YES/NO' : c.prompt_mode === 'input' ? '掃副條碼' : 'OK確認') + dNote;
       case 'var_check':
@@ -1294,6 +1313,7 @@
       return 50;
     }
     if (k === 'delay') return 55;
+    if (k === 'tbd_stub') return 62;
     if (k === 'ping') return 60;
     if (k === 'comm_cmd') return 70;
     if (k === 'group') return 68;
@@ -2268,7 +2288,7 @@
   }
 
   function _renderPostDelayBar(item, idx) {
-    if (['start', 'end', 'isn', 'delay', 'multi_sku'].includes(item.kind)) return '';
+    if (['start', 'end', 'isn', 'delay', 'tbd_stub', 'multi_sku'].includes(item.kind)) return '';
     const c = item.config || {};
     const enabled = !!c.post_delay_enabled;
     const secStr = (c.post_delay_sec !== undefined && c.post_delay_sec !== '') ? String(c.post_delay_sec) : '0.5';
@@ -2768,6 +2788,23 @@
               </div>
               <label style="font-weight:700; font-size:0.84rem; flex:1; min-width:200px;">步驟用途說明
                 <input value="${_esc(c.note || '')}" oninput="bbUpdateField(${idx},'note',this.value)" style="width:100%; margin-top:3px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+              </label>
+            </div>
+          </div>
+        `;
+
+      case 'tbd_stub':
+        return `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:8px; padding:10px 12px; font-size:0.86rem; color:#78350F; line-height:1.5;">
+              <b>🔖 待補測項佔位 (TBD)</b>：固定僅產生 <b>1 列合法的 <code>:Delay,"10"</code></b>，並預設 <b><code>Phase = -1</code></b>（產線與本機皆自動略過，不影響 CT、不報缺指令或格式錯）。日後確定儀器後再插入取代即可。
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <label style="font-weight:700; font-size:0.86rem; flex:1; min-width:220px;">預留測項名稱 (Title)
+                <input value="${_esc(c.title || 'TBD - 待補測項')}" oninput="bbUpdateField(${idx},'title',this.value)" placeholder="例：TBD - RF Power Meter" style="width:100%; margin-top:4px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
+              </label>
+              <label style="font-weight:700; font-size:0.86rem; flex:1.3; min-width:240px;">用途備註 (Description)
+                <input value="${_esc(c.note || '')}" oninput="bbUpdateField(${idx},'note',this.value)" placeholder="例：待確認儀器型號與上下限後補入" style="width:100%; margin-top:4px; padding:6px 9px; border:1px solid #94A3B8; border-radius:6px; box-sizing:border-box;">
               </label>
             </div>
           </div>
@@ -3514,6 +3551,7 @@
         const quickChoices = [
           ['comm_cmd', '💬 加入指令'],
           ['delay', '⏳ 加入等待'],
+          ['tbd_stub', '🔖 加入佔位'],
           ['inst', '🧪 加入儀器'],
           ['fixture', '🤖 加入治具'],
           ['var_check', '🔍 加入比對'],

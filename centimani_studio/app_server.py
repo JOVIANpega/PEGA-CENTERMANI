@@ -1113,7 +1113,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             if last_f and not os.path.isfile(last_f):
                 last_f = ""
             self._send_json({
-                "server_build": "Build v0.8.087",
+                "server_build": "Build v0.8.088",
                 "blocks": STANDARD_BLOCKS,
                 "last_dir": get_last_opened_dir(),
                 "last_opened_file": last_f,
@@ -1926,7 +1926,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws_re)
-                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.087")
+                guide_txt_path = generate_companion_logic_txt(ws_re, actual_xlsx_path, dll_chk=dll_chk, fixed_logs=fixed_logs, build_ver="Build v0.8.088")
 
                 self._send_json({
                     "status": "ok",
@@ -2306,7 +2306,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.087")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, build_ver="Build v0.8.088")
 
                 self._send_json({
                     "status": "ok",
@@ -2560,7 +2560,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 from core.golden_data import check_workspace_missing_dlls
                 from core.script_notes import generate_companion_logic_txt
                 dll_chk = check_workspace_missing_dlls(ws)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.087")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, dll_chk=dll_chk, fixed_logs=fix_logs, build_ver="Build v0.8.088")
 
                 self._send_json({
                     "status": "ok",
@@ -2931,7 +2931,7 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 actual_xlsx = export_workspace_to_excel(ws, out_xlsx, active_sheet=st)
                 actual_name = os.path.basename(actual_xlsx)
                 sync_and_generate_inis(ws, actual_name, target_dir)
-                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.087")
+                guide_txt_path = generate_companion_logic_txt(ws, actual_xlsx, build_ver="Build v0.8.088")
                 open_folder_in_explorer(target_dir)
                 if bool(payload.get("open_excel", True)) and os.path.exists(actual_xlsx):
                     launch_excel_file_async(actual_xlsx)
@@ -3102,7 +3102,7 @@ def run_server(port=8765):
         # Port already in use (e.g. already running); open existing studio window instead of silent exit
         launch_fullscreen_browser(url)
         return
-    print(f"Centimani Studio V2.4 (Build v0.8.087) Server running at {url}")
+    print(f"Centimani Studio V2.4 (Build v0.8.088) Server running at {url}")
     launch_fullscreen_browser(url)
     server.serve_forever()
 
