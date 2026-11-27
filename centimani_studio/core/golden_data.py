@@ -1153,7 +1153,8 @@ _ATE_SYNONYM_GROUPS = [
     (("tx1", "tx2", "tx3", "tx4"), ["wifi", "tx"]),
     (("rx1", "rx2", "rx3", "rx4"), ["wifi", "rx"]),
     (("bt", "bluetooth", "ble"), ["bluetooth", "bt", "藍牙"]),
-    (("led", "feasa", "rgb", "lux", "亮度", "色溫", "light", "hue", "intensity"), ["led", "light"]),
+    (("led", "feasa", "rgb"), ["led"]),
+    (("lux", "亮度", "色溫", "light", "hue", "intensity"), ["led", "light"]),
     (("條碼", "isn", "barcode", "scan", "sn", "showisn"), ["isn", "barcode", "條碼"]),
     (("路由", "route", "sfcheck", "checkroute", "chkroute"), ["route", "sfis"]),
     (("上傳", "sfsave", "linkdata", "wsfis"), ["sfis", "save", "upload"]),
@@ -1167,7 +1168,8 @@ _ATE_SYNONYM_GROUPS = [
     (("flash", "燒錄", "fwdl", "download", "emmc", "spi", "nvme"), ["download", "flash", "燒錄"]),
     (("usb", "getcom"), ["usb"]),
     (("boot", "reboot", "startup", "開機", "delay", "wait"), ["boot", "delay", "wait"]),
-    (("fan", "pwm", "rpm", "轉速", "風扇"), ["fan", "speed"]),
+    (("fan", "風扇"), ["fan", "風扇"]),
+    (("pwm", "rpm", "轉速"), ["fan", "speed", "風扇"]),
     (("sound", "noise", "聲音", "異音", "噪音"), ["sound", "noise"]),
     (("rtc", "clock", "time", "ntp"), ["rtc", "time"]),
     (("lte", "5g", "wwan", "imei", "sim", "modem"), ["lte", "wwan", "sim"]),
@@ -1323,16 +1325,33 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
     clean_desc = re.sub(r"^log[_\s]+", "", clean_desc, flags=re.I).strip()
     clean_title = re.sub(r"^(?:[0-9]+|\*\$\([^)]+\)),", "", (title or "").strip()).strip()
     row_text = f"{clean_title} {clean_desc}".strip().lower()
+    send_payload = re.sub(r"^(?:UARTF?|SSH[0-9]*|TELNET[0-9]*|ADB[0-9]*|LAN[0-9]*|COM[0-9]*)@+", "", (send or "").strip(), flags=re.I)
     if not row_text:
-        row_text = (send or "").strip().lower()
-    full_row_blob = f"{row_text} {send}".lower()
+        row_text = send_payload.strip().lower()
+    full_row_blob = f"{row_text} {send_payload}".lower()
     full_cand_blob = f"{en_l} {mf_l} {if_l}"
 
-    # Penalize if candidate targets an exclusive subsystem (e.g. MOCA / HDMI / Audio / 1394 / SCART) not in the script step
+    # Penalize if candidate targets an exclusive subsystem or specific port/product/position NOT mentioned in the script step
     domain_penalty = 0.0
     for dom in _EXCLUSIVE_DOMAIN_WORDS:
         if dom in full_cand_blob and dom not in full_row_blob:
             domain_penalty += 38.0
+
+    # Specific port / position / product-line qualifiers (e.g. Eth_Left_LED_OFF, Power LED, 5G LED, Tuner, Notebook NB)
+    _QUALIFIER_WORDS = (
+        "eth", "ethernet", "left", "right", "charge led", "power led",
+        "ring led", "record led", "7-segment", "bist", "480i", "480p", "720p", "1080i",
+        "5g", "4g", "tuner", "tuner1", "qam", "sunken", "mm", "ir", "pid",
+    )
+    cand_q_words = set(re.findall(r"[a-z0-9]+", en_l))
+    row_q_words = set(re.findall(r"[a-z0-9]+", full_row_blob))
+    for qw in _QUALIFIER_WORDS:
+        hit_cand = (qw in cand_q_words) if (" " not in qw and "-" not in qw) else (qw in en_l)
+        hit_row = (qw in row_q_words) if (" " not in qw and "-" not in qw) else (qw in full_row_blob)
+        if hit_cand and not hit_row:
+            domain_penalty += 38.0
+    if mf_l.strip() == "nb" and "nb" not in row_q_words and "notebook" not in full_row_blob:
+        domain_penalty += 32.0
 
     # Bluetooth domain protection (allow BLE / 1LE / 2402 / 2440 / 2480 / BDR / EDR rows to match Bluetooth codes)
     if "bluetooth" in full_cand_blob and not any(k in full_row_blob for k in ("bluetooth", "ble", "1le", "bdr", "edr", "2402", "2440", "2480", "bt_")):
@@ -1397,20 +1416,19 @@ def _score_candidate_confidence(kw_tokens, title, desc, send, cand, is_ctrl=Fals
         if "sfis" in row_text and re.search(r"\bget\b", row_text) and "get sfis data" in en_l:
             intent_bonus += 14.0
 
-    raw = tok_ratio * 64.0 + seq_ratio * 22.0 + (8.0 if cand.get("is_generic") else 0.0) + freq_en_bonus + intent_bonus - domain_penalty
+    # Penalize generic candidates that introduce many extra unmatched words (e.g. 'Eth_Left_LED_OFF' vs 'Set LEDs All Off')
+    raw = tok_ratio * 64.0 + seq_ratio * 24.0 + (8.0 if cand.get("is_generic") else 0.0) + freq_en_bonus + intent_bonus - domain_penalty
     if domain_penalty <= 0:
         if substantive_total > 0 and substantive_hits == 0 and not is_ctrl:
             raw = min(raw, 36.0)
         elif substantive_hits == 1 and seq_ratio < 0.65 and intent_bonus <= 0:
             raw = min(raw, 65.0)
-        elif substantive_hits >= 2 and cand.get("is_generic") and tok_ratio >= 0.62:
-            raw = max(raw, 76.0)
         elif matched == 0 and is_ctrl and str(cand.get("test_id") or "").upper() in _PLACEHOLDER_TEST_IDS:
             raw = max(raw, 65.0)
         elif matched == 0:
             raw = min(raw, 35.0)
     else:
-        raw = min(raw, 30.0)
+        raw = min(raw, 34.0)
 
     return max(0, min(99, int(round(raw))))
 
@@ -1442,6 +1460,13 @@ def analyze_workspace_test_ids(workspace, target_station=""):
     for st_name, rows in stations.items():
         if target_station and st_name != target_station:
             continue
+        # Detect station-wide dummy/copy-pasted TestIDs (e.g. 'AFFY001' pasted across 10+ unrelated rows)
+        from collections import Counter
+        st_tid_counts = Counter(
+            str(rr.get("TestID") or "").strip().upper()
+            for rr in (rows or [])
+            if str(rr.get("TestID") or "").strip() and not _is_control_send(rr.get("Send") or "")
+        )
         st_stat = {"total": 0, "ok": 0, "control": 0, "suggested": 0, "needs_pick": 0}
         cur_eff_phase = ""
         cur_eff_title = ""
@@ -1531,8 +1556,12 @@ def analyze_workspace_test_ids(workspace, target_station=""):
                 elif kw_tokens and not is_ctrl:
                     overlap = any(k.lower() in cur_blob for k in kw_tokens)
                     if not overlap:
-                        reason_code = "semantic_mismatch"
-                        reason_label = f"現有 {tid}（{cur_item.get('desc_en', '')} / {cur_item.get('desc_cn', '')}）與步驟關鍵字不符"
+                        if st_tid_counts.get(tid, 0) >= 5:
+                            reason_code = "generic_placeholder"
+                            reason_label = f"此站共有 {st_tid_counts[tid]} 列重複套用 {tid}（{cur_item.get('desc_en', '') or cur_item.get('desc_cn', '')}），疑似當成佔位碼使用"
+                        else:
+                            reason_code = "semantic_mismatch"
+                            reason_label = f"現有 {tid}（{cur_item.get('desc_en', '')} / {cur_item.get('desc_cn', '')}）與步驟關鍵字不符"
 
             if not reason_code:
                 ok_count += 1

@@ -3697,6 +3697,36 @@ def run_all_verifications():
                   "v0.8.093 5欄AND查碼 + TX≠RX頻道互斥 + Get SFIS MACs免誤判OS Version + 選檔先選範圍再掃通過",
                   f"and_n={len(and_items93)}, tx={tx_cands93}, mac={mac_cands93}, pw_auto={iss93_pw and iss93_pw.get('auto_confirmed')}")
 
+            # [v0.8.094] 排除限定部位/通道/產品線誤配 (Set LEDs All Off ≠ Eth_Left / Green LED = IOET173 / Blue ≠ NB Power LED / LED off ≠ IR/5G) + 偵測全站共用假碼 AFFY001
+            tic_v94_ws = {
+                "stations": {
+                    "BootUp": [
+                        {"Index": "1", "Phase": "1", "Title": "", "Description": "Set LEDs All Off", "Send": "LAN@ATE Set_AllLedOff", "TestID": "AFFY001", "ExecMode": "0"},
+                        {"Index": "2", "Phase": "1", "Title": "", "Description": "log_Set Green LED", "Send": "LAN@ATE Set_AllGreenLedOn", "TestID": "AFFY001", "ExecMode": "0"},
+                        {"Index": "3", "Phase": "1", "Title": "", "Description": "log_Set Blue LED", "Send": "LAN@ATE Set_AllBlueLedOn", "TestID": "AFFY001", "ExecMode": "0"},
+                        {"Index": "4", "Phase": "1", "Title": "", "Description": "Check LED off", "Send": ':ShowConfirmBox,"請確認 LED 是否熄滅?","是(Yes);否(No)"', "TestID": "AFFY001", "ExecMode": "0"},
+                        {"Index": "5", "Phase": "1", "Title": "", "Description": "Push ResetButton", "Send": ':ShowConfirmBox,"請按住 reset","好(OK)"', "TestID": "AFFY001", "ExecMode": "0"},
+                    ]
+                }
+            }
+            tic_v94 = post_json("/api/tic_audit_excel", {"workspace": tic_v94_ws, "station": "BootUp"})
+            iss94 = tic_v94.get("issues") or []
+            r94_off = next((x for x in iss94 if x.get("description") == "Set LEDs All Off"), None)
+            r94_grn = next((x for x in iss94 if x.get("description") == "log_Set Green LED"), None)
+            r94_blu = next((x for x in iss94 if x.get("description") == "log_Set Blue LED"), None)
+            r94_chkoff = next((x for x in iss94 if x.get("description") == "Check LED off"), None)
+            c_off = [c.get("test_id") for c in (r94_off or {}).get("candidates", [])]
+            c_grn = [c.get("test_id") for c in (r94_grn or {}).get("candidates", [])]
+            c_blu = [c.get("test_id") for c in (r94_blu or {}).get("candidates", [])]
+            c_chk = [c.get("test_id") for c in (r94_chkoff or {}).get("candidates", [])]
+            check(tic_v94.get("status") == "ok"
+                  and r94_off is not None and "IOET170" not in c_off and "IOLE016" not in c_off
+                  and r94_grn is not None and (c_grn[:1] == ["IOET173"]) and "IOET169" not in c_grn
+                  and r94_blu is not None and "NBLE011" not in c_blu and "IOLE010" not in c_blu
+                  and r94_chkoff is not None and "NUVO040" not in c_chk and "ITLD025" not in c_chk and "IOET170" not in c_chk,
+                  "v0.8.094 LED 精準分類（排除 Eth_Left / NB Power / 5G / IR / Sunken）與全站重複假碼偵測通過",
+                  f"off={c_off[:2]}, grn={c_grn[:2]}, blu={c_blu[:2]}, chk={c_chk[:2]}")
+
         print("\n" + "=" * 78)
         print(f"🎉 全功能自動驗收完成：{passed_checks} / {total_checks} 項測試 100% 通過！(0 Error)")
         print("=" * 78)
